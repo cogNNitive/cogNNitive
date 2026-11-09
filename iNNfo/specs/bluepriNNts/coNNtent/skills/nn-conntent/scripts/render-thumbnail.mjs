@@ -94,7 +94,8 @@ export function resolveSeriesTitle({ outputPath, seriesDir } = {}) {
 export function resolveThumbnailText({ subtitle, badge, seriesTitle } = {}) {
   return {
     subtitle: subtitle || seriesTitle,
-    badge: badge || seriesTitle || 'iNNtrevistas',
+    // `null` is an explicit "no badge"; `undefined` keeps the series fallback.
+    badge: badge === null ? null : badge || seriesTitle || 'iNNtrevistas',
   };
 }
 
@@ -151,6 +152,9 @@ export function buildThumbnailProject({ width = 2560, height = 1440, title, subt
   const titleLines = wrapText(title, 20);
   const titleHtml = titleLines.map((l) => escHtml(l)).join('<br>');
   const subtitleHtml = subtitle ? `<div id="subtitle" class="clip" data-start="0" data-duration="1" data-track-index="3">${escHtml(subtitle)}</div>` : '';
+  const badgeHtml = badge
+    ? `<div id="badge" class="clip" data-start="0" data-duration="1" data-track-index="1">${escHtml(badge)}</div>`
+    : '';
 
   const indexHtml = `<!doctype html>
 <html lang="en">
@@ -178,7 +182,7 @@ export function buildThumbnailProject({ width = 2560, height = 1440, title, subt
   <body>
     <div id="root" data-composition-id="thumbnail" data-start="0" data-duration="1" data-width="${width}" data-height="${height}" data-fps="30">
       <img id="base" class="clip" data-start="0" data-duration="1" data-track-index="0" src="assets/${escHtml(baseFileName)}" />
-      <div id="badge" class="clip" data-start="0" data-duration="1" data-track-index="1">${escHtml(badge)}</div>
+      ${badgeHtml}
       <div id="title" class="clip" data-start="0" data-duration="1" data-track-index="2">${titleHtml}</div>
       ${subtitleHtml}
     </div>

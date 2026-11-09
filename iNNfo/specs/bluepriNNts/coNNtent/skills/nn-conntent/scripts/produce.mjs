@@ -41,6 +41,8 @@ import { previewGateStates, previewSubjectsFromScenes } from './lib/preview-subj
 import { renderAnimatic as defaultRenderAnimatic } from './lib/animatic.mjs';
 import { deliver as defaultDeliver } from './lib/delivery.mjs';
 import { canonicalJson, sha256Hex } from './lib/canonical.mjs';
+import { firstFrameFrom, renderEpisodeThumbnails } from './lib/thumbnails.mjs';
+import { resolveLibrary } from './lib/library.mjs';
 import { budgetGateTarget, spendPlan } from './lib/spend-gate.mjs';
 import { CacheManager } from './cache-manager.mjs';
 import { loadGuard, normalizeModelId, resolveDefaultCacheDir } from './lib/video-guard.mjs';
@@ -436,6 +438,33 @@ export async function produce(options) {
     log(`formats: ${formats.filter((v) => !v.skipped).length} derived under ${path.join(episodeDir, 'formats')}`);
   }
 
+  // 6a. Thumbnails: every declared size. Title, base and badge come from the cascade
+  // fields (defaults: the Video title, the first scene still, no badge).
+  const thumbnailFormats = resolveForEpisode(episode.model, scriptPath, 'thumbnail_formats').value;
+  const thumbnailTitle = String(
+    resolveForEpisode(episode.model, scriptPath, 'thumbnail_title').value || episode.fields.title || episode.slug,
+  );
+  const badgeValue = resolveForEpisode(episode.model, scriptPath, 'thumbnail_badge').value;
+  const thumbnailBadge = badgeValue === null || badgeValue === undefined || badgeValue === '' ? null : String(badgeValue);
+  const baseRef = resolveForEpisode(episode.model, scriptPath, 'thumbnail_base').value;
+  let thumbnailBase = deps.thumbnailBase;
+  if (!thumbnailBase && baseRef) {
+    thumbnailBase = resolveLibrary({ kind: 'media', ref: String(baseRef), fromDir: episodeDir }).path;
+  }
+  if (!thumbnailBase) {
+    thumbnailBase = firstFrameFrom(masterPath, path.join(episodeDir, `${episode.slug}_thumbnail_base.png`));
+  }
+  const thumbnails = await (deps.renderThumbnails || renderEpisodeThumbnails)({
+    episodeDir,
+    slug: episode.slug,
+    title: thumbnailTitle,
+    basePath: thumbnailBase,
+    formats: thumbnailFormats,
+    badge: thumbnailBadge,
+    deps: deps.thumbnailDeps,
+  });
+  log(`thumbnails: ${thumbnails.length} size(s)`);
+
   // 6b. Chapters: the printable block comes from the manifest the render just wrote.
   // An authored `<slug>_description.md` wins; produce only seeds one when it is absent.
   const chapters = chapterLines(manifest);
@@ -452,6 +481,7 @@ export async function produce(options) {
   const deliveryOutputs = [
     masterPath,
     ...formats.map((variant) => variant.outputPath || variant.path).filter(Boolean),
+    ...thumbnails.map((thumbnail) => thumbnail.path),
     descriptionPath,
   ].filter((file) => typeof file === 'string' && fs.existsSync(file));
   const inputFingerprint = sha256Hex(canonicalJson({ manifest, planHash }));

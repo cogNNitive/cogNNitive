@@ -184,6 +184,15 @@ reviewed_hash:: ${hash}${planHash ? `\nplan_hash:: ${planHash}` : ''}${notes ? `
   return hash;
 }
 
+
+/** The thumbnail stage is render-dependent (live tier): stub it in every produce test. */
+const thumbStubs = () => ({
+  thumbnailBase: 'first-frame.png',
+  renderThumbnails: async ({ episodeDir, slug }) => [
+    { path: path.join(episodeDir, slug + '_thumbnail_stub.png') },
+  ],
+});
+
 const assertStop = async (promise, code, exitCode) => {
   await assert.rejects(promise, (err) => {
     assert.ok(err instanceof ProduceStop, `expected ProduceStop, got ${err?.name}: ${err?.message}`);
@@ -197,7 +206,7 @@ test('review required and no approval stops with exit 10 and spends nothing', as
   const ws = workspace(episodeDoc({ status: 'draft', review: 'required' }));
   const { render, calls } = fakeRender();
   try {
-    await assertStop(produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } }), 'review-required', EXIT_REVIEW);
+    await assertStop(produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render, log: () => {} } }), 'review-required', EXIT_REVIEW);
     assert.equal(calls.length, 0, 'no render ran');
     assert.equal(readEpisode(ws.scriptPath).status, 'draft', 'the state did not move past draft');
   } finally {
@@ -210,7 +219,7 @@ test('a needs-change scene is listed with its reviewer notes', async () => {
   applyVerdict(ws, { verdict: 'needs-change', notes: 'too long' });
   try {
     await assert.rejects(
-      produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } }),
+      produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render: fakeRender().render, log: () => {} } }),
       (err) => {
         assert.equal(err.code, 'review-required');
         assert.match(err.message, /one: needs-change — too long/);
@@ -226,7 +235,7 @@ test('an unset budget always asks: exit 11 naming the estimate and the hash', as
   const ws = workspace(episodeDoc({ status: 'draft', budget: null }));
   try {
     await assert.rejects(
-      produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } }),
+      produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render: fakeRender().render, log: () => {} } }),
       (err) => {
         assert.equal(err.exitCode, EXIT_BUDGET);
         assert.equal(err.code, 'budget-unset');
@@ -244,7 +253,7 @@ test('an over-budget estimate with preview on asks for the budget gate before ch
   const { render, calls } = fakeRender();
   try {
     await assert.rejects(
-      produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } }),
+      produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render, log: () => {} } }),
       (err) => {
         assert.equal(err.exitCode, EXIT_REVIEW);
         assert.equal(err.code, 'budget-gate', 'the pre-preview subtotal alone is over budget (Q1)');
@@ -261,7 +270,7 @@ test('an over-budget estimate with preview on asks for the budget gate before ch
 test('produce writes the e_description.md chapter block and never overwrites an authored body', async () => {
   const ws = workspace(episodeDoc({ status: 'draft', review: 'skip' }));
   try {
-    const result = await produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } });
+    const result = await produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render: fakeRender().render, log: () => {} } });
     assert.equal(result.code, EXIT_DONE);
 
     const desc = fs.readFileSync(path.join(ws.episode, 'e_description.md'), 'utf8');
@@ -270,7 +279,7 @@ test('produce writes the e_description.md chapter block and never overwrites an 
 
     // An authored body wins: a second run must not clobber it.
     fs.writeFileSync(path.join(ws.episode, 'e_description.md'), 'Authored prose.', 'utf8');
-    await produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } });
+    await produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render: fakeRender().render, log: () => {} } });
     assert.equal(
       fs.readFileSync(path.join(ws.episode, 'e_description.md'), 'utf8'),
       'Authored prose.',
@@ -315,7 +324,7 @@ evidence:: decision
 `,
       'utf8',
     );
-    const result = await produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } });
+    const result = await produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render: fakeRender().render, log: () => {} } });
     assert.equal(result.code, EXIT_DONE);
     assert.equal(readEpisode(ws.scriptPath).fields.title, 'Console title', 'the human edit landed first');
   } finally {
@@ -332,7 +341,7 @@ test('the preview gate stops after cheap spend with exit 10, before any render',
     await assertStop(
       produce({
         episodePath: ws.scriptPath,
-        deps: {
+        deps: { ...thumbStubs(),
           render,
           synthesizeEpisodeAssets: async () => {
             synthesized = true;
@@ -366,7 +375,7 @@ test('a matching preview verdict lets the run continue to the render', async () 
   try {
     const result = await produce({
       episodePath: ws.scriptPath,
-      deps: {
+      deps: { ...thumbStubs(),
         render,
         synthesizeEpisodeAssets: async () => ({}),
         renderAnimatic: async () => ({ outputVideoPath: 'probe_animatic_640x640.mp4' }),
@@ -377,6 +386,35 @@ test('a matching preview verdict lets the run continue to the render', async () 
     assert.equal(result.code, EXIT_DONE);
     assert.equal(calls.length, 1);
     assert.equal(readEpisode(ws.scriptPath).status, 'delivered');
+  } finally {
+    done(ws.root);
+  }
+});
+
+test('produce renders every declared thumbnail and delivers it', async () => {
+  const ws = workspace(episodeDoc({ status: 'draft', review: 'skip' }));
+  const seen = [];
+  try {
+    const result = await produce({
+      episodePath: ws.scriptPath,
+      deps: {
+        render: fakeRender().render,
+        thumbnailBase: 'first-frame.png',
+        renderThumbnails: async ({ episodeDir, slug, formats }) => {
+          seen.push(formats);
+          return ['2560x1440', '1080x1920'].map((size) => {
+            const file = path.join(episodeDir, `${slug}_thumbnail_${size}.png`);
+            fs.writeFileSync(file, 'png-bytes');
+            return { path: file };
+          });
+        },
+        log: () => {},
+      },
+    });
+    assert.equal(result.code, EXIT_DONE);
+    assert.deepEqual(seen[0], ['2560x1440', '1080x1920'], 'the blueprint defaults');
+    assert.ok(fs.existsSync(path.join(ws.episode, 'deliveries', 'v1', 'e_thumbnail_2560x1440.png')));
+    assert.ok(fs.existsSync(path.join(ws.episode, 'deliveries', 'v1', 'e_thumbnail_1080x1920.png')));
   } finally {
     done(ws.root);
   }
@@ -399,7 +437,7 @@ test('daily_budget stops the run when the 24h window would be exceeded', async (
     );
 
     await assertStop(
-      produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } }),
+      produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render: fakeRender().render, log: () => {} } }),
       'daily-budget-exceeded',
       EXIT_BUDGET,
     );
@@ -413,7 +451,7 @@ test('daily_budget leaves a run alone when there is headroom', async () => {
   try {
     const defaultsPath = path.join(ws.root, 'video-defaults_NN.md');
     fs.appendFileSync(defaultsPath, '\ndaily_budget:: 100\n', 'utf8');
-    const result = await produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } });
+    const result = await produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render: fakeRender().render, log: () => {} } });
     assert.equal(result.code, EXIT_DONE);
   } finally {
     done(ws.root);
@@ -439,7 +477,7 @@ asset:: media/face.png
     const order = [];
     const result = await produce({
       episodePath: ws.scriptPath,
-      deps: {
+      deps: { ...thumbStubs(),
         render: async (opts) => {
           order.push('render');
           return fakeRender().render(opts);
@@ -471,7 +509,7 @@ asset:: media/face.png
     const order = [];
     const result = await produce({
       episodePath: ws.scriptPath,
-      deps: {
+      deps: { ...thumbStubs(),
         synthesizeEpisodeAssets: async () => {
           order.push('synthesize-assets');
           return { audioAssets: {} };
@@ -504,7 +542,7 @@ test('produce never runs the avatar stage for an episode without avatar layers',
     let called = false;
     const result = await produce({
       episodePath: ws.scriptPath,
-      deps: {
+      deps: { ...thumbStubs(),
         render: fakeRender().render,
         synthesizeAvatars: async () => {
           called = true;
@@ -524,7 +562,7 @@ test('preview off and over budget asks for the episode budget gate (exit 10)', a
   const ws = workspace(episodeDoc({ status: 'draft', budget: '0.0001', review: 'off' }));
   try {
     await assertStop(
-      produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } }),
+      produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render: fakeRender().render, log: () => {} } }),
       'budget-gate',
       EXIT_REVIEW,
     );
@@ -537,7 +575,7 @@ test('an idea episode with no proposal fails naming that no script was proposed'
   const ws = workspace(episodeDoc({ status: 'idea' }));
   try {
     await assertStop(
-      produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } }),
+      produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render: fakeRender().render, log: () => {} } }),
       'no-proposal',
       1,
     );
@@ -575,7 +613,7 @@ evidence:: decision
       'utf8',
     );
     await assertStop(
-      produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } }),
+      produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render: fakeRender().render, log: () => {} } }),
       'unknown-key',
       1,
     );
@@ -612,7 +650,7 @@ evidence:: decision
 `,
       'utf8',
     );
-    const result = await produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } });
+    const result = await produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render: fakeRender().render, log: () => {} } });
     assert.equal(result.code, EXIT_DONE);
     assert.equal(readEpisode(ws.scriptPath).status, 'delivered', 'intake -> draft -> approved -> delivered');
   } finally {
@@ -624,7 +662,7 @@ test('an archived episode is refused naming the state', async () => {
   const ws = workspace(episodeDoc({ status: 'archived' }));
   try {
     await assertStop(
-      produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } }),
+      produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render: fakeRender().render, log: () => {} } }),
       'refused-state',
       1,
     );
@@ -637,7 +675,7 @@ test('an episode pinned to another blueprint version is refused naming both', as
   const ws = workspace(episodeDoc({ pin: 'V_0-14-1' }));
   try {
     await assert.rejects(
-      produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } }),
+      produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render: fakeRender().render, log: () => {} } }),
       (err) => {
         assert.equal(err.code, 'blueprint-version-mismatch');
         assert.match(err.message, /V_0-14-1/);
@@ -654,7 +692,7 @@ test('an unset language is a validation error before the estimate', async () => 
   const ws = workspace(episodeDoc(), { series: false });
   try {
     await assertStop(
-      produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } }),
+      produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render: fakeRender().render, log: () => {} } }),
       'missing-language',
       1,
     );
@@ -675,7 +713,7 @@ test('a second run on a produced episode is idempotent and keeps produced', asyn
   const ws = workspace(episodeDoc({ status: 'produced', budget: '1.5' }));
   const { render, calls } = fakeRender();
   try {
-    const result = await produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } });
+    const result = await produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render, log: () => {} } });
     assert.equal(result.code, EXIT_DONE);
     assert.equal(calls.length, 1, 'the master is rendered again (cache makes it free)');
     const after = readEpisode(ws.scriptPath);
@@ -691,7 +729,7 @@ test('overlay QA: a removed host makes produce exit 12 with overlay-qa-failed, s
   const { render } = fakeRender({ overlayManifest: overlays, indexHtml: '<!doctype html><html><body><div id="root"></div></body></html>' });
   try {
     await assert.rejects(
-      produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } }),
+      produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render, log: () => {} } }),
       (err) => {
         assert.equal(err.code, 'overlay-qa-failed');
         assert.equal(err.exitCode, 12);
@@ -714,7 +752,7 @@ test('overlay QA: a complete project proceeds to formats and status:: produced',
   const overlays = [{ id: 'overlay_scene_one_1', sceneId: 'scene_one', type: 'lowerThird' }];
   const { render } = fakeRender({ overlayManifest: overlays });
   try {
-    const result = await produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } });
+    const result = await produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render, log: () => {} } });
     assert.equal(result.code, EXIT_DONE);
     const ep = readEpisode(ws.scriptPath);
     assert.equal(ep.status, 'delivered');
@@ -728,7 +766,7 @@ test('overlay QA: a missing index.html fails with overlay-qa-failed', async () =
   const { render } = fakeRender({ indexHtml: null });
   try {
     await assert.rejects(
-      produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } }),
+      produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render, log: () => {} } }),
       (err) => {
         assert.equal(err.code, 'overlay-qa-failed');
         assert.equal(err.exitCode, 12);

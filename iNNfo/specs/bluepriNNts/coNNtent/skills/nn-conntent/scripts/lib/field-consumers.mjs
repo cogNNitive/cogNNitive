@@ -35,6 +35,10 @@ export const FIELD_CONSUMERS = {
   status: ['produce.mjs'],
   master: ['produce.mjs'],
   delivered_version: ['produce.mjs', 'lib/delivery.mjs'],
+  thumbnail_formats: ['produce.mjs', 'lib/thumbnails.mjs'],
+  thumbnail_title: ['produce.mjs'],
+  thumbnail_base: ['produce.mjs', 'lib/library.mjs'],
+  thumbnail_badge: ['produce.mjs'],
   budget: ['produce.mjs'],
   daily_budget: ['produce.mjs'],
   review_gates: ['produce.mjs'],
@@ -99,10 +103,6 @@ export const PLANNED_CONSUMERS = {
   timing: '5',
   captions: '3b-3 (captions)',
   caption_model: '3b-3 (captions)',
-  thumbnail_formats: '3b-5 (thumbnails)',
-  thumbnail_base: '3b-5 (thumbnails)',
-  thumbnail_title: '3b-5 (thumbnails)',
-  thumbnail_badge: '3b-5 (thumbnails)',
 };
 
 /** Fields that are annotation by design: never engine input, so never a phantom. */
