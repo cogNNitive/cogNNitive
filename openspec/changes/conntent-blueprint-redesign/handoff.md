@@ -1,6 +1,6 @@
 # Handoff — coNNtent bluepriNNt Redesign
 
-Tracker: `feat/conntent-redesign` · worktree `../cogNNitive-conntent-redesign-sdd` · HEAD `551394e7`.
+Tracker: `feat/conntent-redesign` · worktree `../cogNNitive-conntent-redesign-sdd` · HEAD `33a8f1a3`.
 Everything below is committed and pushed. The primary checkout is read-only; work in the worktree.
 
 ## State at handoff
@@ -9,13 +9,13 @@ Everything below is committed and pushed. The primary checkout is read-only; wor
 |---|---|
 | 3a (review_gate in nn-core + nn-mcp) | **complete** |
 | 3b-1 (hashes, gates, lifecycle) | **complete** |
-| 3b-2 (pipeline order, spend, animatic) | complete except 2.2 (`pipeline.mjs` extraction) and 2.8 (cold-cache E2E) |
+| 3b-2 (pipeline order, spend, animatic) | complete except 2.8 (cold-cache E2E) |
 | 3b-3 (captions) | core landed (align/runner/cache/fixture); produce wiring, consent check and caption skin remain |
 | 3b-4 (QA) | not started — **live tier**; now unblocked, real frames exist |
 | 3b-5 (delivery, thumbnails, description) | complete except 5.7/.8 (renderer description reconciliation, `delivered v1` E2E) |
 | 4a (console runtime) | **complete** |
 | 4b (console data + writeConsole scope) | 4b.1/.2/.3 complete; 4b.4 (stale translation) and 4b.5 (superseded deliveries, partially shown) remain |
-| 4c (unified view) | 4c.1/.2/.3/.5 complete; **4c.4 and 4c.6 remain** |
+| 4c (unified view) | **complete** |
 | 4d (delivery view + picker) | not started |
 | 5a (procedures) | **complete** |
 | 5b (entry point) | 5b.1/.2 complete; 5b.4 (U1-U7 E2E) remains |
@@ -25,6 +25,18 @@ Green gates at handoff: `node scripts/verify.js --only=conntent`, `--only=consol
 The full `node scripts/verify.js` is only run at Phase 7.3 and the final merge.
 
 ## What landed most recently (this session)
+
+- `ac94e304` **3b-2.2 + 4c.4**: the stage order moved to `lib/pipeline.mjs`; `produce.mjs` is a
+  CLI over it (`export *`, `--no-open`). The pipeline wraps its stages in a `try/finally` that
+  calls the one shared console writer after every engine write: exit 0 (no browser), 10, 11 and 12
+  (browser unless `--no-open` / `INNFO_CONSOLE_NO_OPEN=1`). A regeneration failure is logged with the
+  console path and never changes the exit code. `NO_OPEN_ENV` was added to the coNNtent core mirror
+  (`scripts/core-mirrors/coNNtent.ts` + regenerated `nn-core.generated.cjs`). Fields formerly read by
+  `produce.mjs` now name `lib/pipeline.mjs` in `field-consumers.mjs`.
+- `33a8f1a3` **4c.6**: `console-conntent-size.test.mjs` — 50 episodes × 4 scenes with real media
+  files on disk export a console under the 5 MB warning threshold, and the payload carries no media.
+
+## What landed before (previous session)
 
 - `71c695c1` **4c.3 approval flow**: `propose()` accepts `kind: 'verdict'`, validates
   `gate` / `verdict` / 64-hex `reviewed_hash` (and a reason for `needs-change`); the draft store
@@ -52,31 +64,29 @@ repo carries code and tests, the domain carries videos, deliveries and caches. I
 
 ## Remaining work, in order
 
-1. **4c.4** regenerate the console after every engine exit and every applied changeset (the
-   `finally` in the future `pipeline.mjs`). `4c.6` console size assertion with 50 fixture episodes.
-2. **Catalog picklists** (conntent-domain-console "Picklists come from the catalog"): `image_model`,
+1. **Catalog picklists** (conntent-domain-console "Picklists come from the catalog"): `image_model`,
    `avatar_model`, `voice_model` and `voice` are free-text today. Blocked by three facts:
    the blueprint parser drops undeclared field keys; the console payload carries catalog **slugs**,
    not the provider **`api_id`** the fields expect; and a `select` with no options renders an empty
    list. Work: carry the merged catalog (with `api_id`) into the payload, add the schema hook, then
    declare the fields as picklists. `scripts/export-console.mjs` already contains an **inert**
    `options_from` resolution block: wire it or delete it.
-3. **4b.4/.5** stale-translation flag (`translation_of`) and the "served" case of superseded
+2. **4b.4/.5** stale-translation flag (`translation_of`) and the "served" case of superseded
    deliveries.
-4. **4d** delivery view (`conntent-delivery`, read-only, `writeConsole` `scope.outFile` into
+3. **4d** delivery view (`conntent-delivery`, read-only, `writeConsole` `scope.outFile` into
    `deliveries/v<N>/<slug>_delivery.html`) + the component-portfolio picker.
-5. **3b-3.6-.9** captions: wire into `produce` (after TTS/images, before the animatic; under 90%
+4. **3b-3.6-.9** captions: wire into `produce` (after TTS/images, before the animatic; under 90%
    alignment stops with exit 1), ASR consent check before spend, `caption-skin.html` from the frame.
-6. **3b-2.2/.8** extract `pipeline.mjs` from `produce.mjs`; cold-cache E2E with fake providers.
-7. **3b-5.7/.8** reconcile the description renderer with HyperFrames; E2E reaches `delivered v1`
+5. **3b-2.8** cold-cache E2E with fake providers.
+6. **3b-5.7/.8** reconcile the description renderer with HyperFrames; E2E reaches `delivered v1`
    and a rerun is a no-op.
-8. **Live tier**: 3b-4 QA (`qa.test.mjs`, `lib/qa.mjs`, output-set checkpoint) and calibrate
+7. **Live tier**: 3b-4 QA (`qa.test.mjs`, `lib/qa.mjs`, output-set checkpoint) and calibrate
    `QA_TEXT_EDGE_MIN` on the pilot's real frames (V.4).
-9. **5b.4** simulate U1-U7 on a fresh domaiNN fixture, fake providers.
-10. **Phase 7**: merge the 41 delta specs into `openspec/specs/` (remove `conntent-review` and
-    `conntent-console-views`); regen; full `node scripts/verify.js`; release via `nn-dev-release`;
-    run U1-U7 against the end-user domain; archive.
-11. **Final**: merge the tracker into `dev` only with `verify.js` green.
+8. **5b.4** simulate U1-U7 on a fresh domaiNN fixture, fake providers.
+9. **Phase 7**: merge the 41 delta specs into `openspec/specs/` (remove `conntent-review` and
+   `conntent-console-views`); regen; full `node scripts/verify.js`; release via `nn-dev-release`;
+   run U1-U7 against the end-user domain; archive.
+10. **Final**: merge the tracker into `dev` only with `verify.js` green.
 
 ## Decisions already made (do not re-open)
 
@@ -119,3 +129,8 @@ repo carries code and tests, the domain carries videos, deliveries and caches. I
 - PowerShell: use `;`, never `&&`. Git hooks block `reset --hard`, `clean`, `stash`, `checkout`
   of the primary tree, and `Remove-Item -Recurse -Force` outside the cwd.
 - After touching nn-core: `npm run regen`. After touching console sources: `npm run build:console`.
+  After touching the core mirror (`scripts/core-mirrors/coNNtent.ts`): `node scripts/build-core-mirrors.mjs`.
+- **Prettier debt before the merge**: the coNNtent skill tree is not formatted with the root
+  `.prettierrc.json` (semicolons, 120-col). CI's "Format check (changed files)" runs on the PR to
+  `dev`, so Phase 7 needs one mechanical `prettier --write` over every changed `.mjs`/`.json` of this
+  change, committed on its own. Do not reformat per slice.
