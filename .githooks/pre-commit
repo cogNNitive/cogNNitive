@@ -1,0 +1,28 @@
+#!/bin/sh
+# pre-commit: refresh the cheap core mirrors when core sources are staged.
+#
+# Only the two <1s generators run, and only when the staged set touches their
+# inputs. The full `npm run regen` needs a build and belongs to a deliberate
+# step, not to every commit; the pre-push gate still checks all eleven
+# freshness guards (see .githooks/pre-push and ADR-001: that hook never mutates
+# the working tree, this one stages what it rewrote, which is expected here).
+
+staged=$(git diff --cached --name-only)
+if ! echo "$staged" | grep -qE '^(iNNfo/packages/nn-core/src/|iNNfo/packages/nn-mcp/src/|scripts/core-mirrors/)'; then
+  exit 0
+fi
+
+before=$(git diff --name-only)
+
+node scripts/build-core-mirrors.mjs >/dev/null || exit 1
+node scripts/generate-canonical-registry.mjs >/dev/null || exit 1
+
+# Stage only the files these two generators rewrote.
+for f in $(git diff --name-only); do
+  case " $before " in
+    *" $f "*) ;;
+    *) git add -- "$f" ;;
+  esac
+done
+
+exit 0

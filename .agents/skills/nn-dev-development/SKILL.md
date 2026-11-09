@@ -168,6 +168,12 @@ Match the ceremony to the blast radius — never run the heavy lane "just in cas
 
 Rule of thumb: if CI can catch a mistake before it reaches `main`, the light lane is enough.
 
+**Open the PR freely; ask before merging it.** When a work unit is done and verified, open
+the PR to `dev` without asking — that is the normal end of a unit. Merging that PR into
+`dev` is the maintainer's call: ask at the moment, per PR. Pushing the session branch is
+always allowed. The `dev -> main` batch and its tags stay gated by §4 and `nn-dev-release`;
+this rule does not touch them.
+
 ### 2c. Keep the backlog shrinking
 
 Do not register a new OpenSpec change while the active backlog is large. Count it live
