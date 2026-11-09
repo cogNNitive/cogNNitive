@@ -28,7 +28,7 @@ const resolver = ({ name }: { name: string }) =>
 function model(
   path: string,
   elements: ReadonlyArray<[concept: string, slug: string]>,
-  pin = 'coNNtent_V_0-15-1',
+  pin = 'coNNtent_V_0-17-0',
 ): DomainModelInput {
   return {
     path,
@@ -44,14 +44,14 @@ const episodeModel = (
   slug: string,
   extra: ReadonlyArray<[string, string]> = [],
   pin?: string,
-) => model(`series/${series}/assets/${slug}/${slug}_coNNtent_NN.md`, [['Video', slug], ...extra], pin)
+) => model(`series/${series}/episodes/${slug}/${slug}_coNNtent_NN.md`, [['Video', slug], ...extra], pin)
 
 const codesOf = (...inputs: DomainModelInput[]) =>
   buildDomainIndex(inputs, resolver).diagnostics.map((d) => d.code)
 
 describe('coNNtent declares its storage (video-blueprint; design A16, section 5)', () => {
-  it('pins bluepriNNt V_0-15-2 against iNNfo V_0-7-0', () => {
-    expect(CONNTENT).toMatch(/^blueprint_version: "V_0-15-2"$/m)
+  it('pins bluepriNNt V_0-17-0 against iNNfo V_0-7-0', () => {
+    expect(CONNTENT).toMatch(/^blueprint_version: "V_0-17-0"$/m)
     expect(CONNTENT).toMatch(/^ {2}name: "iNNfo_V_0-7-0"$/m)
   })
 
@@ -60,7 +60,7 @@ describe('coNNtent declares its storage (video-blueprint; design A16, section 5)
     expect(storageOf('Video')).toEqual({
       mode: 'distributed',
       container: 'Series',
-      placement: '{container}/assets/{slug}/',
+      placement: '{container}/episodes/{slug}/',
     })
   })
 
@@ -72,7 +72,7 @@ describe('coNNtent declares its storage (video-blueprint; design A16, section 5)
 })
 
 describe('episodes follow the declared placement (placement-validation)', () => {
-  it('accepts an episode at series/<s>/assets/<slug>/ with no layout finding', () => {
+  it('accepts an episode at series/<s>/episodes/<slug>/ with no layout finding', () => {
     const index = buildDomainIndex(
       [
         seriesModel('villabotijos-today'),
@@ -97,7 +97,7 @@ describe('episodes follow the declared placement (placement-validation)', () => 
     const [finding] = buildDomainIndex([misplaced], resolver).diagnostics
     expect(finding.code).toBe('PLACEMENT_MISMATCH')
     expect(finding.severity).toBe('error')
-    expect(finding.message).toContain('Video instances live at series/{slug}/assets/pepper-mapache/')
+    expect(finding.message).toContain('Video instances live at series/{slug}/episodes/pepper-mapache/')
   })
 
   it('reports double storage when the same Video is also a registry element', () => {
@@ -146,7 +146,7 @@ describe('Scenes and Layers are elements, not models (coNNtent-model)', () => {
   })
 
   it('rejects a second Video in one script (one Video per script)', () => {
-    const two = model('series/villabotijos-today/assets/intro/intro_coNNtent_NN.md', [
+    const two = model('series/villabotijos-today/episodes/intro/intro_coNNtent_NN.md', [
       ['Video', 'intro'],
       ['Video', 'outro'],
     ])
@@ -158,7 +158,7 @@ describe('Scenes and Layers are elements, not models (coNNtent-model)', () => {
 })
 
 describe('existing episodes pinning other versions (video-blueprint; placement-validation)', () => {
-  it('reports a V_0-14-1 episode among V_0-15-1 as skew and leaves its pin untouched', () => {
+  it('reports a V_0-14-1 episode among V_0-17-0 as skew and leaves its pin untouched', () => {
     const old = episodeModel('villabotijos-today', 'intro', [], 'coNNtent_V_0-14-1')
     const current = episodeModel('villabotijos-today', 'nuevo')
     const index = buildDomainIndex([seriesModel('villabotijos-today'), old, current], resolver)

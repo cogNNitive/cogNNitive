@@ -84,7 +84,7 @@ Legend: ● can be written at this scope, · cannot.
 | `review_gates` | select (multi) | `script`, `preview` | ● | ● | · | · | ● | · | · | · | · | · | · | · |
 | `captions` | select | `off`, `words`, `lines` | ● | ● | · | · | ● | · | · | · | · | · | · | · |
 | `caption_model` | string | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
-| `thumbnail_formats` | list | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
+| `thumbnail_formats` | select (multi) | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
 | `thumbnail_base` | file | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
 | `thumbnail_title` | string | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
 | `thumbnail_badge` | string | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |

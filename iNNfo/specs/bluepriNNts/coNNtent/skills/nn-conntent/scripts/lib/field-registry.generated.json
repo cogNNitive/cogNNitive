@@ -1037,9 +1037,9 @@
         "series",
         "video"
       ],
-      "type": "list",
+      "type": "select",
       "options": [],
-      "multiple": false,
+      "multiple": true,
       "cascade": true,
       "description": "Ordered thumbnail sizes as `<W>x<H>`. Defaults to `[2560x1440, 1080x1920]`."
     },

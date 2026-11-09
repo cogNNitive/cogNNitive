@@ -482,7 +482,8 @@ description:: The transcript alignment model override. Defaults to the package m
 ## NN Field Definition: thumbnail_formats
 concept:: [Video, Series, Video Defaults]
 scope:: video
-type:: list
+type:: select
+multiple:: true
 description:: Ordered thumbnail sizes as `<W>x<H>`. Defaults to `[2560x1440, 1080x1920]`.
 
 ## NN Field Definition: thumbnail_base
