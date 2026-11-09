@@ -125,13 +125,17 @@ gate passed in ~60 s.
 - [x] 4a.8/4a.9 `resolveConsoleModulePath`/`devCheckoutRoot` moved to `CORE/src/console/locate-writer.ts`, exported by nn-core and the coNNtent mirror, imported by nn-mcp; mirrors and bundle regenerated.
 - [x] 4b.1/4b.2 `assets/console-view-conntent.data.mjs`: Domain → Series → Episode, pending inbox with causes, every cascade field with value + source, scene script/preview hashes, deliveries; calls the engine modules only. `console-conntent-data.test` 5/5.
 - [x] 4b.3 `writeConsole` scope `{models, readOnly, outFile}` (+ `view` in the same object); `export-console.test` 62/62.
-- [ ] 4b.4 stale-translation flag and 4b.5 superseded-delivery display land with the view (4c), where the display lives.
-- [ ] 4c unified `conntent` view + delete the old views; 4d delivery view.
+- [x] 4c.1 + 4c.2 unified `conntent` view `assets/console-view-conntent.js` registered as Pipeline: Pending home, then Domain, Series and Episode sections (review gates, fields with source, status, deliveries with superseded marked); no Deliver button, no orphan cleanup. `console-conntent-view.test` 5/5.
+- [x] 4c.5 deleted `console-view-episode-review.*` and `console-view-series.*` and their tests; `export-console-episodes` reads the conntent data module. Console gate green.
+- [ ] 4c.3/4c.4/4c.6 approval flow in the view, regeneration after every engine exit, size assertion with 50 episodes.
+- [ ] 4d delivery view (read-only, scoped to one episode, `writeConsole` outFile) and the portfolio picker.
+- [ ] 4b.4 stale-translation flag and 4b.5 superseded-delivery display (view-level, with 4c/4d).
 
 ## Slice 5 — Procedures (PRs 5a–5b)
 
 - [x] 5a.1-5a.5 `usage_procedures_NN.md`: six procedures, `tool::` per step, setup closes with a proposed changeset, Create a Series dry-run, no Deliver procedure; `procedures.test.mjs` 19/19; usage and version guards green.
-- [ ] 5b state-aware entry point and the `nn-video-script` refusal.
+- [x] 5b.1 + 5b.2 `lib/detect-state.mjs` (`detectState`) and the SKILL.md entry point; `detect-state.test` 7/7. SKILL.md no longer mentions `--approve`, `video-guard.json` or the retired renderer.
+- [ ] 5b.3 is moot: `nn-video-script` no longer exists in the repo (removed before this change); the entry point refuses a legacy layout instead. 5b.4 (U1-U7 simulation) needs the live tier.
 
 ## Phase 7 — Living specs, release, verification, archive
 
