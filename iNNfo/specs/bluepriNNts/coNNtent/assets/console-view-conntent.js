@@ -124,6 +124,20 @@ registerView({
         }
         card.appendChild(review)
 
+        var scriptBox = el('div', 'nn-episode-script')
+        scriptBox.setAttribute('data-nn-subsection', 'script')
+        scriptBox.appendChild(el('h5', null, 'Script'))
+        ;(episode.scenes || []).forEach(function (scene) {
+          var sceneBox = el('article', 'nn-scene-script')
+          sceneBox.setAttribute('data-nn-scene', scene.slug)
+          var head = el('h6', null, scene.slug + ' · ' + (scene.name || ''))
+          sceneBox.appendChild(head)
+          if (scene.scriptHash) sceneBox.appendChild(el('p', 'nn-script-hash', 'hash ' + scene.scriptHash.slice(0, 8)))
+          sceneBox.appendChild(el('p', 'nn-scene-narration', scene.narration || '(no narration)'))
+          scriptBox.appendChild(sceneBox)
+        })
+        card.appendChild(scriptBox)
+
         var configBox = el('div', 'nn-episode-config')
         configBox.setAttribute('data-nn-subsection', 'config')
         configBox.appendChild(el('h5', null, 'Config'))
