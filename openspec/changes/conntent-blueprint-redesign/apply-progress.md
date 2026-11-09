@@ -41,14 +41,12 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 - [x] 1a.8 RED+GREEN `T/production-hierarchy.test.mjs` — domaiNN→Series→Video; no Subject concept.
 - Diff vs v1a-layout: 288 insertions, **under budget**.
 
-**Status:** tracker `feat/conntent-redesign` verde y empujado (HEAD b6d072e5, verify:fast 227/227 tras cada commit). Aterrizado en esta pasada:
-- **Slice 1b COMPLETA** (1b.1-1b.6). **1c.1/1c.2** (nombres + composition id = slug), **1c.3+1c.4** (ledger único), **1c.5** (`spendGuardFromDocuments` desde cascade+catálogo; `video-guard.json` → `legacy-layout`), **1c.7** (plan.json).
-- (Antes) 1a, 1b núcleo, 2c (frame-carpeta).
+**Status:** tracker `feat/conntent-redesign` verde y empujado (HEAD 89cd7d22, verify:fast 227/227 tras cada commit). En esta pasada:
+- **Slice 2a (parte)**: 2a.1+2a.2 — `build-field-registry` emite `scope` (render|video|domain|record) y `levels`, valida `scope-concept-mismatch`/`scope-missing`, y el spec_NN.md declara `scope::` en los 22 campos cascade existentes; registry + parameters regenerados.
+- (Antes) 1a, 1b completa, 1c.1-1c.5+1c.7, 2c.
 
-**Dependencia honesta:** 1c.6 (borrar `loadGuard`/`GUARD_FILENAME` del engine) requiere reescribir los ~8 callers que construyen SpendGuard (asset-cost-estimator, asset-synthesizer, voice-clone, compile, synth-avatar) para leer de cascade+catálogo — eso vive en los slices 2a (cascade) y 3b (pipeline plan build). Se deja documentado como dependencia; `spendGuardFromDocuments` ya es el nuevo camino.
-**1c.8** (docs/procedures zero refs) depende de 1c.6. Slice 1c queda funcionalmente completo excepto la amputación del archivo legacy (1c.6) que se completa en 3b.
-
-**Siguiente:** 2a (scope classes cascade), 2b (language), 2d (character), 2e (components), 3a, 3b, 4, 5, Phase 7. Con permisos (whisper/render/navegador) puedo completar V.3, 3b-3, 3b-4 y botijos-today. Fusión a dev/main al final con verify.js verde.
+**Pendiente de 2a:** 2a.3 (contract test `cascade-scope-classes.test.mjs` — exigido por la spec pero enorme: cada campo×nivel en compiler+estimator), 2a.4 (`lib/cascade.mjs createCascade`), 2a.5-2a.9. El resolver central (createCascade) es la siguiente pieza.
+**Luego:** 2b-2e, 3a, 3b, 4, 5, Phase 7. 1c.6/1c.8 quedan dependientes de 3b (callers de SpendGuard). Con permisos (whisper/render/navegador) puedo completar V.3, 3b-3, 3b-4, botijos-today. Fusión a dev/main al final con verify.js verde.
 
 ## Slice 2 — Cascade (PRs 2a–2e)
 
