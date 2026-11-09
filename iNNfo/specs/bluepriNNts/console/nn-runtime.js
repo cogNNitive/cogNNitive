@@ -21,7 +21,7 @@
   // by the export gate so the user must enter a real one before exporting.
   var DEFAULT_REVIEWER_NAME = 'reviewer'
   var MODEL_VERSION_PATTERN = /^V_\d+-\d+-\d+$/
-  var ITEM_KINDS = ['correction', 'comment', 'new', 'delete']
+  var ITEM_KINDS = ['correction', 'comment', 'new', 'delete', 'verdict']
   // Values the `is:` filter operator understands (see matchAtom).
   var KNOWN_IS_VALUES = ['draft', 'reviewed', 'changed']
   var activeState = null
@@ -3921,7 +3921,31 @@
                 throw new Error('cannot propose: a correction needs a proposed value')
               }
             }
+            // A verdict is a gate decision, not a field write: it names the gate, its
+            // outcome and the content hash the reviewer saw (never computed here).
+            if (p.kind === 'verdict') {
+              if (!nonEmptyString(p.gate)) throw new Error('cannot propose: a verdict needs a gate')
+              if (p.verdict !== 'approved' && p.verdict !== 'needs-change') {
+                throw new Error('cannot propose: a verdict must be approved or needs-change')
+              }
+              if (!/^[0-9a-f]{64}$/.test(String(p.reviewed_hash || ''))) {
+                throw new Error('cannot propose: a verdict needs the 64-hex reviewed_hash of the content it reviews')
+              }
+              if (p.verdict === 'needs-change' && !nonEmptyString(p.notes)) {
+                throw new Error('cannot propose: needs-change needs a reason')
+              }
+              if (p.plan_hash !== undefined && p.plan_hash !== null && p.plan_hash !== '' && !/^[0-9a-f]{64}$/.test(String(p.plan_hash))) {
+                throw new Error('cannot propose: plan_hash must be 64 hex characters')
+              }
+            }
             var payload = { kind: p.kind, proposed: p.proposed, comment: p.comment }
+            if (p.kind === 'verdict') {
+              payload.gate = p.gate
+              payload.verdict = p.verdict
+              payload.reviewed_hash = p.reviewed_hash
+              payload.notes = p.notes
+              if (p.plan_hash) payload.plan_hash = p.plan_hash
+            }
             if (p.kind === 'correction') {
               // Same source the modal path uses (kuModalTarget): name and
               // description live on the element, other fields under fields.
@@ -6391,7 +6415,11 @@
       var reviewedHash = oneLine(d.reviewed_hash || '')
       var planHash = d.plan_hash ? oneLine(d.plan_hash) : ''
       if (gate === 'budget' && !planHash) planHash = reviewedHash
-      var verdictTarget = oneLine(d.target || d.knowledge_id || fallbackModel || 'model')
+      // A scene verdict targets `<file stem>@<scene slug>`; a budget verdict targets the
+      // episode model itself (there is no element_slug).
+      var verdictTarget = oneLine(
+        d.target || (d.element_slug ? model + '@' + d.element_slug : d.knowledge_id || fallbackModel || 'model'),
+      )
       var verdictLines = [
         '## NN Change: ' + id,
         'op:: review_gate',

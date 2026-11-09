@@ -1,24 +1,45 @@
 /* coNNtent/assets/console-view-conntent.js — the unified coNNtent view (design D-C3;
-   capability conntent-domain-console). One renderer: Pending is home, then Domain,
-   Series and Episode sections. Every number, hash and source level comes from
-   `ctx.viewData` (collected at export time by console-view-conntent.data.mjs); the view
-   only groups and formats. There is no Deliver button and no orphan cleanup.
+   capability conntent-domain-console). Pending is home, then Domain, Series and Episode.
 
-   Styling: the view reuses the console design system already shipped with the shell
-   (`nn-episode-head`, `nn-scene-card`, `nn-narration`, `nn-params-grid`, `nn-cascade-chip`,
-   `nn-badge`, `table`, `empty-state`). Only the containers this view owns get a rule in
-   `console/nn-ui.css` (section headings, pending rows, series board); inventing
-   `nn-conntent-*` classes with no stylesheet entry is what made the first export render as
-   an unstyled wall of text. */
+   The Episode section is the review surface: a gate strip (each gate with its state and what
+   it protects, plus the automatic QA cell that has no controls), one collapsible card per
+   scene (still, narration audio, layer pills, inherited source line, narration), and the
+   verdict controls. A verdict is a `review_gate` draft in the shared store: it names the
+   gate, its outcome and the content hash the payload published — the view never computes a
+   hash and never writes the `review::` field.
+
+   Every number, hash and source level comes from `ctx.viewData` (collected at export time by
+   console-view-conntent.data.mjs); the view only groups and formats. There is no Deliver
+   button and no orphan cleanup.
+
+   Styling: the console design system already shipped with the shell (`nn-episode-head`,
+   `nn-scene-card`, `nn-narration`, `nn-params-grid`, `nn-verdict-controls`, `nn-badge`,
+   `table`, `empty-state`); only the containers this view owns get a rule in
+   `console/nn-ui.css`. */
+
 registerView({
   title: 'Pipeline',
   icon: 'play',
   order: 15,
-  kind: 'readonly',
+  kind: 'editable',
   mount: function (ctx) {
     var doc = ctx.container.ownerDocument
     var data = (ctx.viewData && ctx.viewData.tree) || { series: [] }
     var pending = (ctx.viewData && ctx.viewData.pending) || []
+
+    // What each gate protects. The strip shows it so a reviewer knows what a click freezes.
+    var GATE_INFO = {
+      script: { label: 'Script', protects: 'before any spend' },
+      preview: { label: 'Preview', protects: 'before avatar spend' },
+      budget: { label: 'Budget', protects: 'before any spend' },
+      qa: { label: 'Automatic QA', protects: 'always on, no approval' },
+    }
+    var GATE_ORDER = ['script', 'preview', 'budget']
+    // The content a gate reviews, and the hash the payload published for it.
+    function hashFor(scene, gate) {
+      if (gate === 'preview') return scene.previewHash
+      return scene.scriptHash
+    }
 
     function el(tag, className, text) {
       var node = doc.createElement(tag)
@@ -42,7 +63,6 @@ registerView({
       return el('span', 'nn-badge' + (extra ? ' ' + extra : ''), text)
     }
 
-    /** One resolved cascade value: its source level sits beside it, never replaces it. */
     function param(label, value, source) {
       var box = el('div', 'nn-param')
       box.appendChild(el('span', 'nn-param-label', label))
@@ -57,8 +77,66 @@ registerView({
       return box
     }
 
+    var toastBox = el('div', 'nn-toast')
+    var toastTimer = null
+    function toast(message) {
+      toastBox.textContent = message
+      toastBox.classList.add('is-open')
+      if (toastTimer) clearTimeout(toastTimer)
+      toastTimer = setTimeout(function () {
+        toastBox.classList.remove('is-open')
+      }, 2600)
+    }
+
+    /** Every decision goes through the one shared store; the view keeps no private copy. */
+    function propose(change) {
+      try {
+        if (!ctx.store) throw new Error('review is not enabled in this console')
+        ctx.store.propose(change)
+        return true
+      } catch (err) {
+        toast('Cannot save: ' + (err && err.message ? err.message : String(err)))
+        return false
+      }
+    }
+
+    /** A verdict for one scene on one gate, with the hash the payload published. */
+    function proposeVerdict(episode, scene, gate, verdict, notes) {
+      var hash = hashFor(scene, gate)
+      if (!hash) {
+        toast('No ' + gate + ' hash for ' + scene.slug + ': regenerate the console')
+        return false
+      }
+      var change = {
+        kind: 'verdict',
+        elementId: scene.elementId,
+        gate: gate,
+        verdict: verdict,
+        reviewed_hash: hash,
+        notes: notes,
+      }
+      if (gate === 'preview' && scene.planHash) change.plan_hash = scene.planHash
+      return propose(change)
+    }
+
     var root = el('div', 'nn-conntent-view')
     ctx.container.appendChild(root)
+    root.appendChild(toastBox)
+
+    /** Reflect an approval in the card that issued it (or in every card, for the gate). */
+    function markApproved(sceneSlug, gate) {
+      var card = doc.querySelector('[data-nn-scene="' + sceneSlug + '"]')
+      if (!card) return
+      var pill = card.querySelector('[data-nn-verdict-pill]')
+      if (pill) {
+        pill.textContent = 'approved'
+        pill.setAttribute('data-nn-verdict-pill', 'approved')
+      }
+      var box = card.querySelector('[data-nn-subsection="verdict"]')
+      if (!box) return
+      box.textContent = ''
+      box.appendChild(el('p', 'nn-verdict-approved', 'Approved for ' + gate + '.'))
+    }
 
     // 1. Pending inbox — home.
     var pendingSection = section('pending', 'Pending')
@@ -74,6 +152,7 @@ registerView({
         var head = el('div', 'nn-pending-head')
         head.appendChild(el('strong', null, gate.episode + ' · ' + gateLabel(gate)))
         head.appendChild(badge(gate.state, 'nn-gate-state'))
+        if (GATE_INFO[gate.gate]) head.appendChild(el('span', 'nn-gate-protects', GATE_INFO[gate.gate].protects))
         item.appendChild(head)
         if (gate.notes) item.appendChild(el('span', 'nn-gate-notes', gate.notes))
         if (gate.cause && gate.cause.detail) {
@@ -141,60 +220,239 @@ registerView({
 
         var body = el('div', 'nn-conntent-body')
 
+        // ── Review: the gate strip, then the scene cards ────────────────────────────
         var review = labelled('Review')
         review.setAttribute('data-nn-subsection', 'review')
-        if (!episode.gates || episode.gates.length === 0) {
-          review.appendChild(el('p', 'empty-state', 'No gates configured.'))
-        } else {
-          var gates = el('div', 'nn-cascade-chips')
-          episode.gates.forEach(function (gate) {
-            var item = el('span', 'nn-cascade-chip nn-gate')
-            item.setAttribute('data-nn-gate', gate.gate)
-            item.setAttribute('data-nn-gate-state', gate.state)
-            item.appendChild(el('span', null, gateLabel(gate)))
-            item.appendChild(badge(gate.state, 'nn-gate-state'))
-            gates.appendChild(item)
+        var strip = el('div', 'nn-gate-strip')
+        var gates = (episode.reviewGates || []).slice()
+        var hasBudget = (episode.gates || []).some(function (g) {
+          return g.gate === 'budget'
+        })
+        if (hasBudget && gates.indexOf('budget') === -1) gates.push('budget')
+        gates.sort(function (a, b) {
+          return GATE_ORDER.indexOf(a) - GATE_ORDER.indexOf(b)
+        })
+        var currentGate = null
+        gates.forEach(function (gate) {
+          var states = (episode.gates || []).filter(function (g) {
+            return g.gate === gate
           })
-          review.appendChild(gates)
+          var approvedAll = states.length > 0 && states.every(function (g) {
+            return g.state === 'approved'
+          })
+          var state = approvedAll ? 'approved' : states.length > 0 ? states[0].state : 'open'
+          if (!approvedAll && !currentGate) currentGate = gate
+          var cell = el('div', 'nn-gate-cell')
+          cell.setAttribute('data-nn-gate-cell', gate)
+          cell.setAttribute('data-nn-gate-cell-state', state)
+          cell.appendChild(el('strong', null, (GATE_INFO[gate] || {}).label || gate))
+          var stateBadge = badge(state, 'nn-gate-state')
+          stateBadge.setAttribute('data-nn-gate-state', state)
+          cell.appendChild(stateBadge)
+          cell.appendChild(el('span', 'nn-gate-protects', (GATE_INFO[gate] || {}).protects || ''))
+          strip.appendChild(cell)
+        })
+        // Automatic QA is always on and is never a human decision: a cell, no controls.
+        var qaCell = el('div', 'nn-gate-cell')
+        qaCell.setAttribute('data-nn-gate-cell', 'qa')
+        qaCell.appendChild(el('strong', null, GATE_INFO.qa.label))
+        qaCell.appendChild(el('span', 'nn-gate-protects', GATE_INFO.qa.protects))
+        strip.appendChild(qaCell)
+        review.appendChild(strip)
+
+        if (gates.length === 0) {
+          review.appendChild(el('p', 'empty-state', 'Autopilot: no gate waits on a person.'))
+        } else if (currentGate) {
+          var openScenes = (episode.scenes || []).filter(function (scene) {
+            var g = (scene.gates || []).filter(function (x) {
+              return x.gate === currentGate
+            })[0]
+            return !g || g.state !== 'approved'
+          })
+          var actions = el('div', 'nn-gate-actions')
+          var info = el('p', 'nn-gate-hint')
+          info.textContent =
+            currentGate === 'script'
+              ? 'Approving freezes the content hash. Editing a scene later re-opens the gate for that scene only.'
+              : currentGate === 'preview'
+                ? 'Approving the preview also approves the planned spend of each approved scene.'
+                : 'Approving the budget authorises the episode plan.'
+          actions.appendChild(info)
+          if (openScenes.length > 0) {
+            var approveAll = el('button', 'nn-btn nn-approve-gate', 'Approve ' + currentGate + ' for ' + openScenes.length + ' scene' + (openScenes.length === 1 ? '' : 's'))
+            approveAll.type = 'button'
+            approveAll.setAttribute('data-nn-approve-gate', currentGate)
+            approveAll.addEventListener('click', function () {
+              var done = 0
+              openScenes.forEach(function (scene) {
+                if (proposeVerdict(episode, scene, currentGate, 'approved')) {
+                  done++
+                  markApproved(scene.slug, currentGate)
+                }
+              })
+              if (done > 0) toast('Approved ' + currentGate + ' for ' + done + ' scene(s)')
+            })
+            actions.appendChild(approveAll)
+          }
+          review.appendChild(actions)
         }
         body.appendChild(review)
 
+        // ── Script: one card per scene ──────────────────────────────────────────────
         var scriptBox = labelled('Script')
         scriptBox.setAttribute('data-nn-subsection', 'script')
+        // When every configured gate is approved there is no gate to act on; the scene still
+        // reports the last one so an approved review does not read as autopilot.
+        var displayGate = currentGate || (gates.length > 0 ? gates[gates.length - 1] : null)
         ;(episode.scenes || []).forEach(function (scene) {
-          var sceneBox = el('article', 'nn-scene-script')
-          sceneBox.setAttribute('data-nn-scene', scene.slug)
+          var sceneCard = el('article', 'nn-scene-script nn-scene-card')
+          sceneCard.setAttribute('data-nn-scene', scene.slug)
+          sceneCard.setAttribute('data-nn-scene-element', scene.elementId || '')
+
+          var gate = (scene.gates || []).filter(function (g) {
+            return g.gate === displayGate
+          })[0]
+          var gateState = gate ? gate.state : displayGate ? (currentGate ? 'open' : 'approved') : 'autopilot'
+
           var sceneHead = el('div', 'nn-scene-header')
           var titleGroup = el('div', 'nn-scene-title-group')
           titleGroup.appendChild(el('span', 'nn-scene-title', scene.slug + (scene.name ? ' · ' + scene.name : '')))
           var summary = scene.narration ? String(scene.narration).slice(0, 90) : 'No narration'
           titleGroup.appendChild(el('span', 'nn-scene-summary', summary))
           sceneHead.appendChild(titleGroup)
-          if (scene.scriptHash) {
-            var hashBadge = badge('script ' + scene.scriptHash.slice(0, 8), 'nn-src-badge')
-            sceneHead.appendChild(hashBadge)
-          }
+          if (scene.kind) sceneHead.appendChild(badge(scene.kind))
+          var pill = badge(gateState, 'nn-gate-state nn-verdict-pill')
+          pill.setAttribute('data-nn-verdict-pill', gateState)
+          sceneHead.appendChild(pill)
+          if (scene.scriptHash) sceneHead.appendChild(badge('script ' + scene.scriptHash.slice(0, 8), 'nn-src-badge'))
           if (scene.previewHash) sceneHead.appendChild(badge('preview ' + scene.previewHash.slice(0, 8), 'nn-src-badge'))
-          sceneBox.appendChild(sceneHead)
+          sceneCard.appendChild(sceneHead)
+
           var sceneBody = el('div', 'nn-scene-body is-open')
-          sceneBody.appendChild(el('p', 'nn-narration nn-scene-narration', scene.narration || '(no narration)'))
-          sceneBox.appendChild(sceneBody)
-          scriptBox.appendChild(sceneBox)
+          sceneCard.appendChild(sceneBody)
+
+          // Media: the still from the first image layer, and the narration audio.
+          var media = el('div', 'nn-review-media')
+          if (scene.still) {
+            var img = doc.createElement('img')
+            img.className = 'nn-review-still'
+            img.src = scene.still
+            img.alt = ''
+            media.appendChild(img)
+          } else {
+            var placeholder = el('div', 'nn-review-still is-empty')
+            var videoLayer = (scene.layers || []).filter(function (l) {
+              return l.assetKind === 'video'
+            })[0]
+            placeholder.textContent = videoLayer ? 'video · ' + videoLayer.asset.split('/').pop() : 'no still'
+            media.appendChild(placeholder)
+          }
+          if (scene.audio) {
+            var audio = doc.createElement('audio')
+            audio.className = 'nn-review-audio'
+            audio.controls = true
+            audio.preload = 'none'
+            audio.src = scene.audio
+            audio.setAttribute('data-nn-narration-audio', '')
+            media.appendChild(audio)
+          }
+          sceneBody.appendChild(media)
+
+          // Narration: editable in place; saving is a correction draft.
+          var nSection = labelled('Narration')
+          var narration = el('textarea', 'nn-narration')
+          narration.value = scene.narration || ''
+          narration.setAttribute('data-nn-scene-narration', '')
+          narration.addEventListener('change', function () {
+            if (scene.elementId && propose({ kind: 'correction', elementId: scene.elementId, field: 'narration', proposed: narration.value })) {
+              toast('Narration queued for ' + scene.slug)
+            }
+          })
+          nSection.appendChild(narration)
+          sceneBody.appendChild(nSection)
+
+          // Layers as pills, and the values inherited from above the scene.
+          if ((scene.layers || []).length > 0) {
+            var lSection = labelled('Layers')
+            var pills = el('div', 'nn-cascade-chips')
+            scene.layers.forEach(function (layer) {
+              var label = layer.type + (layer.style ? ' · ' + layer.style : '')
+              var chip = el('span', 'nn-cascade-chip', label)
+              chip.setAttribute('data-nn-layer', layer.slug)
+              chip.title = layer.text || layer.asset || layer.slug
+              pills.appendChild(chip)
+            })
+            lSection.appendChild(pills)
+            sceneBody.appendChild(lSection)
+          }
+          if ((scene.sources || []).length > 0) {
+            var sSection = labelled('Inherited')
+            var line = el('p', 'nn-source-line', scene.sources.join(' · '))
+            line.setAttribute('data-nn-source-line', '')
+            sSection.appendChild(line)
+            sceneBody.appendChild(sSection)
+          }
+
+          // Verdict: only for the current gate, and only while it is not approved.
+          var verdictBox = el('div', 'nn-form-section nn-verdict-box')
+          verdictBox.setAttribute('data-nn-subsection', 'verdict')
+          if (!displayGate) {
+            verdictBox.appendChild(el('p', 'empty-state', 'Autopilot: this scene needs no verdict.'))
+          } else if (gateState === 'approved') {
+            verdictBox.appendChild(el('p', 'nn-verdict-approved', 'Approved for ' + displayGate + '.'))
+          } else {
+            var line2 = el('div', 'nn-verdict-line')
+            var approve = el('button', 'nn-verdict', 'Approve')
+            approve.type = 'button'
+            approve.setAttribute('data-nn-verdict', 'approved')
+            approve.addEventListener('click', function () {
+              if (!proposeVerdict(episode, scene, currentGate, 'approved')) return
+              markApproved(scene.slug, currentGate)
+              toast('Approved ' + scene.slug + ' for ' + currentGate)
+            })
+            var needs = el('button', 'nn-verdict', 'Needs change')
+            needs.type = 'button'
+            needs.setAttribute('data-nn-verdict', 'needs-change')
+            var reason = el('input', 'nn-comment')
+            reason.type = 'text'
+            reason.setAttribute('data-nn-verdict-reason', '')
+            reason.placeholder = 'Reason (required for needs change)'
+            needs.addEventListener('click', function () {
+              if (!reason.value.trim()) {
+                reason.classList.add('is-invalid')
+                reason.focus()
+                toast('A reason is required for needs change')
+                return
+              }
+              reason.classList.remove('is-invalid')
+              if (!proposeVerdict(episode, scene, currentGate, 'needs-change', reason.value.trim())) return
+              pill.textContent = 'needs-change'
+              pill.setAttribute('data-nn-verdict-pill', 'needs-change')
+              toast('Needs change queued for ' + scene.slug)
+            })
+            line2.appendChild(approve)
+            line2.appendChild(needs)
+            line2.appendChild(reason)
+            verdictBox.appendChild(line2)
+            if (gate && gate.notes) verdictBox.appendChild(el('p', 'nn-gate-notes', gate.notes))
+          }
+          sceneBody.appendChild(verdictBox)
+
+          scriptBox.appendChild(sceneCard)
         })
         if (!episode.scenes || episode.scenes.length === 0) {
           scriptBox.appendChild(el('p', 'empty-state', 'This episode has no scenes yet.'))
         }
         body.appendChild(scriptBox)
 
-        // The resolved cascade of the first scene, collapsed: it is reference, not reading.
+        // ── Config: the resolved cascade of the first scene, collapsed ──────────────
         var configBox = labelled('Config')
         configBox.setAttribute('data-nn-subsection', 'config')
         if (episode.scenes && episode.scenes.length > 0) {
           var first = episode.scenes[0]
           var names = Object.keys(first.fields || {})
           var details = el('details', 'nn-conntent-fields')
-          var summary = el('summary', null, 'Cascade fields · ' + first.slug + ' · ' + names.length)
-          details.appendChild(summary)
+          details.appendChild(el('summary', null, 'Cascade fields · ' + first.slug + ' · ' + names.length))
           if (names.length === 0) {
             details.appendChild(el('p', 'empty-state', 'No cascade fields resolved.'))
           } else {

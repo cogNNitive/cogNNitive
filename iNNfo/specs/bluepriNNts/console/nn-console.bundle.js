@@ -6119,7 +6119,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   var STORE_PREFIX = 'nn-console:v4:'
   var STORE_VERSION = 4
   var BASE_HASH_PATTERN = /^[0-9a-f]{16}$/
-  var ITEM_KINDS = ['correction', 'comment', 'new', 'delete']
+  var ITEM_KINDS = ['correction', 'comment', 'new', 'delete', 'verdict']
+  // A verdict is a decision on a gate, not a mutation: it carries the gate, its outcome and
+  // the hash of the content that was reviewed, never a `base_hash`.
+  var VERDICTS = ['approved', 'needs-change']
 
   function isObject(value) {
     return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -6206,6 +6209,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (d.original !== undefined) draft.original = d.original
     if (d.proposed !== undefined) draft.proposed = d.proposed
     if (d.comment !== undefined && d.comment !== null) draft.comment = String(d.comment)
+    // Verdict keys: the gate, its outcome, the reviewed content hash and, for a preview or
+    // budget approval, the plan slice hash the reviewer saw.
+    if (d.gate != null && d.gate !== '') draft.gate = String(d.gate)
+    if (d.verdict != null && d.verdict !== '') draft.verdict = String(d.verdict)
+    if (d.reviewed_hash != null && d.reviewed_hash !== '') draft.reviewed_hash = String(d.reviewed_hash)
+    if (d.plan_hash != null && d.plan_hash !== '') draft.plan_hash = String(d.plan_hash)
+    if (d.notes != null && d.notes !== '') draft.notes = String(d.notes)
     if (d.sources !== undefined && d.sources !== null) {
       draft.sources = Array.isArray(d.sources) ? deepCopy(d.sources) : d.sources
     }
@@ -6367,6 +6377,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           if (missing.length) {
             throw new TypeError('nnReview.createDraftStore: new draft requires ' + missing.join(', '))
           }
+        } else if (raw.kind === 'verdict') {
+          // The target is the scene, addressed by its model and slug; the content hash it
+          // reviews is `reviewed_hash`, so `base_hash` is neither needed nor meaningful.
+          var noVerdict = ['knowledge_id', 'element_slug', 'gate', 'verdict', 'reviewed_hash'].filter(function (key) {
+            return raw[key] == null || raw[key] === ''
+          })
+          if (noVerdict.length) {
+            throw new TypeError('nnReview.createDraftStore: verdict draft requires ' + noVerdict.join(', '))
+          }
+          if (VERDICTS.indexOf(String(raw.verdict)) === -1) {
+            throw new TypeError('nnReview.createDraftStore: verdict must be one of ' + VERDICTS.join(', '))
+          }
         } else if (!isMatrix && (!raw.element_id || !raw.base_hash)) {
           throw new TypeError('nnReview.createDraftStore: element_id and base_hash required')
         }
@@ -6411,6 +6433,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var byId = isObject(elementsById) ? elementsById : {}
     // A proposed new element has no target in the model yet, so it cannot be stale.
     if (d.kind === 'new') return false
+    // A verdict's authorisation is `reviewed_hash`, checked by the engine against the
+    // content it is applied to; there is no element `base_hash` to compare here.
+    if (d.kind === 'verdict') return false
     // Matrix-cell drafts have no element hash to compare against.
     if (d.matrix) return false
     var el = byId[d.element_id]
@@ -6694,6 +6719,27 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
       var el = elementsById[anchorData.elementId]
       if (!el) return null
+      // A verdict targets a scene and records a gate decision. It carries no `base_hash`:
+      // its authority is the reviewed content hash the payload published.
+      if (payload.kind === 'verdict') {
+        var verdictDraft = {
+          element_id: anchorData.elementId,
+          concept: el.concept,
+          element: el.name || el.id,
+          kind: 'verdict',
+          knowledge_id: el.modelId || meta.modelId,
+          element_slug: el.slug,
+          gate: payload.gate,
+          verdict: payload.verdict,
+          reviewed_hash: payload.reviewed_hash,
+        }
+        if (payload.plan_hash) verdictDraft.plan_hash = payload.plan_hash
+        if (payload.notes) verdictDraft.notes = String(payload.notes)
+        var savedVerdict = store.addDraft(verdictDraft)
+        showChangeToast()
+        refreshCount()
+        return savedVerdict
+      }
       var draft = {
         element_id: anchorData.elementId,
         concept: el.concept,
@@ -9163,7 +9209,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // by the export gate so the user must enter a real one before exporting.
   var DEFAULT_REVIEWER_NAME = 'reviewer'
   var MODEL_VERSION_PATTERN = /^V_\d+-\d+-\d+$/
-  var ITEM_KINDS = ['correction', 'comment', 'new', 'delete']
+  var ITEM_KINDS = ['correction', 'comment', 'new', 'delete', 'verdict']
   // Values the `is:` filter operator understands (see matchAtom).
   var KNOWN_IS_VALUES = ['draft', 'reviewed', 'changed']
   var activeState = null
@@ -13063,7 +13109,31 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
                 throw new Error('cannot propose: a correction needs a proposed value')
               }
             }
+            // A verdict is a gate decision, not a field write: it names the gate, its
+            // outcome and the content hash the reviewer saw (never computed here).
+            if (p.kind === 'verdict') {
+              if (!nonEmptyString(p.gate)) throw new Error('cannot propose: a verdict needs a gate')
+              if (p.verdict !== 'approved' && p.verdict !== 'needs-change') {
+                throw new Error('cannot propose: a verdict must be approved or needs-change')
+              }
+              if (!/^[0-9a-f]{64}$/.test(String(p.reviewed_hash || ''))) {
+                throw new Error('cannot propose: a verdict needs the 64-hex reviewed_hash of the content it reviews')
+              }
+              if (p.verdict === 'needs-change' && !nonEmptyString(p.notes)) {
+                throw new Error('cannot propose: needs-change needs a reason')
+              }
+              if (p.plan_hash !== undefined && p.plan_hash !== null && p.plan_hash !== '' && !/^[0-9a-f]{64}$/.test(String(p.plan_hash))) {
+                throw new Error('cannot propose: plan_hash must be 64 hex characters')
+              }
+            }
             var payload = { kind: p.kind, proposed: p.proposed, comment: p.comment }
+            if (p.kind === 'verdict') {
+              payload.gate = p.gate
+              payload.verdict = p.verdict
+              payload.reviewed_hash = p.reviewed_hash
+              payload.notes = p.notes
+              if (p.plan_hash) payload.plan_hash = p.plan_hash
+            }
             if (p.kind === 'correction') {
               // Same source the modal path uses (kuModalTarget): name and
               // description live on the element, other fields under fields.
@@ -15533,7 +15603,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var reviewedHash = oneLine(d.reviewed_hash || '')
       var planHash = d.plan_hash ? oneLine(d.plan_hash) : ''
       if (gate === 'budget' && !planHash) planHash = reviewedHash
-      var verdictTarget = oneLine(d.target || d.knowledge_id || fallbackModel || 'model')
+      // A scene verdict targets `<file stem>@<scene slug>`; a budget verdict targets the
+      // episode model itself (there is no element_slug).
+      var verdictTarget = oneLine(
+        d.target || (d.element_slug ? model + '@' + d.element_slug : d.knowledge_id || fallbackModel || 'model'),
+      )
       var verdictLines = [
         '## NN Change: ' + id,
         'op:: review_gate',

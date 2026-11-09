@@ -11,6 +11,7 @@
  */
 
 import { readdir, readFile } from 'node:fs/promises'
+import fs from 'node:fs'
 import { join } from 'node:path'
 
 import { loadKnowledgeModel } from '../skills/nn-conntent/scripts/lib/knowledge-model.mjs'
@@ -22,9 +23,14 @@ import { evaluateGate, readAppliedVerdicts, reopenCause } from '../skills/nn-con
 import { latestDelivery } from '../skills/nn-conntent/scripts/lib/delivery.mjs'
 import { CacheManager } from '../skills/nn-conntent/scripts/cache-manager.mjs'
 import { resolveDefaultCacheDir } from '../skills/nn-conntent/scripts/lib/video-guard.mjs'
+import { ttsCachePathFor } from '../skills/nn-conntent/scripts/lib/avatar-jobs.mjs'
+import { loadGuardWithVoices } from '../skills/nn-conntent/scripts/lib/guard-config.mjs'
 import registry from '../skills/nn-conntent/scripts/lib/field-registry.generated.json' with { type: 'json' }
 
 const EPISODE_DOC = /_coNNtent_NN\.md$/i
+/** Extensions a scene still can be shown from, in the order we prefer them. */
+const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.avif'])
+const VIDEO_EXT = new Set(['.mp4', '.webm', '.mov'])
 
 async function listDir(dir) {
   try {
@@ -81,8 +87,65 @@ function fieldsFor(cascade, scene, layer) {
   return out
 }
 
+/** A path inside the domaiNN, addressed relative to the console at the domaiNN root. */
+function rootRelative(rootDir, absPath) {
+  const rel = path_relative(rootDir, absPath)
+  return rel ? rel.split('\\').join('/') : null
+}
+
+function path_relative(from, to) {
+  const f = String(from).replace(/\\/g, '/').replace(/\/+$/, '')
+  const t = String(to).replace(/\\/g, '/')
+  if (!t.startsWith(f)) return null
+  return t.slice(f.length + 1)
+}
+
+/** The layers of one scene, in document order, with the pill data the view shows. */
+function layersOf(model, sceneSlug, episodeDir, rootDir) {
+  return (model.elements?.Layer || [])
+    .filter((layer) => layer && layer.parentSlug === sceneSlug)
+    .map((layer) => {
+      const fields = layer.fields || {}
+      const asset = fields.asset ? String(fields.asset) : ''
+      const abs = asset ? join(episodeDir, asset) : null
+      const ext = asset ? path_extname(asset) : ''
+      const kind = IMAGE_EXT.has(ext) ? 'image' : VIDEO_EXT.has(ext) ? 'video' : fields.type ? String(fields.type) : ''
+      return {
+        slug: String(layer.slug || ''),
+        name: String(layer.name || layer.slug || ''),
+        type: fields.type ? String(fields.type) : '',
+        style: fields.style ? String(fields.style) : '',
+        text: fields.text ? String(fields.text) : '',
+        asset,
+        // Only an image can be a still; a video keeps its poster-less placeholder.
+        still: abs && IMAGE_EXT.has(ext) && fs.existsSync(abs) ? rootRelative(rootDir, abs) : null,
+        assetKind: kind,
+        assetPresent: Boolean(abs && fs.existsSync(abs)),
+      }
+    })
+}
+
+function path_extname(p) {
+  const m = /\.[^./\\]+$/.exec(String(p))
+  return m ? m[0].toLowerCase() : ''
+}
+
+/** The values a scene inherits, as `name <- source` lines (scene-level values are omitted). */
+function inheritedSources(fields) {
+  const out = []
+  for (const [name, field] of Object.entries(fields || {})) {
+    if (!field || field.value === null || field.value === undefined || field.value === '') continue
+    if (field.source === 'scene' || field.source === 'video' || field.source === 'layer') continue
+    out.push(name + ' <- ' + field.source)
+  }
+  return out.sort()
+}
+
 async function episodeFacts({ rootDir, series, episode }) {
   const model = loadKnowledgeModel(episode.scriptPath)
+  // The console payload addresses elements as `<knowledge stem>@<slug>`; the stem is the
+  // episode document's file name without `_NN.md`, not the `<series>/<slug>` pair.
+  const knowledgeId = String(episode.scriptPath).replace(/\\/g, '/').split('/').pop().replace(/_NN\.md$/i, '')
   const video = (model.elements?.Video || [])[0] || {}
   const fields = video.fields || {}
   const slug = String(fields.slug || video.slug || episode.slug)
@@ -102,6 +165,9 @@ async function episodeFacts({ rootDir, series, episode }) {
   const planHash = await readPlanHash(episode.dir)
 
   const cacheManager = new CacheManager({ baseDir: resolveDefaultCacheDir(episode.dir), readOnly: true })
+  // The same guard config every engine consumer uses, so the narration audio the view
+  // offers is the cache entry `produce` will read (and not a look-alike key).
+  const guardConfig = loadGuardWithVoices(episode.dir).config
   const previewEntries = previewSubjectsFromScenes(parsed.scenes || [], Object.fromEntries(scriptEntries.map((e) => [e.scene, e])), {
     cacheManager,
     config: {},
@@ -138,16 +204,42 @@ async function episodeFacts({ rootDir, series, episode }) {
   }
 
   const sceneViews = (parsed.scenes || []).map((scene) => {
-    const entry = scriptEntries.find((e) => e.scene === (scene.slug || scene.id))
-    const preview = previewEntries.find((e) => e.scene === (scene.slug || scene.id))
+    const sceneSlug = scene.slug || scene.id
+    const entry = scriptEntries.find((e) => e.scene === sceneSlug)
+    const preview = previewEntries.find((e) => e.scene === sceneSlug)
+    const fields = fieldsFor(cascade, sceneSlug)
+    const sceneEl = (model.elements?.Scene || []).find((s) => s.slug === sceneSlug) || {}
+    const layers = layersOf(model, sceneSlug, episode.dir, rootDir)
+    // The narration audio the reviewer hears is the exact TTS cache entry the engine will
+    // use; the same builder as compile/avatar keeps the key identical.
+    let audio = null
+    try {
+      const audioPath = ttsCachePathFor({ ...scene, id: sceneSlug }, {
+        cacheManager,
+        config: guardConfig,
+        models: {},
+        bags,
+      })
+      audio = audioPath && fs.existsSync(audioPath) ? rootRelative(rootDir, audioPath) : null
+    } catch {
+      audio = null
+    }
     return {
-      slug: scene.slug || scene.id,
+      slug: sceneSlug,
+      knowledgeId,
+      elementId: knowledgeId + '@' + sceneSlug,
       name: scene.name,
+      kind: String(sceneEl.fields?.kind || ''),
       narration: scene.narration || '',
       scriptHash: entry ? entry.hash : null,
       previewHash: gateList.includes('preview') && preview ? preview.hash : null,
-      fields: fieldsFor(cascade, scene.slug || scene.id),
-      gates: gates.filter((g) => g.scene === (scene.slug || scene.id)),
+      planHash: preview ? preview.planHash || null : null,
+      fields,
+      sources: inheritedSources(fields),
+      layers,
+      still: (layers.find((l) => l.still) || {}).still || null,
+      audio,
+      gates: gates.filter((g) => g.scene === sceneSlug),
     }
   })
 
@@ -160,6 +252,8 @@ async function episodeFacts({ rootDir, series, episode }) {
   return {
     slug,
     modelId,
+    knowledgeId,
+    elementId: knowledgeId + '@' + (video.slug || slug),
     title: String(fields.title || slug),
     status: String(fields.status || ''),
     language: language || null,
