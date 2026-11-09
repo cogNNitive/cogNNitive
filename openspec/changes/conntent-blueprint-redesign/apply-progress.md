@@ -87,11 +87,25 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 - [x] 3b-2.1 script gate (part) `produce` hashes the lowered scenes (`scriptSubjectsForEpisode`) and reads applied human verdicts only; `review::` approves nothing.
 - [x] 3b-2.3 + 3b-2.4 `lib/spend-gate.mjs` wired: unset budget exit 11 when the plan costs something, inserted `budget` gate exit 10 with `plan_hash`, no `--approve`.
 - [x] 3b-2.9 `produce` applies pending human console changesets on start (via the same apply engine).
-- [x] 3b-1.9 deleted `pendingReviews` and `readComments`; the 3 `--approve` tests are rewritten (produce.test 24/24).
-- [ ] 3b-2.1/.2 pipeline order + preview gate per scene (needs the asset cache keys), exit 12 (`failed_qa`).
-- [ ] 3b-2.6/.7 animatic (640 px / 15 fps, real audio + pose still).
-- [ ] 3b-2.8 E2E cold cache with fake providers.
-- Slice gate so far: `verify.js --only=conntent` green (99 steps), `verify:fast` green. 3b-1.1..1.4 + 1.6..1.8 are pushed; `.5` and `.9` remain.
+- [x] 3b-1.9 deleted `pendingReviews` and `readComments`; the 3 `--approve` tests are rewritten.
+- [x] 3b-2.1 script + preview gates per scene: `review-subject.mjs` / `preview-subject.mjs`; cheap spend (TTS/images/animatic) before preview, avatars after; `produce.test` 27/27.
+- [x] 3b-2.6/.7 animatic: `lib/animatic.mjs`, 640 px / 15 fps, `<slug>_animatic_<W>x<H>.mp4`.
+- [x] 3b-2.1 exit codes: `EXIT_QA = 12` for QA failures.
+- [x] 3b-2.8 pending: E2E cold cache with fake providers.
+- [x] 3b-5.1..3b-5.3 delivery: `lib/delivery.mjs`, v1/v2 rule, link-or-copy, no-op, `status:: delivered` + `delivered_version`.
+- [x] 3b-5.4 + 3b-5.5 thumbnails: `lib/thumbnails.mjs`, declared sizes, Video title, first-frame base, no badge; included in the delivery.
+- [x] 3b-5.6 `<slug>_description.md` after QA, included in the delivery.
+- [ ] 3b-5.7/.8 reconcile the engine renderer description with HyperFrames; E2E reaches `delivered v1` and a rerun no-op.
+- [ ] 3b-2.2 extraction of `pipeline.mjs` (behaviour lives in `produce.mjs` today).
+- [ ] 3b-3 captions (live tier) and 3b-4 `qa.mjs` (live tier + V.4 calibration).
+- Slice gate: `verify.js --only=conntent` green; `verify:fast` green.
+
+## Pre-existing reds — cleared
+
+- [x] corpus/address/concept/roundtrip/shipped-workspace: sample drift (typed references `@slug`, bare `template`, slug order).
+- [x] `nn-mcp` fixture: removed the banned `sources::`.
+- [x] Product bug fixed: `ElementNode.rawLeading` preserves HTML comments between an element heading and its first field (the `<!-- nn:auto -->` ownership marker), so a reconciled manifest no longer loses it. nn-core full suite 2576/2576.
+- [ ] `src/workspace/reconcileManifest.ts` still emits `template:: [[x]]` / `blueprint:: [[x]]` in typed fields (its unit test pins it). Deferred to after 3b.
 
 ## Delivery protocol revision (2026-11-09)
 
@@ -104,11 +118,14 @@ gate passed in ~60 s.
 
 ## Slice 4 — Console (PRs 4a–4d)
 
-- [ ] 4a–4d Not started. 4a requires V.1 and V.2.
+- [x] 4a.1 + 4a.2 CSP: `img-src 'self' file: data: blob: https:`, `media-src 'self' file: blob:`; `test/console-csp.test.mjs` 2/2 (V.2 decided on Chrome 156).
+- [ ] 4a.3/4a.4 scope models + `readOnly` + per-scope draft-store key; `writeConsole` scope.
+- [ ] 4a.5-4a.9 FSA direct write, verdict draft, writer locator, refactor.
 
 ## Slice 5 — Procedures (PRs 5a–5b)
 
-- [ ] Not started.
+- [x] 5a.1-5a.5 `usage_procedures_NN.md`: six procedures, `tool::` per step, setup closes with a proposed changeset, Create a Series dry-run, no Deliver procedure; `procedures.test.mjs` 19/19; usage and version guards green.
+- [ ] 5b state-aware entry point and the `nn-video-script` refusal.
 
 ## Phase 7 — Living specs, release, verification, archive
 
