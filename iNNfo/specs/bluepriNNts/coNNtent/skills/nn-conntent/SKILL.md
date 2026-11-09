@@ -80,13 +80,15 @@ simply skipped and the package defaults apply.
 This skill owns **authoring, validating, compiling, rendering, and producing** one episode inside a Series folder. The single entry point is:
 
 ```bash
-node scripts/produce.mjs <episode-dir> [--dry-run]
+node scripts/produce.mjs <episode-dir> [--dry-run] [--no-open]
 ```
 
 `produce` runs the whole pipeline in order — intake, review gate, `status:: approved`, estimate,
 budget gate, compile + render, delivery formats, `status:: produced` — and returns a predictable
 exit code: `0` produced, `10` stopped for review, `11` stopped for budget, `1` error. Every stage
-below is what `produce` does; the primitive commands are for debugging a single stage.
+below is what `produce` does; the primitive commands are for debugging a single stage. Every exit
+regenerates the domaiNN console, and opens it only when the exit needs a human (`10`, `11`, `12`);
+`--no-open` (or `INNFO_CONSOLE_NO_OPEN=1`) keeps the browser closed.
 
 1. **Author** the episode's Level-3 kNNowledge document (adopting the `coNNtent` blueprint, following the Series' `includes` blueprint and its scope document plus its `Preset` elements; see `references/series-template-convention.md`). Allowed Field names and `type::` values are read from the `coNNtent` blueprint at run time — never restated as prose.
 1b. **Review Gate** (the Episode document is the record; the console view is the UI):
@@ -138,7 +140,7 @@ below is what `produce` does; the primitive commands are for debugging a single 
    *`render-thumbnail.mjs` is the only Phase B thumbnail tool. When `--series <dir>` is passed (or a series is found by walking from `--out`), the subtitle and badge default to the Series `title`; explicit `--subtitle`/`--badge` win.*
 8. **Produce (formats + status)**:
    ```bash
-   node scripts/produce.mjs <episode-dir> [--dry-run]
+   node scripts/produce.mjs <episode-dir> [--dry-run] [--no-open]
    ```
    *`produce` derives the delivery files from the master — `<slug>_1080x1920.mp4`, `<slug>_1920x1080.mp4` and `<slug>_1080x1080.mp4` according to `output_formats` — writes the chapters into `description.md`, sets `master::` and `thumbnail::` on the Video element, and moves the Episode to `status:: produced`. A format with no preset is `unsupported-format`, never a guess. It never writes a manifest by hand: `compile` owns `hyperframes/manifest.json`.*
 9. **Housekeeping (optional)**:

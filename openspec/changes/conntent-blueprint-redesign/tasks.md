@@ -212,7 +212,7 @@ Results go to `openspec/changes/conntent-blueprint-redesign/verifications.md` (o
 ### PR 3b-2: pipeline order, budget, animatic. Start: 3b-1 merged. Finish: `produce` runs D8 order with exit codes; zero avatar calls before preview. Verify: `node --test T/produce-cold-cache.test.mjs T/pipeline.test.mjs`. Rollback: revert PR 3b-2 and later.
 
 - [ ] 3b-2.1 RED `T/pipeline.test.mjs`: order validate -> script gate -> plan -> TTS and images (parallel, bounded `createLimiter`) -> animatic -> preview gate -> avatar -> compile -> render; exits 0/10/11/12/1; `--approve` and `--skip-qa` do not exist. (conntent-produce-command; D-P4, D-P7)
-- [ ] 3b-2.2 GREEN `E/lib/pipeline.mjs`; `E/produce.mjs` becomes a CLI over it; `writeConsole` in `finally`.
+- [x] 3b-2.2 GREEN `E/lib/pipeline.mjs`; `E/produce.mjs` becomes a CLI over it; `writeConsole` in `finally`.
 - [ ] 3b-2.3 RED `T/budget-gate.test.mjs`: with `preview` off and total > `budget` exactly one `budget` gate (exit 10) carrying the episode `plan_hash`; with `preview` on, preview approval carries each scene slice hash and no second approval is asked; unset `budget` with total > 0 -> exit 11 (a cached run proceeds); daily cap -> exit 11. [Q10] (conntent-review-gates "Spend authorization is one mechanism")
 - [ ] 3b-2.4 RED [Q1] same file: with `preview` on and the pre-preview (TTS+images) subtotal alone over `budget`, a `budget` gate is inserted BEFORE TTS and images carrying the episode `plan_hash`; the later preview gate asks for no spend approval. Alternative if answer changes: exit 11 asking to raise `budget`.
 - [ ] 3b-2.5 GREEN `E/lib/gates.mjs` budget insertion; `pipeline.mjs` stops.
@@ -282,7 +282,7 @@ Results go to `openspec/changes/conntent-blueprint-redesign/verifications.md` (o
   retired `console-view-episode-review.js` (`git show 6e63f0f0^:...`), not the never-committed
   `console-mockup/domaiNN_console_mockup.html`.
 - [ ] 4c.3 RED+GREEN approval flow: verdict draft -> `changes/`; an approval whose `reviewed_hash` no longer matches is refused with the C7 message. (console-regeneration, C7)
-- [ ] 4c.4 RED+GREEN regeneration after every engine exit and every applied changeset (`pipeline.mjs` `finally`). 
+- [x] 4c.4 RED+GREEN regeneration after every engine exit and every applied changeset (`pipeline.mjs` `finally`). 
 - [ ] 4c.5 Delete `BP/assets/console-view-episode-review.*`, `BP/assets/console-view-series.*`; fix references (`rg "console-view-episode-review|console-view-series"` returns nothing). Accept: no dangling imports.
 - [ ] 4c.6 RED+GREEN domaiNN console stays small regardless of episode count (size assertion with 50 fixture episodes).
 

@@ -185,12 +185,18 @@ reviewed_hash:: ${hash}${planHash ? `\nplan_hash:: ${planHash}` : ''}${notes ? `
 }
 
 
-/** The thumbnail stage is render-dependent (live tier): stub it in every produce test. */
+/** The thumbnail stage is render-dependent (live tier): stub it in every produce test.
+ * Console regeneration after every exit has its own suite (`pipeline.test.mjs`). */
 const thumbStubs = () => ({
   thumbnailBase: 'first-frame.png',
   renderThumbnails: async ({ episodeDir, slug }) => [
     { path: path.join(episodeDir, slug + '_thumbnail_stub.png') },
   ],
+  writeConsole: async ({ rootDir, open }) => ({
+    status: 'unchanged',
+    path: path.join(rootDir, 'domaiNN_console.html'),
+    opened: open === true,
+  }),
 });
 
 const assertStop = async (promise, code, exitCode) => {

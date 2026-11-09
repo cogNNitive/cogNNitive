@@ -18826,6 +18826,7 @@ var init_spec = __esm({
 // scripts/core-mirrors/coNNtent.ts
 var coNNtent_exports = {};
 __export(coNNtent_exports, {
+  NO_OPEN_ENV: () => NO_OPEN_ENV,
   buildScopeChain: () => buildScopeChain,
   computeProposalSha: () => computeProposalSha,
   driftReport: () => driftReport,
@@ -23894,6 +23895,7 @@ var import_node_url2 = require("node:url");
 var import_meta = {};
 var DEV_ROOT_MARKER2 = (0, import_node_path18.join)("iNNfo", "specs", "bluepriNNts", "console", "artifact_shell.html");
 var EXPORT_MODULE = "export-console.mjs";
+var NO_OPEN_ENV = "INNFO_CONSOLE_NO_OPEN";
 function devCheckoutRoot(opts = {}) {
   const requires = opts.requires ?? [];
   let dir = opts.startDir ?? (0, import_node_path18.dirname)((0, import_node_url2.fileURLToPath)(import_meta.url));
@@ -23915,6 +23917,7 @@ function resolveConsoleModulePath2(opts = {}) {
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  NO_OPEN_ENV,
   buildScopeChain,
   computeProposalSha,
   driftReport,
