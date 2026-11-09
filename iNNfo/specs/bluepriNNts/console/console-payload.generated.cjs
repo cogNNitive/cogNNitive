@@ -7369,10 +7369,13 @@ var require_dist = __commonJS({
 var index_exports = {};
 __export(index_exports, {
   CHANGE_CONCEPT: () => CHANGE_CONCEPT,
+  DEV_ROOT_MARKER: () => DEV_ROOT_MARKER,
   DOMAIN_CONSOLE_FILENAME: () => DOMAIN_CONSOLE_FILENAME,
   EXCERPT_CHAR_CAP: () => EXCERPT_CHAR_CAP,
+  EXPORT_MODULE: () => EXPORT_MODULE,
   KNOWN_AGENT_TOOL_IDS: () => KNOWN_AGENT_TOOL_IDS,
   NORMALIZED_KNOWN_AGENT_TOOL_IDS: () => NORMALIZED_KNOWN_AGENT_TOOL_IDS,
+  NO_OPEN_ENV: () => NO_OPEN_ENV,
   attachChangesetHistory: () => attachChangesetHistory,
   buildChangeLogFromChangesets: () => buildChangeLogFromChangesets,
   buildConsolePayload: () => buildConsolePayload,
@@ -7392,6 +7395,7 @@ __export(index_exports, {
   createFsSourceResolver: () => createFsSourceResolver,
   deriveFieldOrigin: () => deriveFieldOrigin,
   deriveValueHistory: () => deriveValueHistory,
+  devCheckoutRoot: () => devCheckoutRoot,
   displayStem: () => displayStem,
   extractExcerpt: () => extractExcerpt,
   findEnclosingChangeBlock: () => findEnclosingChangeBlock,
@@ -7420,6 +7424,7 @@ __export(index_exports, {
   readSynchronizations: () => readSynchronizations,
   resolveArtifactReverseLineage: () => resolveArtifactReverseLineage,
   resolveCitation: () => resolveCitation,
+  resolveConsoleModulePath: () => resolveConsoleModulePath,
   resolveConsoleSchema: () => resolveConsoleSchema,
   resolveEvidenceCitation: () => resolveEvidenceCitation,
   roleOf: () => roleOf,
@@ -8915,12 +8920,12 @@ function parseSpecName(name) {
 }
 async function getMarkdownFiles(dir) {
   const { readdir: readdir2 } = await import("node:fs/promises");
-  const { join: join5 } = await import("node:path");
+  const { join: join6 } = await import("node:path");
   const files = [];
   try {
     const entries = await readdir2(dir, { withFileTypes: true });
     for (const entry of entries) {
-      const fullPath = join5(dir, entry.name);
+      const fullPath = join6(dir, entry.name);
       if (entry.isDirectory()) {
         if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
         files.push(...await getMarkdownFiles(fullPath));
@@ -9005,22 +9010,22 @@ async function findLocalSpec(specsDir, reqName) {
 }
 async function findSpecInPackageDir(dir, base) {
   const { readdir: readdir2 } = await import("node:fs/promises");
-  const { join: join5 } = await import("node:path");
+  const { join: join6 } = await import("node:path");
   try {
     const entries = await readdir2(dir, { withFileTypes: true });
     const files = entries.filter((e) => e.isFile() && /\.(md|markdown)$/i.test(e.name)).map((e) => e.name);
     if (files.length === 0) return null;
     const specNN = files.find((f) => f.toLowerCase() === "spec_nn.md");
-    if (specNN) return join5(dir, specNN);
+    if (specNN) return join6(dir, specNN);
     const baseV = files.find((f) => f.toLowerCase().startsWith(`${base.toLowerCase()}_v_`));
-    if (baseV) return join5(dir, baseV);
+    if (baseV) return join6(dir, baseV);
     const baseNN = files.find((f) => f.toLowerCase() === `${base.toLowerCase()}_nn.md`);
-    if (baseNN) return join5(dir, baseNN);
+    if (baseNN) return join6(dir, baseNN);
     const specMd = files.find((f) => f.toLowerCase() === "spec.md");
-    if (specMd) return join5(dir, specMd);
+    if (specMd) return join6(dir, specMd);
     const baseMd = files.find((f) => f.toLowerCase() === `${base.toLowerCase()}.md`);
-    if (baseMd) return join5(dir, baseMd);
-    return join5(dir, files[0]);
+    if (baseMd) return join6(dir, baseMd);
+    return join6(dir, files[0]);
   } catch (err) {
     if (err?.code !== "ENOENT") {
       console.warn(`[resolver] Failed to scan package dir ${dir}: ${err}`);
@@ -9034,22 +9039,22 @@ function isDirectSpecEntryName(filePath, base) {
 }
 async function packageDirOf(rootDir, base) {
   const { readdir: readdir2 } = await import("node:fs/promises");
-  const { join: join5 } = await import("node:path");
-  const direct = join5(rootDir, "specs", "bluepriNNts", base);
+  const { join: join6 } = await import("node:path");
+  const direct = join6(rootDir, "specs", "bluepriNNts", base);
   try {
-    const entries = await readdir2(join5(rootDir, "specs", "bluepriNNts"), { withFileTypes: true });
+    const entries = await readdir2(join6(rootDir, "specs", "bluepriNNts"), { withFileTypes: true });
     const match = entries.find((e) => e.isDirectory() && e.name.toLowerCase() === base);
-    return match ? join5(rootDir, "specs", "bluepriNNts", match.name) : direct;
+    return match ? join6(rootDir, "specs", "bluepriNNts", match.name) : direct;
   } catch {
     return direct;
   }
 }
 async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
   const { readdir: readdir2, readFile: readFile3 } = await import("node:fs/promises");
-  const { join: join5 } = await import("node:path");
-  const { homedir } = await import("node:os");
-  const globalDir = options?.globalDir ?? process.env.INNFO_GLOBAL_DIR ?? join5(homedir(), ".agents", "bluepriNNts");
-  const skillsDir = options?.skillsDir ?? process.env.INNFO_SKILLS_DIR ?? join5(homedir(), ".agents", "skills");
+  const { join: join6 } = await import("node:path");
+  const { homedir: homedir2 } = await import("node:os");
+  const globalDir = options?.globalDir ?? process.env.INNFO_GLOBAL_DIR ?? join6(homedir2(), ".agents", "bluepriNNts");
+  const skillsDir = options?.skillsDir ?? process.env.INNFO_SKILLS_DIR ?? join6(homedir2(), ".agents", "skills");
   const parsed = parseSpecName(reqName);
   const base = parsed.base;
   const targetVersion = reqVersion ? normalizeVersion(reqVersion) : parsed.version;
@@ -9076,7 +9081,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
     if (targetVersion) {
       for (const d of verDirs) {
         if (normalizeVersion(d.name) === targetVersion) {
-          matchDir = join5(wsPackageBaseDir, d.name);
+          matchDir = join6(wsPackageBaseDir, d.name);
           matchVer = targetVersion;
           break;
         }
@@ -9087,7 +9092,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
         const v = normalizeVersion(d.name);
         if (!bestVer || compareDottedVersions(v, bestVer) > 0) {
           bestVer = v;
-          matchDir = join5(wsPackageBaseDir, d.name);
+          matchDir = join6(wsPackageBaseDir, d.name);
           matchVer = v;
         }
       }
@@ -9110,7 +9115,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
       console.warn(`[resolver] Failed to scan package tier dir: ${err}`);
     }
   }
-  const flatSearchDirs = [join5(rootDir, "specs")];
+  const flatSearchDirs = [join6(rootDir, "specs")];
   for (const dir of flatSearchDirs) {
     const matchFile = await findLocalSpec(dir, reqName);
     if (matchFile) {
@@ -9126,7 +9131,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
       };
     }
   }
-  const globalBaseDir = join5(globalDir, base);
+  const globalBaseDir = join6(globalDir, base);
   try {
     const entries = await readdir2(globalBaseDir, { withFileTypes: true });
     const verDirs = entries.filter((e) => e.isDirectory() && isVersionDirName(e.name));
@@ -9135,7 +9140,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
     if (targetVersion) {
       for (const d of verDirs) {
         if (normalizeVersion(d.name) === targetVersion) {
-          matchDir = join5(globalBaseDir, d.name);
+          matchDir = join6(globalBaseDir, d.name);
           matchVer = targetVersion;
           break;
         }
@@ -9146,7 +9151,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
         const v = normalizeVersion(d.name);
         if (!bestVer || compareDottedVersions(v, bestVer) > 0) {
           bestVer = v;
-          matchDir = join5(globalBaseDir, d.name);
+          matchDir = join6(globalBaseDir, d.name);
           matchVer = v;
         }
       }
@@ -9200,7 +9205,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
     const skillEntries = await readdir2(skillsDir, { withFileTypes: true });
     const skillDirs = skillEntries.filter((e) => e.isDirectory()).map((e) => e.name);
     for (const skillName of skillDirs) {
-      const skillPkgBase = join5(skillsDir, skillName, "bluepriNNts", base);
+      const skillPkgBase = join6(skillsDir, skillName, "bluepriNNts", base);
       try {
         const entries = await readdir2(skillPkgBase, { withFileTypes: true });
         const verDirs = entries.filter((e) => e.isDirectory() && isVersionDirName(e.name));
@@ -9209,7 +9214,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
         if (targetVersion) {
           for (const d of verDirs) {
             if (normalizeVersion(d.name) === targetVersion) {
-              matchDir = join5(skillPkgBase, d.name);
+              matchDir = join6(skillPkgBase, d.name);
               matchVer = targetVersion;
               break;
             }
@@ -9220,7 +9225,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
             const v = normalizeVersion(d.name);
             if (!bestVer || compareDottedVersions(v, bestVer) > 0) {
               bestVer = v;
-              matchDir = join5(skillPkgBase, d.name);
+              matchDir = join6(skillPkgBase, d.name);
               matchVer = v;
             }
           }
@@ -9239,7 +9244,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
           }
         }
       } catch {
-        const matchFile = await findLocalSpec(join5(skillsDir, skillName, "bluepriNNts"), reqName) || await findLocalSpec(join5(skillsDir, skillName), reqName);
+        const matchFile = await findLocalSpec(join6(skillsDir, skillName, "bluepriNNts"), reqName) || await findLocalSpec(join6(skillsDir, skillName), reqName);
         if (matchFile) {
           const content = await readFile3(matchFile, "utf-8").catch(() => "");
           const v = targetVersion || versionFromFrontmatter(content) || "0.1.0";
@@ -12198,6 +12203,35 @@ function createFsSourceResolver(rootDir) {
   };
 }
 
+// iNNfo/packages/nn-core/src/console/locate-writer.ts
+var import_node_fs3 = require("node:fs");
+var import_node_os = require("node:os");
+var import_node_path3 = require("node:path");
+var import_node_url = require("node:url");
+var import_meta = {};
+var DEV_ROOT_MARKER = (0, import_node_path3.join)("iNNfo", "specs", "bluepriNNts", "console", "artifact_shell.html");
+var EXPORT_MODULE = "export-console.mjs";
+var NO_OPEN_ENV = "INNFO_CONSOLE_NO_OPEN";
+function devCheckoutRoot(opts = {}) {
+  const requires = opts.requires ?? [];
+  let dir = opts.startDir ?? (0, import_node_path3.dirname)((0, import_node_url.fileURLToPath)(import_meta.url));
+  for (; ; ) {
+    if ((0, import_node_fs3.existsSync)((0, import_node_path3.join)(dir, DEV_ROOT_MARKER)) && requires.every((rel) => (0, import_node_fs3.existsSync)((0, import_node_path3.join)(dir, rel)))) return dir;
+    const parent = (0, import_node_path3.dirname)(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+function resolveConsoleModulePath(opts = {}) {
+  const env = opts.env ?? process.env;
+  const candidates = [];
+  if (env.INNFO_CONSOLE_DIR) candidates.push((0, import_node_path3.join)(env.INNFO_CONSOLE_DIR, EXPORT_MODULE));
+  const devRoot = opts.devRoot === void 0 ? devCheckoutRoot({ requires: [(0, import_node_path3.join)("scripts", EXPORT_MODULE)] }) : opts.devRoot;
+  if (devRoot && (0, import_node_fs3.existsSync)((0, import_node_path3.join)(devRoot, DEV_ROOT_MARKER))) candidates.push((0, import_node_path3.join)(devRoot, "scripts", EXPORT_MODULE));
+  candidates.push((0, import_node_path3.join)(opts.home ?? (0, import_node_os.homedir)(), ".agents", "console", EXPORT_MODULE));
+  return candidates.find((candidate) => (0, import_node_fs3.existsSync)(candidate)) ?? null;
+}
+
 // iNNfo/packages/nn-core/src/console/output-path.ts
 var DOMAIN_CONSOLE_FILENAME = "domaiNN_console.html";
 function consoleOutputPath(scope) {
@@ -12500,28 +12534,28 @@ function buildConsolePayload(options) {
 }
 
 // iNNfo/packages/nn-core/src/console/schema-resolution.ts
-var import_node_path3 = require("node:path");
-var import_node_fs3 = require("node:fs");
+var import_node_path4 = require("node:path");
+var import_node_fs4 = require("node:fs");
 var import_promises2 = require("node:fs/promises");
 async function resolveLocalSpecPath(rootDir, url) {
   if (!url || /^(?:https?|data|file):/i.test(url)) return null;
-  const absolute = (0, import_node_path3.isAbsolute)(url) ? url : (0, import_node_path3.resolve)(rootDir, url);
-  const rel = (0, import_node_path3.relative)(rootDir, absolute);
-  if (rel.startsWith("..") || (0, import_node_path3.isAbsolute)(rel)) return null;
-  return (0, import_node_fs3.existsSync)(absolute) ? absolute : null;
+  const absolute = (0, import_node_path4.isAbsolute)(url) ? url : (0, import_node_path4.resolve)(rootDir, url);
+  const rel = (0, import_node_path4.relative)(rootDir, absolute);
+  if (rel.startsWith("..") || (0, import_node_path4.isAbsolute)(rel)) return null;
+  return (0, import_node_fs4.existsSync)(absolute) ? absolute : null;
 }
 async function resolveBlueprintContent(rootDir, name, url, globalDir, skillsDir, warnings) {
   const local = await resolveLocalSpecPath(rootDir, url);
   if (local !== null) {
     const content = await (0, import_promises2.readFile)(local, "utf-8").catch(() => null);
-    if (content !== null) return { content, dir: (0, import_node_path3.dirname)(local) };
+    if (content !== null) return { content, dir: (0, import_node_path4.dirname)(local) };
   }
-  const version = url ? parseSpecName((0, import_node_path3.basename)(url)).version : void 0;
+  const version = url ? parseSpecName((0, import_node_path4.basename)(url)).version : void 0;
   const resolveOnce = async (refName) => {
     const pkg = await resolveBlueprintPackage(rootDir, refName, version, { globalDir, skillsDir });
     if (pkg) {
       const content = await (0, import_promises2.readFile)(pkg.specFilePath, "utf-8").catch(() => null);
-      if (content !== null) return { content, dir: (0, import_node_path3.dirname)(pkg.specFilePath) };
+      if (content !== null) return { content, dir: (0, import_node_path4.dirname)(pkg.specFilePath) };
     }
     const canonical = findCanonicalBlueprint(refName) || (url ? findCanonicalBlueprint(url) : null);
     return canonical ? { content: canonical.specContent, dir: null } : null;
@@ -12544,7 +12578,7 @@ async function resolveBlueprintContent(rootDir, name, url, globalDir, skillsDir,
 function proceduresOf(res) {
   const fm = parseFrontmatter(res.content);
   const list = Array.isArray(fm?.procedures) ? fm.procedures.filter((p) => p && p.id && p.path).map((p) => ({ id: String(p.id), name: String(p.name ?? p.id), path: String(p.path) })) : [];
-  if (res.dir && (0, import_node_fs3.existsSync)((0, import_node_path3.join)(res.dir, "procedures", "usage_procedures_NN.md"))) {
+  if (res.dir && (0, import_node_fs4.existsSync)((0, import_node_path4.join)(res.dir, "procedures", "usage_procedures_NN.md"))) {
     if (!list.some((p) => p.id === "usage")) {
       list.unshift({ id: "usage", name: "Getting started", path: "procedures/usage_procedures_NN.md" });
     }
@@ -12872,10 +12906,13 @@ function unitHome(address) {
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   CHANGE_CONCEPT,
+  DEV_ROOT_MARKER,
   DOMAIN_CONSOLE_FILENAME,
   EXCERPT_CHAR_CAP,
+  EXPORT_MODULE,
   KNOWN_AGENT_TOOL_IDS,
   NORMALIZED_KNOWN_AGENT_TOOL_IDS,
+  NO_OPEN_ENV,
   attachChangesetHistory,
   buildChangeLogFromChangesets,
   buildConsolePayload,
@@ -12895,6 +12932,7 @@ function unitHome(address) {
   createFsSourceResolver,
   deriveFieldOrigin,
   deriveValueHistory,
+  devCheckoutRoot,
   displayStem,
   extractExcerpt,
   findEnclosingChangeBlock,
@@ -12923,6 +12961,7 @@ function unitHome(address) {
   readSynchronizations,
   resolveArtifactReverseLineage,
   resolveCitation,
+  resolveConsoleModulePath,
   resolveConsoleSchema,
   resolveEvidenceCitation,
   roleOf,

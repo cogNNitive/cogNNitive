@@ -15525,6 +15525,27 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var d = isObject(draft) ? draft : {}
     var id = oneLine(d.id || 'c-' + String(index + 1).padStart(2, '0'))
     var model = oneLine(d.knowledge_id || fallbackModel || 'model')
+    // A verdict is not a mutation: it records a human decision on a gate. It carries no
+    // evidence (its authority is the changeset frontmatter) and never a base_hash.
+    if (d.kind === 'verdict' || d.op === 'review_gate') {
+      var gate = oneLine(d.gate || 'script')
+      var verdict = oneLine(d.verdict || 'approved')
+      var reviewedHash = oneLine(d.reviewed_hash || '')
+      var planHash = d.plan_hash ? oneLine(d.plan_hash) : ''
+      if (gate === 'budget' && !planHash) planHash = reviewedHash
+      var verdictTarget = oneLine(d.target || d.knowledge_id || fallbackModel || 'model')
+      var verdictLines = [
+        '## NN Change: ' + id,
+        'op:: review_gate',
+        'target:: ' + verdictTarget,
+        'gate:: ' + gate,
+        'verdict:: ' + verdict,
+        'reviewed_hash:: ' + reviewedHash,
+      ]
+      if (planHash) verdictLines.push('plan_hash:: ' + planHash)
+      if (d.notes) verdictLines.push('notes:: ' + oneLine(d.notes))
+      return verdictLines.join('\n')
+    }
     // The element part of a target is always the element slug: never the display
     // name or the element id (the engine resolves slugs, and every payload element
     // carries one).
@@ -15613,6 +15634,38 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return blocks
   }
 
+  /** The first reason a verdict draft cannot be exported, or null. */
+  function verdictDraftProblem(drafts) {
+    for (var i = 0; i < drafts.length; i++) {
+      var d = drafts[i]
+      if (!d || (d.kind !== 'verdict' && d.op !== 'review_gate')) continue
+      var id = d.id || 'c-' + String(i + 1).padStart(2, '0')
+      if (!d.reviewed_hash) return 'review_gate change "' + id + '" requires reviewed_hash'
+      if (d.gate === 'preview' && !d.plan_hash) {
+        return 'preview verdict "' + id + '" requires plan_hash (the scene slice hash)'
+      }
+      if (d.gate === 'budget' && !(d.plan_hash || d.reviewed_hash)) {
+        return 'budget verdict "' + id + '" requires the episode plan hash'
+      }
+    }
+    return null
+  }
+
+  /** Build a verdict draft the view hands to the store (console-side validation only). */
+  function verdictDraft(input) {
+    var d = isObject(input) ? input : {}
+    return {
+      kind: 'verdict',
+      id: d.id,
+      gate: String(d.gate || 'script'),
+      target: String(d.target || d.knowledge_id || ''),
+      verdict: String(d.verdict || 'approved'),
+      reviewed_hash: String(d.reviewed_hash || ''),
+      plan_hash: d.plan_hash ? String(d.plan_hash) : '',
+      notes: d.notes ? String(d.notes) : '',
+    }
+  }
+
   function serializeChangesetMarkdown(meta, drafts, fallbackModel) {
     // The stamped version is the changes bluepriNNt version the payload was built
     // against (core's canonical registry); composeExport refuses to export without it.
@@ -15629,15 +15682,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       'status: proposed',
       'title: ' + JSON.stringify(title),
       'author: ' + JSON.stringify(author),
-      '---',
-      '',
-      '# NN index',
-      '',
-      '* [[Change]]',
-      '',
-      '# NN Change',
-      '',
     ]
+    // A file carrying a verdict needs the human markers the engine checks.
+    var hasVerdict = drafts.some(function (d) {
+      return d && (d.kind === 'verdict' || d.op === 'review_gate')
+    })
+    if (hasVerdict) {
+      lines.push('author_kind: human', 'origin: console', 'reviewer: ' + JSON.stringify(author))
+    }
+    lines.push('---', '', '# NN index', '', '* [[Change]]', '', '# NN Change', '')
     var modelName = fallbackModel || meta.source_knowledge || 'model'
     var blocks = []
     drafts.forEach(function (d, i) {
@@ -15667,6 +15720,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     if (!reviewer || reviewer === DEFAULT_REVIEWER_NAME) {
       return { ok: false, errors: ['Reviewer identifier is required.'] }
+    }
+    var verdictProblem = verdictDraftProblem(drafts)
+    if (verdictProblem) {
+      return { ok: false, errors: [verdictProblem] }
     }
 
     var text = serializeChangesetMarkdown(exportMeta, drafts, state && state.modelId)
@@ -15711,6 +15768,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     if (!reviewer || reviewer === DEFAULT_REVIEWER_NAME) {
       return { ok: false, errors: ['Reviewer identifier is required.'] }
+    }
+    var verdictProblem = verdictDraftProblem(drafts)
+    if (verdictProblem) {
+      return { ok: false, errors: [verdictProblem] }
     }
 
     var stamp = stampFromDate(state && state.exportedAt ? new Date(state.exportedAt) : new Date())
@@ -17260,6 +17321,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     ensureFeedbackUi: ensureFeedbackUi,
     composeExport: composeExport,
     composeChangesetExport: composeChangesetExport,
+    verdictDraft: verdictDraft,
     downloadChangesetExport: downloadChangesetExport,
     connectFolder: connectFolder,
     writeChangesetToFolder: writeChangesetToFolder,

@@ -1,11 +1,8 @@
-import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
-import { isAbsolute, join, resolve } from 'node:path'
+import { isAbsolute, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { parseChangeset } from '@cognnitive/nn-core'
+import { parseChangeset, resolveConsoleModulePath } from '@cognnitive/nn-core'
 import { syncDomainManifest } from './workspace-sync.js'
-import { DEV_ROOT_MARKER, devCheckoutRoot } from './dev-checkout.js'
 
 /**
  * Console regeneration for the MCP.
@@ -75,29 +72,15 @@ export interface RegenerateOptions {
   syncManifest?: (root: string, options: { dry_run: boolean }) => Promise<unknown>
 }
 
-const EXPORT_MODULE = 'export-console.mjs'
-
 /** Never open a browser when this is set (CI, headless runs, test suites). */
 export const NO_OPEN_ENV = 'INNFO_CONSOLE_NO_OPEN'
 
 /**
- * Locate `export-console.mjs` from trusted locations only: `$INNFO_CONSOLE_DIR`, the
- * installed set in `~/.agents/console`, then the cogNNitive dev checkout this module
- * itself lives in. Never from the domain or the working directory. Returns null when
- * none holds the module.
+ * Locate `export-console.mjs` from trusted locations only. Owned by nn-core
+ * (`console/locate-writer.ts`) and re-exported here for this package's tests
+ * (design D-C5, task 4a.8).
  */
-export function resolveConsoleModulePath(
-  opts: { env?: NodeJS.ProcessEnv; home?: string; devRoot?: string | null } = {},
-): string | null {
-  const env = opts.env ?? process.env
-  const candidates: string[] = []
-  if (env.INNFO_CONSOLE_DIR) candidates.push(join(env.INNFO_CONSOLE_DIR, EXPORT_MODULE))
-  const devRoot =
-    opts.devRoot === undefined ? devCheckoutRoot({ requires: [join('scripts', EXPORT_MODULE)] }) : opts.devRoot
-  if (devRoot && existsSync(join(devRoot, DEV_ROOT_MARKER))) candidates.push(join(devRoot, 'scripts', EXPORT_MODULE))
-  candidates.push(join(opts.home ?? homedir(), '.agents', 'console', EXPORT_MODULE))
-  return candidates.find((candidate) => existsSync(candidate)) ?? null
-}
+export { resolveConsoleModulePath }
 
 class ConsoleAssetsNotFoundError extends Error {
   readonly code = 'CONSOLE_ASSETS_NOT_FOUND'

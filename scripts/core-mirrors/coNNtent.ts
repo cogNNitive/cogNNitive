@@ -19,4 +19,5 @@ export {
   computeProposalSha,
 } from '../../iNNfo/packages/nn-core/src/changeset/index.js'
 export { executeChangesetApply } from '../../iNNfo/packages/nn-mcp/src/tools/apply-change.js'
+export { resolveConsoleModulePath } from '../../iNNfo/packages/nn-core/src/console/locate-writer.js'
 export { writeProposedChangeset } from '../../iNNfo/packages/nn-mcp/src/tools/propose-changeset.js'
