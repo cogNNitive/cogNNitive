@@ -125,76 +125,6 @@ for (const file of files) {
   }
 }
 
-/**
- * A living spec must not require what the gate forbids. `openspec/specs/` is the
- * published contract read by `get_spec` and by the nn-innfo skill, so a spec that
- * still names a removed symbol sends an agent to write it, or to "repair" the code
- * to match. Retirement notes are legitimate (`hierarchical-identity` names
- * `AMBIGUOUS_MODEL_ID` only to say it no longer exists), so a mention is allowed
- * only through an explicit, counted allowlist: pinning the count means a new
- * mention goes red, and editing the allowlist is the review moment.
- */
-const SPEC_ROOT = 'openspec/specs'
-/** rel path -> symbol -> expected occurrences. */
-const SPEC_ALLOWED = {
-  'openspec/specs/cross-model-reference-validation/spec.md': { titleToNodeIds: 1 },
-  'openspec/specs/hierarchical-identity/spec.md': { AMBIGUOUS_MODEL_ID: 2 },
-}
-
-function markdownFiles(dir) {
-  const out = []
-  if (!fs.existsSync(dir)) return out
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name)
-    if (entry.isDirectory()) out.push(...markdownFiles(full))
-    else if (entry.isFile() && entry.name.endsWith('.md')) out.push(full)
-  }
-  return out
-}
-
-const specs = markdownFiles(path.join(ROOT, SPEC_ROOT))
-
-assert.ok(
-  specs.length > 100,
-  `the spec scan must read the living specs, not an empty set (found ${specs.length} files)`,
-)
-
-/**
- * The qualified `[[Title :: Name]]` reference is retired too: addressing uses the
- * hierarchical id and the element slug, and a title is display-only. A living spec
- * may still show the form only to reject it, so the same counted allowlist applies:
- * `unified-reference-grammar` defines the rejection, `video-presets` proves the
- * `preset-syntax` error, and `cross-model-reference-validation` records the
- * replacement in its Purpose and a `(Previously:)` note.
- */
-const QUALIFIED_FORM = /\[\[[^\]]*::[^\]]*\]\]/g
-/** rel path -> expected occurrences. */
-const QUALIFIED_ALLOWED = {
-  'openspec/specs/cross-model-reference-validation/spec.md': 2,
-  'openspec/specs/unified-reference-grammar/spec.md': 3,
-  'openspec/specs/conntent-presets/spec.md': 1,
-}
-
-for (const file of specs) {
-  const rel = path.relative(ROOT, file).split(path.sep).join('/')
-  const text = fs.readFileSync(file, 'utf8')
-  const allowed = SPEC_ALLOWED[rel] ?? {}
-  for (const symbol of FORBIDDEN) {
-    const seen = occurrences(text, symbol)
-    assert.strictEqual(
-      seen,
-      allowed[symbol] ?? 0,
-      `${rel} names the removed address machinery "${symbol}" ${seen} time(s); a living spec must not require it (add a counted allowlist entry only for a retirement note)`,
-    )
-  }
-  const qualified = text.match(QUALIFIED_FORM)?.length ?? 0
-  assert.strictEqual(
-    qualified,
-    QUALIFIED_ALLOWED[rel] ?? 0,
-    `${rel} shows the retired qualified reference "[[Title :: Name]]" ${qualified} time(s); a living spec may show it only to reject it (pin it in QUALIFIED_ALLOWED)`,
-  )
-}
-
 // An address resolves exactly through the domain index; a title is display-only.
 for (const rel of [
   'iNNfo/packages/nn-core/src/address/parse.ts',
@@ -208,5 +138,5 @@ for (const rel of [
 }
 
 console.log(
-  `no-removed-address-forms: ${files.length} live source files clean of the removed address forms; ${specs.length} living specs clean or allowlisted`,
+  `no-removed-address-forms: ${files.length} live source files clean of the removed address forms`,
 )

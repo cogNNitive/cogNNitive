@@ -68,3 +68,10 @@ All agents MUST adhere to the canonical iNNfo level nomenclature and vocabulary:
 Authoritative sources:
 - Machine-readable dictionary: [`iNNfo/specs/vocabulary.json`](iNNfo/specs/vocabulary.json)
 - Rendered vocabulary & alias guide: [`docs/documentation/content/vocabulary.md`](docs/documentation/content/vocabulary.md)
+
+## No archive is a contract
+
+`openspec/specs/` no longer exists. Its specs were historical records and git keeps
+them (`git log -- openspec/specs`). Anything still in force is enforced by a test, a
+gate, or a published iNNfo spec under `iNNfo/specs/` — read those, and never rebuild
+authority from an archived decision.
