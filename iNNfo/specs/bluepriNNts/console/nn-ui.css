@@ -8422,6 +8422,68 @@ input[type="text"], input[type="search"], textarea, select {
   pointer-events: none;
 }
 .nn-toast.is-open { opacity: 1; transform: translateY(0); }
+/* ── coNNtent Pipeline view: sections, pending inbox, series board ───────────── */
+.nn-conntent-view { padding: 4px 0 40px; }
+.nn-conntent-section { margin: 0 16px 24px; }
+.nn-conntent-section > h3 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+}
+.nn-conntent-section[data-nn-home] > h3 {
+  margin-top: 8px;
+  font-size: 18px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: inherit;
+}
+.nn-conntent-body { padding: 4px 16px 14px; }
+.nn-pending-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.nn-pending-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-left: 3px solid #f59e0b;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.nn-pending-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nn-gate-state { background: rgba(245, 158, 11, 0.16); color: #b45309; }
+.nn-gate-notes,
+.nn-gate-cause { font-size: 12px; color: #64748b; }
+.nn-series-board {
+  list-style: none;
+  margin: 0;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nn-series-episode { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.nn-episode-title { font-weight: 600; }
+.nn-param-value { font-size: 12.5px; overflow-wrap: anywhere; }
+.nn-scene-script { margin: 10px 0; border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 12px; overflow: hidden; }
+.nn-scene-script .nn-scene-header { cursor: default; }
+.nn-scene-narration { white-space: pre-wrap; }
+.nn-conntent-fields summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  color: #2563eb;
+  padding: 4px 0;
+}
+.nn-conntent-fields .nn-fields { margin-top: 8px; }
 /* ── Visual options, motion tiers and the storyboard lightbox ────────────────── */
 .nn-tier-alta { --tier-a: #7c3aed; --tier-b: #ec4899; }
 .nn-tier-media { --tier-a: #2563eb; --tier-b: #38bdf8; }
