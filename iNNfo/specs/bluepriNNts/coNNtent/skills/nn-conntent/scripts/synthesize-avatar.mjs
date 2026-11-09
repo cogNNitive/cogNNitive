@@ -38,7 +38,8 @@ import { SceneCompiler, ScriptValidationError } from './scene-compiler.mjs';
 import { loadKnowledgeModel } from './lib/knowledge-model.mjs';
 import { withScriptPresets } from './lib/video-scope.mjs';
 import { parseArgs, CliUsageError } from './lib/cli-args.mjs';
-import { LOCKS_RELATIVE_DIR, SpendGuard, loadGuard, normalizeModelId, resolveDefaultCacheDir } from './lib/video-guard.mjs';
+import { LOCKS_RELATIVE_DIR, SpendGuard, normalizeModelId, resolveDefaultCacheDir } from './lib/video-guard.mjs';
+import { loadGuardWithVoices } from './lib/guard-config.mjs';
 import { collectAvatarJobs } from './lib/avatar-jobs.mjs';
 import { appendPending, findOutstanding, latestPending } from './lib/pending-predictions.mjs';
 import { acquireLock } from './lib/file-lock.mjs';
@@ -117,7 +118,7 @@ export async function synthesizeAvatars(o) {
     tts: normalizeModelId(resolve('voice_model', bags).value),
     avatar: normalizeModelId(resolve('avatar_model', bags).value),
   };
-  const loaded = loadGuard(scriptDir);
+  const loaded = loadGuardWithVoices(scriptDir);
   const cacheDir = o.cacheDir || resolveDefaultCacheDir(scriptDir);
   // Spending is authorized by `produce`; this guard enforces the caps and the model lists.
   const checkNow = () => ({ ok: true });

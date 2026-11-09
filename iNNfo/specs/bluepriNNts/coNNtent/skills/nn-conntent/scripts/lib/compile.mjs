@@ -22,7 +22,8 @@ import { SceneCompiler, ScriptValidationError, compositionIdOf, computeSceneDura
 import { loadKnowledgeModel } from './knowledge-model.mjs';
 import { CacheManager } from '../cache-manager.mjs';
 import { AssetSynthesizer } from '../asset-synthesizer.mjs';
-import { SpendGuard, loadGuard, resolveDefaultCacheDir, normalizeModelId, resolveWorkspace } from './video-guard.mjs';
+import { SpendGuard, resolveDefaultCacheDir, normalizeModelId, resolveWorkspace } from './video-guard.mjs';
+import { loadGuardWithVoices } from './guard-config.mjs';
 import { loadCascadeBags, findSeriesRoot, withScriptPresets } from './video-scope.mjs';
 import { resolve, resolveKeyed } from './cascade.mjs';
 import { resolveLibrary } from './library.mjs';
@@ -30,7 +31,7 @@ import { applyCachedAvatars } from './avatar-jobs.mjs';
 import { buildTtsVoiceOptions } from './tts-options.mjs';
 import { buildImageOptions } from './image-options.mjs';
 import { appendTimingRow, timingRow } from './facts.mjs';
-import { assertImageSize, loadMergedCatalog, voiceRegistryOf } from './catalog.mjs';
+import { assertImageSize, loadMergedCatalog } from './catalog.mjs';
 import { warnUnpricedAllowedModels } from '../asset-cost-estimator.mjs';
 import { loadFrame } from './frame-tokens.mjs';
 import { probeDuration } from './media-duration.mjs';
@@ -520,7 +521,10 @@ export async function synthesizeEpisodeAssets(options = {}) {
     throw new Error(`Script file not found: ${scriptPath}`);
   }
   const scriptDir = path.dirname(scriptPath);
-  const loaded = loadGuard(scriptDir);
+  const loaded = loadGuardWithVoices(scriptDir);
+  const config = loaded.config;
+  // One merged catalog (reference + domaiNN overlay) answers `sizes`, allowlists and prices.
+  const catalog = loadMergedCatalog({ domainRoot: loaded.root });
   const allowModels = options.allowModels || [];
   const cacheDir = options.cacheDir || resolveDefaultCacheDir(scriptDir);
   const bags = options.bags || loadCascadeBags(scriptDir);
@@ -533,15 +537,10 @@ export async function synthesizeEpisodeAssets(options = {}) {
   const dailyBudgetUsd =
     dailyBudgetRaw === null || dailyBudgetRaw === undefined || dailyBudgetRaw === '' ? null : Number(dailyBudgetRaw);
   const synthOptions = { defaultModels: models, bags, ...(options.synthesizerOptions || {}) };
-  // Voices come from the merged catalog (reference + domaiNN overlay), not from a
-  // video-guard.json that no longer exists (2b.5 / 1c.6).
-  const catalog = loadMergedCatalog({ domainRoot: loaded.root });
-  const config = {
-    ...loaded.config,
-    voices: { ...(loaded.config.voices || {}), ...voiceRegistryOf(catalog) },
-  };
+  // `loaded.config` already carries the merged catalog's voices (loadGuardWithVoices), the
+  // one registry every consumer shares.
   const makeGuard = (dryRun) =>
-    new SpendGuard({ config, root: loaded.root, allowModels, dryRun, approval: () => ({ ok: true }), dailyBudgetUsd });
+    new SpendGuard({ config: loaded.config, root: loaded.root, allowModels, dryRun, approval: () => ({ ok: true }), dailyBudgetUsd });
 
   const compiler = new SceneCompiler({
     fps: options.fps,
@@ -606,7 +605,8 @@ export async function compileVideo(options) {
 
   const scriptContent = fs.readFileSync(scriptPath, 'utf8');
   const scriptDir = path.dirname(scriptPath);
-  const loaded = loadGuard(scriptDir);
+  const loaded = loadGuardWithVoices(scriptDir);
+  const config = loaded.config;
   warnUnpricedAllowedModels(loaded.config);
   // The engine project IS `<episode>/hyperframes/` (capability "Engine Project Lives In The
   // Episode Folder"). An authored folder that differs from it only by case would be clobbered
@@ -641,11 +641,6 @@ export async function compileVideo(options) {
   const synthOptions = { defaultModels: models, bags, ...(options.synthesizerOptions || {}) };
   // Voices come from the merged catalog (reference + domaiNN overlay), not a retired
   // video-guard.json (2b.5 / 1c.6).
-  const catalog = loadMergedCatalog({ domainRoot: loaded.root });
-  const config = {
-    ...loaded.config,
-    voices: { ...(loaded.config.voices || {}), ...voiceRegistryOf(catalog) },
-  };
   const makeGuard = (dryRun) =>
     // `produce` owns the spending decision (the applied script/preview/budget verdicts);
     // this guard enforces the per-run and rolling 24h caps and the model allow/block lists.
@@ -710,6 +705,7 @@ export async function compileVideo(options) {
     if (options.facts) stageRows.push(row);
   };
   // One merged catalog (reference + domaiNN overlay) answers `sizes`, allowlists and prices.
+  const catalog = loadMergedCatalog({ domainRoot: loaded.root });
 
   if (options.synthesizeAssets !== false || options.dryRun) {
     // Pass 1: plan. Read-only cache, dry-run guard: nothing is spent or written.

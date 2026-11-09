@@ -23,7 +23,8 @@ import { isAvatarLayer, collectAvatarJobs, ttsCachePathFor, AVATAR_CACHE_EXT, AV
 import { layerPrompt, imageCachePathFor } from './lib/image-options.mjs';
 import { loadMergedCatalog, assertImageSize, isPriceStale, DEFAULT_STALE_AFTER_DAYS } from './lib/catalog.mjs';
 import { CacheManager } from './cache-manager.mjs';
-import { loadGuard, resolveDefaultCacheDir } from './lib/video-guard.mjs';
+import { resolveDefaultCacheDir } from './lib/video-guard.mjs';
+import { loadGuardWithVoices } from './lib/guard-config.mjs';
 import { parseArgs, CliUsageError } from './lib/cli-args.mjs';
 
 export function resolveModelId(prop, fallback) {
@@ -192,7 +193,7 @@ export function estimateScriptCost(scriptContentOrPath, options = {}) {
   const cacheDir = options.cacheDir || (scriptDir ? resolveDefaultCacheDir(scriptDir) : null);
   const cache = cacheDir ? new CacheManager({ baseDir: cacheDir, readOnly: true }) : null;
   const models = { image: defaultImageModel, imageSize: defaultImageSize, tts: defaultTtsModel, avatar: defaultAvatarModel };
-  const loaded = scriptDir ? loadGuard(scriptDir) : { config: {}, root: null };
+  const loaded = scriptDir ? loadGuardWithVoices(scriptDir) : { config: {}, root: null };
   const config = loaded.config;
   warnUnpricedAllowedModels(config);
   // An `image_size` the resolved model does not offer fails the ESTIMATE, before any spend,

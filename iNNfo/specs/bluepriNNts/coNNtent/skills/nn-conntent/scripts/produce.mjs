@@ -43,10 +43,10 @@ import { deliver as defaultDeliver } from './lib/delivery.mjs';
 import { canonicalJson, sha256Hex } from './lib/canonical.mjs';
 import { firstFrameFrom, renderEpisodeThumbnails } from './lib/thumbnails.mjs';
 import { resolveLibrary } from './lib/library.mjs';
-import { loadMergedCatalog, voiceRegistryOf } from './lib/catalog.mjs';
+import { loadGuardWithVoices } from './lib/guard-config.mjs';
 import { budgetGateTarget, spendPlan } from './lib/spend-gate.mjs';
 import { CacheManager } from './cache-manager.mjs';
-import { loadGuard, normalizeModelId, resolveDefaultCacheDir } from './lib/video-guard.mjs';
+import { normalizeModelId, resolveDefaultCacheDir } from './lib/video-guard.mjs';
 import { resolve as cascadeResolve } from './lib/cascade.mjs';
 import { estimateScriptCost } from './asset-cost-estimator.mjs';
 import { randomUUID } from 'node:crypto';
@@ -341,14 +341,8 @@ export async function produce(options) {
       tts: normalizeModelId(cascadeResolve('voice_model', bags).value),
       avatar: normalizeModelId(cascadeResolve('avatar_model', bags).value),
     };
-    const baseGuardConfig = deps.guardConfig || loadGuard(path.dirname(scriptPath)).config;
-    const config = {
-      ...baseGuardConfig,
-      voices: {
-        ...(baseGuardConfig.voices || {}),
-        ...voiceRegistryOf(loadMergedCatalog({ domainRoot: rootDir })),
-      },
-    };
+    const baseGuardConfig = deps.guardConfig || loadGuardWithVoices(path.dirname(scriptPath)).config;
+    const config = baseGuardConfig;
     const build = deps.previewSubjects || previewSubjectsFromScenes;
     const previewEntries = build(parsed.scenes || [], scriptByScene, {
       cacheManager,
