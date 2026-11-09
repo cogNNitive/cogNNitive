@@ -202,6 +202,30 @@ export function splitPassthrough(argv) {
   const i = argv.indexOf('--');
   return i === -1 ? { argv, passthrough: [] } : { argv: argv.slice(0, i), passthrough: argv.slice(i + 1) };
 }
+
+/** Strips a trailing `_<W>x<H>` dimension suffix from a master/animatic filename to the slug. */
+export function slugFromMaster(name) {
+  const base = path.basename(String(name));
+  return base.replace(/_animatic_\d+x\d+\.\w+$/, '').replace(/_thumbnail_\d+x\d+\.\w+$/, '').replace(/_\d+x\d+\.\w+$/, '').replace(/\.\w+$/, '');
+}
+
+/**
+ * One name per deliverable (design D-S2; conntent-folder-contract "Naming Scheme By
+ * File Class"). Working files carry no slug or version.
+ * @param {{ slug: string, width: number, height: number }} input
+ * @returns {{ master: string, apng: string, description: string, animatic: string, plan: string, qa: string }}
+ */
+export function deliverableNamesFor({ slug, width, height }) {
+  const dims = `${width}x${height}`;
+  return {
+    master: `${slug}_${dims}.mp4`,
+    apng: `${slug}_thumbnail_${dims}.png`,
+    description: `${slug}_description.md`,
+    animatic: `${slug}_animatic_${dims}.mp4`,
+    plan: 'plan.json',
+    qa: 'qa.json',
+  };
+}
 const FLAG_SPEC = {
   boolean: ['allow-mock'],
   value: ['script', 'fps', 'concurrency', 'cache-dir'],
