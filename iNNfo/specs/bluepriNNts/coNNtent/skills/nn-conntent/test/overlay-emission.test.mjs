@@ -78,12 +78,13 @@ test('the enter/exit animations and the frame tokens reach the host as variable 
 
 test('a series components:: [lower-third=pill] mounts pill.html', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-comp-series-'));
+  fs.writeFileSync(path.join(root, 'domaiNN_NN.md'), '# NN DomaiNN\n', 'utf8');
   const series = path.join(root, 'series-a');
-  const episode = path.join(series, 'ep-01');
-  fs.mkdirSync(path.join(series, 'components'), { recursive: true });
+  const episode = path.join(series, 'episodes', 'ep-01');
+  fs.mkdirSync(path.join(series, 'library', 'components'), { recursive: true });
   fs.mkdirSync(episode, { recursive: true });
   fs.writeFileSync(
-    path.join(series, 'components', 'pill.html'),
+    path.join(series, 'library', 'components', 'pill.html'),
     '<div data-composition-variables=\'[{"id":"text"},{"id":"src"},{"id":"position"},{"id":"enter"},{"id":"exit"},{"id":"font"},{"id":"accent"}]\'></div>',
     'utf8',
   );
@@ -91,7 +92,7 @@ test('a series components:: [lower-third=pill] mounts pill.html', () => {
   const bags = { series: { components: '[lower-third=pill]' }, blueprint: { components: '[lower-third=lower-third]' } };
   const resolved = resolveComponents({ slots: ['lower-third'], bags, scriptDir: episode, workspaceRoot: root, skillDir: SKILL_DIR });
   assert.equal(resolved['lower-third'].name, 'pill');
-  assert.equal(resolved['lower-third'].path, path.join(series, 'components', 'pill.html'));
+  assert.equal(resolved['lower-third'].path, path.join(series, 'library', 'components', 'pill.html'));
 
   const manifest = fixture();
   manifest.metadata.components = resolved;
@@ -115,12 +116,13 @@ test('a static component marks its overlay host data-no-timeline', () => {
 
 test('resolveComponents records whether each resolved component is static', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-comp-static-'));
+  fs.writeFileSync(path.join(root, 'domaiNN_NN.md'), '# NN DomaiNN\n', 'utf8');
   const episode = path.join(root, 'ep-01');
-  fs.mkdirSync(path.join(root, 'components'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'library', 'components'), { recursive: true });
   fs.mkdirSync(episode, { recursive: true });
   const vars = '[{"id":"text"},{"id":"src"},{"id":"position"},{"id":"enter"},{"id":"exit"},{"id":"font"},{"id":"accent"}]';
-  fs.writeFileSync(path.join(root, 'components', 'static.html'), `<div data-composition-variables='${vars}' data-no-timeline></div>`, 'utf8');
-  fs.writeFileSync(path.join(root, 'components', 'animated.html'), `<div data-composition-variables='${vars}'></div>`, 'utf8');
+  fs.writeFileSync(path.join(root, 'library', 'components', 'static.html'), `<div data-composition-variables='${vars}' data-no-timeline></div>`, 'utf8');
+  fs.writeFileSync(path.join(root, 'library', 'components', 'animated.html'), `<div data-composition-variables='${vars}'></div>`, 'utf8');
 
   const bags = (name) => ({ series: { components: `[lower-third=${name}]` }, blueprint: { components: '[lower-third=lower-third]' } });
   const staticRes = resolveComponents({ slots: ['lower-third'], bags: bags('static'), scriptDir: episode, workspaceRoot: root, skillDir: SKILL_DIR });

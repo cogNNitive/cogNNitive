@@ -82,8 +82,9 @@ function scopeDir(level, root, fromDir) {
   return null; // package handled separately
 }
 
-/** Folder kinds: an "item" is a folder (`frames/<name>/`, `components/<name>/`, `characters/<name>/`). */
-const FOLDER_KINDS = new Set(['frames', 'components', 'characters']);
+/** Folder kinds: an "item" is a folder (`frames/<name>/`, `characters/<name>/`).
+ * Components are still single `.html` files until the Component slice vendors folders. */
+const FOLDER_KINDS = new Set(['frames', 'characters']);
 
 /** Matches a file or folder by exact name or stem. Folder kinds (`frames`, `components`,
  * `characters`) match a subfolder; file kinds match a file (any extension of the kind). */
@@ -109,7 +110,7 @@ function matchFile(dir, kind, label) {
  * Resolves a logical name by upward lookup.
  * @returns {{ file: string|null, level: string, searched: string[] }}
  */
-export function resolveLibrary({ kind, ref, fromDir, root, warn, packageFloor }) {
+export function resolveLibrary({ kind, ref, fromDir, root, warn, packageFloor, throwOnMiss = true }) {
   if (!LIBRARY_KINDS.has(kind)) throw new Error(`unknown library kind "${kind}"`);
   const { kindRel, forced } = parseRef(kind, ref);
   if (isDirectName(ref)) {
@@ -142,14 +143,14 @@ export function resolveLibrary({ kind, ref, fromDir, root, warn, packageFloor })
     if (file) return { file, level, searched };
   }
 
-  // A miss keyed only at the package floor is a warning, not an error. A user-level miss
-  // is a hard error. The package floor is never a "set by" source, so it cannot be the
-  // thrown source.
+  // A miss keyed only at the package floor is a warning, not an error.
   if (allowFloor && packageFloor && dirs.length > 0 && dirs[dirs.length - 1][0] === 'package') {
     const warnFn = warn || (() => {});
     warnFn(`⚠️ [video-engine] ${kind} "${ref}" not found at the package floor`);
     return { file: null, level: 'package', searched };
   }
+
+  if (!throwOnMiss) return { file: null, level: null, searched };
 
   const source = forced || 'video';
   throw new MissingAssetError({ kind, name: ref, source, searched });

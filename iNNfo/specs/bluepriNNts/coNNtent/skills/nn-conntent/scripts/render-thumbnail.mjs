@@ -34,7 +34,8 @@ import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { loadSeriesFor } from './lib/series-doc.mjs';
-import { loadCascadeBags, resolve, findNearest } from './lib/video-scope.mjs';
+import { loadCascadeBags, resolve } from './lib/video-scope.mjs';
+import { resolveLibrary } from './lib/library.mjs';
 import { loadFrame, frameCss } from './lib/frame-tokens.mjs';
 import { resolveWorkspace } from './lib/video-guard.mjs';
 import { HYPERFRAMES_PIN } from './scene-project.mjs';
@@ -189,12 +190,17 @@ export function resolveThumbnailFrameTokens({ outputPath, seriesDir } = {}) {
     const bags = loadCascadeBags(inputDir);
     const { value: name } = resolve('frame', bags);
     if (!name) return null;
-    const { path: framePath } = findNearest(inputDir, `frames/${name}.md`, {
-      stopDir: resolveWorkspace(inputDir).root,
-      fallbackDir: SKILL_DIR,
+    const { file: framePath } = resolveLibrary({
+      kind: 'frames',
+      ref: `frames/${name}`,
+      fromDir: inputDir,
+      root: resolveWorkspace(inputDir).root,
+      packageFloor: path.join(SKILL_DIR, 'library', 'frames'),
     });
     if (!framePath) return null;
-    return loadFrame(framePath).tokens;
+    const frameFile = framePath.endsWith('.md') ? framePath : path.join(framePath, 'FRAME.md');
+    if (!fs.existsSync(frameFile)) return null;
+    return loadFrame(frameFile).tokens;
   } catch {
     return null;
   }

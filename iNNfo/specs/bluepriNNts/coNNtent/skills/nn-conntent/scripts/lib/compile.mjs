@@ -23,7 +23,8 @@ import { loadKnowledgeModel } from './knowledge-model.mjs';
 import { CacheManager } from '../cache-manager.mjs';
 import { AssetSynthesizer } from '../asset-synthesizer.mjs';
 import { SpendGuard, loadGuard, resolveDefaultCacheDir, normalizeModelId, resolveWorkspace } from './video-guard.mjs';
-import { loadCascadeBags, resolve, resolveKeyed, findNearest, findNearestByStem, findSeriesRoot, withScriptPresets } from './video-scope.mjs';
+import { loadCascadeBags, resolve, resolveKeyed, findSeriesRoot, withScriptPresets } from './video-scope.mjs';
+import { resolveLibrary } from './library.mjs';
 import { applyCachedAvatars } from './avatar-jobs.mjs';
 import { buildTtsVoiceOptions } from './tts-options.mjs';
 import { buildImageOptions } from './image-options.mjs';
@@ -78,15 +79,21 @@ export function resolveFrame({ entries, scriptDir, workspaceRoot, skillDir = SKI
     const name = String(entry.value);
     if (seen.has(name)) continue;
     seen.add(name);
-    const { path: framePath, searched } = findNearest(scriptDir, `frames/${name}.md`, {
-      stopDir: workspaceRoot,
-      fallbackDir: skillDir,
+    const { file: framePath, searched } = resolveLibrary({
+      kind: 'frames',
+      ref: `frames/${name}`,
+      fromDir: scriptDir,
+      root: workspaceRoot,
+      packageFloor: path.join(skillDir, 'library', 'frames'),
+      throwOnMiss: false,
     });
     if (!framePath) {
       checkMissingAsset({ kind: 'frame', name, source: entry.source, searched });
       continue;
     }
-    if (!primary) primary = { name, source: entry.source, ...loadFrame(framePath) };
+    // A frame folder resolves to `library/frames/<name>/`; read its FRAME.md.
+    const frameFile = framePath.endsWith('.md') ? framePath : path.join(framePath, 'FRAME.md');
+    if (!primary && fs.existsSync(frameFile)) primary = { name, source: entry.source, ...loadFrame(frameFile) };
   }
   return primary;
 }
@@ -106,9 +113,13 @@ export function resolveComponents({ slots, bags, scriptDir, workspaceRoot, skill
   for (const slot of slots || []) {
     const { value: name, source } = resolveKeyed('components', slot, bags || {});
     if (!name) continue;
-    const { path: compPath, searched } = findNearest(scriptDir, `components/${name}.html`, {
-      stopDir: workspaceRoot,
-      fallbackDir: skillDir,
+    const { file: compPath, searched } = resolveLibrary({
+      kind: 'components',
+      ref: `components/${name}`,
+      fromDir: scriptDir,
+      root: workspaceRoot,
+      packageFloor: path.join(skillDir, 'library', 'components'),
+      throwOnMiss: false,
     });
     if (!compPath) {
       checkMissingAsset({ kind: 'component', name, source, searched });
@@ -205,9 +216,13 @@ export function resolveSoundFiles({ bags, scriptDir, workspaceRoot, skillDir = S
   for (const key of SUPPORTED_SOUND_KEYS) {
     const { value: name, source } = resolveKeyed('sounds', key, bags || {});
     if (!name) continue;
-    let { path: soundPath, searched } = findNearestByStem(scriptDir, 'sounds', name, {
-      stopDir: workspaceRoot,
-      fallbackDir: skillDir,
+    const { file: soundPath, searched } = resolveLibrary({
+      kind: 'sounds',
+      ref: `sounds/${name}`,
+      fromDir: scriptDir,
+      root: workspaceRoot,
+      packageFloor: path.join(skillDir, 'library', 'sounds'),
+      throwOnMiss: false,
     });
     if (!soundPath) {
       checkMissingAsset({ kind: 'sound', name, source, searched });

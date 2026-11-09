@@ -103,27 +103,28 @@ test('the compiler resolves frame per scene through the cascade', () => {
   assert.deepEqual(parsed.frame, { value: 'brand', source: 'series' });
 });
 
-test('resolveFrame finds frames/<name>.md episode > series > domain > skill', () => {
+test('resolveFrame finds library/frames/<name>/FRAME.md episode > series > domain > skill', () => {
   const root = tmp('nn-frame-walk-');
   const domain = path.join(root, 'domain');
   const series = path.join(domain, 'series-a');
-  const episode = path.join(series, 'ep-01');
+  const episode = path.join(series, 'episodes', 'ep-01');
   const skill = path.join(root, 'skill');
-  for (const d of [episode, series, domain, skill]) fs.mkdirSync(path.join(d, 'frames'), { recursive: true });
+  fs.mkdirSync(path.join(episode, 'media'), { recursive: true });
+  for (const d of [series, domain]) fs.mkdirSync(path.join(d, 'library', 'frames'), { recursive: true });
   const entries = [{ value: 'brand', source: 'series' }];
   const opts = { entries, scriptDir: episode, workspaceRoot: domain, skillDir: skill };
 
-  fs.writeFileSync(path.join(skill, 'frames', 'brand.md'), FRAME_DOC, 'utf8');
-  assert.equal(resolveFrame(opts).path, path.join(skill, 'frames', 'brand.md'));
+  fs.mkdirSync(path.join(skill, 'library', 'frames', 'brand'), { recursive: true });
+  fs.writeFileSync(path.join(skill, 'library', 'frames', 'brand', 'FRAME.md'), FRAME_DOC, 'utf8');
+  assert.equal(resolveFrame(opts).path, path.join(skill, 'library', 'frames', 'brand', 'FRAME.md'));
 
-  fs.writeFileSync(path.join(domain, 'frames', 'brand.md'), FRAME_DOC, 'utf8');
-  assert.equal(resolveFrame(opts).path, path.join(domain, 'frames', 'brand.md'));
+  fs.mkdirSync(path.join(domain, 'library', 'frames', 'brand'), { recursive: true });
+  fs.writeFileSync(path.join(domain, 'library', 'frames', 'brand', 'FRAME.md'), FRAME_DOC, 'utf8');
+  assert.equal(resolveFrame(opts).path, path.join(domain, 'library', 'frames', 'brand', 'FRAME.md'));
 
-  fs.writeFileSync(path.join(series, 'frames', 'brand.md'), FRAME_DOC, 'utf8');
-  assert.equal(resolveFrame(opts).path, path.join(series, 'frames', 'brand.md'));
-
-  fs.writeFileSync(path.join(episode, 'frames', 'brand.md'), FRAME_DOC, 'utf8');
-  assert.equal(resolveFrame(opts).path, path.join(episode, 'frames', 'brand.md'));
+  fs.mkdirSync(path.join(series, 'library', 'frames', 'brand'), { recursive: true });
+  fs.writeFileSync(path.join(series, 'library', 'frames', 'brand', 'FRAME.md'), FRAME_DOC, 'utf8');
+  assert.equal(resolveFrame(opts).path, path.join(series, 'library', 'frames', 'brand', 'FRAME.md'));
 
   fs.rmSync(root, { recursive: true, force: true });
 });
@@ -182,16 +183,16 @@ test('compile --dry-run prints the resolved frame name, path and source', () => 
   const root = tmp('nn-frame-dry-');
   fs.writeFileSync(path.join(root, 'domaiNN_NN.md'), '# NN DomaiNN\n');
   const series = path.join(root, 'series-a');
-  const ep = path.join(series, 'ep-01');
-  fs.mkdirSync(path.join(series, 'frames'), { recursive: true });
+  const ep = path.join(series, 'episodes', 'ep-01');
+  fs.mkdirSync(path.join(series, 'library', 'frames', 'brand'), { recursive: true });
   fs.mkdirSync(ep, { recursive: true });
-  fs.writeFileSync(path.join(series, 'series-a_video-script_NN.md'), seriesDoc({ frame: 'brand' }), 'utf8');
-  fs.writeFileSync(path.join(series, 'frames', 'brand.md'), FRAME_DOC, 'utf8');
-  const scriptPath = path.join(ep, 'script.md');
+  fs.writeFileSync(path.join(series, 'series-a_coNNtent_NN.md'), seriesDoc({ frame: 'brand' }), 'utf8');
+  fs.writeFileSync(path.join(series, 'library', 'frames', 'brand', 'FRAME.md'), FRAME_DOC, 'utf8');
+  const scriptPath = path.join(ep, 'ep-01_coNNtent_NN.md');
   fs.writeFileSync(scriptPath, SCRIPT, 'utf8');
 
   const res = spawnSync('node', [cliPath, 'compile', scriptPath, '--dry-run'], { encoding: 'utf8' });
   assert.equal(res.status, 0, res.stderr);
-  assert.match(res.stdout, /frame brand: .*frames[\\/]brand\.md \(series\)/);
+  assert.match(res.stdout, /frame brand: .*frames[\\/]brand[\\/]FRAME\.md \(series\)/);
   fs.rmSync(root, { recursive: true, force: true });
 });
