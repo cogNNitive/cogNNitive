@@ -14,7 +14,18 @@
  */
 
 import crypto from 'node:crypto';
+import path from 'node:path';
 import { normalizeModelId } from './video-guard.mjs';
+
+/** The persisted plan location: `<episode>/plan.json` (design D-S5; conntent-run-facts). */
+export const PLAN_FILENAME = 'plan.json';
+export const planPath = ({ dir }) => path.join(dir, PLAN_FILENAME);
+
+/**
+ * The engine never trusts a persisted plan body: it recomputes every run. This is a
+ * declarative companion (always false) that documents the invariant.
+ */
+export const planBodyIsTrusted = () => false;
 
 /**
  * Canonical JSON of the chosen models: undefined/null dropped, keys sorted.
