@@ -158,15 +158,68 @@ If the maintainer explicitly requests a dedicated branch, honor it with the shap
 
 ## 2b. Change size decides the process lane
 
-Match the ceremony to the blast radius — never run the heavy lane "just in case":
+Match the ceremony to the blast radius — never run the heavy lane "just in case".
 
-- **Light lane (default).** One module, no public contract, no release: work in the
-  session worktree, commit, push, PR, and let CI verify. **No** OpenSpec change, **no**
-  `nn-dev-check-integrity`. Covers most bug fixes and internal refactors.
-- **Heavy lane.** Public contract changes, product behavior, a release/version bump, a
-  migration, or anything cross-cutting: full SDD cycle, then the batched merge in §4.
+**Heavy lane triggers — only these four.** A change is heavy when it:
+
+1. changes a public contract — MCP tool surface, exported API, skill frontmatter or
+   trigger, or a published spec URL;
+2. bumps a release version;
+3. migrates stored data or an on-disk format;
+4. touches security — permissions, secrets, the deny-list, or remote execution.
+
+Everything else is the light lane. "Cross-cutting" is **not** a trigger on its own: a
+change that touches core + mcp + docs but alters no contract stays light.
+
+- **Light lane (default).** Work in the session worktree, commit, push, PR, and let CI
+  verify. **No** OpenSpec change, **no** `nn-dev-check-integrity`. Covers most bug fixes
+  and internal refactors.
+- **Heavy lane.** One OpenSpec delta (§2b.1), the work tracked in the ODD feature
+  document, then the batched merge in §4.
 
 Rule of thumb: if CI can catch a mistake before it reaches `main`, the light lane is enough.
+
+**Open the PR freely; ask before merging it.** When a work unit is done and verified, open
+the PR to `dev` without asking — that is the normal end of a unit. Merging that PR into
+`dev` is the maintainer's call: ask at the moment, per PR. Pushing the session branch is
+always allowed. The `dev -> main` batch and its tags stay gated by §4 and `nn-dev-release`;
+this rule does not touch them.
+
+### 2b.1 OpenSpec only at the contract boundary
+
+OpenSpec is used twice per heavy change, never as per-step ceremony:
+
+1. **Before implementing** — write ONE delta spec at
+   `openspec/changes/<slug>/specs/<capability>/spec.md` with only the requirements that
+   changed (`## ADDED|MODIFIED|REMOVED Requirements`). Keep each normative sentence on one
+   physical line: the validator reads only the line after `### Requirement:`.
+2. **At archive** — the delta moves with its change into `openspec/changes/archive/`. There
+   is no living-spec merge: `openspec/specs/` was retired because nothing consumed it (see
+   `AGENTS.md`, "No archive is a contract").
+
+Do **not** write `proposal.md`, `design.md` or `tasks.md` for a heavy change. ODD already
+produces `odd/tasks/<feature>.md` with objective, scope, checklist, acceptance criteria and
+evidence; duplicating it in a second format is pure friction. `check:openspec` only reads
+delta spec files under `openspec/changes/*/specs/`, so leaving those three out breaks no
+gate.
+
+A delta states what changes; once archived it is history. Anything that must stay in force
+belongs in a test or in a published `iNNfo/specs/` spec.
+
+### 2b.2 Inner loop vs. batch gate
+
+- **Inner loop:** `node --test <file>` for the suite you touched, or `npm run verify:fast`
+  (every guard and drift check, skipping `SLOW_SUITES`).
+- **Batch gate:** the full `node scripts/verify.js` belongs to the `dev -> main` step in
+  §4d, not to the iteration loop.
+
+**Two workflows, never blended.** Agent behavior is owned by Gentle-AI, whose v4 line runs
+ODD (Organic Driven Development) and retired the `sdd-*` skills, the `/sdd-*` commands and
+its OpenSpec integration. The spec process belongs to this repository: `openspec/` plus
+`npm run check:openspec`, with no dependency on Gentle-AI. So "full OpenSpec change cycle"
+means the repo-owned flow under `openspec/changes/` — never a `/sdd-*` command, which no
+longer exists. When older notes or an agent's routing guidance says "SDD cycle", read it as
+the repository's OpenSpec cycle, not as a Gentle-AI workflow.
 
 ### 2c. Keep the backlog shrinking
 

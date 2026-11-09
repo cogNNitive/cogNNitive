@@ -95,22 +95,22 @@ author:: Egon Spengler
 Software architecture, firmware repositories, and telemetry systems for the containment grid.
 
 ## NN Models: Executive Remediation Report 1984
-<!-- nn:auto -->
 path:: artifacts/models/executive_remediation_report_business_NN.md
 template:: business
 status:: active
+<!-- nn:auto -->
 
 ## NN Models: Ghostbusters Inc. Visual Design Presets
-<!-- nn:auto -->
 path:: kNNowledge/Ghostbusters_design-presets_NN.md
 template:: design-presets_V_0-4-1
 status:: active
+<!-- nn:auto -->
 
 ## NN Models: Commercial Clients Stakeholder
-<!-- nn:auto -->
 path:: stakeholders/commercial-clients/commercial-clients_stakeholders_NN.md
 template:: stakeholders_V_0-1-0
 status:: active
+<!-- nn:auto -->
 
 # NN Sources
 

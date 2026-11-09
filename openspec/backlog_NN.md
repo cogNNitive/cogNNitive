@@ -30,13 +30,7 @@ captured:: 2026-10-31
 ## NN Idea: OKF trustFor and stale_after fields (deferred, no consumer yet)
 captured:: 2026-10-31
 
-## NN Idea: Fix the canonical-vocabulary spec scenario that still points at the retired backlog identifier-migration item
-captured:: 2026-10-31
-
 ## NN Idea: Regenerate testlab console fixtures that still ship innfo-ui.css
-captured:: 2026-10-31
-
-## NN Idea: Fix the documentation-template living spec line that references the missing ecosystem.md OKF anchor (via a change)
 captured:: 2026-10-31
 
 # NN Item
@@ -234,10 +228,10 @@ ref:: issue-560
 value:: M
 effort:: M
 risk:: M
-status:: open
+status:: shipped
 lane:: light
-verdict:: current
-evidence:: Every path that sets a `type:: number` field delivers a string and validation rejects it with MUTATION_FAILED: Invalid numeric value "5" for "peso", so the field can never be created or filled through a changeset.
+verdict:: obsolete
+evidence:: Shipped in the number-field-changeset PR: `updateField` now coerces the incoming changeset string by the declared field type before validating it (iNNfo/packages/nn-core/src/mutate.ts), covered by mutate.spec.ts "update_field coerces by the declared field type (#558)".
 done_when:: add_element plus update_field can create and set a `type:: number` field through propose_changeset and apply_change, with a test covering both a bare number and a quoted one, and no MUTATION_FAILED.
 ref:: issue-558
 

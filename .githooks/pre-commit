@@ -1,0 +1,27 @@
+#!/bin/sh
+# pre-commit: refresh the cheap core mirrors when core sources are staged.
+#
+# Only the two <1s generators run, and only when the staged set touches their
+# inputs. The full `npm run regen` builds first and belongs to a deliberate step,
+# not to every commit; the pre-push gate still checks all eleven freshness guards
+# (see .githooks/pre-push and ADR-001: that hook never mutates the working tree,
+# this one stages what it rewrote, which is expected here).
+#
+# The outputs are staged unconditionally. A merge can already have staged a stale
+# version of a mirror, and a before/after diff would then skip exactly the file the
+# generator just fixed (2026-11-09: that left the coNNtent mirror stale on dev).
+
+staged=$(git diff --cached --name-only)
+if ! echo "$staged" | grep -qE '^(iNNfo/packages/nn-core/src/|iNNfo/packages/nn-mcp/src/|scripts/core-mirrors/)'; then
+  exit 0
+fi
+
+node scripts/build-core-mirrors.mjs >/dev/null || exit 1
+node scripts/generate-canonical-registry.mjs >/dev/null || exit 1
+
+git add -- \
+  skills/nn-sources/scripts/lib/nn-core.generated.cjs \
+  iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/lib/nn-core.generated.cjs \
+  iNNfo/packages/nn-core/src/schema/canonical-registry.ts
+
+exit 0
