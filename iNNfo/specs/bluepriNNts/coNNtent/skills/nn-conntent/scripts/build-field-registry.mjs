@@ -36,7 +36,7 @@ const RECORD_FIELDS = new Set([
   'tags', 'title', 'description', 'script', 'master', 'thumbnail', 'status', 'translation_of', 'kind',
   'review', 'role', 'narration', 'max_duration', 'fixed', 'chrome', 'asset', 'prompt', 'text', 'text_from',
   'position', 'type', 'placement', 'timing', 'style', 'source', 'enter_animation', 'exit_animation', 'z_index',
-  'published_url', 'log', 'version', 'file',
+  'log', 'version', 'file', 'delivered_version',
 ]);
 
 /**

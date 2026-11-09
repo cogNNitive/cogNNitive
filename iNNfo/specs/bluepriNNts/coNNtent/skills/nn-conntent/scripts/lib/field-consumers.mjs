@@ -34,6 +34,7 @@ export const FIELD_CONSUMERS = {
   sizes: ['lib/catalog.mjs'],
   status: ['produce.mjs'],
   master: ['produce.mjs'],
+  delivered_version: ['produce.mjs', 'lib/delivery.mjs'],
   budget: ['produce.mjs'],
   daily_budget: ['produce.mjs'],
   review_gates: ['produce.mjs'],

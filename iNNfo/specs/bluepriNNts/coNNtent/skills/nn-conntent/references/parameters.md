@@ -31,6 +31,7 @@ Legend: ● can be written at this scope, · cannot.
 | `status` | select | `idea`, `draft`, `approved`, `produced`, `failed_qa`, `delivered`, `archived` | · | · | · | · | ● | · | · | · | · | · | · | · |
 | `script` | file | — | · | · | · | · | ● | · | · | · | · | · | · | · |
 | `master` | video | — | · | · | · | · | ● | · | · | · | · | · | · | · |
+| `delivered_version` | string | — | · | · | · | · | ● | · | · | · | · | · | · | · |
 | `thumbnail` | image | — | · | · | · | · | ● | · | · | · | · | · | · | · |
 | `translation_of` | string | — | · | · | · | · | ● | · | · | · | · | · | · | · |
 | `kind` | select | — | · | · | · | · | · | ● | · | · | · | · | · | · |
@@ -150,6 +151,12 @@ Settable at: `Video`.
 ### `master`
 
 The episode's master `<slug>_<W>x<H>.mp4`, sized by the first entry of `output_formats`. Delivery formats are derived from it and never modeled.
+
+Settable at: `Video`.
+
+### `delivered_version`
+
+The delivery version the engine last assembled (`v1`, `v2`, ...). Written by the engine together with `status:: delivered`.
 
 Settable at: `Video`.
 

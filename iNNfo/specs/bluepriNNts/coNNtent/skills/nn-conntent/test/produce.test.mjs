@@ -376,7 +376,7 @@ test('a matching preview verdict lets the run continue to the render', async () 
     });
     assert.equal(result.code, EXIT_DONE);
     assert.equal(calls.length, 1);
-    assert.equal(readEpisode(ws.scriptPath).status, 'produced');
+    assert.equal(readEpisode(ws.scriptPath).status, 'delivered');
   } finally {
     done(ws.root);
   }
@@ -614,7 +614,7 @@ evidence:: decision
     );
     const result = await produce({ episodePath: ws.scriptPath, deps: { render: fakeRender().render, log: () => {} } });
     assert.equal(result.code, EXIT_DONE);
-    assert.equal(readEpisode(ws.scriptPath).status, 'produced', 'intake -> draft -> approved -> produced');
+    assert.equal(readEpisode(ws.scriptPath).status, 'delivered', 'intake -> draft -> approved -> delivered');
   } finally {
     done(ws.root);
   }
@@ -679,7 +679,7 @@ test('a second run on a produced episode is idempotent and keeps produced', asyn
     assert.equal(result.code, EXIT_DONE);
     assert.equal(calls.length, 1, 'the master is rendered again (cache makes it free)');
     const after = readEpisode(ws.scriptPath);
-    assert.equal(after.status, 'produced');
+    assert.equal(after.status, 'delivered');
   } finally {
     done(ws.root);
   }
@@ -717,7 +717,7 @@ test('overlay QA: a complete project proceeds to formats and status:: produced',
     const result = await produce({ episodePath: ws.scriptPath, deps: { render, log: () => {} } });
     assert.equal(result.code, EXIT_DONE);
     const ep = readEpisode(ws.scriptPath);
-    assert.equal(ep.status, 'produced');
+    assert.equal(ep.status, 'delivered');
   } finally {
     done(ws.root);
   }

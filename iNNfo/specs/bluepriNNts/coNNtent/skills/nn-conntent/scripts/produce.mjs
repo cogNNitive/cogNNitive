@@ -39,6 +39,8 @@ import { evaluateGate, readAppliedVerdicts } from './lib/gates.mjs';
 import { lowerEpisode, scriptGateStates, scriptSubjectsFromScenes } from './lib/review-subject.mjs';
 import { previewGateStates, previewSubjectsFromScenes } from './lib/preview-subject.mjs';
 import { renderAnimatic as defaultRenderAnimatic } from './lib/animatic.mjs';
+import { deliver as defaultDeliver } from './lib/delivery.mjs';
+import { canonicalJson, sha256Hex } from './lib/canonical.mjs';
 import { budgetGateTarget, spendPlan } from './lib/spend-gate.mjs';
 import { CacheManager } from './cache-manager.mjs';
 import { loadGuard, normalizeModelId, resolveDefaultCacheDir } from './lib/video-guard.mjs';
@@ -445,12 +447,34 @@ export async function produce(options) {
     log(`description: chapters (the authored file was left untouched)\n${chapters.join('\n')}`);
   }
 
-  // 7. Lifecycle: produced, only after the master and every declared format exist.
-  await (deps.apply || applyChanges)(rootDir, [
-    fieldChange(modelId, episode.slug, 'master', path.basename(masterPath)),
-    fieldChange(modelId, episode.slug, 'status', 'produced'),
-  ], { title: 'engine: produced' });
-  log('lifecycle: status:: produced');
+  // 7. Delivery: the last step after QA. A passing run lands `deliveries/v<N>/`; an
+  // identical rerun is a no-op and earlier versions stay immutable.
+  const deliveryOutputs = [
+    masterPath,
+    ...formats.map((variant) => variant.outputPath || variant.path).filter(Boolean),
+    descriptionPath,
+  ].filter((file) => typeof file === 'string' && fs.existsSync(file));
+  const inputFingerprint = sha256Hex(canonicalJson({ manifest, planHash }));
+  const delivered = await (deps.deliver || defaultDeliver)({
+    episodeDir,
+    outputs: deliveryOutputs,
+    inputFingerprint,
+  });
+  log(
+    delivered.created
+      ? `delivery: ${delivered.version} (${deliveryOutputs.length} file(s))`
+      : `delivery: ${delivered.version} unchanged`,
+  );
+
+  // 8. Lifecycle: delivered, only after the delivery folder exists.
+  if (episode.status !== 'delivered' || delivered.created) {
+    await (deps.apply || applyChanges)(rootDir, [
+      fieldChange(modelId, episode.slug, 'master', path.basename(masterPath)),
+      fieldChange(modelId, episode.slug, 'status', 'delivered'),
+      fieldChange(modelId, episode.slug, 'delivered_version', delivered.version),
+    ], { title: 'engine: delivered' });
+    log(`lifecycle: status:: delivered (${delivered.version})`);
+  }
 
   const timings = readTimingRows(rootDir).filter((row) => row.run_id === runId);
   const summary = {
@@ -461,6 +485,7 @@ export async function produce(options) {
     linkMode: rendered.linkMode || 'link',
     master: masterPath,
     formats,
+    delivery: delivered,
     stages: timings.map((row) => ({
       stage: row.stage,
       durationMs: row.duration_ms,

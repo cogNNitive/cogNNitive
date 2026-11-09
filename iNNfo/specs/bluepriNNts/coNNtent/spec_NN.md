@@ -165,6 +165,11 @@ concept:: Video
 type:: video
 description:: The episode's master `<slug>_<W>x<H>.mp4`, sized by the first entry of `output_formats`. Delivery formats are derived from it and never modeled.
 
+## NN Field Definition: delivered_version
+concept:: Video
+type:: string
+description:: The delivery version the engine last assembled (`v1`, `v2`, ...). Written by the engine together with `status:: delivered`.
+
 ## NN Field Definition: thumbnail
 concept:: Video
 type:: image

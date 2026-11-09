@@ -376,6 +376,18 @@
       "cascade": true,
       "description": "Rolling 24-hour cap in the domaiNN's single currency. Settable only in a Video Defaults document (domain or blueprint level); the blueprint ships no default (no daily cap)."
     },
+    "delivered_version": {
+      "concepts": [
+        "Video"
+      ],
+      "scope": "record",
+      "levels": [],
+      "type": "string",
+      "options": [],
+      "multiple": false,
+      "cascade": false,
+      "description": "The delivery version the engine last assembled (`v1`, `v2`, ...). Written by the engine together with `status:: delivered`."
+    },
     "description": {
       "concepts": [
         "Video"
