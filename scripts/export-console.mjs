@@ -1628,28 +1628,40 @@ export async function writeConsole(opts = {}) {
     }
   }
 
-  // A field may declare `options_from:: models|voices`: its picklist is this domaiNN's own
-  // catalog (the Model/Voice elements the export already carries), never a hard-coded tier
-  // list (conntent-domain-console, "Picklists come from the catalog").
-  const catalogPicklists = {
-    models: catalogOptionSlugs('Model'),
-    voices: catalogOptionSlugs('Voice'),
-  }
-  function catalogOptionSlugs(concept) {
+  // A field may declare `options_from:: models:<capability>` or `options_from:: voices`: its
+  // picklist is this domaiNN's own catalog (the Model/Voice elements the export already
+  // carries), never a hard-coded tier list (conntent-domain-console, "Picklists come from
+  // the catalog"). Models are offered by `api_id` -- what the engine documents, the plan
+  // stamps and the cost ledger records -- filtered by the capability the field consumes;
+  // Voices by slug, the registry key the TTS layer resolves, and only when the voice has a
+  // provider id. An empty picklist leaves the field as free text: a select with no options
+  // is worse than a text box.
+  function catalogOptionValues(concept, capability) {
+    const wanted = String(capability || '').toLowerCase()
     const out = new Set()
     for (const el of allElements) {
       if (!el || String(el.concept) !== concept) continue
       const fields = el.fields || {}
-      if (concept === 'Model' && !(fields.allowed === true || fields.allowed === 'true')) continue
-      const slug = el.slug || fields.slug || el.name
-      if (slug) out.add(String(slug))
+      if (concept === 'Model') {
+        if (!(fields.allowed === true || fields.allowed === 'true')) continue
+        if (wanted && String(fields.capability || '').toLowerCase() !== wanted) continue
+      }
+      if (concept === 'Voice' && !fields.voice_id) continue
+      const value =
+        concept === 'Model'
+          ? fields.api_id || fields.slug || el.slug || el.name
+          : el.slug || fields.slug || el.name
+      if (value) out.add(String(value))
     }
     return [...out].sort()
   }
   for (const f of allFields) {
     if (!f || !f.options_from) continue
-    const options = catalogPicklists[String(f.options_from).toLowerCase()]
-    if (options && options.length > 0) {
+    const [kind, capability] = String(f.options_from).split(':')
+    const concept = kind.trim().toLowerCase() === 'models' ? 'Model' : kind.trim().toLowerCase() === 'voices' ? 'Voice' : null
+    if (!concept) continue
+    const options = catalogOptionValues(concept, capability)
+    if (options.length > 0) {
       f.type = 'select'
       f.options = options
     }

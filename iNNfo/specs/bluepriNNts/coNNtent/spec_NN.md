@@ -386,7 +386,8 @@ description:: Paint order of the Layer as a numeric string (higher renders on to
 concept:: [Layer, Scene, Video, Preset, Series, Video Defaults]
   scope:: render
 type:: string
-description:: Avatar/lip-sync model id for an `avatar` Layer, or a cascade default (e.g. `wavespeed-ai/infinitetalk-fast`). Resolves through the Universal Parameter Cascade.
+  options_from:: models:avatar
+description:: Avatar/lip-sync model id for an `avatar` Layer, or a cascade default (e.g. `wavespeed-ai/infinitetalk-fast`). Resolves through the Universal Parameter Cascade. The console picklist offers the merged catalog's allowed avatar models by `api_id`.
 
 ## NN Field Definition: avatar_resolution
 concept:: Layer
@@ -406,13 +407,15 @@ description:: How a `media` Layer fits its box. `cover` fills and crops; `contai
 concept:: [Video, Scene, Preset, Series, Video Defaults]
   scope:: render
 type:: string
-description:: Registered voice name or system voice used for TTS synthesis. Resolves through the Universal Parameter Cascade; a Preset supplies it unless a nearer level sets it. Part of the synthesized-audio cache identity.
+  options_from:: voices
+description:: Registered voice name or system voice used for TTS synthesis. Resolves through the Universal Parameter Cascade; a Preset supplies it unless a nearer level sets it. Part of the synthesized-audio cache identity. The console picklist offers the merged catalog's Voices by slug.
 
 ## NN Field Definition: voice_model
 concept:: [Video, Scene, Preset, Series, Video Defaults]
   scope:: render
 type:: string
-description:: Provider model id used for TTS synthesis (e.g. `minimax/speech-2.8-hd`). Resolves through the Universal Parameter Cascade. Part of the synthesized-audio cache identity.
+  options_from:: models:tts
+description:: Provider model id used for TTS synthesis (e.g. `minimax/speech-2.8-hd`). Resolves through the Universal Parameter Cascade. Part of the synthesized-audio cache identity. The console picklist offers the merged catalog's allowed tts models by `api_id`.
 
 ## NN Field Definition: voice_speed
 concept:: [Video, Scene, Preset, Series, Video Defaults]
@@ -430,7 +433,8 @@ description:: Delivery the provider synthesizes the narration with (e.g. `happy`
 concept:: [Video, Scene, Preset, Series, Video Defaults]
   scope:: render
 type:: string
-description:: Provider model id used to synthesize image assets (e.g. `wavespeed-ai/z-image/turbo`). Resolves through the Universal Parameter Cascade.
+  options_from:: models:image
+description:: Provider model id used to synthesize image assets (e.g. `wavespeed-ai/z-image/turbo`). Resolves through the Universal Parameter Cascade. The console picklist offers the merged catalog's allowed image models by `api_id`.
 
 ## NN Field Definition: image_size
 concept:: [Video, Scene, Preset, Series, Video Defaults]

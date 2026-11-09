@@ -106,7 +106,7 @@
       "options": [],
       "multiple": false,
       "cascade": true,
-      "description": "Avatar/lip-sync model id for an `avatar` Layer, or a cascade default (e.g. `wavespeed-ai/infinitetalk-fast`). Resolves through the Universal Parameter Cascade."
+      "description": "Avatar/lip-sync model id for an `avatar` Layer, or a cascade default (e.g. `wavespeed-ai/infinitetalk-fast`). Resolves through the Universal Parameter Cascade. The console picklist offers the merged catalog's allowed avatar models by `api_id`."
     },
     "avatar_resolution": {
       "concepts": [
@@ -502,7 +502,7 @@
       "options": [],
       "multiple": false,
       "cascade": true,
-      "description": "Provider model id used to synthesize image assets (e.g. `wavespeed-ai/z-image/turbo`). Resolves through the Universal Parameter Cascade."
+      "description": "Provider model id used to synthesize image assets (e.g. `wavespeed-ai/z-image/turbo`). Resolves through the Universal Parameter Cascade. The console picklist offers the merged catalog's allowed image models by `api_id`."
     },
     "image_size": {
       "concepts": [
@@ -1177,7 +1177,7 @@
       "options": [],
       "multiple": false,
       "cascade": true,
-      "description": "Registered voice name or system voice used for TTS synthesis. Resolves through the Universal Parameter Cascade; a Preset supplies it unless a nearer level sets it. Part of the synthesized-audio cache identity."
+      "description": "Registered voice name or system voice used for TTS synthesis. Resolves through the Universal Parameter Cascade; a Preset supplies it unless a nearer level sets it. Part of the synthesized-audio cache identity. The console picklist offers the merged catalog's Voices by slug."
     },
     "voice_emotion": {
       "concepts": [
@@ -1231,7 +1231,7 @@
       "options": [],
       "multiple": false,
       "cascade": true,
-      "description": "Provider model id used for TTS synthesis (e.g. `minimax/speech-2.8-hd`). Resolves through the Universal Parameter Cascade. Part of the synthesized-audio cache identity."
+      "description": "Provider model id used for TTS synthesis (e.g. `minimax/speech-2.8-hd`). Resolves through the Universal Parameter Cascade. Part of the synthesized-audio cache identity. The console picklist offers the merged catalog's allowed tts models by `api_id`."
     },
     "voice_speed": {
       "concepts": [

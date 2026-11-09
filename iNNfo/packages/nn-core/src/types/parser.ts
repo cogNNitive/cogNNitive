@@ -124,6 +124,11 @@ export interface ConceptField {
   target_blueprint?: string
   /** Optional human-readable explanation of what the field holds. */
   description?: string
+  /**
+   * `<kind>[:<capability>]` (`models:image`, `voices`): the console populates this field's
+   * picklist from the domaiNN's own catalog at export time, never from a declared list.
+   */
+  options_from?: string
   multiple?: boolean
   widget?: string
   widgetConfig?: Record<string, unknown>

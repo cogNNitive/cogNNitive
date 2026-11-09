@@ -8432,6 +8432,8 @@ function extractBlueprintSchema(parsed) {
     if (widgetConfig) field.widgetConfig = widgetConfig;
     const fieldDescription = asString(el.fields["description"]);
     if (fieldDescription) field.description = fieldDescription;
+    const optionsFrom = asString(el.fields["options_from"]);
+    if (optionsFrom) field.options_from = optionsFrom;
     if (scope === "concept" && owner) {
       const list = fieldsByConcept.get(owner);
       if (list) {
