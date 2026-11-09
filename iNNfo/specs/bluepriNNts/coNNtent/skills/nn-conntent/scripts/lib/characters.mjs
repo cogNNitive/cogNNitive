@@ -187,3 +187,74 @@ export function characterValues(character, language) {
     background: character.defaultBackground,
   };
 }
+
+/**
+ * The Character voice for a scene MUST be `voices[<resolved language>]`; a language
+ * with no entry fails before any spend with `missing-character-voice` naming the
+ * Character and the language, WITHOUT falling back to another language's voice or to
+ * a domaiNN voice (capability conntent-character "Voice Follows The Episode
+ * Language"). Returns the voice slug on success.
+ * @param {{ name: string, voices: Record<string,string> }} character
+ * @param {string} language ISO 639-1 resolved episode language.
+ * @returns {string}
+ */
+export function assertCharacterVoice(character, language) {
+  const lang = String(language || '').toLowerCase();
+  const voice = character.voices?.[lang];
+  if (typeof voice !== 'string' || voice.trim() === '') {
+    const err = new Error(
+      `missing-character-voice: Character "${character.name}" has no voice for language "${lang}" ` +
+        `(available: ${Object.keys(character.voices || {}).join(', ') || 'none'}); ` +
+        `declare a Voice for that language instead of reusing another language's voice.`,
+    );
+    err.code = 'missing-character-voice';
+    throw err;
+  }
+  return voice;
+}
+
+/** The closed set of fields a Character supplies (capability conntent-character). */
+export const CHARACTER_FIELDS = ['voice', 'avatar', 'pose', 'background', 'avatar_model', 'avatar_resolution'];
+
+/**
+ * Reports `character-override` warnings: fields the active Character supplies whose
+ * winning source is a preset or an explicit field instead of the Character. Each
+ * warning names the field, the winning source and the Character; the same
+ * field+source pair is reported once per scope, not once per scene. A scene whose
+ * own `character` wins resolves against THAT character and warns nothing. Never stops
+ * a run (capability conntent-character "Overriding A Character Value Warns").
+ * @param {{ cascade: { at: (scene?: string, layer?: string) => { get: (field: string) => { value: unknown, source: string|null } } },
+ *   characterOf: (name: string) => object | null,
+ *   position?: { scene?: string, layer?: string } }} o
+ * @returns {Array<{ code: 'character-override', field: string, source: string, character: string }>}
+ */
+export function characterOverrides({ cascade, characterOf, position = {} }) {
+  const warnings = [];
+  const seen = new Set();
+  const at = cascade.at(position.scene ?? 'scene-1', position.layer);
+  for (const field of CHARACTER_FIELDS) {
+    const r = at.get(field);
+    if (!r || r.source == null) continue;
+    // The Character node itself is `<level>:character:<name>` (source trace).
+    if (r.source.includes(':character:')) continue;
+    // The character whose values could have supplied this field: the active character
+    // at the innermost level that declares `character`, or the resolution winner.
+    const active = activeCharacterName(cascade, characterOf, position);
+    if (!active) continue;
+    const key = `${field}|${r.source}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    warnings.push({ code: 'character-override', field, source: r.source, character: active });
+  }
+  return warnings;
+}
+
+/** The character named by the nearest scope bag that declares `character::`. */
+function activeCharacterName(cascade, characterOf, position = {}) {
+  // Cheap and dependency-free: reuse the resolver's own trace for `character`.
+  const r = cascade.at(position.scene ?? 'scene-1', position.layer).get('character');
+  const name = r && r.source && r.source.includes(':character:')
+    ? r.source.split(':character:')[1]
+    : (r.source === 'scene' || r.source === 'series' || r.source === 'video' || r.source === 'kind' ? r.value : null);
+  return name && characterOf && characterOf(String(name)) ? String(name) : null;
+}
