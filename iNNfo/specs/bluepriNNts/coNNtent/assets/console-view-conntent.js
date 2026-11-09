@@ -79,15 +79,15 @@ registerView({
       return box
     }
 
-    var toastBox = el('div', 'nn-toast')
-    var toastTimer = null
-    function toast(message) {
-      toastBox.textContent = message
-      toastBox.classList.add('is-open')
-      if (toastTimer) clearTimeout(toastTimer)
-      toastTimer = setTimeout(function () {
-        toastBox.classList.remove('is-open')
-      }, 2600)
+    // The store already shows its own change toast on every saved draft (review.js,
+    // UI.Toast); this view only surfaces failures, with the same component.
+    function showMessage(title, body) {
+      if (!(ctx.ui && typeof ctx.ui.Toast === 'function')) return
+      var box = ctx.ui.Toast({ title: title, body: body }, { doc: doc, onClose: function () {} })
+      doc.body.appendChild(box)
+      setTimeout(function () {
+        if (box.parentNode) box.parentNode.removeChild(box)
+      }, 4000)
     }
 
     /** Every decision goes through the one shared store; the view keeps no private copy. */
@@ -97,7 +97,7 @@ registerView({
         ctx.store.propose(change)
         return true
       } catch (err) {
-        toast('Cannot save: ' + (err && err.message ? err.message : String(err)))
+        showMessage('Cannot save', err && err.message ? err.message : String(err))
         return false
       }
     }
@@ -106,7 +106,7 @@ registerView({
     function proposeVerdict(episode, scene, gate, verdict, notes) {
       var hash = hashFor(scene, gate)
       if (!hash) {
-        toast('No ' + gate + ' hash for ' + scene.slug + ': regenerate the console')
+        showMessage('No ' + gate + ' hash', scene.slug + ' has no ' + gate + ' hash: regenerate the console')
         return false
       }
       var change = {
@@ -123,7 +123,6 @@ registerView({
 
     var root = el('div', 'nn-conntent-view')
     ctx.container.appendChild(root)
-    root.appendChild(toastBox)
 
     /** Reflect an approval in the card that issued it (or in every card, for the gate). */
     function markApproved(sceneSlug, gate) {
@@ -291,7 +290,7 @@ registerView({
                   markApproved(scene.slug, currentGate)
                 }
               })
-              if (done > 0) toast('Approved ' + currentGate + ' for ' + done + ' scene(s)')
+
             })
             actions.appendChild(approveAll)
           }
@@ -366,7 +365,6 @@ registerView({
           narration.setAttribute('data-nn-scene-narration', '')
           narration.addEventListener('change', function () {
             if (scene.elementId && propose({ kind: 'correction', elementId: scene.elementId, field: 'narration', proposed: narration.value })) {
-              toast('Narration queued for ' + scene.slug)
             }
           })
           nSection.appendChild(narration)
@@ -411,17 +409,23 @@ registerView({
               group.setAttribute('data-nn-source-context', context)
               group.appendChild(el('span', 'nn-source-context', context))
               byContext[context].forEach(function (entry) {
-                var row = el('div', 'nn-source-row')
+                // The element sheet's own field row: value widget by declared type, the
+                // "inherited from <level>" badge, and the kebab that opens the unit modal.
+                var row = ctx.ui && typeof ctx.ui.FieldRow === 'function'
+                  ? ctx.ui.FieldRow(
+                      {
+                        name: entry.name,
+                        value: entry.value,
+                        type: entry.type,
+                        inherited: { from: context },
+                        model: episode.knowledgeId,
+                        element: scene.slug,
+                      },
+                      { doc: doc, modelId: episode.knowledgeId, elementId: scene.elementId },
+                    )
+                  : el('div', 'nn-source-row', entry.name + ': ' + String(entry.value))
                 row.setAttribute('data-nn-source', entry.name)
-                row.appendChild(el('span', 'nn-param-label', entry.name))
-                var valueBox = el('span', 'nn-param-value')
-                var widget =
-                  ctx.ui && typeof ctx.ui.FieldValue === 'function'
-                    ? ctx.ui.FieldValue({ name: entry.name, value: entry.value, type: entry.type }, { doc: doc })
-                    : null
-                if (widget) valueBox.appendChild(widget)
-                else valueBox.textContent = String(entry.value)
-                row.appendChild(valueBox)
+                row.setAttribute('data-nn-source-from', context)
                 group.appendChild(row)
               })
               sourceDetails.appendChild(group)
@@ -445,7 +449,6 @@ registerView({
             approve.addEventListener('click', function () {
               if (!proposeVerdict(episode, scene, currentGate, 'approved')) return
               markApproved(scene.slug, currentGate)
-              toast('Approved ' + scene.slug + ' for ' + currentGate)
             })
             var needs = el('button', 'nn-verdict', 'Needs change')
             needs.type = 'button'
@@ -458,14 +461,13 @@ registerView({
               if (!reason.value.trim()) {
                 reason.classList.add('is-invalid')
                 reason.focus()
-                toast('A reason is required for needs change')
+                showMessage('Reason required', 'A needs-change verdict needs a reason')
                 return
               }
               reason.classList.remove('is-invalid')
               if (!proposeVerdict(episode, scene, currentGate, 'needs-change', reason.value.trim())) return
               pill.textContent = 'needs-change'
               pill.setAttribute('data-nn-verdict-pill', 'needs-change')
-              toast('Needs change queued for ' + scene.slug)
             })
             line2.appendChild(approve)
             line2.appendChild(needs)

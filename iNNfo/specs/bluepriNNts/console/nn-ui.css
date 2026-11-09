@@ -8523,7 +8523,7 @@ input[type="text"], input[type="search"], textarea, select {
 .nn-review-audio { width: 260px; max-width: 100%; }
 .nn-source-line { margin: 0; font-size: 11.5px; color: #64748b; overflow-wrap: anywhere; }
 .nn-source-chip { padding: 4px 8px; font-size: 11.5px; gap: 6px; }
-/* Inherited values: context first, then field name and its type-aware widget. */
+/* Inherited values: the element sheet's own field rows, grouped by the level they come from. */
 .nn-source-details { margin-top: 2px; }
 .nn-source-group {
   display: block;
@@ -8539,16 +8539,7 @@ input[type="text"], input[type="search"], textarea, select {
   text-transform: uppercase;
   color: #2563eb;
 }
-.nn-source-row {
-  display: grid;
-  grid-template-columns: minmax(120px, 190px) 1fr;
-  align-items: center;
-  gap: 10px;
-  font-size: 12.5px;
-  padding: 2px 0;
-}
-.nn-source-row .nn-param-label { grid-column: auto; opacity: 0.75; }
-.nn-source-row .nn-param-value { display: flex; align-items: center; gap: 6px; overflow-wrap: anywhere; }
+.nn-source-group [data-nn-source] { margin: 2px 0; }
 .nn-verdict-approved { margin: 0; font-size: 12.5px; color: #059669; }
 .nn-comment.is-invalid { border-color: #dc2626; }
 /* ── Visual options, motion tiers and the storyboard lightbox ────────────────── */
