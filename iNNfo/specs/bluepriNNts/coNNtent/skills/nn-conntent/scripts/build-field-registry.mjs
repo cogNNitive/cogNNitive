@@ -28,13 +28,13 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SPEC = path.resolve(here, '..', '..', '..', 'spec_NN.md');
 const DEFAULT_OUT = path.join(here, 'lib', 'field-registry.generated.json');
 
-/** Concepts that make a Field a cascade parameter. */
-const CASCADE_CONCEPTS = ['Video Defaults', 'Series', 'Scene Kind', 'Preset', 'Video', 'Scene'];
+/** Concepts that make a Field a cascade parameter. `Layer` carries explicit fields. */
+const CASCADE_CONCEPTS = ['Video Defaults', 'Series', 'Scene Kind', 'Preset', 'Video', 'Scene', 'Layer'];
 
 /** Non-cascading fields that MAY sit on cascade concepts but are record-class (spec list). */
 const RECORD_FIELDS = new Set([
   'tags', 'title', 'description', 'script', 'master', 'thumbnail', 'status', 'translation_of', 'kind',
-  'review', 'role', 'narration', 'max_duration', 'fixed', 'chrome', 'asset', 'prompt', 'text',
+  'review', 'role', 'narration', 'max_duration', 'fixed', 'chrome', 'asset', 'prompt', 'text', 'text_from',
   'position', 'type', 'placement', 'timing', 'style', 'source', 'enter_animation', 'exit_animation', 'z_index',
   'published_url', 'log', 'version', 'file',
 ]);

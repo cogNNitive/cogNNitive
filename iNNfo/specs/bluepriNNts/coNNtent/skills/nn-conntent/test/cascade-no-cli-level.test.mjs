@@ -21,13 +21,18 @@ import { resolve } from '../scripts/lib/cascade.mjs';
 const SCRIPTS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'scripts');
 const RETIRED_FLAGS = ['--image-model', '--tts-model', '--avatar-model'];
 
+/** The scalar trace without the extra 2a.8 fields the tests below do not assert. */
+function omitTrace(r) {
+  return { value: r.value, source: r.source };
+}
+
 test('SCOPE_ORDER names no cli level', () => {
   assert.deepEqual(SCOPE_ORDER, ['layer', 'scene', 'video', 'kind', 'series', 'domain', 'blueprint']);
 });
 
 test('a cli bag supplies nothing: the nearest document wins', () => {
   const bags = { cli: { image_model: 'cli/model' }, video: { image_model: 'doc/model' } };
-  assert.deepEqual(resolve('image_model', bags), { value: 'doc/model', source: 'video' });
+  assert.deepEqual(omitTrace(resolve('image_model', bags)), { value: 'doc/model', source: 'video' });
 });
 
 test('bagsToChain drops a cli bag instead of folding it last', () => {

@@ -115,8 +115,15 @@
       "concepts": [
         "Layer"
       ],
-      "scope": "record",
-      "levels": [],
+      "scope": "render",
+      "levels": [
+        "domain",
+        "series",
+        "kind",
+        "video",
+        "scene",
+        "layer"
+      ],
       "type": "select",
       "options": [
         "480p",
@@ -124,7 +131,7 @@
         "768p"
       ],
       "multiple": false,
-      "cascade": false,
+      "cascade": true,
       "description": "Optional output resolution for an `avatar` clip. The engine validates it against the model's declared `controls` and falls back to a model-appropriate default. Ignored by other Layer types."
     },
     "background_audio": {

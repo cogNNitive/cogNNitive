@@ -19,6 +19,11 @@ import { MissingAssetError } from '../scripts/lib/missing-asset.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cliPath = path.join(__dirname, '..', 'scripts', 'lib', 'compile.mjs');
 
+/** The scalar subset `{value, source}` of a resolved trace (the trace adds document). */
+function pickScalar(r) {
+  return { value: r.value, source: r.source };
+}
+
 function tmp(prefix) {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 }
@@ -98,9 +103,9 @@ test('the compiler resolves frame per scene through the cascade', () => {
   };
   const bags = { series: { frame: 'brand' }, blueprint: { frame: 'neutral' } };
   const parsed = new SceneCompiler({ width: 1920, height: 1920 }).lowerKnowledgeModel(model, { bags });
-  assert.deepEqual(parsed.scenes[0].frame, { value: 'night', source: 'scene' });
-  assert.deepEqual(parsed.scenes[1].frame, { value: 'brand', source: 'series' });
-  assert.deepEqual(parsed.frame, { value: 'brand', source: 'series' });
+  assert.deepEqual(pickScalar(parsed.scenes[0].frame), { value: 'night', source: 'scene' });
+  assert.deepEqual(pickScalar(parsed.scenes[1].frame), { value: 'brand', source: 'series' });
+  assert.deepEqual(pickScalar(parsed.frame), { value: 'brand', source: 'series' });
 });
 
 test('resolveFrame finds library/frames/<name>/FRAME.md episode > series > domain > skill', () => {

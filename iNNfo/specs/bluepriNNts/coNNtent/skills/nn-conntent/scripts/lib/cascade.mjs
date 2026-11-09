@@ -34,18 +34,24 @@ function usable(v) {
 /**
  * Resolves one scalar parameter across bags using nn-core resolve (the shared
  * precedence of the whole engine). Lives here so one resolver serves every caller.
+ * The returned trace carries `source`, the winning `document` and the `overridden`
+ * sources that lost (nearest first) — capability conntent-field-registry "Every
+ * Resolved Value Carries A Source Trace".
  * @param {string} param
  * @param {Record<string, Record<string, unknown>>} [bags]
  * @param {{ accept?: (v: unknown) => boolean }} [options]
- * @returns {{ value: unknown, source: string | null }}
+ * @returns {{ value: unknown, source: string | null, document: string | null, overridden: Array<{ source: string, document: string | null }> }}
  */
 export function resolve(param, bags = {}, options = {}) {
   const loaded = bagsToChain(bags);
   const accept = options.accept || usable;
   const r = coreResolve(loaded, param, 'override', { accept });
+  const exp = r.explain || {};
   return {
     value: r.present ? r.value : null,
-    source: r.explain?.winner?.scope ?? null,
+    source: exp.winner?.scope ?? null,
+    document: exp.winner?.doc ?? null,
+    overridden: (exp.overridden || []).map((o) => ({ source: o.scope, document: o.doc ?? null })),
   };
 }
 
@@ -120,11 +126,11 @@ export function createCascade({ model, scriptPath, bags: baseBags, presetOf } = 
       };
 
       return {
+        /** @returns {{ value: unknown, source: string|null, document: string|null, overridden: Array<{ source: string, document: string|null }>, trace: Array<{ level: string, node: string|null, value: unknown }> }} */
         get(field) {
-          const loaded = bagsToChain(chainBags);
           const r = resolve(field, chainBags);
           const trace = (r.source ? [{ level: r.source, node: null, value: r.value }] : []);
-          return { value: r.value, source: r.source, trace };
+          return { ...r, trace };
         },
       };
     },
