@@ -1,7 +1,8 @@
 # Handoff — coNNtent bluepriNNt Redesign
 
-Tracker: `feat/conntent-redesign` · worktree `../cogNNitive-conntent-redesign-sdd` · HEAD `724df27e`.
-Everything below is committed and pushed. The primary checkout is read-only; work in the worktree.
+Tracker: `feat/conntent-redesign` · worktree `../cogNNitive-conntent-redesign-sdd` · HEAD `d8c82341`.
+**Merged into `dev`** (fast-forward `23506667`, then the CI fix `d8c82341`); CI on `dev` is green.
+The branch and `dev` are the same tree. The primary checkout is read-only; work in the worktree.
 
 ## State at handoff
 
@@ -93,6 +94,24 @@ repo carries code and tests, the domain carries videos, deliveries and caches. I
 - `specs/bluepriNNts/coNNtent/spec_NN.md` + `V_0-17-0/spec_NN.md`: a LOCAL copy of the blueprint
   that pins the version. **After any blueprint edit, refresh both copies** or the export keeps
   using the stale one.
+
+## Integration state
+
+`origin/dev` is 108 commits ahead of where this tracker started, and it was merged into the branch with
+three resolutions: the three consolidated specs (`cognnitive-conntent-engine`,
+`conntent-produce-command`, `conntent-scene-kinds`) are deleted on `dev`, so the deletion wins; the
+blueprint catalog and the template samples were regenerated. The core mirror was regenerated after the
+merge. Full `node scripts/verify.js` is green on the merged tree.
+
+One CI failure followed the merge and is fixed forward: `review_gate` is an apply-only `ChangeOp`
+(the bare-intent path refuses it), so `test/direct-operations.test.ts` now classifies it like
+`comment`.
+
+**Not done: the release tag and the OpenSpec archive.** `npm run check:versions` is green, so this
+branch authored no version bump: cutting `blueprints-v*` / `nn-mcp-v*` / `nn-console-v*` is a
+version decision, and `nn-dev-release` requires the maintainer's confirmation of the tag and its
+order. The 41 delta specs are still under `openspec/changes/conntent-blueprint-redesign/specs/`; the
+merge into `openspec/specs/` and the archive are Fase 7, still pending.
 
 ## Remaining work, in order
 
