@@ -1,5 +1,13 @@
 # conntent-captions Delta Spec
 
+> **Decision V.3 (2026-11-09):** the engine is `hyperframes transcribe --engine auto`.
+> On the maintainer machine the whisper runtime is unavailable, so the installed
+> on-device engine is **Parakeet** (`parakeet-tdt-0.6b-v3`), which returns word-level
+> `{text, start, end}` entries (fixture: `transcribe-parakeet.json`). Read "whisper" in
+> this spec as "the ASR engine selected by the CLI"; the whisper model rules apply only
+> when whisper is the selected engine. `captions: off` remains valid everywhere.
+
+
 Slice 3, PR 3b. The field definitions (`captions`, `caption_model`) are registered by Slice 2 in `conntent-field-registry`; this capability specifies their behaviour, the alignment and the failure rules. Burned-in captions only; no subtitle sidecar files.
 
 ## ADDED Requirements

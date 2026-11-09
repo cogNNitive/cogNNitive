@@ -41,16 +41,23 @@ verification triggers the fallback and marks the affected tasks (`V1-fallback`,
 - **Decision:** **(a) keep D-C1.** Relative media loads from `file://` under the widened
   CSP; no `V2-fallback` (no inlined posters / "Open" links). Task 4a.3 stays as planned.
 
-## V.3 — `hyperframes transcribe` word timings on Windows (gates 3b-3.x)
+## V.3 — `hyperframes transcribe` word timings on Windows (gates 3b-3.x) — EXECUTED (Parakeet)
 
-- **Command:** `npx hyperframes transcribe <wav> --json --model small.en` on a 10 s
-  fixture in a temp cwd.
-- **Observed:** NOT EXECUTED — `whisper.cpp` is **not on PATH** (verified: no
-  `whisper.cpp`/`whisper-cli` found). Provisioning whisper is a consent-gated binary
-  install; the engine/spec forbids silent installation (`npx --yes`). CLI `hyperframes`
-  0.9.23 is available. `captions: off` stays valid regardless, so production is never
-  blocked. **Awaiting consent to install whisper.cpp (and once installed, this run).**
-- **Decision:** PENDING. See V.6.
+- **Command:** `npx hyperframes transcribe v3-speech.wav --json --engine auto` on a
+  12.66 s spoken fixture (Windows SAPI) in a temp cwd. First run with the default engine
+  returned `{"ok":false,"skipped":true,"reason":"whisper_unavailable"}`; the CLI cannot
+  install whisper on this machine. `npx hyperframes models install parakeet` then
+  installed `parakeet-tdt-0.6b-v3` (sherpa-onnx runtime).
+- **Observed:** `{"ok":true,"engine":"parakeet","model":"parakeet-tdt-0.6b-v3",
+  "wordCount":32,"durationSeconds":12.48}` and a transcript of per-word entries
+  `{id, text, start, end}` (`w0` "This" 0–0.24, ...). Fixture saved at
+  `iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/test/fixtures/transcribe-parakeet.json`.
+- **Decision (V3):** **(a) word timings present.** `captions: words` stays as designed;
+  `captions: lines` builds from segment timings; `off` remains valid. The engine is
+  `hyperframes transcribe --engine auto` (Parakeet when installed, whisper otherwise);
+  the whisper model rule (`small.en` / `small --language <code>`) applies only when
+  whisper is selected. `caption_model` is advisory for a non-whisper engine. Recorded
+  2026-11-09.
 
 ## V.4 — Chrome overlay invisibility after hotfix (gates 3b-4.x)
 
