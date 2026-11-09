@@ -175,6 +175,26 @@ export const UNSUPPORTED_CAPABILITY = 'unsupported-capability';
 /** Error codes for voice-language validation (D-K6). */
 export const LANGUAGE_VOICE_MISMATCH = 'voice-language-mismatch';
 export const UNKNOWN_VOICE = 'unknown-voice';
+export const MISSING_VOICE = 'missing-voice';
+
+/**
+ * Enforces that a narrated scene has a resolved Voice before spend; there is no package
+ * default `voice` (Q4). A scene with no narration needs no voice.
+ * @param {{ narration?: string, voiceSlug: string | null | undefined }} input
+ * @returns {true}
+ */
+export function assertVoiceResolved({ narration, voiceSlug }) {
+  const hasNarration = String(narration || '').trim() !== '';
+  const hasVoice = typeof voiceSlug === 'string' && String(voiceSlug).trim() !== '';
+  if (hasNarration && !hasVoice) {
+    const err = new Error(
+      'missing-voice: the scene has narration but no resolved voice; declare `voice::` on the scene, series, character or domain before spend',
+    );
+    err.code = MISSING_VOICE;
+    throw err;
+  }
+  return true;
+}
 
 /**
  * Validates the resolved Voice against the episode's language before spend: the Voice's
