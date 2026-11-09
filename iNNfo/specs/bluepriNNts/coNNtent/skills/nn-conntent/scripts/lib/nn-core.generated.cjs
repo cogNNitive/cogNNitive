@@ -15098,10 +15098,11 @@ function matchesElement(e, target) {
     return true;
   return false;
 }
-function coerceFieldValue(existing, incoming) {
+function coerceFieldValue(existing, incoming, def) {
   if (typeof incoming !== "string")
     return incoming;
-  if (typeof existing === "number") {
+  const declared2 = def?.type;
+  if (declared2 === "number" || declared2 === void 0 && typeof existing === "number") {
     const trimmed = incoming.trim();
     if (trimmed !== "") {
       const asNumber2 = Number(trimmed);
@@ -15110,7 +15111,7 @@ function coerceFieldValue(existing, incoming) {
     }
     return incoming;
   }
-  if (typeof existing === "boolean") {
+  if (declared2 === "boolean" || declared2 === void 0 && typeof existing === "boolean") {
     const lower = incoming.trim().toLowerCase();
     if (lower === "true")
       return true;
@@ -15213,24 +15214,26 @@ function updateField(model, args, schema) {
       parsedVal = parsePropertyValue2(trimmed);
     }
   }
+  let fieldDef;
   if (schema && foundConcept) {
     const conceptObj = schema.concepts?.find((c) => c.name.toLowerCase() === foundConcept.toLowerCase());
-    let fieldDef = conceptObj?.fields?.find((f) => f.name.toLowerCase() === fieldName.toLowerCase());
+    fieldDef = conceptObj?.fields?.find((f) => f.name.toLowerCase() === fieldName.toLowerCase());
     if (!fieldDef && Array.isArray(schema.fields)) {
       fieldDef = schema.fields.find((f) => f.name.toLowerCase() === fieldName.toLowerCase() && (!f.concept || f.concept === "*" || (Array.isArray(f.concept) ? f.concept.some((c) => c.toLowerCase() === foundConcept.toLowerCase()) : String(f.concept).toLowerCase() === foundConcept.toLowerCase())));
     }
-    if (fieldDef) {
-      const diags = validateFieldValue(fieldDef, parsedVal, `${foundConcept}.${fieldName}`);
-      const errors = diags.filter((d) => d.severity === "error");
-      if (errors.length > 0) {
-        return {
-          success: false,
-          errors: errors.map((e) => ({ path: e.path, message: e.message }))
-        };
-      }
+  }
+  const coercedVal = coerceFieldValue(foundElement.fields[fieldName], parsedVal, fieldDef);
+  if (fieldDef) {
+    const diags = validateFieldValue(fieldDef, coercedVal, `${foundConcept}.${fieldName}`);
+    const errors = diags.filter((d) => d.severity === "error");
+    if (errors.length > 0) {
+      return {
+        success: false,
+        errors: errors.map((e) => ({ path: e.path, message: e.message }))
+      };
     }
   }
-  foundElement.fields[fieldName] = coerceFieldValue(foundElement.fields[fieldName], parsedVal);
+  foundElement.fields[fieldName] = coercedVal;
   if (foundElement.rawFields && fieldName in foundElement.rawFields) {
     delete foundElement.rawFields[fieldName];
   }
