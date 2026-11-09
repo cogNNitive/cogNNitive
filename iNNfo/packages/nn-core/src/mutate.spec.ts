@@ -249,3 +249,52 @@ describe('update_field rejects an unknown concept (R4, consistency with add_elem
     expect(JSON.stringify(model)).toBe(before)
   })
 })
+
+describe('update_field coerces by the declared field type (#558)', () => {
+  const SCHEMA: BlueprintSchema = {
+    concepts: [{ name: 'Phase', type: 'list', fields: [{ name: 'peso', type: 'number' }] }],
+    markers: [],
+    matrices: [],
+    taxonomy: [],
+  }
+
+  // A changeset `to::` always arrives as a string; a fresh field has no existing
+  // value to infer from, so the declared type has to decide.
+  it('creates an unset number field from the changeset string', () => {
+    const model = parseKnowledge(LEVEL3_MODEL)
+    const result = applyMutation(
+      model,
+      'update_field',
+      { conceptName: 'Phase', elementName: 'First', fieldName: 'peso', value: '5' },
+      SCHEMA,
+    )
+    expect(result.success).toBe(true)
+    const element = model.elements.get('Phase')?.find((e) => e.name === 'First')
+    expect(element?.fields.peso).toBe(5)
+    expect(typeof element?.fields.peso).toBe('number')
+  })
+
+  it('keeps a value that already arrives typed', () => {
+    const model = parseKnowledge(LEVEL3_MODEL)
+    const result = applyMutation(
+      model,
+      'update_field',
+      { conceptName: 'Phase', elementName: 'First', fieldName: 'peso', value: 7 },
+      SCHEMA,
+    )
+    expect(result.success).toBe(true)
+    expect(model.elements.get('Phase')?.find((e) => e.name === 'First')?.fields.peso).toBe(7)
+  })
+
+  it('still rejects a string that is not a number', () => {
+    const model = parseKnowledge(LEVEL3_MODEL)
+    const result = applyMutation(
+      model,
+      'update_field',
+      { conceptName: 'Phase', elementName: 'First', fieldName: 'peso', value: 'cinco' },
+      SCHEMA,
+    )
+    expect(result.success).toBe(false)
+    expect(result.errors?.[0]?.message).toContain('Invalid numeric value')
+  })
+})
