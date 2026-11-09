@@ -183,7 +183,7 @@
         "video",
         "scene"
       ],
-      "type": "string",
+      "type": "number",
       "options": [],
       "multiple": false,
       "cascade": true,

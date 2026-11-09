@@ -256,7 +256,7 @@ description:: Background audio file for the Scene. Resolves through the Universa
 ## NN Field Definition: background_audio_volume
 concept:: [Video, Scene, Preset, Series, Video Defaults]
   scope:: render
-type:: string
+type:: number
 description:: Volume for the resolved `background_audio::` track (a number 0–1, e.g. `0.1`). Resolves through the Universal Parameter Cascade; when no level sets it the blueprint Video Defaults value applies.
 
 ## NN Field Definition: transition

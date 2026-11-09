@@ -110,6 +110,7 @@ function layersOf(model, sceneSlug, episodeDir, rootDir) {
       const abs = asset ? join(episodeDir, asset) : null
       const ext = asset ? path_extname(asset) : ''
       const kind = IMAGE_EXT.has(ext) ? 'image' : VIDEO_EXT.has(ext) ? 'video' : fields.type ? String(fields.type) : ''
+      const present = Boolean(abs && fs.existsSync(abs))
       return {
         slug: String(layer.slug || ''),
         name: String(layer.name || layer.slug || ''),
@@ -117,10 +118,12 @@ function layersOf(model, sceneSlug, episodeDir, rootDir) {
         style: fields.style ? String(fields.style) : '',
         text: fields.text ? String(fields.text) : '',
         asset,
-        // Only an image can be a still; a video keeps its poster-less placeholder.
-        still: abs && IMAGE_EXT.has(ext) && fs.existsSync(abs) ? rootRelative(rootDir, abs) : null,
+        // The relative path the console can load, image or video, when the file exists.
+        media: present ? rootRelative(rootDir, abs) : null,
+        // Only an image can be a still; a video keeps its own thumbnail element.
+        still: kind === 'image' && present ? rootRelative(rootDir, abs) : null,
         assetKind: kind,
-        assetPresent: Boolean(abs && fs.existsSync(abs)),
+        assetPresent: present,
       }
     })
 }
@@ -268,6 +271,8 @@ async function episodeFacts({ rootDir, series, episode }) {
       sources: inheritedSources(fields),
       layers,
       still: (layers.find((l) => l.still) || {}).still || null,
+      // The first playable asset of the scene (a video layer), for the thumbnail and lightbox.
+      video: (layers.find((l) => l.assetKind === 'video' && l.media) || {}).media || null,
       audio,
       gates: gates.filter((g) => g.scene === sceneSlug),
     }

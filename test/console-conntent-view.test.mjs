@@ -137,11 +137,13 @@ test('the gate strip names each gate, what it protects, and the automatic QA cel
   assert.equal(qa.querySelectorAll('button, input, select').length, 0, 'QA offers no controls')
 })
 
-test('a scene card shows its still, audio, layers and inherited source line', () => {
+test('a scene card shows its still, audio, layers and field origins', () => {
   const { document } = bootConntent()
   const scene = document.querySelector('[data-nn-scene="one"]')
   assert.ok(scene, 'the scene card exists')
-  assert.equal(scene.querySelector('.nn-review-still').getAttribute('src'), 'series/s/episodes/e/media/one.png')
+  const thumb = scene.querySelector('[data-nn-media-open]')
+  assert.ok(thumb, 'the media thumbnail opens the lightbox')
+  assert.equal(thumb.querySelector('img').getAttribute('src'), 'series/s/episodes/e/media/one.png')
   assert.equal(scene.querySelector('[data-nn-narration-audio]').getAttribute('src'), '.cognnitive/cache/video/tts/one.mp3')
   assert.match(scene.querySelector('[data-nn-layer="one-bg"]').textContent, /media/)
   const voiceSource = scene.querySelector('[data-nn-source="voice"]')

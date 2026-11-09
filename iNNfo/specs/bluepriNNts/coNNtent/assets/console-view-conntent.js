@@ -124,8 +124,51 @@ registerView({
     var root = el('div', 'nn-conntent-view')
     ctx.container.appendChild(root)
 
-    /** Reflect an approval in the card that issued it (or in every card, for the gate). */
-    function markApproved(sceneSlug, gate) {
+    /** The console's lightbox: the full still or the playable video of one scene. */
+    function openLightbox(scene) {
+      var overlay = el('div', 'nn-lightbox is-open')
+      overlay.setAttribute('data-nn-lightbox', scene.slug)
+      var card = el('div', 'nn-lightbox-card')
+      var close = el('button', 'nn-lightbox-close', '×')
+      close.type = 'button'
+      close.setAttribute('data-nn-lightbox-close', '')
+      close.addEventListener('click', function () {
+        remove()
+      })
+      function remove() {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay)
+        doc.removeEventListener('keydown', onKey)
+      }
+      function onKey(event) {
+        if (event && event.key === 'Escape') remove()
+      }
+      overlay.addEventListener('click', function (event) {
+        if (event.target === overlay) remove()
+      })
+      doc.addEventListener('keydown', onKey)
+      card.appendChild(close)
+      card.appendChild(el('h3', null, scene.kind || scene.slug))
+      if (scene.still) {
+        var shot = doc.createElement('img')
+        shot.className = 'nn-lightbox-shot'
+        shot.src = scene.still
+        shot.alt = ''
+        card.appendChild(shot)
+      } else if (scene.video) {
+        var player = doc.createElement('video')
+        player.className = 'nn-lightbox-shot'
+        player.src = scene.video
+        player.controls = true
+        player.autoplay = true
+        player.setAttribute('playsinline', '')
+        card.appendChild(player)
+      }
+      if (scene.narration) card.appendChild(el('p', 'nn-lightbox-storyboard', scene.narration))
+      overlay.appendChild(card)
+      doc.body.appendChild(overlay)
+    }
+
+    /** Reflect an approval in the card that issued it (or in every card, for the gate). */    function markApproved(sceneSlug, gate) {
       var card = doc.querySelector('[data-nn-scene="' + sceneSlug + '"]')
       if (!card) return
       var pill = card.querySelector('[data-nn-verdict-pill]')
@@ -331,29 +374,38 @@ registerView({
           var sceneBody = el('div', 'nn-scene-body is-open')
           sceneCard.appendChild(sceneBody)
 
-          // Media: the still from the first image layer, and the narration audio. Reuses the
-          // console's visual card (thumb + details), the same one the retired review view used.
+          // Media: a thumbnail that opens the console lightbox with the full image or a
+          // playable video. Reuses nn-visual-card/nn-visual-thumb/nn-visual-details and
+          // nn-lightbox/nn-lightbox-card/nn-lightbox-shot.
           var media = el('div', 'nn-review-media')
           var visual = el('div', 'nn-visual-card')
-          var thumb = el('div', 'nn-visual-thumb')
+          var thumb = el('button', 'nn-visual-thumb nn-media-open')
+          thumb.type = 'button'
+          thumb.setAttribute('data-nn-media-open', scene.slug)
+          thumb.title = 'Open'
           if (scene.still) {
             var img = doc.createElement('img')
-            img.className = 'nn-review-still'
             img.src = scene.still
             img.alt = ''
+            img.loading = 'lazy'
             thumb.appendChild(img)
+          } else if (scene.video) {
+            // The first frame is the thumbnail: no poster file needed.
+            var thumbVideo = doc.createElement('video')
+            thumbVideo.src = scene.video
+            thumbVideo.muted = true
+            thumbVideo.preload = 'metadata'
+            thumbVideo.setAttribute('playsinline', '')
+            thumb.appendChild(thumbVideo)
+            thumb.appendChild(el('span', 'nn-visual-icon nn-media-play', '▶ video'))
           } else {
-            var videoLayer = (scene.layers || []).filter(function (l) {
-              return l.assetKind === 'video'
-            })[0]
-            thumb.appendChild(el('span', 'nn-visual-icon', videoLayer ? 'video · ' + videoLayer.asset.split('/').pop() : 'no still'))
+            thumb.appendChild(el('span', 'nn-visual-icon', 'no media'))
           }
           visual.appendChild(thumb)
           var visualDetails = el('div', 'nn-visual-details')
           visualDetails.appendChild(el('div', 'nn-visual-title', scene.kind || scene.slug))
-          visualDetails.appendChild(
-            el('div', 'nn-visual-sub', scene.still ? scene.still.split('/').pop() : (scene.layers || []).length + ' layer(s)'),
-          )
+          var mediaFile = scene.still || scene.video
+          visualDetails.appendChild(el('div', 'nn-visual-sub', mediaFile ? mediaFile.split('/').pop() : (scene.layers || []).length + ' layer(s)'))
           visual.appendChild(visualDetails)
           media.appendChild(visual)
           if (scene.audio) {
@@ -366,6 +418,9 @@ registerView({
             media.appendChild(audio)
           }
           sceneBody.appendChild(media)
+          thumb.addEventListener('click', function () {
+            openLightbox(scene)
+          })
 
           // Narration: editable in place; saving is a correction draft.
           var nSection = labelled('Narration')
@@ -441,7 +496,9 @@ registerView({
                     )
                   : el('span', 'nn-param-label', entry.name)
                 row.appendChild(fieldRow)
-                row.appendChild(badge(entry.source, 'nn-src-badge nn-source-from'))
+                var originBadge = badge(entry.source, 'nn-src-badge nn-source-from')
+                originBadge.setAttribute('data-nn-source-from', entry.source)
+                row.appendChild(originBadge)
                 fieldGrid.appendChild(row)
               })
             sourceDetails.appendChild(fieldGrid)

@@ -1628,6 +1628,33 @@ export async function writeConsole(opts = {}) {
     }
   }
 
+  // A field may declare `options_from:: models|voices`: its picklist is this domaiNN's own
+  // catalog (the Model/Voice elements the export already carries), never a hard-coded tier
+  // list (conntent-domain-console, "Picklists come from the catalog").
+  const catalogPicklists = {
+    models: catalogOptionSlugs('Model'),
+    voices: catalogOptionSlugs('Voice'),
+  }
+  function catalogOptionSlugs(concept) {
+    const out = new Set()
+    for (const el of allElements) {
+      if (!el || String(el.concept) !== concept) continue
+      const fields = el.fields || {}
+      if (concept === 'Model' && !(fields.allowed === true || fields.allowed === 'true')) continue
+      const slug = el.slug || fields.slug || el.name
+      if (slug) out.add(String(slug))
+    }
+    return [...out].sort()
+  }
+  for (const f of allFields) {
+    if (!f || !f.options_from) continue
+    const options = catalogPicklists[String(f.options_from).toLowerCase()]
+    if (options && options.length > 0) {
+      f.type = 'select'
+      f.options = options
+    }
+  }
+
   // Drift is not computed here: the change log owns it (checkProvenance in
   // nn-core, wired into validate_knowledge and check_domain). The console export
   // carries the data; it does not re-implement the matching.
