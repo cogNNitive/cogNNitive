@@ -66,6 +66,15 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 - [x] 3a-ii.5 risk R1 recorded in the `changeset-review-gate` delta spec notes.
 - Note: `nn-mcp/test/apply-change.test.ts` is red at tracker HEAD before this slice (its fixture keeps `sources::`, banned on L3 since b998756d); unrelated to review_gate.
 
+### Known pre-existing reds (not caused by Slice 3; block the final full gate)
+
+- `nn-core` full suite: `corpus-address-scan` (1), `corpus-concept-fields-scan` (1),
+  `roundtrip-fidelity` (2), `shipped-workspace` (1) — all against `test/_samples_nn`
+  corpus/sample content, none touching coNNtent spec code.
+- `nn-mcp` `test/apply-change.test.ts` (13) — fixture keeps `sources::`, banned on L3.
+- Fixed here: `conntent-storage.test.ts` (pinned V_0-15-2 and `assets/`), `metaschema-selfdescribe`
+  (`thumbnail_formats` used `type:: list`; now `select` + `multiple:: true`).
+
 ## Slice 3b — Pipeline and review (PRs 3b-1..3b-5)
 
 - [ ] 3b-1..3b-3, 3b-5 Not started.
