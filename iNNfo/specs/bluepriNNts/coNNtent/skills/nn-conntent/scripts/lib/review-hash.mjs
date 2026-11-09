@@ -41,19 +41,29 @@ function cleanFields(fields) {
 
 /**
  * The `script` gate subject of one scene:
- * `{ scene, language, narration, layers, params }`.
+ * `{ scene, language, narration, layers, params }`, plus `source` for a translation.
+ *
+ * A translation carries `source: { scene, hash }` -- the hash of the original scene it
+ * was derived from. Recording it is what lets the console say "the original changed since
+ * you reviewed this translation"; it is absent for every other episode, so their hashes
+ * do not move.
  *
  * @param {{ scene: string, language?: string|null, narration?: string,
- *   layers?: Array<Record<string, unknown>>, params?: Record<string, unknown> }} input
+ *   layers?: Array<Record<string, unknown>>, params?: Record<string, unknown>,
+ *   source?: { scene?: string, hash?: string|null }|null }} input
  */
-export function scriptSubject({ scene, language, narration, layers, params }) {
-  return {
+export function scriptSubject({ scene, language, narration, layers, params, source }) {
+  const subject = {
     scene: String(scene ?? ''),
     language: language === undefined || language === null ? null : String(language),
     narration: String(narration ?? ''),
     layers: (layers || []).map(cleanFields),
     params: cleanFields(params),
   };
+  if (source && source.hash) {
+    subject.source = { scene: String(source.scene ?? ''), hash: String(source.hash) };
+  }
+  return subject;
 }
 
 /**

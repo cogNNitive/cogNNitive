@@ -83,7 +83,20 @@ test('the script hash excludes review, status, titles, sources and their shadows
   }
 });
 
-test('scenes hash independently and the same value from another level is identical', () => {
+test('a translation carries the original scene hash, and only a translation does', () => {
+  const plain = scriptSubject(view());
+  assert.equal('source' in plain, false, 'an ordinary scene has no source: its hash cannot move');
+  const translated = scriptSubject({
+    ...view(),
+    source: { scene: 's1', hash: 'a'.repeat(64) },
+  });
+  assert.deepEqual(translated.source, { scene: 's1', hash: 'a'.repeat(64) });
+  assert.notEqual(reviewHash(translated), reviewHash(plain), 'the original hash joins the subject');
+  const changed = scriptSubject({ ...view(), source: { scene: 's1', hash: 'b'.repeat(64) } });
+  assert.notEqual(reviewHash(changed), reviewHash(translated), 'a moved original re-opens the scene');
+});
+
+test('the scenes hash independently and the same value from another level is identical', () => {
   const one = reviewHash(scriptSubject(view({ scene: 's1' })));
   const two = reviewHash(scriptSubject(view({ scene: 's2', narration: 'Otra escena' })));
   assert.notEqual(one, two);

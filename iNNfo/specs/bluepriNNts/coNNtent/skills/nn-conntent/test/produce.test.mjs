@@ -97,7 +97,14 @@ function workspace(doc = episodeDoc(), { series = true } = {}) {
   return { root, episode, scriptPath };
 }
 
-const done = (dir) => fs.rmSync(dir, { recursive: true, force: true });
+/** Temp cleanup; Windows can still hold a handle on a just-written render directory. */
+const done = (dir) => {
+  try {
+    fs.rmSync(dir, { recursive: true, force: true });
+  } catch {
+    /* the OS reclaims the temp tree */
+  }
+};
 
 /** A render seam: writes the master and reports cost/timing without touching a provider. */
 function fakeRender({ indexHtml, overlayManifest } = {}) {
@@ -713,6 +720,38 @@ test('the engine CLI refuses the retired model flags', () => {
   assert.equal(run.status, 1);
   assert.match(run.stderr, /Unknown option --avatar-model/);
   assert.doesNotMatch(run.stderr.split('\n').slice(1).join('\n'), /--avatar-model/, 'the usage never lists it');
+});
+
+test('an approved script gate records the review snapshot the console compares against', async () => {
+  const ws = workspace(episodeDoc({ status: 'draft', review: 'required' }));
+  applyVerdict(ws, { gate: 'script', verdict: 'approved' });
+  try {
+    // The script gate is satisfied, so the run proceeds to the preview stop (exit 10).
+    await assert.rejects(
+      produce({
+        episodePath: ws.scriptPath,
+        deps: {
+          ...thumbStubs(),
+          render: fakeRender().render,
+          synthesizeEpisodeAssets: async () => ({}),
+          renderAnimatic: async () => ({ outputVideoPath: 'probe_animatic_640x640.mp4' }),
+          previewSubjects: () => [{ scene: 'one', hash: 'a'.repeat(64), planHash: 'b'.repeat(64), subject: {} }],
+          log: () => {},
+        },
+      }),
+      (err) => {
+        assert.equal(err.exitCode, EXIT_REVIEW, String((err && err.stack) || err));
+        return true;
+      },
+    );
+    const snapshot = JSON.parse(
+      fs.readFileSync(path.join(ws.root, '.cognnitive', 'video', 'reviews', 's__e.json'), 'utf8'),
+    );
+    assert.ok(snapshot.scenes.one, 'the approved scene is recorded');
+    assert.match(snapshot.scenes.one.script.subject.narration, /one two three/, 'the subject is kept as approved');
+  } finally {
+    done(ws.root);
+  }
 });
 
 test('a second run on a produced episode is idempotent and keeps produced', async () => {

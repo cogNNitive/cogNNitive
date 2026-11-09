@@ -94,7 +94,7 @@ export const PLANNED_CONSUMERS = {
   music: '4',
   script: '10',
   thumbnail: '10',
-  translation_of: '4b (console stale-translation flag)',
+  translation_of: ['lib/translation-source.mjs'],
 
   intro: '5',
   style: '5',

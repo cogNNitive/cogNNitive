@@ -173,7 +173,7 @@ function inheritedSources(fields) {
   return out.sort((a, b) => a.name.localeCompare(b.name))
 }
 
-async function episodeFacts({ rootDir, series, episode }) {
+async function episodeFacts({ rootDir, series, episode, sourceHashes = {} }) {
   const model = loadKnowledgeModel(episode.scriptPath)
   // The console payload addresses elements as `<knowledge stem>@<slug>`; the stem is the
   // episode document's file name without `_NN.md`, not the `<series>/<slug>` pair.
@@ -192,7 +192,7 @@ async function episodeFacts({ rootDir, series, episode }) {
   const gateList = Array.isArray(reviewGates) ? reviewGates.map(String) : reviewGates ? [String(reviewGates)] : ['script', 'preview']
 
   const parsed = lowerEpisode({ model, bags, scriptDir: episode.dir })
-  const scriptEntries = scriptSubjectsFromScenes(parsed.scenes || [], language)
+  const scriptEntries = scriptSubjectsFromScenes(parsed.scenes || [], language, {}, sourceHashes)
   const verdicts = readAppliedVerdicts(rootDir, modelId)
   const planHash = await readPlanHash(episode.dir)
 
@@ -319,22 +319,72 @@ async function episodeFacts({ rootDir, series, episode }) {
 
 export async function collect({ rootDir } = {}) {
   const root = String(rootDir || '.')
-  const series = []
+  const groups = []
   for (const s of await seriesDirs(root)) {
     const seriesDoc = s.docs[0] ? loadKnowledgeModel(join(s.dir, s.docs[0].name)) : null
     const seriesFields = (seriesDoc?.elements?.Series || [])[0]?.fields || {}
-    const episodes = []
-    for (const e of await episodeDirs(s.dir)) {
-      episodes.push(await episodeFacts({ rootDir: root, series: s, episode: e }))
-    }
-    series.push({
-      slug: s.slug,
-      title: String(seriesFields.title || seriesDoc?.frontmatter?.title || s.slug),
-      episodes,
-    })
+    groups.push({ series: s, seriesDoc, seriesFields, episodeDirs: await episodeDirs(s.dir) })
   }
+  // Two passes: a translation's subject carries the original's scene hashes, and the
+  // original is never itself a translation (spec `translation_of`). Everything else is
+  // hashed once, untouched.
+  const factsByKey = new Map()
+  const pendingTranslations = []
+  for (const group of groups) {
+    for (const entry of group.episodeDirs) {
+      const facts = await episodeFacts({ rootDir: root, series: group.series, episode: entry })
+      const key = `${group.series.slug}/${entry.slug}`
+      if (facts.translationOf) pendingTranslations.push({ group, entry, key })
+      else factsByKey.set(key, facts)
+    }
+  }
+  for (const { group, entry, key } of pendingTranslations) {
+    const before = await episodeFacts({ rootDir: root, series: group.series, episode: entry })
+    const ref = before.translationOf
+    const originalKey = String(ref).includes('/') ? String(ref) : `${group.series.slug}/${ref}`
+    const original = factsByKey.get(originalKey) || null
+    const sourceHashes = original
+      ? Object.fromEntries(original.scenes.map((scene) => [scene.slug, scene.scriptHash]))
+      : {}
+    const facts = await episodeFacts({ rootDir: root, series: group.series, episode: entry, sourceHashes })
+    markStaleTranslation({ rootDir: root, seriesSlug: group.series.slug, facts, original })
+    factsByKey.set(key, facts)
+  }
+
+  const series = groups.map((group) => ({
+    slug: group.series.slug,
+    title: String(group.seriesFields.title || group.seriesDoc?.frontmatter?.title || group.series.slug),
+    episodes: group.episodeDirs.map(
+      (entry) => factsByKey.get(`${group.series.slug}/${entry.slug}`) || null,
+    ).filter(Boolean),
+  }))
   const pending = series.flatMap((s) =>
     s.episodes.flatMap((e) => e.pending.map((gate) => ({ series: s.slug, episode: e.slug, ...gate }))),
   )
   return { tree: { domain: root, series }, pending }
+}
+
+/**
+ * Marks the scenes whose original changed since the translation was last approved. The
+ * recorded hash is the original scene's hash the translation was reviewed with; a scene
+ * without a record was never reviewed, so it cannot be stale. Display only: no gate opens.
+ */
+function markStaleTranslation({ rootDir, seriesSlug, facts, original }) {
+  let snapshot = { scenes: {} }
+  try {
+    const raw = JSON.parse(fs.readFileSync(join(rootDir, '.cognnitive', 'video', 'reviews', `${seriesSlug}__${facts.slug}.json`), 'utf8'))
+    if (raw && raw.scenes) snapshot.scenes = raw.scenes
+  } catch {
+    return
+  }
+  const staleScenes = []
+  for (const scene of facts.scenes) {
+    const recorded = snapshot.scenes[scene.slug]?.script?.subject?.source?.hash || null
+    const current = original ? (original.scenes.find((s) => s.slug === scene.slug) || {}).scriptHash || null : null
+    if (recorded && current && recorded !== current) {
+      scene.stale = true
+      staleScenes.push(scene.slug)
+    }
+  }
+  if (staleScenes.length > 0) facts.staleScenes = staleScenes
 }

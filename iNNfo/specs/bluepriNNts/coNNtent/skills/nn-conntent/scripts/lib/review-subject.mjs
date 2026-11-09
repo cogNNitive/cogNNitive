@@ -18,8 +18,9 @@ import { evaluateGate } from './gates.mjs';
  * @param {Array<Record<string, any>>} scenes lowered scenes
  * @param {string|null} language episode language, used when the scene declares none
  * @param {Record<string, Record<string, string>>} [sourcesByScene] scene → field → level
+ * @param {Record<string, string>} [sourceHashes] scene → hash of the original scene, for a translation
  */
-export function scriptSubjectsFromScenes(scenes = [], language = null, sourcesByScene = {}) {
+export function scriptSubjectsFromScenes(scenes = [], language = null, sourcesByScene = {}, sourceHashes = {}) {
   return scenes.map((scene) => {
     const slug = String(scene.slug || scene.id || '');
     const params = { ...(scene.properties || {}) };
@@ -27,12 +28,14 @@ export function scriptSubjectsFromScenes(scenes = [], language = null, sourcesBy
       type: layer.type,
       ...(layer.properties || {}),
     }));
+    const sourceHash = sourceHashes[slug];
     const subject = scriptSubject({
       scene: slug,
       language: params.scene_language || language,
       narration: scene.narration || '',
       layers,
       params,
+      ...(sourceHash ? { source: { scene: slug, hash: sourceHash } } : {}),
     });
     return {
       scene: slug,

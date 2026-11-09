@@ -41,8 +41,9 @@ import {
   dryApply as defaultDryApply,
   fieldChange,
 } from './changes.mjs';
-import { evaluateGate, readAppliedVerdicts } from './gates.mjs';
+import { evaluateGate, readAppliedVerdicts, writeReviewSnapshot } from './gates.mjs';
 import { lowerEpisode, scriptGateStates, scriptSubjectsFromScenes } from './review-subject.mjs';
+import { translationSourceHashes } from './translation-source.mjs';
 import { previewGateStates, previewSubjectsFromScenes } from './preview-subject.mjs';
 import { renderAnimatic as defaultRenderAnimatic } from './animatic.mjs';
 import { deliver as defaultDeliver } from './delivery.mjs';
@@ -284,12 +285,27 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
   // 2. Script gate: derived from applied human verdicts and the current scene hashes.
   const gates = resolveForEpisode(episode.model, scriptPath, 'review_gates').value;
   const gateList = Array.isArray(gates) ? gates.map(String) : gates ? [String(gates)] : ['script', 'preview'];
+  // A translation carries the original's scene hashes in its review subject, so the
+  // console can tell the original moved on (capability conntent-domain-console).
+  const sourceHashes = translationSourceHashes({ rootDir, scriptPath, model: episode.model });
   if (gateList.includes('script')) {
     const bags = withScriptPresets(loadCascadeBags(path.dirname(scriptPath)), episode.model, scriptPath);
     const parsed = lowerEpisode({ model: episode.model, bags, scriptDir: path.dirname(scriptPath) });
-    const subjects = scriptSubjectsFromScenes(parsed.scenes || [], language);
+    const subjects = scriptSubjectsFromScenes(parsed.scenes || [], language, {}, sourceHashes);
     const verdicts = readAppliedVerdicts(rootDir, modelId);
-    const pending = scriptGateStates(subjects, verdicts).filter((state) => state.state !== 'approved');
+    const states = scriptGateStates(subjects, verdicts);
+    // The snapshot is what a later run (and the console) compares against: the subject
+    // each scene was approved with, recorded once the gate is satisfied.
+    const approved = states.filter((state) => state.state === 'approved');
+    if (approved.length > 0) {
+      const records = Object.fromEntries(
+        subjects
+          .filter((entry) => approved.some((state) => state.scene === entry.scene))
+          .map((entry) => [entry.scene, { script: { subject: entry.subject, sources: entry.sources || {} } }]),
+      );
+      writeReviewSnapshot(rootDir, String(modelId).split('/')[0], episode.slug, records);
+    }
+    const pending = states.filter((state) => state.state !== 'approved');
     if (pending.length > 0) {
       const lines = pending.map((state) => {
         const cause = state.cause?.detail ? ` (${state.cause.kind}: ${state.cause.detail})` : '';
@@ -400,7 +416,7 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
 
     const bags = withScriptPresets(loadCascadeBags(path.dirname(scriptPath)), episode.model, scriptPath);
     const parsed = lowerEpisode({ model: episode.model, bags, scriptDir: path.dirname(scriptPath) });
-    const scriptEntries = scriptSubjectsFromScenes(parsed.scenes || [], language);
+    const scriptEntries = scriptSubjectsFromScenes(parsed.scenes || [], language, {}, sourceHashes);
     const scriptByScene = Object.fromEntries(scriptEntries.map((entry) => [entry.scene, entry]));
     const cacheManager = new CacheManager({
       baseDir: deps.cacheDir || resolveDefaultCacheDir(path.dirname(scriptPath)),

@@ -259,6 +259,11 @@ registerView({
         head.appendChild(badge(episode.status || 'idea'))
         if (episode.language) head.appendChild(badge(episode.language))
         if (episode.planHash) head.appendChild(el('span', 'nn-episode-cost', 'plan ' + episode.planHash.slice(0, 8)))
+        // A translation whose original moved on: display only, no gate opens.
+        if (episode.staleScenes && episode.staleScenes.length > 0) {
+          card.setAttribute('data-nn-stale', '')
+          head.appendChild(badge('stale · ' + episode.staleScenes.join(', '), 'nn-stale-badge'))
+        }
         card.appendChild(head)
 
         var body = el('div', 'nn-conntent-body')
@@ -364,6 +369,10 @@ registerView({
           titleGroup.appendChild(el('span', 'nn-scene-summary', summary))
           sceneHead.appendChild(titleGroup)
           if (scene.kind) sceneHead.appendChild(badge(scene.kind))
+          if (scene.stale) {
+            sceneCard.setAttribute('data-nn-stale', '')
+            sceneHead.appendChild(badge('stale', 'nn-stale-badge'))
+          }
           var pill = badge(gateState, 'nn-gate-state nn-verdict-pill')
           pill.setAttribute('data-nn-verdict-pill', gateState)
           sceneHead.appendChild(pill)

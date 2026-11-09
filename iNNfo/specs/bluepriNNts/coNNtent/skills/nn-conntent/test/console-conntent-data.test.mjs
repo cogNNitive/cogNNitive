@@ -143,6 +143,76 @@ test('the scene hashes are the engine hashes and change with the narration', asy
   }
 });
 
+test('a translation is flagged stale on the scenes whose original changed', async () => {
+  const ws = workspace()
+  try {
+    const translationDir = path.join(ws.seriesDir, 'episodes', 'tr')
+    fs.mkdirSync(translationDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(translationDir, 'tr_coNNtent_NN.md'),
+      `---
+level: 3
+parent_spec:
+  name: "coNNtent_V_0-17-0"
+  url: "https://example.invalid/coNNtent/spec_NN.md"
+blueprint_version: "V_0-17-0"
+title: "Translation"
+---
+
+# NN Video
+
+## NN Video: Translation
+slug:: tr
+title:: Translation
+status:: draft
+review_gates:: [script]
+output_formats:: [1920x1920]
+translation_of:: e
+language:: en
+
+# NN Scene
+
+## NN Scene: One
+slug:: one
+kind:: Libre
+
+uno dos tres cuatro cinco seis siete ocho nueve diez
+`,
+      'utf8',
+    );
+    const originalHash = (await collect({ rootDir: ws.root })).tree.series[0].episodes.find(
+      (episode) => episode.slug === 'e',
+    ).scenes[0].scriptHash;
+    const record = {
+      scenes: { one: { script: { subject: { source: { scene: 'one', hash: originalHash } } } } },
+    };
+    fs.mkdirSync(path.join(ws.root, '.cognnitive', 'video', 'reviews'), { recursive: true });
+    fs.writeFileSync(
+      path.join(ws.root, '.cognnitive', 'video', 'reviews', 's__tr.json'),
+      JSON.stringify(record),
+      'utf8',
+    );
+
+    const unchanged = (await collect({ rootDir: ws.root })).tree.series[0].episodes.find(
+      (episode) => episode.slug === 'tr',
+    );
+    assert.equal(unchanged.scenes[0].stale, undefined, 'nothing changed, nothing is stale');
+
+    fs.writeFileSync(
+      path.join(ws.episodeDir, 'e_coNNtent_NN.md'),
+      EPISODE.replace('one two three four five six seven eight nine ten', 'one two three four five six seven eight nine ELEVEN'),
+      'utf8',
+    );
+    const stale = (await collect({ rootDir: ws.root })).tree.series[0].episodes.find(
+      (episode) => episode.slug === 'tr',
+    );
+    assert.equal(stale.scenes[0].stale, true, 'the original scene changed');
+    assert.deepEqual(stale.staleScenes, ['one'], 'the flag names the scene');
+  } finally {
+    ws.cleanup();
+  }
+});
+
 test('a delivered episode reports its versions, path, contents and delivery page', async () => {
   const ws = workspace()
   try {

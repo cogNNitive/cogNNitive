@@ -62,6 +62,7 @@ const VIEW_DATA = {
                 narration: 'hola',
                 scriptHash: HASH,
                 previewHash: PREVIEW_HASH,
+                stale: true,
                 planHash: HASH,
                 fields: { voice: { value: 'series-voice', source: 'series' } },
                 sources: [
@@ -77,6 +78,7 @@ const VIEW_DATA = {
               },
             ],
             gates: [{ gate: 'script', scene: 'one', state: 'open', cause: null }],
+            staleScenes: ['one'],
             pending: [{ gate: 'script', scene: 'one', state: 'open' }],
             deliveries: [
               {
@@ -231,6 +233,16 @@ test('the episode shows gate state, field source and deliveries', () => {
   assert.match(v2.textContent, /latest/)
   assert.ok(!v2.getAttribute('data-nn-superseded'), 'the newest is not superseded')
   assert.ok(!v1.querySelector('button'), 'the folder is text, not a control')
+})
+
+test('a stale translation says so on the episode and on the scene', () => {
+  const { document } = bootConntent()
+  const card = document.querySelector('[data-nn-episode-config="e"]')
+  assert.ok(card.hasAttribute('data-nn-stale'), 'the episode header carries the mark')
+  assert.match(card.querySelector('.nn-stale-badge').textContent, /one/, 'the flag names the scene')
+  const scene = card.querySelector('[data-nn-scene="one"]')
+  assert.ok(scene.hasAttribute('data-nn-stale'), 'the scene row carries the mark')
+  assert.match(scene.querySelector('.nn-stale-badge').textContent, /stale/)
 })
 
 test('the view never writes the review field and offers no Deliver button', () => {
