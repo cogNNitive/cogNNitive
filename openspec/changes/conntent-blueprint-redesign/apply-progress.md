@@ -123,7 +123,10 @@ gate passed in ~60 s.
 - [x] 4a.5/4a.6 `nn-fsa.js`: workspace-matched folder, handle in IndexedDB, query→request permission, `wx` changeset write, download fallback; `console-direct-write.test` 5/5.
 - [x] 4a.7 verdict draft → `review_gate` with `author_kind: human`, `origin: console`, named reviewer (default refused); preview carries the scene slice `plan_hash`, budget the episode plan hash; `console-verdict-export.test` 6/6.
 - [x] 4a.8/4a.9 `resolveConsoleModulePath`/`devCheckoutRoot` moved to `CORE/src/console/locate-writer.ts`, exported by nn-core and the coNNtent mirror, imported by nn-mcp; mirrors and bundle regenerated.
-- [ ] `writeConsole` scope object (`{view, models, readOnly, outFile}`) lands with 4b.3 (export discovery).
+- [x] 4b.1/4b.2 `assets/console-view-conntent.data.mjs`: Domain → Series → Episode, pending inbox with causes, every cascade field with value + source, scene script/preview hashes, deliveries; calls the engine modules only. `console-conntent-data.test` 5/5.
+- [x] 4b.3 `writeConsole` scope `{models, readOnly, outFile}` (+ `view` in the same object); `export-console.test` 62/62.
+- [ ] 4b.4 stale-translation flag and 4b.5 superseded-delivery display land with the view (4c), where the display lives.
+- [ ] 4c unified `conntent` view + delete the old views; 4d delivery view.
 
 ## Slice 5 — Procedures (PRs 5a–5b)
 
