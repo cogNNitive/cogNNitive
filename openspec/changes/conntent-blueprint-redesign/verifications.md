@@ -61,24 +61,24 @@ verification triggers the fallback and marks the affected tasks (`V1-fallback`,
     `fonts.googleapis.com`/`fonts.gstatic.com`, `cdn.jsdelivr.net` gsap), which
     **violates the spec rule** "no `index.html` of the package contains an `http:`,
     `https:` or protocol-relative URL". Those assets must be vendored offline.
-  - The six engine-authored components map 1:1 to the slots
-    (`title`, `lower-third`, `caption`, `quote`, `watermark`, `b-roll`); their current
-    families are `components/{title,lower-third,caption,quote,watermark,b-roll}.html`.
-- **Decision (V5 applied: vendor with pinned upstream commit + vendored deps + LICENSE
-  text):** `source: registry:<item>@<commit-sha>` where `<commit-sha>` is an exact
-  upstream git commit of `heygen-com/hyperframes` (the only stable per-item version
-  that exists). Every vendored folder ships an Apache-2.0 `LICENSE` text file (the
-  permissive repo license) and offline copies of any Google Fonts/JS it needs, so its
-  `index.html` is network-clean. A final item list with pins is produced when 2e.5
-  vendors the set. If fewer than 15 components pass (including the 6 engine-authored),
-  ship the engine-authored 6 plus whatever passes (design fallback).
+- **Final (fallback applied by 2e.5):** fewer than 15 items satisfy the spec rules
+  (per-item pin + permissive license + network-clean `index.html`) — only the six
+  engine-authored components qualify. Per the fallback clause, the package ships the
+  **six engine-authored components** (`source: local`, one per slot), each with
+  `preview.mp4` and complete prose, all network-clean. `2e.5` lands them; the package
+  test enforces offline (no `http(s)` URL in any packaged `index.html`). Registry
+  vendoring remains closed until a per-item pin/license mechanism exists upstream.
+- **Decision (V5):** fallback triggered (6-item set), recorded 2026-11-09.
 
 ## V.6 — Decision checkpoint
 
 - V.1, V.2, V.4: **blocked on the maintainer's Chrome/Edge browser run.**
 - V.3: **blocked on consent to install whisper.cpp** (explicit stop-and-ask in the
   handoff; silent install is spec-forbidden).
-- V.5: **decided** (unblocked, above) — no fallback triggered.
+- V.5: **decided** (fallback triggered: 6-item engine-authored set), recorded above.
+- **2e.7:** `conntent-template` — kept as a **delta**, not removed (recorded in the
+  spec's own decision line): its procedure-content requirements are superseded by
+  `conntent-procedures`; its branding/skill-ownership requirements are unaffected.
 - Per the handoff, no PR 2e, 3b-3, or 4a starts before its verification is recorded.
   This file is committed as the docs-only PR V; affected tasks will be marked with the
   fallback tags once the maintainer resolves V.1/V.2/V.3/V.4.

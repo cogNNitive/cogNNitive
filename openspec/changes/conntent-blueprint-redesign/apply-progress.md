@@ -41,12 +41,12 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 - [x] 1a.8 RED+GREEN `T/production-hierarchy.test.mjs` — domaiNN→Series→Video; no Subject concept.
 - Diff vs v1a-layout: 288 insertions, **under budget**.
 
-**Status:** tracker `feat/conntent-redesign` verde y empujado (HEAD ba32bcdd, verify:fast 249/249 tras cada commit). En esta pasada:
-- **Slice 2a COMPLETO**: 2a.1+2a.2 (registry scope/levels), 2a.4 (`createCascade`), 2a.5 (kinds direct fields), 2a.6+2a.7 (un solo resolver: `resolve`/`resolveKeyed` viven en cascade.mjs, video-scope ya no los exporta; 8 callers + console asset rewireados), 2a.3 (contract test every field×level con source=level), 2a.8 (trace `{value,source,document,overridden}` en resolver+plan+validate), 2a.9 (tests stale reescritos: omitTrace/pickScalar). F6: `avatar_resolution` ahora render cascade (Layer en CASCADE_CONCEPTS; `text_from` a RECORD_FIELDS).
-- **2b COMPLETO** (2b.1-2b.7): language/voice/capability video/campos 2b.6/parity.
-- (Antes) 1a, 1b, 2c, 1c.1-1c.5+1c.7.
+**Status:** tracker `feat/conntent-redesign` verde y empujado (HEAD e787ab15, verify:fast 254/254 tras cada commit). En esta pasada:
+- **Slice 2d COMPLETO** (2d.1-2d.5): `lib/characters.mjs` (CHARACTER.md + frontmatter validado, findCharacter, characterValues, characterOverrides warning `character-override` dedup field+source, assertCharacterVoice → `missing-character-voice`), campos `character`/`pose`/`background` render-class (levels derivados de Concepts: densos sin Layer), character node en cascade (`nivel:character:name`, explicit > character > preset, D19).
+- **Slice 2e COMPLETO** (2e.1-2e.7): `lib/component-portfolio.mjs` (COMPONENT.md schema completo: variables objects, duration/aspect/source pin/license), 6 componentes a folder form `library/components/<name>/{COMPONENT.md,index.html,preview.mp4}`, contracts a `skills/nn-conntent/slots/<slot>.html`, `resolveLibrary` con components como FOLDER_KIND, `resolveComponents` lee index.html; thumbnail hermético (vendor/gsap.min.js local, sin CDN); V.5 fallback aplicado (6 engine-authored, archivo `local`, sin URLs de red en index.html); manifest del paquete en la sección Structure del spec.
+- (Antes) 1a, 1b, 2c, 1c.1-1c.5+1c.7, 2a completo, 2b completo.
 
-**Pendiente de 2a:** ninguna (COMPLETO). **2b:** ninguna (COMPLETO). **Luego:** 2d (Character), 2e (components), 3a, 3b, 4, 5, Phase 7. 1c.6/1c.8 dependientes de 3b. Con permisos (whisper/render/navegador) puedo completar V.3, 3b-3, 3b-4, botijos-today. Fusión a dev/main al final con verify.js verde.
+**Pendiente:** ninguno de 1a-2e (SLICE 2 COMPLETO: 2a, 2b, 2c, 2d, 2e). **Luego:** 3a (review_gates en nn-core), 3b-1..5 (incluye whisper + renders reales), 4a-4d (consola, navegador), 5a-5b (procedures), Phase 7 (living specs, botijos-today, verify.js full, archive). 1c.6/1c.8 dependientes de 3b (rewire spendGuard callers a cascade+catalog). Con permisos (whisper/render/navegador) puedo completar V.3, 3b-3, 3b-4, 4a (V.1/V.2), botijos-today. Fusión a dev/main al final con verify.js verde.
 
 ## Slice 2 — Cascade (PRs 2a–2e)
 
