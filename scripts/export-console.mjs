@@ -1167,12 +1167,14 @@ export async function writeConsole(opts = {}) {
   const {
     rootDir,
     scope = 'domain',
-    view = null,
     open = true,
     launcher,
     platform = process.platform,
     log = () => {},
   } = opts
+  const scopeObj = typeof scope === 'object' && scope !== null ? scope : {}
+  let view = opts.view ?? null
+  if (!view && typeof scopeObj.view === 'string' && scopeObj.view) view = scopeObj.view
   if (!rootDir) throw new ConsoleExportError('writeConsole needs a rootDir.', 'ROOT_REQUIRED')
   const root = resolve(rootDir)
   const { consoleDir, shellPath, bundlePath } = await ensureAssets()
@@ -1186,6 +1188,17 @@ export async function writeConsole(opts = {}) {
   if (!wholeDomain) {
     if (Array.isArray(scope.selected)) {
       selected = scope.selected
+    } else if (Array.isArray(scopeObj.models)) {
+      const wanted = new Set(scopeObj.models.map(String))
+      selected = models.filter(
+        (m) =>
+          wanted.has(String(m.name)) ||
+          wanted.has(basename(m.filePath).replace(/\.[^/.]+$/, '')) ||
+          (m.id !== undefined && wanted.has(String(m.id))),
+      )
+      if (selected.length === 0) {
+        throw new ConsoleExportError(`No model in ${JSON.stringify(scopeObj.models)} found in ${root}.`, 'MODEL_NOT_FOUND')
+      }
     } else if (typeof scope.model === 'string') {
       const wanted = scope.model
       selected = models.filter(
@@ -1684,12 +1697,17 @@ export async function writeConsole(opts = {}) {
   // widen it before adding the optional scope.
   /** @type {Record<string, unknown>} */
   const payloadMeta = domainPayload.model.meta
+  const readOnly = scopeObj.readOnly === true
   if (scoped) {
-    const scope = { models: [...scopeModelIds].sort(), label: scopeLabelOf(selected) }
-    if (view) scope.view = view
-    payloadMeta.consoleScope = scope
-  } else if (view) {
-    payloadMeta.consoleScope = { view: view }
+    const scopeMeta = { models: [...scopeModelIds].sort(), label: scopeLabelOf(selected) }
+    if (view) scopeMeta.view = view
+    if (readOnly) scopeMeta.readOnly = true
+    payloadMeta.consoleScope = scopeMeta
+  } else if (view || readOnly) {
+    payloadMeta.consoleScope = {
+      ...(view ? { view } : { view: '' }),
+      ...(readOnly ? { readOnly: true } : {}),
+    }
   }
 
   // Output location. A console (whole-domaiNN or model-scoped) owns ONE stable file
@@ -1704,6 +1722,17 @@ export async function writeConsole(opts = {}) {
     familyDir = `artifacts/${familyKey}`
   } else {
     relativePath = payloadHelper.consoleOutputPath(wholeDomain ? 'domain' : { model: scopeKey })
+  }
+  // A caller may pin the exact file (for example the delivery HTML inside
+  // deliveries/v<N>/); it must stay inside the domaiNN.
+  if (typeof scopeObj.outFile === 'string' && scopeObj.outFile) {
+    const abs = resolve(root, scopeObj.outFile)
+    if (!isInsideRoot(abs, root)) {
+      throw new ConsoleExportError(`outFile must resolve inside ${root}.`, 'OUTFILE_INVALID')
+    }
+    familyDir = null
+    familyKey = null
+    relativePath = relative(root, abs).replace(/\\/g, '/')
   }
 
   const outDirAbs = familyDir ? join(root, familyDir) : dirname(join(root, relativePath))

@@ -853,6 +853,32 @@ notes:: "Please review the tagline"
       )
     })
 
+    it('a scope object selects models, marks read-only and pins outFile', async () => {
+      const { writeConsole } = await load()
+      const res = await writeConsole({
+        rootDir: tempDir,
+        scope: {
+          models: ['business_V_0-2-5'],
+          readOnly: true,
+          outFile: 'deliveries/v1/probe_delivery.html',
+        },
+        open: false,
+      })
+      assert.equal(res.relativePath, 'deliveries/v1/probe_delivery.html')
+      assert.equal(existsSync(res.path), true)
+      const html = await readFile(res.path, 'utf-8')
+      assert.match(html, /"readOnly":true/)
+      assert.match(html, /"models":\["business_V_0-2-5"\]/)
+    })
+
+    it('an outFile outside the domain is refused', async () => {
+      const { writeConsole } = await load()
+      await assert.rejects(
+        () => writeConsole({ rootDir: tempDir, scope: { models: ['business_V_0-2-5'], outFile: '../escape.html' }, open: false }),
+        (err) => /** @type {{ code?: string }} */ (err).code === 'OUTFILE_INVALID',
+      )
+    })
+
     it('open: false never calls the launcher', async () => {
       const { writeConsole } = await load()
       const calls = []
