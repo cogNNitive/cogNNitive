@@ -41,17 +41,12 @@ Slices 1a–1c (Phase 1) do not depend on a recorded verification and may procee
 - [x] 1a.8 RED+GREEN `T/production-hierarchy.test.mjs` — domaiNN→Series→Video; no Subject concept.
 - Diff vs v1a-layout: 288 insertions, **under budget**.
 
-**Status:** tracker `feat/conntent-redesign` verde y empujado (HEAD 7a69bc37, verify:fast 241/241 tras cada commit). En esta pasada:
-- **2a.4** — `lib/cascade.mjs createCascade` (at/get con source+trace, kind level con Chrome `music`→`background_audio`, layer innermost, validateLevel → `CASCADE_LEVEL_FORBIDDEN`).
-- **2b.1** — `validateVoiceLanguage` (Voice.language === episode language o `LANGUAGE_VOICE_MISMATCH`; voz ausente → `unknown-voice`).
-- **2b.2** — `assertVoiceResolved` (escena narrada sin voz → `missing-voice`; no hay voice por defecto de paquete).
-- **2b.4** — catálogo mergeado rechaza `capability:: video` (`unsupported-capability`) + integra `buildMergedCatalog`.
-- **2b.6** — campos `captions`/`caption_model` (render), `thumbnail_formats`/`thumbnail_base`/`thumbnail_title`/`thumbnail_badge` y `review_gates` (video) en spec+registry+defaults; `script_review` retirado del spec, defaults, registry, consumers, `produce.mjs` (lee `review_gates`), procedure y tests de contrato; `rg script_review` vacío fuera de tests.
-- **2b.5** — `parseCatalog` valida `Voice.language` (requerido + ISO 639-1) con `validateCatalogVoices`; catálogo de referencia con voces `en` y `es`; estimador sin ramas/constantes de video-clip (`FALLBACK_RATES`/kind/summary limpios; `plan-stale-price` actualizado); `voice-clone.mjs` escribe `Voice{model,voice_id,language}` en `model-catalog_NN.md` (`--language` requerido → `voice-language-required`; nunca toca CHARACTER.md) + CLI test.
-- **2b.3** — `language` clase `video` y `translation_of` record Video-only en spec+registry; `published_url` retirado del spec/consumers/contratos (publishing out of scope); sin fallback 'Spanish' (mapping vía `mapTtsLanguage`).
-- (Antes) 1a, 1b completa, 2c, 1c.1-1c.5+1c.7, 2a.1-2a.2, 2a.4, 2b.1, 2b.2, 2b.4.
+**Status:** tracker `feat/conntent-redesign` verde y empujado (HEAD ba32bcdd, verify:fast 249/249 tras cada commit). En esta pasada:
+- **Slice 2a COMPLETO**: 2a.1+2a.2 (registry scope/levels), 2a.4 (`createCascade`), 2a.5 (kinds direct fields), 2a.6+2a.7 (un solo resolver: `resolve`/`resolveKeyed` viven en cascade.mjs, video-scope ya no los exporta; 8 callers + console asset rewireados), 2a.3 (contract test every field×level con source=level), 2a.8 (trace `{value,source,document,overridden}` en resolver+plan+validate), 2a.9 (tests stale reescritos: omitTrace/pickScalar). F6: `avatar_resolution` ahora render cascade (Layer en CASCADE_CONCEPTS; `text_from` a RECORD_FIELDS).
+- **2b COMPLETO** (2b.1-2b.7): language/voice/capability video/campos 2b.6/parity.
+- (Antes) 1a, 1b, 2c, 1c.1-1c.5+1c.7.
 
-**Pendiente de 2a:** 2a.3 (contract test cascade-scope-classes — enorme: cada campo×nivel en compiler+estimator), 2a.5-2a.9 (rewiring compile/estimator a cascade). **2b COMPLETO** (2b.1-2b.7). Luego 2d, 2e, 3a, 3b, 4, 5, Phase 7. 1c.6/1c.8 dependientes de 3b. Con permisos (whisper/render/navegador) puedo completar V.3, 3b-3, 3b-4, botijos-today. Fusión a dev/main al final con verify.js verde.
+**Pendiente de 2a:** ninguna (COMPLETO). **2b:** ninguna (COMPLETO). **Luego:** 2d (Character), 2e (components), 3a, 3b, 4, 5, Phase 7. 1c.6/1c.8 dependientes de 3b. Con permisos (whisper/render/navegador) puedo completar V.3, 3b-3, 3b-4, botijos-today. Fusión a dev/main al final con verify.js verde.
 
 ## Slice 2 — Cascade (PRs 2a–2e)
 

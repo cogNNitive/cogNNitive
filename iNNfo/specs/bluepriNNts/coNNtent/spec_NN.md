@@ -283,6 +283,24 @@ concept:: [Video, Scene, Preset, Series, Video Defaults]
 type:: file
 description:: Image used as the source for an `avatar` Layer that declares no `asset::`. Resolves through the Universal Parameter Cascade. Optional.
 
+## NN Field Definition: character
+concept:: [Video, Scene, Preset, Series, Video Defaults]
+  scope:: render
+type:: string
+description:: Name of the active Character (a folder in `library/characters/` or `media/characters/`). Resolves through the Universal Parameter Cascade; a series sets its host, a scene can bring a guest. Optional.
+
+## NN Field Definition: pose
+concept:: [Video, Scene, Preset, Series, Video Defaults]
+  scope:: render
+type:: string
+description:: Avatar pose of the active Character: a file name in its `avatars/` without extension. Defaults to the Character's `default_pose`; requires an active `character`. Optional.
+
+## NN Field Definition: background
+concept:: [Video, Scene, Preset, Series, Video Defaults]
+  scope:: render
+type:: string
+description:: Background image of the active Character: a file name in its `backgrounds/` without extension. Defaults to the Character's `default_background`; requires an active `character`. Optional.
+
 ## NN Field Definition: intro
 concept:: [Video, Preset, Series, Video Defaults]
   scope:: render

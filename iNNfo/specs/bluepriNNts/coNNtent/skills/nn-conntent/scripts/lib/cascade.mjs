@@ -31,6 +31,9 @@ function usable(v) {
   return v !== undefined && v !== null && String(v).trim() !== '';
 }
 
+/** The levels with an explicit node, outer → inner (the ones bagsToChain emits). */
+const CHAIN_LEVELS = ['domain', 'series', 'kind', 'video', 'scene', 'layer'];
+
 /**
  * Resolves one scalar parameter across bags using nn-core resolve (the shared
  * precedence of the whole engine). Lives here so one resolver serves every caller.
@@ -84,20 +87,14 @@ export const CASCADE_LEVEL_FORBIDDEN = 'CASCADE_LEVEL_FORBIDDEN';
 /** The one registry (generated). */
 import registryJson from './field-registry.generated.json' with { type: 'json' };
 
-/** Scope class → allowed cascade levels (inner → outer naming in the registry). */
-const CLASS_LEVELS = {
-  render: ['layer', 'scene', 'video', 'kind', 'series', 'domain'],
-  video: ['video', 'series', 'domain'],
-  domain: ['domain'],
-};
-
 /**
  * Builds a cascade resolver for one episode.
- * @param {{ model?: object, scriptPath?: string, bags?: object, presetOf?: (name: string) => { name: string, values: object } | null }} input
+ * @param {{ model?: object, scriptPath?: string, bags?: object, presetOf?: (name: string) => { name: string, values: object } | null, characterOf?: (name: string) => { name: string, voices: Record<string,string>, defaultPose: string|null, avatarModel: string|null, avatarResolution: string|null, defaultBackground: string|null } | null, language?: string }} input
  */
-export function createCascade({ model, scriptPath, bags: baseBags, presetOf } = {}) {
+export function createCascade({ model, scriptPath, bags: baseBags, presetOf, characterOf: charOf, language } = {}) {
   const bags = { ...(baseBags || {}) };
   if (presetOf) bags.__presetOf = presetOf;
+  const characterOf = charOf || null;
 
   return {
     /**
@@ -128,9 +125,45 @@ export function createCascade({ model, scriptPath, bags: baseBags, presetOf } = 
       return {
         /** @returns {{ value: unknown, source: string|null, document: string|null, overridden: Array<{ source: string, document: string|null }>, trace: Array<{ level: string, node: string|null, value: unknown }> }} */
         get(field) {
-          const r = resolve(field, chainBags);
-          const trace = (r.source ? [{ level: r.source, node: null, value: r.value }] : []);
-          return { ...r, trace };
+          // Fold each level's active Character in as a node directly beneath that
+          // level's explicit fields (design D19): explicit > character > preset.
+          const loaded = bagsToChain(chainBags);
+          const nodes = [];
+          for (const node of loaded.nodes) {
+            const level = node.id;
+            const bag = chainBags[level];
+            const name = bag && typeof bag.character === 'string' && bag.character.trim() !== '' ? bag.character.trim() : null;
+            const character = name && characterOf ? characterOf(name) : null;
+            // The character node joins just before this level's explicit node; preset
+            // nodes already precede the explicit node in the emitted order.
+            if (character) {
+              const lang = String(language || bags.video?.language || '').toLowerCase();
+              nodes.push({
+                id: `${level}:character:${character.name}`,
+                kind: 'scope',
+                doc: null,
+                isolate: false,
+                values: {
+                  voice: character.voices?.[lang] || null,
+                  pose: character.defaultPose ?? null,
+                  avatar_model: character.avatarModel ?? null,
+                  avatar_resolution: character.avatarResolution ?? null,
+                  background: character.defaultBackground ?? null,
+                },
+              });
+            }
+            nodes.push(node);
+          }
+          const r = coreResolve({ floor: loaded.floor, nodes }, field, 'override', { accept: usable });
+          const exp = r.explain || {};
+          const trace = (exp.winner?.scope ? [{ level: exp.winner.scope, node: null, value: r.present ? r.value : null }] : []);
+          return {
+            value: r.present ? r.value : null,
+            source: exp.winner?.scope ?? null,
+            document: exp.winner?.doc ?? null,
+            overridden: (exp.overridden || []).map((o) => ({ source: o.scope, document: o.doc ?? null })),
+            trace,
+          };
         },
       };
     },
@@ -144,7 +177,7 @@ export function createCascade({ model, scriptPath, bags: baseBags, presetOf } = 
     validateLevel(field, level) {
       const def = registryJson.fields[field];
       if (!def || !def.cascade) return; // record fields may sit anywhere their concept allows
-      const allowed = CLASS_LEVELS[def.scope] || [];
+      const allowed = def.levels || [];
       // `blueprint` is the floor; it is always allowed as a default source.
       if (level === 'blueprint') return;
       if (!allowed.includes(level)) {

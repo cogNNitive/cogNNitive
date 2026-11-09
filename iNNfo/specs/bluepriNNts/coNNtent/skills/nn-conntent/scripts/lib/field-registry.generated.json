@@ -76,10 +76,8 @@
       "levels": [
         "domain",
         "series",
-        "kind",
         "video",
-        "scene",
-        "layer"
+        "scene"
       ],
       "type": "file",
       "options": [],
@@ -100,7 +98,6 @@
       "levels": [
         "domain",
         "series",
-        "kind",
         "video",
         "scene",
         "layer"
@@ -117,11 +114,6 @@
       ],
       "scope": "render",
       "levels": [
-        "domain",
-        "series",
-        "kind",
-        "video",
-        "scene",
         "layer"
       ],
       "type": "select",
@@ -133,6 +125,27 @@
       "multiple": false,
       "cascade": true,
       "description": "Optional output resolution for an `avatar` clip. The engine validates it against the model's declared `controls` and falls back to a model-appropriate default. Ignored by other Layer types."
+    },
+    "background": {
+      "concepts": [
+        "Video",
+        "Scene",
+        "Preset",
+        "Series",
+        "Video Defaults"
+      ],
+      "scope": "render",
+      "levels": [
+        "domain",
+        "series",
+        "video",
+        "scene"
+      ],
+      "type": "string",
+      "options": [],
+      "multiple": false,
+      "cascade": true,
+      "description": "Background image of the active Character: a file name in its `backgrounds/` without extension. Defaults to the Character's `default_background`; requires an active `character`. Optional."
     },
     "background_audio": {
       "concepts": [
@@ -146,10 +159,8 @@
       "levels": [
         "domain",
         "series",
-        "kind",
         "video",
-        "scene",
-        "layer"
+        "scene"
       ],
       "type": "file",
       "options": [],
@@ -169,10 +180,8 @@
       "levels": [
         "domain",
         "series",
-        "kind",
         "video",
-        "scene",
-        "layer"
+        "scene"
       ],
       "type": "string",
       "options": [],
@@ -237,10 +246,7 @@
       "levels": [
         "domain",
         "series",
-        "kind",
-        "video",
-        "scene",
-        "layer"
+        "video"
       ],
       "type": "string",
       "options": [],
@@ -258,10 +264,7 @@
       "levels": [
         "domain",
         "series",
-        "kind",
-        "video",
-        "scene",
-        "layer"
+        "video"
       ],
       "type": "select",
       "options": [
@@ -272,6 +275,27 @@
       "multiple": false,
       "cascade": true,
       "description": "Caption mode: `off` produces no captions, `words` word-level timing, `lines` segment-level timing. Defaults to `off`."
+    },
+    "character": {
+      "concepts": [
+        "Video",
+        "Scene",
+        "Preset",
+        "Series",
+        "Video Defaults"
+      ],
+      "scope": "render",
+      "levels": [
+        "domain",
+        "series",
+        "video",
+        "scene"
+      ],
+      "type": "string",
+      "options": [],
+      "multiple": false,
+      "cascade": true,
+      "description": "Name of the active Character (a folder in `library/characters/` or `media/characters/`). Resolves through the Universal Parameter Cascade; a series sets its host, a scene can bring a guest. Optional."
     },
     "chrome": {
       "concepts": [
@@ -301,10 +325,7 @@
       "levels": [
         "domain",
         "series",
-        "kind",
-        "video",
-        "scene",
-        "layer"
+        "video"
       ],
       "type": "select",
       "options": [],
@@ -404,7 +425,6 @@
       "levels": [
         "domain",
         "series",
-        "kind",
         "video",
         "scene",
         "layer"
@@ -442,10 +462,8 @@
       "levels": [
         "domain",
         "series",
-        "kind",
         "video",
-        "scene",
-        "layer"
+        "scene"
       ],
       "type": "string",
       "options": [],
@@ -465,10 +483,8 @@
       "levels": [
         "domain",
         "series",
-        "kind",
         "video",
-        "scene",
-        "layer"
+        "scene"
       ],
       "type": "string",
       "options": [],
@@ -488,10 +504,8 @@
       "levels": [
         "domain",
         "series",
-        "kind",
         "video",
-        "scene",
-        "layer"
+        "scene"
       ],
       "type": "string",
       "options": [],
@@ -510,10 +524,7 @@
       "levels": [
         "domain",
         "series",
-        "kind",
-        "video",
-        "scene",
-        "layer"
+        "video"
       ],
       "type": "file",
       "options": [],
@@ -648,6 +659,27 @@
       "cascade": false,
       "description": "For a `media` Layer: `full` covers the frame, `inset` places it inside the safe area. Required on `media`."
     },
+    "pose": {
+      "concepts": [
+        "Video",
+        "Scene",
+        "Preset",
+        "Series",
+        "Video Defaults"
+      ],
+      "scope": "render",
+      "levels": [
+        "domain",
+        "series",
+        "video",
+        "scene"
+      ],
+      "type": "string",
+      "options": [],
+      "multiple": false,
+      "cascade": true,
+      "description": "Avatar pose of the active Character: a file name in its `avatars/` without extension. Defaults to the Character's `default_pose`; requires an active `character`. Optional."
+    },
     "position": {
       "concepts": [
         "Layer"
@@ -680,8 +712,7 @@
         "series",
         "kind",
         "video",
-        "scene",
-        "layer"
+        "scene"
       ],
       "type": "select",
       "options": [],
@@ -851,10 +882,7 @@
       "levels": [
         "domain",
         "series",
-        "kind",
-        "video",
-        "scene",
-        "layer"
+        "video"
       ],
       "type": "select",
       "options": [],
@@ -1073,10 +1101,8 @@
       "levels": [
         "domain",
         "series",
-        "kind",
         "video",
-        "scene",
-        "layer"
+        "scene"
       ],
       "type": "select",
       "options": [
@@ -1131,10 +1157,8 @@
       "levels": [
         "domain",
         "series",
-        "kind",
         "video",
-        "scene",
-        "layer"
+        "scene"
       ],
       "type": "string",
       "options": [],
@@ -1154,10 +1178,8 @@
       "levels": [
         "domain",
         "series",
-        "kind",
         "video",
-        "scene",
-        "layer"
+        "scene"
       ],
       "type": "string",
       "options": [],
@@ -1189,10 +1211,8 @@
       "levels": [
         "domain",
         "series",
-        "kind",
         "video",
-        "scene",
-        "layer"
+        "scene"
       ],
       "type": "string",
       "options": [],
@@ -1212,10 +1232,8 @@
       "levels": [
         "domain",
         "series",
-        "kind",
         "video",
-        "scene",
-        "layer"
+        "scene"
       ],
       "type": "string",
       "options": [],

@@ -52,6 +52,9 @@ Legend: ● can be written at this scope, · cannot.
 | `components` | select (multi) | — | ● | ● | · | ● | ● | · | · | · | · | · | · | · |
 | `sounds` | select (multi) | — | ● | ● | · | ● | ● | · | · | · | · | · | · | · |
 | `avatar` | file | — | ● | ● | · | ● | ● | ● | · | · | · | · | · | · |
+| `character` | string | — | ● | ● | · | ● | ● | ● | · | · | · | · | · | · |
+| `pose` | string | — | ● | ● | · | ● | ● | ● | · | · | · | · | · | · |
+| `background` | string | — | ● | ● | · | ● | ● | ● | · | · | · | · | · | · |
 | `intro` | file | — | ● | ● | · | ● | ● | · | · | · | · | · | · | · |
 | `type` | select | `avatar`, `media`, `text`, `animation` | · | · | · | · | · | · | ● | · | · | · | · | · |
 | `placement` | select | `full`, `inset` | · | · | · | · | · | · | ● | · | · | · | · | · |
@@ -273,6 +276,24 @@ Settable at: `Video`, `Preset`, `Series`, `Video Defaults`.
 ### `avatar`
 
 Image used as the source for an `avatar` Layer that declares no `asset::`. Resolves through the Universal Parameter Cascade. Optional.
+
+Settable at: `Video`, `Scene`, `Preset`, `Series`, `Video Defaults`.
+
+### `character`
+
+Name of the active Character (a folder in `library/characters/` or `media/characters/`). Resolves through the Universal Parameter Cascade; a series sets its host, a scene can bring a guest. Optional.
+
+Settable at: `Video`, `Scene`, `Preset`, `Series`, `Video Defaults`.
+
+### `pose`
+
+Avatar pose of the active Character: a file name in its `avatars/` without extension. Defaults to the Character's `default_pose`; requires an active `character`. Optional.
+
+Settable at: `Video`, `Scene`, `Preset`, `Series`, `Video Defaults`.
+
+### `background`
+
+Background image of the active Character: a file name in its `backgrounds/` without extension. Defaults to the Character's `default_background`; requires an active `character`. Optional.
 
 Settable at: `Video`, `Scene`, `Preset`, `Series`, `Video Defaults`.
 

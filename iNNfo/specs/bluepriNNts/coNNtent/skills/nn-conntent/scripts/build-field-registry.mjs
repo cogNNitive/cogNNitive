@@ -58,6 +58,17 @@ export const SCOPE_LEVELS = {
   record: [],
 };
 
+/** Concept → cascade level name (the level the concept contributes at resolution). */
+const CONCEPT_LEVELS = {
+  'Video Defaults': 'domain',
+  Series: 'series',
+  'Scene Kind': 'kind',
+  Preset: null, // a Preset is expanded per level, never a node of its own
+  Video: 'video',
+  Scene: 'scene',
+  Layer: 'layer',
+};
+
 /** Reads `validation.conditional_fields` from the blueprint frontmatter (OR groups). */
 export function parseConditionalFields(specText) {
   const out = {};
@@ -118,7 +129,12 @@ export function buildRegistry(specText) {
 
     const isCascade = !(scope === 'record' || RECORD_FIELDS.has(element.name)) && Boolean(scope in SCOPE_CLASSES) && cascadeCandidates;
     const cls = isCascade ? scope : 'record';
-    const levels = isCascade ? (SCOPE_LEVELS[scope] || []) : [];
+    // A field's levels come from the Concepts it lists (a render field without `Layer`
+    // must not resolve at the `layer` level) — sparse within the class order.
+    const conceptLevels = isCascade
+      ? [...new Set(concepts.map((c) => CONCEPT_LEVELS[c]).filter((l) => l !== null))]
+      : [];
+    const levels = isCascade ? SCOPE_LEVELS[scope].filter((l) => conceptLevels.includes(l)) : [];
     fields[element.name] = {
       concepts,
       scope: cls,
