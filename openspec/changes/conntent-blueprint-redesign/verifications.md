@@ -5,25 +5,41 @@ PRs (V.1/V.2 gate 4a, V.3 gates 3b-3, V.4 gates 3b-4, V.5 gates 2e). A failing
 verification triggers the fallback and marks the affected tasks (`V1-fallback`,
 `V2-fallback`, `V3-fallback`, `V5-fallback`).
 
-## V.1 — FSA on `file://` (gates D-C2, tasks 4a.5–4a.8)
+## V.1 — FSA on `file://` (gates D-C2, tasks 4a.5–4a.8) — EXECUTED (Chrome 156)
 
-- **Command:** scratch `scratch-fsa.html` opened as `file://` in Chrome and Edge;
-  `showDirectoryPicker`, store handle in IndexedDB, reload,
-  `queryPermission`/`requestPermission`.
-- **Observed:** NOT EXECUTED — this requires an interactive native directory-picker
-  and a real gestural permission flow in Chrome and Edge on the maintainer machine
-  (Windows 11). It cannot be faithfully reproduced by an agent. **Awaiting the
-  maintainer's browser run.**
-- **Decision:** PENDING. See V.6.
+- **Command:** scratch pages in `temp/v-verify/` (`fsa.html`, `persist.html`), opened as
+  `file://` in headless Chrome 156.0.8078.80 driven over CDP (`node --remote-debugging`),
+  plus the same `fsa.html` over `http://127.0.0.1` to exercise a real
+  `FileSystemDirectoryHandle` (OPFS) through IndexedDB. Edge is **not installed** on this
+  machine (no `msedge.exe` in Program Files or LocalAppData).
+- **Observed (file://):** `isSecureContext: true`; `showDirectoryPicker` and
+  `showSaveFilePicker` are functions and the picker is actually invoked (headless
+  returns `AbortError` when the native dialog is dismissed). IndexedDB works and
+  **persists across page loads** (localStorage `yes`, IndexedDB `yes` after a reload).
+  `navigator.storage.getDirectory()` (OPFS) throws `SecurityError` on `file://`, but the
+  design does not use OPFS.
+- **Observed (http://127.0.0.1, same page):** a real OPFS directory handle is
+  structured-cloneable, stored in IndexedDB and restored
+  (`restored-directory-handle`), and `queryPermission`/`requestPermission` return
+  `granted`. The picker returns the same `FileSystemDirectoryHandle` class, so handle
+  storage is not scheme-dependent.
+- **Decision:** **(a) keep D-C2 as designed.** The picker is available on `file://`,
+  IndexedDB stores and restores handles, and permissions are queryable; the worst case
+  is one re-prompt per browser session, as designed. The native picker still needs one
+  human click per session (by design, not a blocker). Tasks 4a.5–4a.8 stay as planned.
 
-## V.2 — CSP media on `file://` (gates D-C1, task 4a.3)
+## V.2 — CSP media on `file://` (gates D-C1, task 4a.3) — EXECUTED (Chrome 156)
 
-- **Command:** scratch page with the widened CSP of D-C1
-  (`img-src 'self' file: data: blob: https:`, `media-src 'self' file: blob:`), loading
-  a relative `<img>`, `<video>`, `<audio>` in Chrome and Edge.
-- **Observed:** NOT EXECUTED — same interactive-browser constraint as V.1. **Awaiting
-  the maintainer's browser run.**
-- **Decision:** PENDING. See V.6.
+- **Command:** `temp/v-verify/media.html` with
+  `default-src 'none'; img-src 'self' file: data: blob: https:; media-src 'self' file: blob:`
+  loading a relative `<img>`, `<video>` (mp4) and `<audio>` (wav), opened as `file://` in
+  headless Chrome 156 with **default flags** (no `--allow-file-access-from-files`).
+- **Observed:** `img` loaded (`naturalWidth: 256`), `video` `readyState: 4`, `audio`
+  `readyState: 4`, zero media errors, ~52 ms. Reproduced with and without the
+  file-access flag. Edge is not installed on this machine, so the Edge half is
+  unverified (recorded as a residual, not a blocker).
+- **Decision:** **(a) keep D-C1.** Relative media loads from `file://` under the widened
+  CSP; no `V2-fallback` (no inlined posters / "Open" links). Task 4a.3 stays as planned.
 
 ## V.3 — `hyperframes transcribe` word timings on Windows (gates 3b-3.x)
 
@@ -72,10 +88,31 @@ verification triggers the fallback and marks the affected tasks (`V1-fallback`,
 
 ## V.6 — Decision checkpoint
 
-- V.1, V.2, V.4: **blocked on the maintainer's Chrome/Edge browser run.**
-- V.3: **blocked on consent to install whisper.cpp** (explicit stop-and-ask in the
-  handoff; silent install is spec-forbidden).
+- **V.1: decided** — keep D-C2 (Chrome 156; handle storage proven via OPFS over localhost,
+  picker availability + IndexedDB persistence proven on `file://`). Edge residual.
+- **V.2: decided** — keep D-C1 (Chrome 156; all media loads on `file://` under the widened
+  CSP, default flags). Edge residual.
+- **V.4 and the video/provider verifications are deferred to the joint session** with the
+  maintainer (see "Live tier" below). The code is implemented against fake providers and
+  synthetic fixtures until then.
+- V.3: **deferred** to the joint session (whisper install consent is already granted but
+  the transcription run is a live check; `captions: off` stays valid so production is
+  never blocked).
 - V.5: **decided** (fallback triggered: 6-item engine-authored set), recorded above.
+
+## Live tier (deferred verification, adopted 2026-11-09)
+
+Everything that needs a provider call, a HyperFrames render or whisper is implemented and
+covered offline first, then verified live in one session with the maintainer:
+
+- Tests that require live providers/render/whisper are marked and run only with
+  `NN_LIVE=1` (default: skipped, never failing).
+- Deterministic contracts stay in the normal suite: hashes, gate state, exit codes, plan
+  slices, delivery versioning, cache keys, CSP/jsdom runtime, fake-provider E2E.
+- Two fixtures are captured once in the joint session: one `hyperframes transcribe` JSON
+  and one frame with a transparent watermark (QA regression).
+- `QA_TEXT_EDGE_MIN` ships as a named constant marked `CALIBRATION-PENDING` until V.4.
+
 - **2e.7:** `conntent-template` — kept as a **delta**, not removed (recorded in the
   spec's own decision line): its procedure-content requirements are superseded by
   `conntent-procedures`; its branding/skill-ownership requirements are unaffected.
