@@ -47,6 +47,10 @@ Green gates at handoff: `verify.js --only=conntent`, `verify.js --only=console`,
    `captions: off` never blocked); **3b-3.9** `caption-skin.html` from the active frame.
 3. **4c.3/.4/.6** approval flow in the view (verdict draft → `changes/`, stale hash refused with
    the C7 message), regeneration after every engine exit, size assertion with 50 episodes.
+   **4c.3 landed in `71c695c1`** (gate strip, scene cards with still and audio, Approve / Needs
+   change, `verdict` drafts); the UX reference is the retired `console-view-episode-review.js`
+   (`git show 6e63f0f0^:iNNfo/specs/bluepriNNts/coNNtent/assets/console-view-episode-review.js`).
+   There is no `console-mockup/domaiNN_console_mockup.html` in the repo or in git history.
 4. **4d** delivery view (`conntent-delivery`, read-only, `writeConsole` `scope.outFile` into
    `deliveries/v<N>/<slug>_delivery.html`) + component portfolio picker.
 5. **3b-2.2/.8** extract `pipeline.mjs` from `produce.mjs`; cold-cache E2E with fake providers.
@@ -62,7 +66,9 @@ Green gates at handoff: `verify.js --only=conntent`, `verify.js --only=console`,
 ## Migration plan for `botijos-today` (awaiting maintainer confirmation)
 
 Source: `D:\Users\lucas\Documents\_NN\video_NN\series\villabotijos-today` (old layout, read-only).
-Target: a NEW domaiNN `coNNtent_NN/` in the repo (empty now; no migration code).
+Target: a NEW **end-user domaiNN on disk**, `D:\Users\lucas\Documents\_NN\coNNtent_NN\`. It is
+NOT committed: the repo carries code and tests, and the user domain is the acceptance bench the
+code runs against. Videos, deliveries and the TTS/avatar cache stay in the domain.
 
 **Copy (assets only; no old documents, no old layout):**
 

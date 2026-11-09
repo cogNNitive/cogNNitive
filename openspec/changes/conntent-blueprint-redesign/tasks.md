@@ -278,7 +278,9 @@ Results go to `openspec/changes/conntent-blueprint-redesign/verifications.md` (o
 ### PR 4c: unified view and regeneration. Start: 4b merged. Finish: one registered `conntent` view; old views deleted. Verify: `node --test test/console-conntent-view.test.mjs`. Rollback: revert PR 4c.
 
 - [ ] 4c.1 RED `test/console-conntent-view.test.mjs` (jsdom): Pending inbox is home; sections Domain (Config, Catalog and voices, Status), Series (Board, Config, Scene Kinds, Chrome and Presets), Episode (Review, Config, Status, Deliveries); no "Deliver" button and no "Clean orphans" control. (conntent-domain-console, console-view-registry; X7)
-- [ ] 4c.2 GREEN `BP/assets/console-view-conntent.js`, registered `conntent`; follows `console-mockup/domaiNN_console_mockup.html`.
+- [ ] 4c.2 GREEN `BP/assets/console-view-conntent.js`, registered `conntent`; the UX reference is the
+  retired `console-view-episode-review.js` (`git show 6e63f0f0^:...`), not the never-committed
+  `console-mockup/domaiNN_console_mockup.html`.
 - [ ] 4c.3 RED+GREEN approval flow: verdict draft -> `changes/`; an approval whose `reviewed_hash` no longer matches is refused with the C7 message. (console-regeneration, C7)
 - [ ] 4c.4 RED+GREEN regeneration after every engine exit and every applied changeset (`pipeline.mjs` `finally`). 
 - [ ] 4c.5 Delete `BP/assets/console-view-episode-review.*`, `BP/assets/console-view-series.*`; fix references (`rg "console-view-episode-review|console-view-series"` returns nothing). Accept: no dangling imports.
@@ -316,7 +318,9 @@ Results go to `openspec/changes/conntent-blueprint-redesign/verifications.md` (o
 - [ ] 7.3 Full gate on the tracker: `node scripts/verify.js` (preflight tests with empty `USERPROFILE`+`HOME`), `npm run verify:fast`. All green.
 - [ ] 7.4 Fresh-context review per PR before merging into the tracker (adversarial, unaware of the author's reasoning); extra attention on 3a-i/3a-ii (cross-blueprint contract), 4a (runtime CSP/FSA) and 3b-4 (QA heuristic).
 - [ ] 7.5 Release (tracker to `main`, one run): use `nn-dev-release` (templates tag, nn-core / nn-mcp / nn-console versions derived); verify the templates pin on main; confirm the Pages deploy.
-- [ ] 7.6 Recreate `coNNtent_NN/series/botijos-today` in the new layout using the procedures (no migration); run use cases U1-U7.
+- [ ] 7.6 Run use cases U1-U7 against the end-user domaiNN on disk
+  (`D:\Users\lucas\Documents\_NN\coNNtent_NN`), which is the acceptance bench and is NOT committed;
+  the videos, deliveries and caches stay in that domain.
 - [ ] 7.7 Fresh-context audit of the final tracker diff vs. the success criteria checklist in `proposal.md`.
 - [ ] 7.8 Archive with `sdd-archive`; diff and `wc -l` every archived artifact against its source (haiku archiving has truncated artifacts before).
 
