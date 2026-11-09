@@ -47,7 +47,7 @@ Legend: ● can be written at this scope, · cannot.
 | `music` | file | — | · | · | · | · | · | · | · | · | ● | · | · | · |
 | `presets` | select (multi) | — | ● | ● | ● | · | ● | ● | · | · | · | · | · | · |
 | `background_audio` | file | — | ● | ● | · | ● | ● | ● | · | · | · | · | · | · |
-| `background_audio_volume` | string | — | ● | ● | · | ● | ● | ● | · | · | · | · | · | · |
+| `background_audio_volume` | number | — | ● | ● | · | ● | ● | ● | · | · | · | · | · | · |
 | `transition` | select | `fade`, `slide-left`, `slide-right`, `wipe`, `none` | ● | ● | · | ● | ● | ● | · | · | · | · | · | · |
 | `frame` | string | — | ● | ● | · | ● | ● | ● | · | · | · | · | · | · |
 | `components` | select (multi) | — | ● | ● | · | ● | ● | · | · | · | · | · | · | · |
@@ -384,7 +384,7 @@ Settable at: `Layer`.
 
 ### `avatar_model`
 
-Avatar/lip-sync model id for an `avatar` Layer, or a cascade default (e.g. `wavespeed-ai/infinitetalk-fast`). Resolves through the Universal Parameter Cascade.
+Avatar/lip-sync model id for an `avatar` Layer, or a cascade default (e.g. `wavespeed-ai/infinitetalk-fast`). Resolves through the Universal Parameter Cascade. The console picklist offers the merged catalog's allowed avatar models by `api_id`.
 
 Settable at: `Layer`, `Scene`, `Video`, `Preset`, `Series`, `Video Defaults`.
 
@@ -402,13 +402,13 @@ Settable at: `Layer`, `Scene`, `Video`, `Preset`, `Series`, `Video Defaults`.
 
 ### `voice`
 
-Registered voice name or system voice used for TTS synthesis. Resolves through the Universal Parameter Cascade; a Preset supplies it unless a nearer level sets it. Part of the synthesized-audio cache identity.
+Registered voice name or system voice used for TTS synthesis. Resolves through the Universal Parameter Cascade; a Preset supplies it unless a nearer level sets it. Part of the synthesized-audio cache identity. The console picklist offers the merged catalog's Voices by slug.
 
 Settable at: `Video`, `Scene`, `Preset`, `Series`, `Video Defaults`.
 
 ### `voice_model`
 
-Provider model id used for TTS synthesis (e.g. `minimax/speech-2.8-hd`). Resolves through the Universal Parameter Cascade. Part of the synthesized-audio cache identity.
+Provider model id used for TTS synthesis (e.g. `minimax/speech-2.8-hd`). Resolves through the Universal Parameter Cascade. Part of the synthesized-audio cache identity. The console picklist offers the merged catalog's allowed tts models by `api_id`.
 
 Settable at: `Video`, `Scene`, `Preset`, `Series`, `Video Defaults`.
 
@@ -426,7 +426,7 @@ Settable at: `Video`, `Scene`, `Preset`, `Series`, `Video Defaults`.
 
 ### `image_model`
 
-Provider model id used to synthesize image assets (e.g. `wavespeed-ai/z-image/turbo`). Resolves through the Universal Parameter Cascade.
+Provider model id used to synthesize image assets (e.g. `wavespeed-ai/z-image/turbo`). Resolves through the Universal Parameter Cascade. The console picklist offers the merged catalog's allowed image models by `api_id`.
 
 Settable at: `Video`, `Scene`, `Preset`, `Series`, `Video Defaults`.
 
