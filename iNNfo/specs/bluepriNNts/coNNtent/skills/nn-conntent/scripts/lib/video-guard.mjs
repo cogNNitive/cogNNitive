@@ -245,6 +245,44 @@ export function assertModelAllowed(rawModel, { config, allowBlocked = [] }) {
   }
 }
 
+/**
+ * Builds a validated SpendGuard config from the cascade documents and the merged
+ * catalog, owning nothing on disk (video-guard.json is retired; D-S4). The per-run cap
+ * comes from the cascade `budget`, the daily cap from `daily_budget`, blocked models
+ * from the catalog (`Model allowed:: false`), and avatar limits from the resolved
+ * model's `max_seconds`/`max_concurrency`.
+ * @param {{ root: string, budget?: number|null, dailyBudget?: number|null, catalog?: { models?: Array<{ slug?: string, allowed?: boolean, max_seconds?: number, max_concurrency?: number, adapter?: string }> }, systemVoices?: string[] }} input
+ * @returns {SpendGuard}
+ */
+export function spendGuardFromDocuments({ root, budget = null, dailyBudget = null, catalog = {} }) {
+  const models = catalog.models || [];
+  const catalogAllowed = models.filter((m) => m.allowed !== false).map((m) => m.slug).filter(Boolean);
+  const config = {
+    version: 1,
+    budgetPerRunUsd: Number.isFinite(budget) ? budget : DEFAULT_GUARD.budgetPerRunUsd,
+    dailyCapUsd: Number.isFinite(dailyBudget) ? dailyBudget : DEFAULT_GUARD.dailyCapUsd,
+    // Defaults mirror the retired file until the Model fields are merged per model.
+    maxAvatarConcurrency: DEFAULT_GUARD.maxAvatarConcurrency,
+    maxAvatarSeconds: DEFAULT_GUARD.maxAvatarSeconds,
+    // The catalog is the author of the allow list; fall back to the shipped defaults
+    // only when it declares none (so a fresh install still validates).
+    allowedModels: catalogAllowed.length > 0 ? catalogAllowed : [...DEFAULT_GUARD.allowedModels],
+    blockedModels: models.filter((m) => m.allowed === false).map((m) => m.slug).filter(Boolean),
+    systemVoices: [],
+    voices: {},
+  };
+  validateConfig(config, 'spendGuardFromDocuments');
+  const guard = new SpendGuard({ config, root });
+  // Expose the catalog limits for the caller to apply per model.
+  guard.catalogModelLimits = models
+    .filter((m) => m.slug)
+    .reduce((acc, m) => {
+      acc[normalizeModelId(m.slug)] = { maxSeconds: m.max_seconds ?? null, maxConcurrency: m.max_concurrency ?? null };
+      return acc;
+    }, {});
+  return guard;
+}
+
 /** Per-run running total of estimated spend against a budget. */
 export class BudgetTracker {
   /** @param {{ budgetUsd: number }} opts */
