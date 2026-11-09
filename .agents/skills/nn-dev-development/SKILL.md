@@ -168,6 +168,10 @@ Match the ceremony to the blast radius — never run the heavy lane "just in cas
 
 Rule of thumb: if CI can catch a mistake before it reaches `main`, the light lane is enough.
 
+**Never open a PR unprompted.** At the end of each concrete work unit, ask the maintainer
+whether to open the PR to `dev`. Pushing the session branch is always allowed; opening the
+review request is the maintainer's call.
+
 ### 2c. Keep the backlog shrinking
 
 Do not register a new OpenSpec change while the active backlog is large. Count it live
