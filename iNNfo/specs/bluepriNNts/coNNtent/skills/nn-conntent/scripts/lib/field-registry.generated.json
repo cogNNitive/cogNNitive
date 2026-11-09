@@ -761,18 +761,6 @@
       "cascade": false,
       "description": "Slug of the `Provider` element this Model belongs to."
     },
-    "published_url": {
-      "concepts": [
-        "Video"
-      ],
-      "scope": "record",
-      "levels": [],
-      "type": "url",
-      "options": [],
-      "multiple": false,
-      "cascade": false,
-      "description": "Publication URL of the episode. Required once `status:: published`."
-    },
     "review": {
       "concepts": [
         "Scene"
@@ -1094,6 +1082,18 @@
       "multiple": false,
       "cascade": true,
       "description": "Transition into the Scene. Resolves through the Universal Parameter Cascade. Optional."
+    },
+    "translation_of": {
+      "concepts": [
+        "Video"
+      ],
+      "scope": "record",
+      "levels": [],
+      "type": "string",
+      "options": [],
+      "multiple": false,
+      "cascade": false,
+      "description": "For a translation episode, the slug of the original (`<slug>` in the same series, or `<series>/<slug>` across series). The original MUST exist, MUST NOT itself be a translation and MUST share the source; never points at itself. Video-only record field."
     },
     "type": {
       "concepts": [

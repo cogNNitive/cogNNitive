@@ -216,9 +216,10 @@ async function runTests() {
     assert.match(SPEC, /^    text: \[text, text_from\]$/m, 'the blueprint frontmatter agrees');
 
     // New cascade and record fields.
-    for (const name of ['language', 'budget', 'daily_budget', 'output_formats', 'review_gates', 'captions', 'caption_model', 'thumbnail_formats', 'thumbnail_base', 'thumbnail_title', 'thumbnail_badge', 'published_url', 'kind', 'review']) {
+    for (const name of ['language', 'budget', 'daily_budget', 'output_formats', 'review_gates', 'captions', 'caption_model', 'thumbnail_formats', 'thumbnail_base', 'thumbnail_title', 'thumbnail_badge', 'translation_of', 'kind', 'review']) {
       assert.ok(fieldDefinition(name), `${name} is declared`);
     }
+    assert.doesNotMatch(SPEC, /^## NN Field Definition: published_url$/m, 'published_url is retired (publishing is out of scope)');
     assert.match(fieldDefinition('status'), /^options:: \[idea, draft, approved, produced, published, archived\]$/m);
     assert.match(fieldDefinition('language'), /^concept:: \[Video, Series, Video Defaults, Chrome\]$/m);
     assert.match(fieldDefinition('daily_budget'), /^concept:: Video Defaults$/m);

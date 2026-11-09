@@ -151,11 +151,6 @@ type:: select
 options:: [idea, draft, approved, produced, published, archived]
 description:: Lifecycle position of the episode, written by the engine or the user through a changeset. `idea` carries a title and linked Sources only.
 
-## NN Field Definition: published_url
-concept:: Video
-type:: url
-description:: Publication URL of the episode. Required once `status:: published`.
-
 ## NN Field Definition: script
 concept:: Video
 type:: file
@@ -170,6 +165,12 @@ description:: The episode's master `<slug>_<W>x<H>.mp4`, sized by the first entr
 concept:: Video
 type:: image
 description:: The episode's cover image, resolved under the owning model's directory.
+
+## NN Field Definition: translation_of
+concept:: Video
+scope:: record
+type:: string
+description:: For a translation episode, the slug of the original (`<slug>` in the same series, or `<series>/<slug>` across series). The original MUST exist, MUST NOT itself be a translation and MUST share the source; never points at itself. Video-only record field.
 
 ## NN Field Definition: kind
 concept:: Scene
@@ -580,7 +581,7 @@ reach the document only through changesets applied by the apply engine.
 
 - **Video** — a distributed concept: one Video instance model per episode, at
   `series/<s>/episodes/<slug>/<slug>_coNNtent_NN.md`, holding exactly one Video element.
-  Carries the episode record (`status`, `published_url`, `script`, `master`, `thumbnail`),
+  Carries the episode record (`status`, `script`, `master`, `thumbnail`, `translation_of`),
   the human `title` and the pinned `blueprint_version` in the document frontmatter.
 - **Scene** — child of Video. Order equals the order of the `# NN index` list; no `order::`
   field exists. Its free-form prose BODY is the narration, synthesized by TTS and timed by
@@ -679,8 +680,8 @@ record and the script.
 ### Description
 
 One `## NN Video: <name>` element models one episode. Its `slug::` is the stable identity the
-engine uses to name the output. The record fields — `description`, `status`,
-`published_url`, `script`, `master` and `thumbnail` — make the same document both the
+engine uses to name the output. The record fields — `description`, `status`, `script`,
+`master`, `thumbnail` and `translation_of` — make the same document both the
 episode's catalogue entry and its script. The document frontmatter pins
 `blueprint_version: V_0-15-0`; `produce` refuses any other pin. A second Video element in
 the same document violates the one-video-per-script constraint.
@@ -697,7 +698,7 @@ the same document violates the one-video-per-script constraint.
 ### Prompts
 
 - "Create a `Video` named `<title>` for this script and pin `blueprint_version: V_0-15-0`."
-- "Set `status` of `<video>` to `published` and point `published_url` at the publication."
+- "Set `status` of `<video>` to `published`; publishing is out of scope, so there is no `published_url` field."
 
 ## Scene
 

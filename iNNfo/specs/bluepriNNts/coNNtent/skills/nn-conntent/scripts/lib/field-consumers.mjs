@@ -85,8 +85,9 @@ export const PLANNED_CONSUMERS = {
   bumper: '4',
   music: '4',
   script: '10',
-  published_url: '10',
   thumbnail: '10',
+  translation_of: '4b (console stale-translation flag)',
+
   intro: '5',
   style: '5',
   text_from: '5',

@@ -29,10 +29,10 @@ Legend: ● can be written at this scope, · cannot.
 | `title` | string | — | · | ● | · | · | ● | · | · | · | · | · | · | · |
 | `description` | markdown_inline | — | · | · | · | · | ● | · | · | · | · | · | · | · |
 | `status` | select | `idea`, `draft`, `approved`, `produced`, `published`, `archived` | · | · | · | · | ● | · | · | · | · | · | · | · |
-| `published_url` | url | — | · | · | · | · | ● | · | · | · | · | · | · | · |
 | `script` | file | — | · | · | · | · | ● | · | · | · | · | · | · | · |
 | `master` | video | — | · | · | · | · | ● | · | · | · | · | · | · | · |
 | `thumbnail` | image | — | · | · | · | · | ● | · | · | · | · | · | · | · |
+| `translation_of` | string | — | · | · | · | · | ● | · | · | · | · | · | · | · |
 | `kind` | select | — | · | · | · | · | · | ● | · | · | · | · | · | · |
 | `review` | select | `approved`, `needs-change` | · | · | · | · | · | ● | · | · | · | · | · | · |
 | `role` | string | — | · | · | ● | · | · | · | · | · | · | · | · | · |
@@ -138,12 +138,6 @@ Lifecycle position of the episode, written by the engine or the user through a c
 
 Settable at: `Video`.
 
-### `published_url`
-
-Publication URL of the episode. Required once `status:: published`.
-
-Settable at: `Video`.
-
 ### `script`
 
 The episode's script document, resolved under the owning model's directory.
@@ -159,6 +153,12 @@ Settable at: `Video`.
 ### `thumbnail`
 
 The episode's cover image, resolved under the owning model's directory.
+
+Settable at: `Video`.
+
+### `translation_of`
+
+For a translation episode, the slug of the original (`<slug>` in the same series, or `<series>/<slug>` across series). The original MUST exist, MUST NOT itself be a translation and MUST share the source; never points at itself. Video-only record field.
 
 Settable at: `Video`.
 
