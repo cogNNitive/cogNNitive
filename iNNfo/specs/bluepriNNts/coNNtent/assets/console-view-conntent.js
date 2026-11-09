@@ -152,7 +152,6 @@ registerView({
         var head = el('div', 'nn-pending-head')
         head.appendChild(el('strong', null, gate.episode + ' · ' + gateLabel(gate)))
         head.appendChild(badge(gate.state, 'nn-gate-state'))
-        if (GATE_INFO[gate.gate]) head.appendChild(el('span', 'nn-gate-protects', GATE_INFO[gate.gate].protects))
         item.appendChild(head)
         if (gate.notes) item.appendChild(el('span', 'nn-gate-notes', gate.notes))
         if (gate.cause && gate.cause.detail) {
@@ -351,7 +350,7 @@ registerView({
             var audio = doc.createElement('audio')
             audio.className = 'nn-review-audio'
             audio.controls = true
-            audio.preload = 'none'
+            audio.preload = 'metadata'
             audio.src = scene.audio
             audio.setAttribute('data-nn-narration-audio', '')
             media.appendChild(audio)
@@ -386,10 +385,22 @@ registerView({
             sceneBody.appendChild(lSection)
           }
           if ((scene.sources || []).length > 0) {
-            var sSection = labelled('Inherited')
-            var line = el('p', 'nn-source-line', scene.sources.join(' · '))
-            line.setAttribute('data-nn-source-line', '')
-            sSection.appendChild(line)
+            var sSection = labelled('Inherited from above')
+            var sourceDetails = el('details', 'nn-conntent-fields')
+            sourceDetails.appendChild(
+              el('summary', null, scene.sources.length + ' value' + (scene.sources.length === 1 ? '' : 's') + ' inherited'),
+            )
+            var sourceChips = el('div', 'nn-cascade-chips nn-source-chips')
+            sourceChips.setAttribute('data-nn-source-line', '')
+            scene.sources.forEach(function (entry) {
+              var chip = el('span', 'nn-cascade-chip nn-source-chip')
+              chip.setAttribute('data-nn-source', typeof entry === 'string' ? entry : entry.name)
+              chip.appendChild(el('span', null, typeof entry === 'string' ? entry : entry.name))
+              if (entry && entry.source) chip.appendChild(badge(entry.source, 'nn-src-badge'))
+              sourceChips.appendChild(chip)
+            })
+            sourceDetails.appendChild(sourceChips)
+            sSection.appendChild(sourceDetails)
             sceneBody.appendChild(sSection)
           }
 

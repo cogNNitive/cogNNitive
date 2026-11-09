@@ -64,7 +64,10 @@ const VIEW_DATA = {
                 previewHash: PREVIEW_HASH,
                 planHash: HASH,
                 fields: { voice: { value: 'series-voice', source: 'series' } },
-                sources: ['voice <- series'],
+                sources: [
+                  { name: 'voice', source: 'series' },
+                  { name: 'transition', source: 'series' },
+                ],
                 still: 'series/s/episodes/e/media/one.png',
                 audio: '.cognnitive/cache/video/tts/one.mp3',
                 layers: [
@@ -141,7 +144,10 @@ test('a scene card shows its still, audio, layers and inherited source line', ()
   assert.equal(scene.querySelector('.nn-review-still').getAttribute('src'), 'series/s/episodes/e/media/one.png')
   assert.equal(scene.querySelector('[data-nn-narration-audio]').getAttribute('src'), '.cognnitive/cache/video/tts/one.mp3')
   assert.match(scene.querySelector('[data-nn-layer="one-bg"]').textContent, /media/)
-  assert.match(scene.querySelector('[data-nn-source-line]').textContent, /voice <- series/)
+  const voiceSource = scene.querySelector('[data-nn-source="voice"]')
+  assert.ok(voiceSource, 'the inherited voice is a chip')
+  assert.match(voiceSource.textContent, /series/, 'the chip names where the value came from')
+  assert.equal(scene.querySelectorAll('[data-nn-source]').length, 2, 'one chip per inherited value')
 })
 
 test('approving a scene writes a review_gate verdict with the payload hash', () => {

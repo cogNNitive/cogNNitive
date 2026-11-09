@@ -130,15 +130,38 @@ function path_extname(p) {
   return m ? m[0].toLowerCase() : ''
 }
 
-/** The values a scene inherits, as `name <- source` lines (scene-level values are omitted). */
+/** The fields whose origin a reviewer actually reads: render and delivery settings. */
+const INHERIT_RELEVANT = new Set([
+  'voice',
+  'voice_model',
+  'voice_speed',
+  'voice_emotion',
+  'language',
+  'frame',
+  'fit',
+  'transition',
+  'background_audio',
+  'background_audio_volume',
+  'character',
+  'avatar_model',
+  'avatar_resolution',
+  'image_model',
+  'image_size',
+  'output_formats',
+  'captions',
+  'components',
+])
+
+/** The values a scene inherits, as `{name, source}` for the origin chips. */
 function inheritedSources(fields) {
   const out = []
   for (const [name, field] of Object.entries(fields || {})) {
+    if (!INHERIT_RELEVANT.has(name)) continue
     if (!field || field.value === null || field.value === undefined || field.value === '') continue
     if (field.source === 'scene' || field.source === 'video' || field.source === 'layer') continue
-    out.push(name + ' <- ' + field.source)
+    out.push({ name, source: String(field.source) })
   }
-  return out.sort()
+  return out.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 async function episodeFacts({ rootDir, series, episode }) {
