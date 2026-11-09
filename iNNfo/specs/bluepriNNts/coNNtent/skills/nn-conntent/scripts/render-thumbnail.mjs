@@ -39,9 +39,19 @@ import { resolve } from './lib/cascade.mjs';
 import { resolveLibrary } from './lib/library.mjs';
 import { loadFrame, frameCss } from './lib/frame-tokens.mjs';
 import { resolveWorkspace } from './lib/video-guard.mjs';
+import { resolveGsapPath } from './lib/stage-assets.mjs';
 import { HYPERFRAMES_PIN } from './scene-project.mjs';
 
 const SKILL_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+/** The pinned GSAP build for hermetic renders, or null when not installed. */
+function resolveGsapOrDefault() {
+  try {
+    return resolveGsapPath({});
+  } catch {
+    return null;
+  }
+}
 
 /** Raised when the pinned HyperFrames CLI cannot be run. Callers surface it as a loud error. */
 export class HyperframesCliError extends Error {
@@ -129,7 +139,7 @@ function escHtml(value) {
  *   baseFileName: string, frameTokens?: object | null }} options
  * @returns {{ indexHtml: string, files: Record<string, string> }}
  */
-export function buildThumbnailProject({ width = 2560, height = 1440, title, subtitle, badge, baseFileName, frameTokens = null }) {
+export function buildThumbnailProject({ width = 2560, height = 1440, title, subtitle, badge, baseFileName, frameTokens = null, gsapPath = 'vendor/gsap.min.js' }) {
   const titleFont = Math.round(height * 0.105);
   const subtitleFont = Math.round(height * 0.048);
   const badgeFont = Math.round(height * 0.028);
@@ -146,7 +156,7 @@ export function buildThumbnailProject({ width = 2560, height = 1440, title, subt
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script src="${escHtml(gsapPath)}"></script>
     <style>
       * { margin: 0; box-sizing: border-box; }
       html, body { width: ${width}px; height: ${height}px; overflow: hidden; }
@@ -283,6 +293,20 @@ export async function renderThumbnail({
     fs.writeFileSync(path.join(projectDir, 'index.html'), project.indexHtml, 'utf8');
 
     const cli = resolveCli({ cliPath: deps.cliPath, installedVersion: deps.installedVersion });
+
+    // Render is hermetic: stage the vendored GSAP build beside the HTML so the
+    // project renders offline (capability conntent-skill-dependency-bundling).
+    const vendorDir = path.join(projectDir, 'vendor');
+    fs.mkdirSync(vendorDir, { recursive: true });
+    const gsap = deps.resolveGsap
+      ? deps.resolveGsap()
+      : resolveGsapOrDefault();
+    if (gsap) {
+      fs.copyFileSync(gsap, path.join(vendorDir, 'gsap.min.js'));
+    } else {
+      // A missing GSAP is fatal here: the emitted project references vendor/gsap.min.js.
+      throw new Error('gsap is not installed: the thumbnail project references vendor/gsap.min.js and the render is hermetic; run skills-manager.js update coNNtent first.');
+    }
     const shotsDir = path.join(workDir, 'shots');
     fs.mkdirSync(shotsDir, { recursive: true });
     const run = deps.run || defaultRun;
