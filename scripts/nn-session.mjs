@@ -114,7 +114,6 @@ function buildCore(target) {
     execFileSync('npm', ['run', 'build'], { cwd: coreDir, stdio: ['ignore', 2, 2], shell: process.platform === 'win32' })
   } catch {
     console.error('WARNING: building @cognnitive/nn-core failed; build it there before using the worktree')
-    process.exitCode = 1
   }
 }
 
