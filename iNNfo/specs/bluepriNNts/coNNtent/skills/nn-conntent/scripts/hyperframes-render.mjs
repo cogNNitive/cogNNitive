@@ -125,7 +125,9 @@ function stageComponents(manifest, projectDir) {
   for (const slot of slots) {
     const entry = resolved[slot];
     const name = entry?.name || slot;
-    const src = entry?.path || path.join(skillDir, 'components', `${name}.html`);
+    // The resolved component path is the folder's index.html (folder-form
+    // components); the fallback is the packaged slot contract.
+    const src = entry?.path || path.join(skillDir, 'slots', `${name}.html`);
     if (!fs.existsSync(src)) continue;
     fs.copyFileSync(src, path.join(componentsDir, `${name}.html`));
   }

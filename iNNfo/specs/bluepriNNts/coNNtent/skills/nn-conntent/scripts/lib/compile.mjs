@@ -126,14 +126,17 @@ export function resolveComponents({ slots, bags, scriptDir, workspaceRoot, skill
       checkMissingAsset({ kind: 'component', name, source, searched });
       continue;
     }
-    const contractPath = path.join(skillDir, 'components', `${slot}.html`);
+    // A component is a folder (`library/components/<name>/index.html`); the library
+    // walk returns the folder for a folder kind, so point at its index.html.
+    const componentFile = fs.statSync(compPath).isDirectory() ? path.join(compPath, 'index.html') : compPath;
+    const contractPath = path.join(skillDir, 'slots', `${slot}.html`);
     const contractHtml = fs.existsSync(contractPath) ? fs.readFileSync(contractPath, 'utf8') : '';
-    const compHtml = fs.readFileSync(compPath, 'utf8');
-    assertSlotContract(slot, { path: compPath, html: compHtml, contractHtml });
+    const compHtml = fs.readFileSync(componentFile, 'utf8');
+    assertSlotContract(slot, { path: componentFile, html: compHtml, contractHtml });
     // A component whose root declares `data-no-timeline` is static: it never
     // registers a sub-composition timeline, so the emitted host must say so too
     // (otherwise HyperFrames waits its 45s readiness timeout on every render).
-    resolved[slot] = { name, path: compPath, noTimeline: /data-no-timeline/.test(compHtml) };
+    resolved[slot] = { name, path: componentFile, noTimeline: /data-no-timeline/.test(compHtml) };
   }
   return resolved;
 }

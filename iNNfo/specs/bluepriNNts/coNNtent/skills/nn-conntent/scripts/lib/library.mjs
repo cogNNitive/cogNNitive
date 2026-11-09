@@ -82,9 +82,9 @@ function scopeDir(level, root, fromDir) {
   return null; // package handled separately
 }
 
-/** Folder kinds: an "item" is a folder (`frames/<name>/`, `characters/<name>/`).
- * Components are still single `.html` files until the Component slice vendors folders. */
-const FOLDER_KINDS = new Set(['frames', 'characters']);
+/** Folder kinds: an "item" is a folder (`frames/<name>/`, `characters/<name>/`,
+ * `components/<name>/`). File kinds match a file (any extension of the kind). */
+const FOLDER_KINDS = new Set(['frames', 'characters', 'components']);
 
 /** Matches a file or folder by exact name or stem. Folder kinds (`frames`, `components`,
  * `characters`) match a subfolder; file kinds match a file (any extension of the kind). */
