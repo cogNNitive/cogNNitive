@@ -8876,7 +8876,7 @@ var REQUIRED_BY_PRIMITIVE = {
 
 // stub:canonical-registry-stub
 function findCanonicalBlueprint(key) {
-  return key === "changes" ? { name: "changes", version: "V_0-8-1", aliases: [], specContent: "" } : null;
+  return key === "changes" ? { name: "changes", version: "V_0-9-0", aliases: [], specContent: "" } : null;
 }
 
 // iNNfo/packages/nn-core/src/schema/nature.ts
