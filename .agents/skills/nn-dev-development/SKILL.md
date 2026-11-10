@@ -1,465 +1,137 @@
 ---
 name: nn-dev-development
-version: "1.5.0"
-description: Internal developer skill for cogNNitive maintainers. Enforces session isolation on a single-developer, multi-agent repo: each write-intended session works in its own git worktree of `dev` (created by `scripts/nn-session.mjs start`), leaving the primary checkout as a read-only integration/release point. Enforces commit-early, picks the process lane by change size, manages UI console feedback cycles from annotated images, and orchestrates the batched `dev -> main` merge through verify.js + CI + nn-dev-release. Trigger: any development session, concurrency check, branch decision, session start, session isolation, UI feedback loop.
+version: "2.0.0"
+description: Internal developer skill for cogNNitive maintainers. The whole development and release process for a single maintainer driving several AI agents - session worktrees cut from main, the light/heavy lane, PRs to main, and release by merging (CI tags and publishes). Trigger: any development session, session start, branch decision, worktree, release, version bump, UI feedback loop.
 ---
 
-# nn-dev-development Skill (Session Isolation & Integration Guard)
+# nn-dev-development
 
-## Overview
+One maintainer, several AI agents, no external users yet. The process exists to stop
+agents from overwriting each other and to keep `main` releasable. Anything that does
+not serve those two goals is friction: do not add it back.
 
-`nn-dev-development` is the maintainer-only session guard for `cogNNitive`. This repo is
-operated by **one developer** driving several AI agents (OpenCode, Claude Code, Antigravity)
-that may run concurrently. The recurring failure is mechanical — N processes writing one
-directory — and the fix is **isolation, not attribution** (attribution failed twice; it is
-undecidable from git alone).
-
-### The model
-
-- **One integration branch: `dev`.** All day-to-day work lands on `dev`; `main` only
-  absorbs batched merges.
-- **One worktree per session.** Every write-intended session works in its own
-  `git worktree` of `dev`, created by `scripts/nn-session.mjs start`.
-- **The primary checkout is read-only.** It exists for integration and release only:
-  merge `dev -> main`, `push`, `tag`, `fetch`, and gate runs. A `PreToolUse` hook
-  (`.claude/hooks/guard-primary-tree.mjs` + `.agents/hooks.json`) denies file edits and
-  `git add`/`commit`/`stash` there.
-- **Commit early.** Never hold a dirty tree; `wip:<session-id>: <reason>` checkpoints keep
-  work durable across a crash.
-- **Never guess git state.** Run `git status -sb` / `git fetch` right before reporting or
-  writing, never from values read earlier.
-
-This skill is maintainer-only, not distributed, and not registered in `manifest/source.yaml`.
-Scope: cogNNitive repository root only.
-
----
-
-## Greeting Protocol (MANDATORY)
-
-When this skill is loaded, the agent MUST print as its very first line:
+## Greeting (once per conversation)
 
 ```
 🔧 You're using skill: nn-dev-development (🌿)
 ```
 
-Session-scoped: once per conversation.
-
----
-
-## 1. Session Start
-
-### 1a. Isolate (before any write)
-
-From the primary checkout:
+## 1. Start a session
 
 ```powershell
-node scripts/nn-session.mjs start --id <short-kebab-id>
+node scripts/nn-session.mjs start --id <short-kebab-id>   # worktree ../cogNNitive-<id>, branch session/<id> from origin/main
+node scripts/nn-session.mjs status                        # primary health + every worktree
 ```
 
-This creates the worktree `../cogNNitive-<id>` on branch `session/<id>` cut from
-`origin/dev`. When the worktree's `package-lock.json` SHA-256 matches the primary
-checkout's, it links `node_modules` (root + `skills/nn-sources`) via a directory
-junction — about 2s instead of ~90s — and builds `@cognnitive/nn-core`. Pass
-`--full-install` to force a clean `npm ci` when dependencies must be rebuilt, or
-`--no-install` only for docs-only work (a push touching only `openspec/` also skips the
-pre-push typecheck, docs build and freshness guards, so it needs no dependencies at all;
-any other path runs the full gate). Do all writes, commits and pushes from that
-worktree. If the tool environment refuses a worktree as `cwd`, keep the primary as `cwd`
-and use absolute paths or `git -C <worktree>`.
-
-> ⚠️ **The linked `node_modules` is shared, and `.bin` may be empty.** The workspace link
-> `node_modules/@cognnitive/nn-core` inside the junction points at whichever worktree built
-> `nn-core` last; tests that import `@cognnitive/nn-core` then resolve another checkout.
-> Repoint it to the active worktree before testing:
-> ```powershell
-> cmd /c "rmdir node_modules\@cognnitive\nn-core"
-> cmd /c "mklink /J node_modules\@cognnitive\nn-core <abs path to this worktree>\iNNfo\packages\nn-core"
-> node node_modules/typescript/bin/tsc   # run in iNNfo/packages/nn-core
-> ```
-> With an empty `node_modules/.bin`, `nn-session`'s build step warns and leaves the worktree
-> without `dist`; run tools through their paths (`node node_modules/typescript/bin/tsc`,
-> `node node_modules/tsup/dist/cli-default.js`) and push with `--no-verify` (the pre-push
-> guards false-positive through the junction). CI is authoritative.
-
-**Inner-loop verification.** After an edit, run the affected suite directly
-(`node --test <file>`) or a targeted filter (`node scripts/verify.js --only=<substring>`);
-for a broader but still fast pass run `npm run verify:fast` (`verify.js --fast`, which
-skips the SLOW_SUITES roster). The full unfiltered `node scripts/verify.js` is the
-`dev -> main` batch gate (§4d), not the inner loop. Checkpoints on `session/*` pushed as
-`wip:<id>: <reason>` take the pre-push fast-path and skip the heavy build/guard pipeline
-(§2).
-
-### 1b. Primary-tree health check
-
-```powershell
-node scripts/nn-session.mjs status
-```
-
-One block: branch, dirtiness, `origin/dev` sync, pending batch, worktrees, stash. It fetches
-best-effort and always exits 0. If the primary is not on `dev`, is dirty, or is behind,
-**say so first** — do not write into it. A clean-but-behind primary may be fast-forwarded
-(`git switch dev` then `git merge --ff-only origin/dev`). A dirty one is someone's residue:
-save the diff as a patch outside the repo, revert only the named paths, and tell the
-maintainer.
-
-### 1c. Concurrency check (read-only)
-
-`status` lists every session worktree. Before touching shared files (skills, scripts,
-hooks, workflows), check that no other worktree has them modified:
-
-```powershell
-git -C <worktree> status --porcelain -- <paths>
-git -C <worktree> diff --name-only origin/dev...HEAD -- <paths>
-```
-
-A worktree you did not create may be live; do not stop or revert it (§3).
-
----
-
-## 2. Branch Discipline
-
-- **Work on `session/<id>`** inside the session worktree. `dev` is the integration
-  branch, never a place to edit directly. No other per-feature branches.
-- **Commit early and often.** `wip:<session-id>: <reason>` commits are session-branch
-  checkpoints, **not integration content**: squash or drop them before landing on `dev`
-  (squash-merge the PR, or `git reset --soft` to the last real commit and re-commit).
-  A `wip:` commit must never reach `dev`.
-- **A commit that exists only locally is not durable.** Push the session branch
-  (`git push origin session/<id>`) as soon as it holds anything you would mind losing.
-  If the pre-push typecheck crashes for environmental reasons (out-of-memory, exit 134 /
-  `0x80000003`), retry once, then `--no-verify` is acceptable **for session-branch
-  checkpoints only** — CI typechecks at integration.
-- **Landing on `dev`:** merge `origin/dev` into the session branch if it moved, push, then
-  merge via PR (normal path) or a server-side fast-forward `git push origin session/<id>:dev`
-  for a single clean commit. When landing via `gh pr merge`, prefer **`--merge` over
-  `--squash`**: a merge commit keeps the branch as an ancestor of `dev`, so `batch-status`
-  stays `READY` and the §4c sweep can `stop` it. A squash-merged branch is never an ancestor
-  — `stop` refuses it and the leftover keeps `batch-status` at `NOT READY` (2026-10-16).
-  Cleanup of the worktree/branch is deferred to the §4c sweep. "Land my changes" means
-  landing **this session's own branch** — never "commit everything that is dirty". Another
-  agent's uncommitted or unpushed work is not yours to commit, push or land.
-- `git add -A` / `git add .` / `git commit -a` are **permitted** (the worktree only holds
-  your own work). `reset --hard`, `clean`, `stash`, `branch -D`, and `checkout/restore .`
-  stay **blocked** by `.claude/hooks/block-dangerous-git.mjs`.
-- To revert one file to a ref: `git checkout <ref> -- <path>` is **also blocked** by the
-  safety-net hook (rule `git.checkout-ref-path`, even for a single explicit path — contrary
-  to `AGENTS.md`'s suggested substitute). Use `git show <ref>:<path> > <path>` (or the
-  `node -e` read-through in `nn-dev-check-integrity` §Group 3c).
-- **Byte-exact redirects:** PowerShell `>` writes UTF-16 and corrupts a `.patch`. For a
-  faithful backup, redirect through `cmd`: `cmd /c "git diff HEAD -- <path> > out.patch"`,
-  then confirm with `git apply --check --reverse out.patch` (exit 0 = faithful).
-
-### 2a. Maintainer requests a dedicated branch
-
-If the maintainer explicitly requests a dedicated branch, honor it with the shape
-`<tipo>/<kebab-case>` and treat it as the session's integration target.
-
----
-
-## 2b. Change size decides the process lane
-
-Match the ceremony to the blast radius — never run the heavy lane "just in case".
-
-**Heavy lane triggers — only these four.** A change is heavy when it:
-
-1. changes a public contract — MCP tool surface, exported API, skill frontmatter or
-   trigger, or a published spec URL;
-2. bumps a release version;
-3. migrates stored data or an on-disk format;
-4. touches security — permissions, secrets, the deny-list, or remote execution.
-
-Everything else is the light lane. "Cross-cutting" is **not** a trigger on its own: a
-change that touches core + mcp + docs but alters no contract stays light.
-
-- **Light lane (default).** Work in the session worktree, commit, push, PR, and let CI
-  verify. **No** OpenSpec change, **no** `nn-dev-check-integrity`. Covers most bug fixes
-  and internal refactors.
-- **Heavy lane.** One OpenSpec delta (§2b.1), the work tracked in the ODD feature
-  document, then the batched merge in §4.
-
-Rule of thumb: if CI can catch a mistake before it reaches `main`, the light lane is enough.
-
-**Open the PR freely; ask before merging it.** When a work unit is done and verified, open
-the PR to `dev` without asking — that is the normal end of a unit. Merging that PR into
-`dev` is the maintainer's call: ask at the moment, per PR. Pushing the session branch is
-always allowed. The `dev -> main` batch and its tags stay gated by §4 and `nn-dev-release`;
-this rule does not touch them.
-
-### 2b.1 OpenSpec only at the contract boundary
-
-OpenSpec is used twice per heavy change, never as per-step ceremony:
-
-1. **Before implementing** — write ONE delta spec at
-   `openspec/changes/<slug>/specs/<capability>/spec.md` with only the requirements that
-   changed (`## ADDED|MODIFIED|REMOVED Requirements`). Keep each normative sentence on one
-   physical line: the validator reads only the line after `### Requirement:`.
-2. **At archive** — the delta moves with its change into `openspec/changes/archive/`. There
-   is no living-spec merge: `openspec/specs/` was retired because nothing consumed it (see
-   `AGENTS.md`, "No archive is a contract").
-
-Do **not** write `proposal.md`, `design.md` or `tasks.md` for a heavy change. ODD already
-produces `odd/tasks/<feature>.md` with objective, scope, checklist, acceptance criteria and
-evidence; duplicating it in a second format is pure friction. `check:openspec` only reads
-delta spec files under `openspec/changes/*/specs/`, so leaving those three out breaks no
-gate.
-
-A delta states what changes; once archived it is history. Anything that must stay in force
-belongs in a test or in a published `iNNfo/specs/` spec.
-
-### 2b.2 Inner loop vs. batch gate
-
-- **Inner loop:** `node --test <file>` for the suite you touched, or `npm run verify:fast`
-  (every guard and drift check, skipping `SLOW_SUITES`).
-- **Batch gate:** the full `node scripts/verify.js` belongs to the `dev -> main` step in
-  §4d, not to the iteration loop.
-
-**Two workflows, never blended.** Agent behavior is owned by Gentle-AI, whose v4 line runs
-ODD (Organic Driven Development) and retired the `sdd-*` skills, the `/sdd-*` commands and
-its OpenSpec integration. The spec process belongs to this repository: `openspec/` plus
-`npm run check:openspec`, with no dependency on Gentle-AI. So "full OpenSpec change cycle"
-means the repo-owned flow under `openspec/changes/` — never a `/sdd-*` command, which no
-longer exists. When older notes or an agent's routing guidance says "SDD cycle", read it as
-the repository's OpenSpec cycle, not as a Gentle-AI workflow.
-
-### 2c. Keep the backlog shrinking
-
-Do not register a new OpenSpec change while the active backlog is large. Count it live
-instead of trusting a number written here:
-
-```powershell
-(Get-ChildItem openspec/changes -Directory | Where-Object Name -ne archive).Count
-```
-
-Prefer draining over proposing: fix in place, or fold a small finding into the change
-already open for that area.
-
----
-
-## 2d. UI Console Feedback Protocol (Annotated Images & Fixture Export)
-
-When UI improvements or adjustments to the iNNfo console (`iNNfo/specs/bluepriNNts/console/...`)
-are driven by annotated screenshots or visual feedback from the maintainer, adhere to the following
-strict cycle:
-
-1. **Analyze & Summarize**: Inspect every attached image, deduce all visual/structural changes,
-   and present a clear summary of the changes to the user.
-2. **Confirm Before Coding**: Ask for explicit confirmation before touching any code. Never
-   assume or start implementing speculative UI changes.
-3. **Session Worktree Isolation**: All edits must happen inside a dedicated `nn-session` worktree.
-4. **Rebuild Bundle & Regenerate Fixture**:
-   - Whenever console styles (`nn-ui.css`), components (`ui-kit.js`), runtime (`nn-runtime.js`),
-     review tools (`review.js`), or shell (`artifact_shell.html`) are updated, compile the bundle:
-     ```powershell
-     node scripts/build-console-bundle.mjs
-     ```
-   - Regenerate the testlab domain console fixture:
-     ```powershell
-     node scripts/export-console.mjs test/fixtures/testlab --domain --no-open
-     ```
-   - `export-console.mjs` automatically updates inline script sha256 hashes via `allowInlineScripts`
-     in the `<meta http-equiv="Content-Security-Policy">` tag. Never edit generated inline script
-     hashes by hand.
-5. **Fixture Persistence in Git**:
-   - The generated fixture (`test/fixtures/testlab/domaiNN_console.html`) MUST be committed in the
-     session branch together with the source modifications. Never leave the fixture uncommitted or
-     stranded in an unmerged/deleted worktree.
-6. **Provide Working Link & Gate**:
-   - Verify that the regenerated file contains the expected changes.
-   - Provide a clickable `file:///...` link to the active worktree's fixture (or to the primary checkout
-     only after landing on `dev`).
-   - STOP and wait for the maintainer's confirmation before landing the changes or closing the session.
-
----
-
-## 3. Worktree Lifecycle
-
-- `node scripts/nn-session.mjs stop --id <session-id>` removes the worktree and its
-  `session/<id>` branch **only if** the branch is merged into `dev` (local or `origin/dev`);
-  otherwise it refuses and lists the unique commits. It also refuses a dirty worktree:
-  save what matters, then revert the rest. A missing, empty, or locked leftover dir is
-  tolerated and reported, never a crash.
-- `node scripts/nn-session.mjs list` shows each session worktree and its branch.
-- `node scripts/nn-session.mjs batch-status` is the read-only batch precheck (§4-pre).
-- A session does **not** have to `stop` its own worktree when it ends: cleanup is batched
-  into the offered sweep at batch/release time (§4c). A clean **and** merged worktree is
-  always safe to `stop` earlier if the maintainer asks. Never remove one whose branch has
-  unique commits, and never delete other branches automatically (ghost branches are
-  candidates for the maintainer).
-- **A session worktree you did not create may be live.** Ids get reused and another agent
-  can start editing minutes after you last looked. Before reverting or stopping one,
-  re-run `git status --porcelain` on it, and revert **only the named paths**
-  (`git diff -- <path> > patch`), never a bare whole-tree `git diff`/`git apply --reverse`
-  (2026-10-06: a whole-tree revert silently undid another session's uncommitted edits).
-
----
-
-## 4. Batched Merge to `main`
-
-### 4-pre. Batch precheck (MANDATORY, read-only)
-
-Before any step below, run:
-
-```powershell
-node scripts/nn-session.mjs batch-status          # add --json for machine output
-```
-
-It fetches best-effort and reports, without writing anything: the `origin/main...origin/dev`
-ahead/behind and the commits that would land; open PRs; every non-primary worktree (dirty
-files, commits not in `origin/dev`, whether its branch exists on origin — `UNBACKED` means
-local commits with no remote branch); CI for both tips and any run in progress on another
-branch (an active agent); and, per release key, the latest remote tag, the files changed
-since it, and "bump needed" when files changed but the authored version equals the tag.
-
-The last line is the verdict:
-
-- `READY` — proceed with 4a onward.
-- `NOT READY` or `UNKNOWN` (e.g. `gh` unavailable) — **STOP.** Report the listed reasons to
-  the maintainer. Do not wait, retry in a loop, or work around it.
-
-Hard non-goals — the batch **never**:
-
-- commits or pushes another agent's uncommitted or unbacked work;
-- touches a worktree it did not create (read-only inspection only, §1c/§3);
-- cuts a tag without the maintainer's explicit confirmation in chat. It may **prepare and
-  propose** the tags and their order from the per-key output, following `nn-dev-release`.
-
-### 4a. Did origin/main advance?
-
-```powershell
-git fetch origin
-git log --oneline -3 origin/main
-```
-
-Compare against the session baseline. If `origin/main` advanced, merge it into `dev` first.
-
-### 4b. What is on `dev` but not `main`?
-
-Always compare remote tracking refs, never local `main`:
-
-```powershell
-git log --oneline origin/main..origin/dev
-git diff --stat origin/main..origin/dev
-```
-
-### 4c. Cleanup sweep (offered, never automatic)
-
-Session worktrees and branches are **not** removed one conversation at a time; they are
-swept here, at batch/release time, once the maintainer says yes. Build the candidate list
-read-only and present it:
-
-- **Worktree + `session/<id>` branch:** candidate only if the worktree is clean (or an
-  empty leftover dir) **and** its work is in `origin/dev` — branch is an ancestor of
-  `origin/dev`, or its PR is merged (`gh pr list --state merged --head session/<id>`).
-  A squash-merged branch is never an ancestor, so `stop` will refuse it: report it as
-  "merged via PR, `stop` will refuse" and let the maintainer decide.
-- **Other branches** whose tip is already in `main`
-  (`git merge-base --is-ancestor <branch> origin/main`): flag as safe-to-delete candidates.
-- **Never a candidate:** a dirty worktree, unique or `UNBACKED` commits, or any worktree
-  `batch-status` shows as active. Those are reported, never touched.
-
-After an explicit yes in chat, run `node scripts/nn-session.mjs stop --id <id>` per
-candidate. Remote branches (`git push --delete`) are blocked for agents: list them for the
-maintainer. Until the sweep, merged worktrees may pile up — that is accepted; leftover
-squash-merged ones can make `batch-status` report `NOT READY`, so sweep before the precheck
-when it does.
-
-### 4d. Batched merge orchestration
-
-When the maintainer says the accumulated `dev` work is ready:
-
-1. **Gate = `node scripts/verify.js` + CI on `dev`.** `verify.js` is the deterministic,
-   offline gate (every step runs, it never stops on first failure). A green CI run on the
-   `dev` tip is required (`gh run list --branch dev --limit 1`). `check-integrity.js` is
-   **not** part of the merge gate: it hangs in this environment (observed 2026-10-13, no
-   output after the coNNtent suite) and `verify.js` + CI cover the same batch. Run it
-   only on request, with a bounded timeout, and file a hang as its own issue — never as a
-   batch blocker. Also run `npm run check:versions`.
-   - **`verify.js` env drift is not a batch failure.** A fresh/primary checkout can fail
-     on missing setup, not code: run `npm ci --prefix skills/nn-sources` (its deps are
-     separate) and build the mcp artifact (`npm --workspace=@cognnitive/nn-core run
-     build`, then `npm --workspace=@cognnitive/nn-mcp run build` — **core first**, the
-     bundle will not resolve `dist/index.js` otherwise). A **stale root `node_modules`**
-     (e.g. a dep version that differs from the lockfile) also fails the license check and
-     silently inflates locally built tracked bundles. `CI` is authoritative: confirm the
-     failing step is green on CI before chasing it, and **restore any tracked build
-     artifact you dirtied** (`git show HEAD:<path> > <path>`) — never commit a local build
-     artifact (2026-10-16).
-2. **Server-side fast-forward (`dev -> main`)** — never checks out `main`:
-   ```powershell
-   git push origin dev
-   git push origin dev:main
-   git rev-list --left-right --count origin/main...dev   # expect 0 0
-   ```
-   On rejection: `git fetch origin && git merge origin/main` on `dev`. If tagging, tag
-   immediately after this push, before any further commit on `dev`.
-3. **Post-push CI gate on `main` — blocking**: poll `gh run list --branch main` until the
-   run for the pushed sha completes; require `verify`, `quality`, `spec-integrity`, `site`,
-   `publish-web` all `success`. Distinguish red-caused-by-batch (fix-forward) from
-   pre-existing red (maintainer-approved `MERGE-GATE EXCEPTION`).
-   - **Confirm pre-existing red before attributing it.** Run the failing test/guard against
-     the batch base (`origin/main`) in a checkout with real deps, or compare against a CI
-     run of the base. Only a failure that reproduces on the base is pre-existing
-     (2026-10-04 `console-golden-parity` cost hours of guessing; it was a pre-existing
-     resolver bug, issue #122).
-   - **Do not fix pre-existing red as a rider.** It gets its own issue and verified
-     change. Record the exception and proceed, or stop and ask the maintainer.
-   - **A partial fix that does not turn CI green is worse than none.** Revert it and file
-     the finding.
-   - **Release freeze:** once a release tag is cut, no session may push `dev`/`main`
-     until that tag's workflow concludes. See `nn-dev-release` §4/§4b.
-4. **Release tagging** (only for a version bump): run `nn-dev-release`
-   (`<key>-v<semver>`: `skills-v*`, `blueprints-v*`, `nn-mcp-v*`, `nn-console-v*`);
-   a red `main` blocks tagging.
-   - **A release prep is the mechanical bump only.** `nn-mcp`/core + `nn-console`
-     `package.json` versions + regenerated derived artifacts are enough — skill/blueprint
-     version bumps are **not** required (`verify.js` "Check Version Parity", "Console
-     Bundle Fresh", "Console Shells Fresh" all pass without them, 2026-10-16).
-   - **The tag-push event can be dropped** (no `release.yml` run appears though the workflow
-     is active and the tag is on `origin`). Recover with the dispatch fallback in
-     `nn-dev-release` §2 Step 3b — do not re-tag.
-   - **Dispatch release runs one tag at a time.** Several concurrent `workflow_dispatch`
-     runs of `release.yml` get the middle ones **cancelled** even with
-     `cancel-in-progress: false` (2026-10-16): dispatch, `gh run watch --exit-status`, then
-     the next.
-5. **Persist the milestone** in Engram for sibling sessions.
-
-Handoff block:
-
-```markdown
-🌿 Session guard:
-- Branch: dev · based on origin/main @ <sha> · clean/dirty
-- Session: <session-id> · worktree <path>
-- origin/main advanced during session: <yes|no>
-- Pending batch (origin/main..dev): <commits> · <stat>
-- Next: verify.js + green dev CI, then nn-dev-release to merge dev → main
-```
-
----
-
-## 5. Snapshot & Rollback
-
-- **Formal release** (`dev` clean + gates green): merge `dev → main`, create annotated
-  tag `<key>-v<semver>`, push the tag to trigger `release.yml`.
-- **Checkpoint tag** (mid-flight): `git tag -a checkpoint/<topic>-YYYYMMDD -m ...` and push.
-
-```powershell
-git diff -- <explicit/path> > ../backup.patch; git apply --reverse ../backup.patch   # revert one file, with backup
-git worktree add --detach temp/rollback <tag>                                        # inspect a tag without touching the tree
-git update-ref refs/heads/dev '<tag>^{commit}' <old-sha>                             # atomic compare-and-swap
-git push origin dev --force-with-lease                                               # only with maintainer consent
-```
-
----
-
-## Core Rules
-
-1. **Isolate first** — `nn-session.mjs start` before any write; never write to the primary.
-2. **Never guess git state** — re-read `git status -sb` / `HEAD` before reporting or writing.
-3. **Single branch** — day-to-day work lands on `dev`; `main` only absorbs batched merges.
-4. **Commit early** — prefer a `wip:<session-id>` commit over a dirty tree; never land it on `dev`.
-5. **Never run destructive git** — `reset --hard`, `clean`, `stash`, `branch -D`,
-   `checkout/restore .` are blocked and must not be prescribed.
-6. **Never delete branches automatically** — ghost branches are candidates.
-7. **Read-only inspection of other sessions** — never touch a worktree you did not create.
-8. **Monorepo scope** — cogNNitive repository root only.
-9. **Disposable scratch lives in `temp/`** (gitignored), deleted after the run.
+- **The primary checkout is read-only.** A `PreToolUse` hook denies edits and
+  `git add/commit/stash` there. Work in the worktree. When the tool cwd resets to the
+  primary, use `git -C <literal absolute worktree path>`: the hook reads the `-C`
+  argument as text, so a shell variable (`git -C "$W"`) is refused.
+- **Another worktree may be live.** Look at it read-only; never revert, commit or stop a
+  worktree you did not create.
+- **`node_modules` is a junction to the primary's.** The workspace link
+  `node_modules/@cognnitive/nn-core` points at whichever worktree built core last;
+  repoint it before trusting nn-mcp tests:
+  `cmd /c "rmdir node_modules\@cognnitive\nn-core"` then
+  `cmd /c "mklink /J node_modules\@cognnitive\nn-core <worktree>\iNNfo\packages\nn-core"`.
+  Never run `npm ci` from a worktree: it corrupts the primary's `node_modules`.
+- **Commit early, push early.** `wip:<id>: <reason>` checkpoints are fine on the session
+  branch; squash them before landing. Pushing `session/*` skips the heavy local gate:
+  the PR's CI is the gate.
+
+## 2. Pick the lane
+
+**Heavy only for these four.** A change is heavy when it:
+
+1. changes a public contract: MCP tool surface, exported API, skill frontmatter or
+   trigger, a published spec URL, or a release-tag shape;
+2. migrates stored data or an on-disk format;
+3. touches security: permissions, secrets, the deny-list, remote execution;
+4. bumps a **major** version.
+
+Everything else is **light**: work, commit, PR, let CI verify. Touching several packages
+does not make a change heavy.
+
+**Heavy adds exactly one thing:** a delta spec at
+`openspec/changes/<slug>/specs/<capability>/spec.md` with only the changed requirements
+(`## ADDED|MODIFIED|REMOVED Requirements`, each normative sentence on one physical line,
+checked by `npm run check:openspec`). No `proposal.md`, `design.md`, `tasks.md`,
+`apply-progress.md`, `verifications.md` or handoff files. When done, the change folder
+moves to `openspec/changes/archive/`; `openspec/specs/` no longer exists.
+
+**Size cap.** A change that needs more than ~5 capability deltas, or more than one
+session to finish, is several changes. Split it before writing specs, and land each
+part on `main` on its own.
+
+## 3. Solo-maintainer profile for the agent workflow
+
+Gentle-AI's ODD runs the agent; this repository narrows it:
+
+- **One tracker per change, if any.** A small change has none (the diff is enough). A
+  change that genuinely spans sessions keeps one `odd/tasks/<feature>.md`. Progress is
+  recorded there and nowhere else: no parallel copy in `openspec/`, no handoff files.
+- **No independent verifier, no review receipts.** RDD is off globally
+  (`gentle-ai review mode status`). Verification is the focused test plus CI.
+- **Inner loop:** `node --test <file>` for what you touched, or `npm run verify:fast`.
+  The full `node scripts/verify.js` is CI's job.
+- **Derived artifacts regenerate themselves.** The pre-commit hook reruns the fast
+  generators when code or samples are staged and stages what changed. If a push or CI
+  still reports a stale artifact, run `npm run regen` and commit.
+
+## 4. Land on `main`
+
+1. Push the session branch and open a PR to `main` without asking. That is the normal
+   end of a unit.
+2. **Merging the PR is the maintainer's call.** Ask, per PR. Merge with `--merge`, not
+   `--squash`: a merge commit keeps the branch an ancestor of `main`, so `nn-session
+   stop`/`sweep` can remove it.
+3. A red `main` is fixed forward. A failure that also reproduces on the previous `main`
+   is pre-existing: file an issue, do not fix it as a rider.
+
+## 5. Release = merge to `main`
+
+After every green push to `main`, CI's `auto-tag` job
+(`scripts/release/plan-auto-tags.js`) tags each release key that changed and runs
+`release.yml` once per tag, `blueprints` first:
+
+| Key | Ships when | Version |
+|---|---|---|
+| `blueprints` (`iNNfo/specs`) | a commit touched it since its last tag | from commits: breaking → major, `feat` → minor, else patch |
+| `skills` (`skills/`) | same | same |
+| `nn-mcp` | `iNNfo/packages/nn-mcp/package.json` has an untagged version | that version |
+| `nn-console` | `iNNfo/specs/bluepriNNts/console/package.json` has an untagged version | that version |
+
+Consumers resolve these tag names (`nn-mcp` resolver, skills-manager, catalog), so the
+tag shapes are a contract. Nobody tags by hand.
+
+- **To release nn-mcp or the console:** bump its `package.json` version in the PR, then
+  run `npm run sync:versions`, `npm install --package-lock-only` and `npm run regen`.
+- **A failed release run:** fix forward on `main`, or re-run one tag with
+  `gh workflow run release.yml --ref main -f tag=<tag> -f publish=true` (one at a time;
+  concurrent dispatches cancel each other). Never delete or move a published tag.
+- `vars.RELEASE_ENABLED` must be `true`, or every release is a dry run.
+
+## 6. UI console feedback from screenshots
+
+1. Summarize every change you read from the images and **wait for confirmation**.
+2. Edit in the worktree, then `node scripts/build-console-bundle.mjs` and
+   `node scripts/export-console.mjs test/fixtures/testlab --domain --no-open`
+   (inline CSP hashes are regenerated, never hand-edited).
+3. Commit the regenerated `test/fixtures/testlab/domaiNN_console.html` with the source,
+   give the `file:///` link to the worktree copy, and wait for approval before the PR.
+
+## 7. Clean up
+
+`node scripts/nn-session.mjs sweep` removes every session worktree and local branch
+already merged into `main`. `stop --id <id>` removes one; it refuses unmerged or dirty
+worktrees. Remote branch deletion is the maintainer's.
+
+## Git rules
+
+- Blocked by `.claude/hooks/block-dangerous-git.mjs`: `reset --hard`, `clean`, `stash`,
+  `branch -D`, `checkout`/`restore .`, and `checkout <ref> -- <path>`. To restore one
+  file: `git show <ref>:<path> > <path>`. To drop a commit and keep the tree:
+  `git reset --soft HEAD~1`.
+- PowerShell `>` writes UTF-16. For a byte-exact patch: `cmd /c "git diff -- <path> > out.patch"`.
+- Never guess git state: run `git status -sb` / `git fetch` right before reporting.
+- Disposable scratch goes in `temp/` (gitignored) and is deleted after use.

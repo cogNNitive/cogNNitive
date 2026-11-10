@@ -40,7 +40,7 @@ evaluates LLM context efficiency, and appends findings to `dev/` docs.
 - Propose: slice access (`query_units` capped), differential validate (`--baseline --only-changed`), MODEL_DATA contract, transcript match-then-review, intent router (coach/surgical/verify/match), spec index cache.
 - Record per-session metrics when available: calls per intent, tokens per intent, mean surgical context size.
 
-### 5. Write back (needs `nn-dev-development` consent gate on `dev`)
+### 5. Write back (needs an `nn-dev-development` session worktree and a PR to `main`)
 - Update `dev/auditoria-uso-real.md`: new findings appended with #ids; move fixed items to "ya arreglado"; add new patch→cohesive-refactor proposals.
 - Update `dev/eficiencia-llm.md`: new waste patterns + measurements; update sweep-vs-deep recommendation.
 - Never write outside `dev/` + this skill without explicit user order.

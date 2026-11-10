@@ -119,7 +119,6 @@ const DISTRIBUTION_RETIRED_PATTERNS = [
 const DISTRIBUTION_ALLOWLIST = [
   'openspec/', // SDD specs, changes, archive and backlog are the permanent record
   'docs/documentation/content/vocabulary.md', // retired-identifiers table names every old string by design
-  '.agents/skills/nn-dev-check-integrity/references/catalog.md', // memory-file names (expedientes) keep the innfo-core-* slug
   '.agents/skills/nn-dev-issue-tracking/references/imported-issues.md', // historical issue titles quoted verbatim
   'test/simulation/', // executable simulation of the shipped contract, never distributed
   'test/_samples_nn/', // sample workspace deferred by scope
