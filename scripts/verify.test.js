@@ -69,8 +69,6 @@ const READ_ONLY_IDS = [
   'template-immutability',
   'console-shells-fresh',
   'text-encoding',
-  'brand-purge',
-  'legacy-write',
   'nn-name-regex',
   'nn-name-invariant',
 ];

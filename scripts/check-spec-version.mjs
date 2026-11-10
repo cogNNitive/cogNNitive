@@ -287,8 +287,6 @@ function collectRepoFiles(dir, includeArchives) {
       } else {
         if (full.endsWith('.bundle.js')) continue
         if (rel === 'scripts/migrate-spec-urls.mjs') continue
-        // The write guard records the historical codemod string in its allowlist.
-        if (rel === 'scripts/lib/legacy-write-guard.js') continue
         // Frozen write-once predecessors (permanent history, never migrated).
         if (rel === 'iNNfo/specs/defiNNe_V_0-1-0_NN.md') continue
         if (rel === 'iNNfo/specs/defiNNition_V_0-1-0_NN.md') continue

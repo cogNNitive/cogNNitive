@@ -640,8 +640,6 @@ function buildSteps(repoRoot, options = {}) {
   steps.push(ro('template-immutability', 'Template Immutability Guard', 'scripts/guard-template-immutability.js'));
   steps.push(roFresh('console-shells-fresh'));
   steps.push(ro('text-encoding', 'Guard Tracked Text Encoding', 'scripts/guard-text-encoding.js'));
-  steps.push(ro('brand-purge', 'Retired Product Name Guard', 'scripts/lib/brand-purge-guard.js'));
-  steps.push(ro('legacy-write', 'Legacy Write Guard', 'scripts/lib/legacy-write-guard.js'));
   steps.push(ro('nn-name-regex', 'NN Name Regex Guard', 'scripts/lib/nn-name-regex-guard.js'));
   steps.push(ro('nn-name-invariant', 'NN Name Invariant Guard', 'scripts/lib/nn-name-invariant-guard.js'));
 
