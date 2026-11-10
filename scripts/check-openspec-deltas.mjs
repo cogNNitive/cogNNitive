@@ -22,6 +22,9 @@
  * wrapped, this guard names the line it landed on instead of repeating
  * openspec's terse message.
  *
+ * Repository rule on top of the mirror: an active change holds only `specs/` (and the
+ * CLI's `.openspec.yaml`); plan and progress live in odd/tasks/<feature>.md.
+ *
  * Deliberately NOT checked here:
  *   - "## Why" / "## What Changes": `validate` never reads proposal.md
  *     (ChangeParser.parseChangeWithDeltas is only used by `openspec change
@@ -213,6 +216,34 @@ export function findDeltaSpecFiles(changesRoot = CHANGES_ROOT) {
   return files.sort();
 }
 
+/** What an active change may hold: its delta specs and the CLI's metadata file. */
+const ALLOWED_CHANGE_ENTRIES = new Set(['specs', '.openspec.yaml']);
+
+/**
+ * An active change holds only its delta specs. Planning and progress live in one
+ * place, `odd/tasks/<feature>.md` (nn-dev-development §2): a second copy here
+ * (proposal.md, tasks.md, apply-progress.md, handoffs) drifts from it, as the
+ * coNNtent redesign showed when 142 stale checkboxes outlived the finished work.
+ * @param {string} changesRoot
+ * @returns {Array<{ file: string, line: number, message: string }>}
+ */
+export function findExtraChangeEntries(changesRoot) {
+  if (!fs.existsSync(changesRoot)) return [];
+  const issues = [];
+  for (const change of fs.readdirSync(changesRoot, { withFileTypes: true })) {
+    if (!change.isDirectory() || change.name === ARCHIVE_DIR) continue;
+    for (const entry of fs.readdirSync(path.join(changesRoot, change.name))) {
+      if (ALLOWED_CHANGE_ENTRIES.has(entry)) continue;
+      issues.push({
+        file: `${change.name}/${entry}`,
+        line: 0,
+        message: 'an active change holds only its delta specs under specs/; track plan and progress in odd/tasks/<feature>.md',
+      });
+    }
+  }
+  return issues.sort((a, b) => a.file.localeCompare(b.file));
+}
+
 /**
  * @param {{ changesRoot?: string }} [options]
  * @returns {{ ok: boolean, scanned: number, issues: Array<{ file: string, line: number, message: string }> }}
@@ -222,7 +253,7 @@ export function checkOpenSpecDeltas(options = {}) {
   // Diagnostics stay repo-relative in the real run and readable in fixtures.
   const projectRoot = path.resolve(changesRoot, '..', '..');
   const files = findDeltaSpecFiles(changesRoot);
-  const issues = [];
+  const issues = findExtraChangeEntries(changesRoot);
   for (const file of files) {
     const relPath = path.relative(projectRoot, file).split(path.sep).join('/');
     issues.push(...checkDeltaSpecContent(fs.readFileSync(file, 'utf8'), relPath));

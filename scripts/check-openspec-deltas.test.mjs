@@ -253,6 +253,51 @@ function main() {
     assert.match(issues[0].message, /No delta sections found/);
   });
 
+  const validDelta = [
+    '## ADDED Requirements',
+    '',
+    '### Requirement: Cascade deletion',
+    'The engine SHALL delete dependent rows.',
+    '',
+    '#### Scenario: Parent removed',
+    '- WHEN a parent row is deleted',
+    '',
+  ].join('\n');
+
+  test('an active change holding planning or progress files fails, one issue per entry', () => {
+    const root = fixtureRoot();
+    writeDelta(root, 'my-change', 'cap', validDelta);
+    for (const name of ['proposal.md', 'tasks.md', 'apply-progress.md']) {
+      fs.writeFileSync(path.join(root, 'my-change', name), 'x', 'utf8');
+    }
+    fs.mkdirSync(path.join(root, 'my-change', 'handoffs'));
+    const result = checkOpenSpecDeltas({ changesRoot: root });
+    assert.strictEqual(result.ok, false);
+    const extra = result.issues.filter((i) => /only its delta specs/.test(i.message)).map((i) => i.file).sort();
+    assert.deepStrictEqual(extra, [
+      'my-change/apply-progress.md',
+      'my-change/handoffs',
+      'my-change/proposal.md',
+      'my-change/tasks.md',
+    ]);
+  });
+
+  test('an active change with only specs/ and the CLI metadata file passes', () => {
+    const root = fixtureRoot();
+    writeDelta(root, 'my-change', 'cap', validDelta);
+    fs.writeFileSync(path.join(root, 'my-change', '.openspec.yaml'), 'schema: spec-driven\n', 'utf8');
+    const result = checkOpenSpecDeltas({ changesRoot: root });
+    assert.deepStrictEqual(result.issues, []);
+    assert.strictEqual(result.ok, true);
+  });
+
+  test('archived changes keep their historical files', () => {
+    const root = fixtureRoot();
+    fs.mkdirSync(path.join(root, 'archive', 'old-change'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'archive', 'old-change', 'tasks.md'), 'x', 'utf8');
+    assert.strictEqual(checkOpenSpecDeltas({ changesRoot: root }).ok, true);
+  });
+
   const failed = results.filter((r) => !r.ok);
   if (failed.length > 0) {
     console.error(`\n${failed.length} test(s) failed.`);

@@ -56,7 +56,8 @@ does not make a change heavy.
 `openspec/changes/<slug>/specs/<capability>/spec.md` with only the changed requirements
 (`## ADDED|MODIFIED|REMOVED Requirements`, each normative sentence on one physical line,
 checked by `npm run check:openspec`). No `proposal.md`, `design.md`, `tasks.md`,
-`apply-progress.md`, `verifications.md` or handoff files. When done, the change folder
+`apply-progress.md`, `verifications.md` or handoff files: `check:openspec` (in CI)
+rejects anything but `specs/` in an active change. When done, the change folder
 moves to `openspec/changes/archive/`; `openspec/specs/` no longer exists.
 
 **Size cap.** A change that needs more than ~5 capability deltas, or more than one
