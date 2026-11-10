@@ -16,11 +16,11 @@ Delta spec: openspec/changes/changes-compact-format/specs/ (changeset-document-m
 ## Tasks
 
 - T1 S1 inline — staleness history loaded once per apply. done (6b0ecdb4)
-- T2 S2 S4 delegated (bounded writer) — set_fields op (types, parser/validation, apply, fold). done (see Log L2)
-- T3 S3 delegated (bounded writer) — emitters (importers/convergence planner) use set_fields. done (see Log L4)
-- T4 S5 delegated (bounded writer) — inherited execution facts (apply writer + log loader). done (see Log L5)
-- T5 S6 S2 delegated (bounded writer) — `changes` bluepriNNt text, op list, seal wording. done (see Log L6)
-- T6 S3 S4 S5 delegated (bounded writer) — domain console runtime (change cards, revert, pseudo-units, console export emitter, resolved facts in the payload, regenerated bundle). done (see Log L7)
+- T2 S2 S4 delegated (bounded writer) — set_fields op (types, parser/validation, apply, fold). done (3b0facc0; see Log L2)
+- T3 S3 delegated (bounded writer) — emitters (importers/convergence planner) use set_fields. done (3ed16314; see Log L4)
+- T4 S5 delegated (bounded writer) — inherited execution facts (apply writer + log loader). done (ef502176; see Log L5)
+- T5 S6 S2 delegated (bounded writer) — `changes` bluepriNNt text, op list, seal wording. done (91679373; see Log L6)
+- T6 S3 S4 S5 delegated (bounded writer) — domain console runtime (change cards, revert, pseudo-units, console export emitter, resolved facts in the payload, regenerated bundle). done (c1cf4353; see Log L7)
 
 Route: inline for all; units share apply-change.ts and the serializer, so no disjoint parallel writers (Writer trigger not met).
 
