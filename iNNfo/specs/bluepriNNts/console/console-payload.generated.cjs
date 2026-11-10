@@ -10539,6 +10539,64 @@ function setFieldsEntries(change) {
   });
 }
 
+// iNNfo/packages/nn-core/src/changeset/evidence.ts
+var EVIDENCE_KEYWORDS = ["decision", "unknown"];
+function isKeyword(value) {
+  return EVIDENCE_KEYWORDS.includes(value.toLowerCase());
+}
+function evidenceKeywordInList(value) {
+  const items = splitSourceFieldValue(value);
+  if (items.length < 2) return null;
+  for (const item of items) {
+    if (isKeyword(item)) return item.toLowerCase();
+  }
+  return null;
+}
+function splitEvidence(value) {
+  const keyword = evidenceKeywordInList(value);
+  if (keyword) {
+    throw new Error(
+      `EVIDENCE_KEYWORD_IN_LIST: "${keyword}" is only valid alone in evidence; cite the document, or use the keyword by itself`
+    );
+  }
+  return splitSourceFieldValue(value).map((item) => isKeyword(item) ? item.toLowerCase() : item);
+}
+
+// iNNfo/packages/nn-core/src/changeset/execution-facts.ts
+function evidencePath(item) {
+  const lower = item.toLowerCase();
+  if (lower === "decision" || lower === "unknown") return void 0;
+  return parseCitation(item)?.filePath ?? item.split("@")[0];
+}
+function evidencePaths(evidence) {
+  let items;
+  try {
+    items = splitEvidence(evidence);
+  } catch {
+    return void 0;
+  }
+  if (items.length === 0) return void 0;
+  const paths = [];
+  for (const item of items) {
+    const path2 = evidencePath(item);
+    if (path2 === void 0) return void 0;
+    paths.push(path2);
+  }
+  return paths;
+}
+function inheritedEvidenceShas(evidence, map) {
+  if (!map) return void 0;
+  const paths = evidencePaths(evidence);
+  if (!paths) return void 0;
+  const shas = [];
+  for (const path2 of paths) {
+    const sha = map[path2];
+    if (typeof sha !== "string") return void 0;
+    shas.push(sha);
+  }
+  return shas;
+}
+
 // iNNfo/packages/nn-core/src/changeset/parser.ts
 var import_yaml6 = __toESM(require_dist(), 1);
 function stripQuotes(str2) {
@@ -10799,29 +10857,6 @@ function parseChangeset(rawContent) {
     changes,
     rawContent
   };
-}
-
-// iNNfo/packages/nn-core/src/changeset/evidence.ts
-var EVIDENCE_KEYWORDS = ["decision", "unknown"];
-function isKeyword(value) {
-  return EVIDENCE_KEYWORDS.includes(value.toLowerCase());
-}
-function evidenceKeywordInList(value) {
-  const items = splitSourceFieldValue(value);
-  if (items.length < 2) return null;
-  for (const item of items) {
-    if (isKeyword(item)) return item.toLowerCase();
-  }
-  return null;
-}
-function splitEvidence(value) {
-  const keyword = evidenceKeywordInList(value);
-  if (keyword) {
-    throw new Error(
-      `EVIDENCE_KEYWORD_IN_LIST: "${keyword}" is only valid alone in evidence; cite the document, or use the keyword by itself`
-    );
-  }
-  return splitSourceFieldValue(value).map((item) => isKeyword(item) ? item.toLowerCase() : item);
 }
 
 // iNNfo/packages/nn-core/src/changelog/order.ts
@@ -11270,6 +11305,35 @@ function createChangeLog(changes) {
 }
 
 // iNNfo/packages/nn-core/src/changelog/load.ts
+function changesetLikeOf(path2, doc) {
+  const fm = doc.frontmatter;
+  return {
+    path: path2,
+    status: fm.status,
+    author: fm.author,
+    appliedAt: fm.applied_at,
+    ...typeof fm.batch === "string" ? { batch: fm.batch } : {},
+    ...fm.evidence_sha256 && typeof fm.evidence_sha256 === "object" ? { evidenceSha256: fm.evidence_sha256 } : {},
+    changes: doc.changes
+  };
+}
+function resolveChangeFacts(change, cs) {
+  const status = change.status ?? cs.status ?? "proposed";
+  const inheriting = cs.batch !== void 0;
+  const resolvedTarget = change.resolved_target ?? (inheriting && status === "applied" ? change.target : void 0);
+  const evidenceSha256 = change.evidence_sha256 ?? (status === "applied" ? inheritedEvidenceShas(change.evidence, cs.evidenceSha256) : void 0);
+  const facts = { status };
+  const appliedAt = change.applied_at ?? cs.appliedAt;
+  const batch = change.batch ?? cs.batch;
+  const author = change.author ?? cs.author;
+  if (appliedAt !== void 0) facts.appliedAt = appliedAt;
+  if (batch !== void 0) facts.batch = batch;
+  if (author !== void 0) facts.author = author;
+  if (resolvedTarget !== void 0) facts.resolvedTarget = resolvedTarget;
+  if (evidenceSha256 !== void 0) facts.evidenceSha256 = evidenceSha256;
+  if (change.resolution !== void 0) facts.resolution = change.resolution;
+  return facts;
+}
 function expandSetFields(change) {
   if (change.op !== "set_fields" || !change.applied) return [change];
   const entries = setFieldsEntries(change);
@@ -11291,22 +11355,23 @@ function expandSetFields(change) {
 function loggedChanges(cs) {
   const changesetStatus = cs.status ?? "proposed";
   return cs.changes.flatMap((change, index) => {
-    const status = change.status ?? changesetStatus;
+    const facts = resolveChangeFacts(change, cs);
+    const status = facts.status;
     return expandSetFields({
       id: change.id,
       changeset: cs.path,
       index,
       status,
       changesetStatus,
-      appliedAt: change.applied_at ?? cs.appliedAt,
-      batch: change.batch,
-      author: change.author ?? cs.author,
+      appliedAt: facts.appliedAt,
+      batch: facts.batch,
+      author: facts.author,
       op: change.op,
       target: change.target,
-      resolvedTarget: change.resolved_target,
+      resolvedTarget: facts.resolvedTarget,
       evidence: change.evidence,
       evidenceItems: splitEvidence(change.evidence),
-      evidenceSha256: change.evidence_sha256,
+      evidenceSha256: facts.evidenceSha256,
       extractedSlugs: change.extracted_slugs,
       from: change.from,
       to: change.to,
@@ -11867,6 +11932,7 @@ async function loadChangesetRecords(rootDir) {
       continue;
     }
     const fm = doc.frontmatter;
+    const changeset = changesetLikeOf(`changes/${name}`, doc);
     records.push({
       path: `changes/${name}`,
       title: fm.title,
@@ -11874,25 +11940,28 @@ async function loadChangesetRecords(rootDir) {
       author: fm.author,
       appliedAt: fm.applied_at,
       resolution: fm.resolution,
-      changes: doc.changes.map((c) => ({
-        id: c.id,
-        op: c.op,
-        target: c.target,
-        author: c.author,
-        notes: c.notes,
-        status: c.status,
-        evidence: c.evidence,
-        applied_at: c.applied_at,
-        batch: c.batch,
-        // Stamped by apply from S1b on; the console reads a persisted changeset.
-        resolved_target: c.resolved_target,
-        from: c.from,
-        to: c.to,
-        concept: c.concept,
-        name: c.name,
-        fields: c.fields,
-        resolution: c.resolution
-      }))
+      changes: doc.changes.map((c) => {
+        const facts = resolveChangeFacts(c, changeset);
+        return {
+          id: c.id,
+          op: c.op,
+          target: c.target,
+          author: facts.author,
+          notes: c.notes,
+          status: facts.status,
+          evidence: c.evidence,
+          applied_at: facts.appliedAt,
+          batch: facts.batch,
+          resolved_target: facts.resolvedTarget,
+          evidence_sha256: facts.evidenceSha256,
+          from: c.from,
+          to: c.to,
+          concept: c.concept,
+          name: c.name,
+          fields: c.fields,
+          resolution: c.resolution
+        };
+      })
     });
   }
   return records;

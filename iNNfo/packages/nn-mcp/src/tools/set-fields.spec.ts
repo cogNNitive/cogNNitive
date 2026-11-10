@@ -9,6 +9,8 @@ import {
   parseKnowledge,
   serializeChangeset,
   verifyProposalSha,
+  changesetLikeOf,
+  resolveChangeFacts,
 } from '@cognnitive/nn-core'
 import type { ChangeItem } from '@cognnitive/nn-core'
 import { proposeChangeset } from './propose-changeset'
@@ -178,7 +180,7 @@ describe('set_fields through propose_changeset and apply_change', () => {
     expect(await readFile(join(root, 'kNNowledge', 'm_NN.md'), 'utf-8')).toBe(before)
     const doc = parseChangeset(await readFile(join(root, proposed.changeset!), 'utf-8'))
     expect(doc.changes).toHaveLength(1)
-    expect(doc.changes[0]!.status).toBe('conflict')
+    expect(resolveChangeFacts(doc.changes[0]!, changesetLikeOf('changes/x_NN.md', doc)).status).toBe('conflict')
   })
 
   it('a failed precondition on one field leaves the sibling field unwritten in a partial apply', async () => {
@@ -263,7 +265,7 @@ describe('set_fields rejections', () => {
     expect(await readFile(join(root, 'kNNowledge', 'm_NN.md'), 'utf-8')).toBe(before)
     const doc = parseChangeset(await readFile(join(root, cs), 'utf-8'))
     expect(doc.frontmatter.status).toBe('rejected')
-    expect(doc.changes[0]!.status).toBe('rejected')
+    expect(resolveChangeFacts(doc.changes[0]!, changesetLikeOf('changes/x_NN.md', doc)).status).toBe('rejected')
   })
 })
 

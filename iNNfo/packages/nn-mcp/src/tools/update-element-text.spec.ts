@@ -11,6 +11,7 @@ import type { ChangesetDocument, ChangeItem } from '@cognnitive/nn-core'
 import { proposeChangeset } from './propose-changeset'
 import { applyChange } from './apply-change'
 import type { ConsoleWriter } from './console-regeneration'
+import { resolvedFacts } from '../../test/helpers/resolved-facts'
 
 /**
  * `changeset-document-model`: the prose body op, the `USE_UPDATE_ELEMENT_TEXT`
@@ -221,8 +222,8 @@ describe('update_element_text', () => {
     expect(model).not.toContain('description::')
 
     const doc = parseChangeset(await readFile(join(root, proposed.changeset!), 'utf-8'))
-    expect(doc.changes[0].status).toBe('applied')
-    expect(doc.changes[0].resolved_target).toBe('strategy@vision&#body')
+    expect(resolvedFacts(doc).status).toBe('applied')
+    expect(resolvedFacts(doc).resolvedTarget).toBe('strategy@vision&#body')
     expect(verifyProposalSha(doc)).toBe(true)
   })
 
@@ -242,7 +243,7 @@ describe('update_element_text', () => {
     expect(applied.success).toBe(false)
 
     const doc = parseChangeset(await readFile(join(root, proposed.changeset!), 'utf-8'))
-    expect(doc.changes[0].status).toBe('conflict')
+    expect(resolvedFacts(doc).status).toBe('conflict')
     expect(doc.changes[0].resolution).toContain('PRECONDITION_FAILED')
     expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toBe(before)
   })

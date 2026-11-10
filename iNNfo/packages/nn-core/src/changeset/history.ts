@@ -14,7 +14,7 @@ import { join } from 'node:path'
 import { parseChangeset } from './parser.js'
 import { compareVersions } from '../workspace/integrity/versionStatus.js'
 import { slugify } from '../parser/slug.js'
-import { buildChangeLogFromChangesets, type ChangesetLike } from '../changelog/load.js'
+import { buildChangeLogFromChangesets, changesetLikeOf, type ChangesetLike } from '../changelog/load.js'
 import type { ChangeLog, LoggedChange } from '../changelog/index.js'
 import type { ModelId } from '../address/index.js'
 
@@ -69,13 +69,7 @@ export async function loadStalenessHistory(changesDir: string): Promise<Stalenes
     }
     const path = `changes/${filename}`
     const fm = doc.frontmatter
-    changesets.push({
-      path,
-      status: fm.status,
-      author: fm.author,
-      appliedAt: fm.applied_at,
-      changes: doc.changes,
-    })
+    changesets.push(changesetLikeOf(path, doc))
     const transitions = new Map<string, VersionTransition>()
     for (const [modelKey, transition] of Object.entries(fm.models ?? {})) {
       transitions.set(modelKey.toLowerCase(), transition as VersionTransition)

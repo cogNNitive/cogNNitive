@@ -4,6 +4,7 @@ import { mkdir, writeFile, readFile, rm } from 'node:fs/promises'
 import { parseChangeset } from '@cognnitive/nn-core'
 import { applyChange } from '../src/tools/apply-change.js'
 import { writeProposedChangeset } from '../src/tools/propose-changeset.js'
+import { resolvedFacts } from './helpers/resolved-facts'
 
 const root = join(import.meta.dirname!, '..', 'temp-test-rejected')
 const knowledgeDir = join(root, 'kNNowledge')
@@ -130,7 +131,7 @@ describe('a rejected changeset is persisted', () => {
     const doc = parseChangeset(await readFile(written.absolutePath, 'utf-8'))
     expect(doc.frontmatter.status).toBe('applied')
     expect(doc.frontmatter.resolution).toBeUndefined()
-    expect(doc.changes[0].status).toBe('applied')
+    expect(resolvedFacts(doc).status).toBe('applied')
   })
 
   it('a mutation the bluepriNNt refuses persists the rejection and keeps earlier annotations out', async () => {
@@ -145,8 +146,11 @@ describe('a rejected changeset is persisted', () => {
 
     const doc = parseChangeset(await readFile(written.absolutePath, 'utf-8'))
     expect(doc.frontmatter.status).toBe('rejected')
+    // Every change inherits the rejected status; only the refused one explains why.
     expect(doc.changes[0].status).toBeUndefined()
-    expect(doc.changes[1].status).toBe('rejected')
+    expect(doc.changes[0].resolution).toBeUndefined()
+    expect(doc.changes[1].resolution).toBeDefined()
+    expect(resolvedFacts(doc, 1).status).toBe('rejected')
     expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toBe(MODEL)
   })
 

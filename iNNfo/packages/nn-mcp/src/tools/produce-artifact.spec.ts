@@ -5,6 +5,7 @@ import { parseChangeset, verifyProposalSha } from '@cognnitive/nn-core'
 import { proposeChangeset } from './propose-changeset'
 import { applyChange } from './apply-change'
 import type { ConsoleWriter } from './console-regeneration'
+import { resolvedFacts } from '../../test/helpers/resolved-facts'
 
 const root = join(import.meta.dirname!, '..', '..', 'temp-test-artifact')
 const knowledgeDir = join(root, 'kNNowledge')
@@ -105,8 +106,8 @@ describe('produce_artifact', () => {
     expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toBe(before)
 
     const doc = parseChangeset(await readFile(join(root, proposed.changeset!), 'utf-8'))
-    expect(doc.changes[0].status).toBe('applied')
-    expect(doc.changes[0].resolved_target).toBe('artifacts/report_20261002T101500Z.md')
+    expect(resolvedFacts(doc).status).toBe('applied')
+    expect(resolvedFacts(doc).resolvedTarget).toBe('artifacts/report_20261002T101500Z.md')
     expect(doc.changes[0].author).toBe('curate-csv')
     expect(verifyProposalSha(doc)).toBe(true)
   })
@@ -137,7 +138,7 @@ describe('produce_artifact', () => {
     expect(applied.success).toBe(false)
     expect(applied.status).toBe('conflict')
     const doc = parseChangeset(await readFile(join(root, second.changeset!), 'utf-8'))
-    expect(doc.changes[0].status).toBe('conflict')
+    expect(resolvedFacts(doc).status).toBe('conflict')
     expect(doc.changes[0].resolution).toContain('ARTIFACT_ALREADY_RECORDED')
   })
 })

@@ -148,6 +148,16 @@ export interface ChangesetFrontmatter {
   proposal_sha?: string
   applied_at?: string
   /**
+   * Batch-wide execution fact: the batch identity (the changeset stem), inherited by
+   * every change that does not carry its own. Excluded from `proposal_sha`.
+   */
+  batch?: string
+  /**
+   * Batch-wide execution fact: cited workspace-relative path -> lowercase hex sha256
+   * of the file when the batch was applied. Excluded from `proposal_sha`.
+   */
+  evidence_sha256?: Record<string, string>
+  /**
    * Why the changeset was `rejected` (a property of the proposal: failed validation or an
    * unresolved citation). Execution annotation, excluded from `proposal_sha`.
    */

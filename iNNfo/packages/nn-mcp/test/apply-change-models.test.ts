@@ -12,6 +12,7 @@ import {
 import type { ChangeItem } from '@cognnitive/nn-core'
 import { applyChange } from '../src/tools/apply-change.js'
 import { applyWithConsole, type ConsoleWriter } from '../src/tools/console-regeneration.js'
+import { resolvedFacts } from './helpers/resolved-facts'
 
 const root = join(import.meta.dirname!, '..', 'temp-test-apply-models')
 const knowledgeDir = join(root, 'kNNowledge')
@@ -131,7 +132,7 @@ describe('add_model: model creation', () => {
     expect(res.models!.acme_strategy).not.toHaveProperty('base_version')
     const applied = parseChangeset(await readFile(join(root, cs), 'utf-8'))
     expect(applied.frontmatter.models!.acme_strategy).not.toHaveProperty('base_version')
-    expect(applied.changes[0].status).toBe('applied')
+    expect(resolvedFacts(applied).status).toBe('applied')
     // The sealed proposal keeps the id the caller proposed; only the models map records the canonical one.
     expect(applied.changes[0].target).toBe('acme')
     expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)

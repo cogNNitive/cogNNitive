@@ -9,6 +9,9 @@ import {
   computeProposalSha,
   serializeChangeset,
   parseKnowledge,
+  changesetLikeOf,
+  resolveChangeFacts,
+  loadChangeLog,
 } from '@cognnitive/nn-core'
 import type { ChangeItem } from '@cognnitive/nn-core'
 import { proposeChangeset } from './propose-changeset'
@@ -64,6 +67,29 @@ slug:: vision
 statement:: Accelerate green energy
 `
 
+/**
+ * A written changeset with every change's execution facts RESOLVED (own value, else
+ * the frontmatter's), the way the change log reads them (change-provenance).
+ */
+function parseResolved(text: string): ReturnType<typeof parseChangeset> {
+  const doc = parseChangeset(text)
+  const changeset = changesetLikeOf('changes/written_NN.md', doc)
+  return {
+    ...doc,
+    changes: doc.changes.map((change) => {
+      const facts = resolveChangeFacts(change, changeset)
+      return {
+        ...change,
+        status: facts.status,
+        applied_at: facts.appliedAt,
+        batch: facts.batch,
+        resolved_target: facts.resolvedTarget,
+        evidence_sha256: facts.evidenceSha256 ? [...facts.evidenceSha256] : undefined,
+      }
+    }),
+  }
+}
+
 const writer: ConsoleWriter = async () => ({ path: consolePath, status: 'written', opened: false })
 const propose = (operations: unknown[]) =>
   proposeChangeset(root, { operations, open: false }, { writer })
@@ -82,7 +108,7 @@ function sha(text: string): string {
 async function readApplied(): Promise<ReturnType<typeof parseChangeset>> {
   const files = await (await import('node:fs/promises')).readdir(changesDir)
   expect(files).toHaveLength(1)
-  return parseChangeset(await readFile(join(changesDir, files[0]), 'utf-8'))
+  return parseResolved(await readFile(join(changesDir, files[0]), 'utf-8'))
 }
 
 beforeEach(async () => {
@@ -200,7 +226,7 @@ describe('execution facts at apply', () => {
       { ...UPDATE, to: 'third', evidence: 'sources/import/a.md' },
     ])
     await applyChange(root, second.changeset!)
-    const doc = parseChangeset(await readFile(join(root, second.changeset!), 'utf-8'))
+    const doc = parseResolved(await readFile(join(root, second.changeset!), 'utf-8'))
     const times = doc.changes.map((c) => c.applied_at)
     expect(new Set(times).size).toBe(1)
     expect(times[0]! > future).toBe(true)
@@ -368,6 +394,74 @@ async function applyInstance(changes: ChangeItem[], name?: string) {
   return applyChange(iRoot, cs)
 }
 
+describe('batch-wide execution facts are written once (change-provenance)', () => {
+  const FACT_KEYS = ['applied_at', 'batch', 'status', 'resolution', 'resolved_target', 'evidence_sha256'] as const
+
+  it('writes the facts in the frontmatter and none on the changes', async () => {
+    const proposed = await proposeChangeset(
+      root,
+      {
+        operations: [
+          { ...UPDATE, from: undefined, to: 'one', evidence: 'sources/import/a.md' },
+          { ...UPDATE, from: undefined, to: 'two', evidence: 'sources/import/a.md' },
+          { ...UPDATE, from: undefined, to: 'three', evidence: 'sources/import/a.md' },
+        ],
+        author: 'juan',
+        open: false,
+      },
+      { writer },
+    )
+    expect(proposed.success, JSON.stringify(proposed.errors)).toBe(true)
+    const applied = await applyChange(root, proposed.changeset!)
+    expect(applied.status).toBe('applied')
+
+    const text = await readFile(join(root, proposed.changeset!), 'utf-8')
+    const raw = parseChangeset(text)
+    const stem = proposed.changeset!.split('/').pop()!.replace(/_NN\.md$/, '')
+    expect(raw.frontmatter.status).toBe('applied')
+    expect(raw.frontmatter.batch).toBe(stem)
+    expect(raw.frontmatter.applied_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+    expect(raw.frontmatter.evidence_sha256).toEqual({ 'sources/import/a.md': sha('# One\nA body\n') })
+    for (const change of raw.changes) {
+      for (const key of FACT_KEYS) expect(change[key], `${change.id}.${key}`).toBeUndefined()
+    }
+    expect(verifyProposalSha(raw)).toBe(true)
+
+    const log = loadChangeLog(root)
+    expect(log.all).toHaveLength(3)
+    for (const change of log.all) {
+      expect(change).toMatchObject({
+        appliedAt: raw.frontmatter.applied_at,
+        batch: stem,
+        status: 'applied',
+        author: 'juan',
+        resolvedTarget: 'strategy@vision&statement',
+        evidenceSha256: [sha('# One\nA body\n')],
+      })
+    }
+  })
+
+  it('keeps on the change only the facts that differ', async () => {
+    const proposed = await propose([
+      { ...UPDATE, from: 'not the current value', to: 'x', evidence: 'decision' },
+      { op: 'update_field', target: 'strategy@Vision&statement', to: 'y', evidence: 'decision' },
+    ])
+    const applied = await applyChange(root, proposed.changeset!)
+    expect(applied.status).toBe('partially_applied')
+    const raw = parseChangeset(await readFile(join(root, proposed.changeset!), 'utf-8'))
+    const [conflicted, resolved] = raw.changes
+    expect(conflicted!.status).toBe('conflict')
+    expect(conflicted!.resolution).toMatch(/PRECONDITION_FAILED/)
+    expect(resolved!.status).toBe('applied')
+    expect(resolved!.resolved_target).toBe('strategy@vision&statement')
+    expect(resolved!.resolution).toBeUndefined()
+    for (const change of raw.changes) {
+      expect(change.applied_at).toBeUndefined()
+      expect(change.batch).toBeUndefined()
+    }
+  })
+})
+
 describe('add_model of a distributed instance (distributed-storage S6a)', () => {
   beforeEach(async () => {
     process.env.INNFO_CACHE_DIR = join(iRoot, '.cache')
@@ -420,7 +514,7 @@ describe('add_model of a distributed instance (distributed-storage S6a)', () => 
     expect(res.models!['villabotijos-today/new-episode']).toEqual({
       result_version: String(created.frontmatter.knowledge_version),
     })
-    const applied = parseChangeset(await readFile(join(iRoot, 'changes', 'instance_changes_NN.md'), 'utf-8'))
+    const applied = parseResolved(await readFile(join(iRoot, 'changes', 'instance_changes_NN.md'), 'utf-8'))
     expect(applied.frontmatter.models!['villabotijos-today/new-episode']).not.toHaveProperty('base_version')
     expect(applied.changes[0]!.status).toBe('applied')
     expect(applied.changes[0]!.target).toBe('villabotijos-today/new-episode')
@@ -656,7 +750,7 @@ describe('change targets of instance models (distributed-storage S6a)', () => {
     expect(res.success).toBe(true)
     expect(await readFile(paths.pepper!, 'utf-8')).toContain('voice:: raspy')
     expect(await readFile(paths.introA!, 'utf-8')).toContain('voice:: warm')
-    const doc = parseChangeset(await readFile(join(iChangesDir, 'instance_changes_NN.md'), 'utf-8'))
+    const doc = parseResolved(await readFile(join(iChangesDir, 'instance_changes_NN.md'), 'utf-8'))
     expect(doc.changes[0]!.resolved_target).toBe('villabotijos-today/pepper-mapache@00-gancho&voice')
     expect(res.models!['villabotijos-today/pepper-mapache']).toEqual({
       base_version: 'V_0-1-0',
@@ -754,7 +848,7 @@ describe('change targets of instance models (distributed-storage S6a)', () => {
 
     expect(await readFile(paths.introB!, 'utf-8')).toContain('voice:: raspy')
     expect(await readFile(paths.introA!, 'utf-8')).toContain('voice:: warm')
-    const doc = parseChangeset(await readFile(join(iChangesDir, 'instance_changes_NN.md'), 'utf-8'))
+    const doc = parseResolved(await readFile(join(iChangesDir, 'instance_changes_NN.md'), 'utf-8'))
     expect(doc.changes[0]!.resolved_target).toBe('innteresante/intro@00-gancho&voice')
   })
 
@@ -1319,7 +1413,7 @@ describe('extract_instance of a compact element (distributed-storage S6d)', () =
     expect(sourceTransition.base_version).toBe(String(before.frontmatter.knowledge_version))
     expect(sourceTransition.result_version).not.toBe(sourceTransition.base_version)
 
-    const applied = parseChangeset(await readFile(join(xRoot, 'changes', 'extract_changes_NN.md'), 'utf-8'))
+    const applied = parseResolved(await readFile(join(xRoot, 'changes', 'extract_changes_NN.md'), 'utf-8'))
     // The extracted slug set is an execution fact: the fold re-keys units through it.
     expect(applied.changes[0]!.extracted_slugs).toEqual(['intro', '00-gancho', 'presenter'])
     expect(applied.changes[1]!.extracted_slugs).toEqual(['nuevo'])

@@ -33,7 +33,6 @@ import {
   resolvedTarget,
   axisSlug,
   splitEvidence,
-  parseCitation,
   slugifyHeading,
   isChangesetPath,
   isSidecarName,
@@ -42,6 +41,11 @@ import {
   reviewGateProvenanceProblems,
   setFieldsProblems,
   setFieldsEntries,
+  compactExecutionFacts,
+  evidencePath,
+  evidencePaths,
+  changesetLikeOf,
+  resolveChangeFacts,
 } from '@cognnitive/nn-core'
 import type {
   SpecDocument,
@@ -363,8 +367,9 @@ async function artifactAlreadyRecorded(rootDir: string, rel: string): Promise<bo
     } catch {
       continue
     }
+    const changeset = changesetLikeOf(`changes/${name}`, doc)
     for (const change of doc.changes) {
-      if (change.op !== 'produce_artifact' || change.status !== 'applied') continue
+      if (change.op !== 'produce_artifact' || resolveChangeFacts(change, changeset).status !== 'applied') continue
       if (change.target.replace(/\\/g, '/') === rel) return true
     }
   }
@@ -463,7 +468,7 @@ async function evidenceShas(rootDir: string, evidence: string | undefined): Prom
   for (const item of items) {
     const lower = item.toLowerCase()
     if (lower === 'decision' || lower === 'unknown') return undefined
-    const filePath = parseCitation(item)?.filePath ?? item.split('@')[0]
+    const filePath = evidencePath(item) ?? item
     try {
       const bytes = await readFile(join(rootDir, filePath))
       shas.push(createHash('sha256').update(bytes).digest('hex'))
@@ -568,6 +573,14 @@ export async function executeChangesetApply(
       }
     }
 
+    /** The target each change was proposed with (apply rewrites targets in memory). */
+    const recordedTargets = new Map(csDoc.changes.map((c) => [c.id, c.target]))
+    /**
+     * The write-back: one block per recorded change, carrying only the execution facts
+     * that differ from the batch-wide ones in the frontmatter (change-provenance).
+     */
+    const writeBack = (doc: ChangesetDocument): string => serializeChangeset(compactExecutionFacts(doc, recordedTargets))
+
     // Persist a rejection that is intrinsic to the proposal (a malformed operation or
     // add_model, a mutation that can never apply as written). The write-back starts from
     // the raw text, so in-memory execution annotations of this run never leak into the
@@ -603,7 +616,7 @@ export async function executeChangesetApply(
           target.status = 'rejected'
           target.resolution = reason
         }
-        const text = serializeChangeset(fresh)
+        const text = writeBack(fresh)
         if (!altersNormativeLines(rawChangeset, text)) {
           await writeFile(resolvedChangesetPath, text, 'utf-8')
         }
@@ -1775,7 +1788,8 @@ export async function executeChangesetApply(
       }
       csDoc.frontmatter.status = 'conflict'
       csDoc.frontmatter.applied_at = new Date().toISOString()
-      const serializedCs = serializeChangeset(recordedDocument())
+      csDoc.frontmatter.batch = changesetStem
+      const serializedCs = writeBack(recordedDocument())
       if (altersNormativeLines(rawChangeset, serializedCs)) {
         return {
           success: false,
@@ -2141,7 +2155,7 @@ export async function executeChangesetApply(
     // Proposal immutability (D1): the write-back must keep every normative line of every
     // change block byte-identical to the input. A difference aborts before Phase 2:
     // nothing is written and the lock is released (the surrounding finally).
-    if (altersNormativeLines(rawChangeset, serializeChangeset(recordedDocument()))) {
+    if (altersNormativeLines(rawChangeset, writeBack(recordedDocument()))) {
       return {
         success: false,
         changesetPath: relChangesetPath,
@@ -2326,15 +2340,17 @@ export async function executeChangesetApply(
       Number.isFinite(latestMs) && latestMs >= nowMs
         ? new Date(latestMs + 1).toISOString()
         : new Date(nowMs).toISOString()
+    // Batch-wide facts are written once, in the frontmatter; every change inherits
+    // them (`compactExecutionFacts` drops each equal per-change copy at write-back).
     csDoc.frontmatter.applied_at = appliedAt
-    for (const change of csDoc.changes) {
-      change.applied_at = appliedAt
-      change.batch = batchId
-    }
+    csDoc.frontmatter.batch = batchId
+    const evidenceMap: Record<string, string> = {}
     // Execution facts: the canonical unit address and the evidence anchors, written
     // only for changes this run applied. Apply always overwrites them, so a proposal
     // that pre-carried them cannot influence the log.
     for (const change of csDoc.changes) {
+      delete change.applied_at
+      delete change.batch
       if (change.status !== 'applied') {
         delete change.resolved_target
         delete change.evidence_sha256
@@ -2351,11 +2367,17 @@ export async function executeChangesetApply(
         else delete change.resolved_target
       }
       const shas = await evidenceShas(rootDir, change.evidence)
-      if (shas) change.evidence_sha256 = shas
-      else delete change.evidence_sha256
+      if (shas) {
+        change.evidence_sha256 = shas
+        evidencePaths(change.evidence)?.forEach((path, i) => {
+          evidenceMap[path] ??= shas[i]!
+        })
+      } else delete change.evidence_sha256
     }
+    if (Object.keys(evidenceMap).length > 0) csDoc.frontmatter.evidence_sha256 = evidenceMap
+    else delete csDoc.frontmatter.evidence_sha256
 
-    const serializedCs = serializeChangeset(recordedDocument())
+    const serializedCs = writeBack(recordedDocument())
     try {
       const csStaging = join(dirname(resolvedChangesetPath), `${basename(resolvedChangesetPath)}.tmp`)
       await writeAndSync(csStaging, serializedCs)

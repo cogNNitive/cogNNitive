@@ -12436,7 +12436,7 @@ function parseSourceRef(input) {
     raw: clean
   };
 }
-function parseCitation(input) {
+function parseCitation2(input) {
   if (!input || typeof input !== "string")
     return null;
   const clean = input.trim();
@@ -13391,6 +13391,107 @@ var init_types2 = __esm({
   }
 });
 
+// iNNfo/packages/nn-core/dist/changeset/evidence.js
+function isKeyword(value) {
+  return EVIDENCE_KEYWORDS.includes(value.toLowerCase());
+}
+function evidenceKeywordInList(value) {
+  const items = splitSourceFieldValue2(value);
+  if (items.length < 2)
+    return null;
+  for (const item of items) {
+    if (isKeyword(item))
+      return item.toLowerCase();
+  }
+  return null;
+}
+function splitEvidence2(value) {
+  const keyword = evidenceKeywordInList(value);
+  if (keyword) {
+    throw new Error(`EVIDENCE_KEYWORD_IN_LIST: "${keyword}" is only valid alone in evidence; cite the document, or use the keyword by itself`);
+  }
+  return splitSourceFieldValue2(value).map((item) => isKeyword(item) ? item.toLowerCase() : item);
+}
+var EVIDENCE_KEYWORDS;
+var init_evidence = __esm({
+  "iNNfo/packages/nn-core/dist/changeset/evidence.js"() {
+    "use strict";
+    init_sourceRef();
+    EVIDENCE_KEYWORDS = ["decision", "unknown"];
+  }
+});
+
+// iNNfo/packages/nn-core/dist/changeset/execution-facts.js
+function evidencePath(item) {
+  const lower = item.toLowerCase();
+  if (lower === "decision" || lower === "unknown")
+    return void 0;
+  return parseCitation2(item)?.filePath ?? item.split("@")[0];
+}
+function evidencePaths(evidence) {
+  let items;
+  try {
+    items = splitEvidence2(evidence);
+  } catch {
+    return void 0;
+  }
+  if (items.length === 0)
+    return void 0;
+  const paths = [];
+  for (const item of items) {
+    const path = evidencePath(item);
+    if (path === void 0)
+      return void 0;
+    paths.push(path);
+  }
+  return paths;
+}
+function inheritedEvidenceShas2(evidence, map) {
+  if (!map)
+    return void 0;
+  const paths = evidencePaths(evidence);
+  if (!paths)
+    return void 0;
+  const shas = [];
+  for (const path of paths) {
+    const sha = map[path];
+    if (typeof sha !== "string")
+      return void 0;
+    shas.push(sha);
+  }
+  return shas;
+}
+function compactExecutionFacts(doc, recordedTargets) {
+  const fm = doc.frontmatter;
+  const changes = doc.changes.map((source) => {
+    const change = { ...source };
+    delete change.applied_at;
+    delete change.batch;
+    if (change.status !== void 0 && change.status === fm.status)
+      delete change.status;
+    const status = change.status ?? fm.status;
+    if (status === "applied")
+      delete change.resolution;
+    const target = recordedTargets.get(change.id) ?? change.target;
+    if (change.resolved_target !== void 0 && change.resolved_target === target)
+      delete change.resolved_target;
+    if (change.evidence_sha256 !== void 0) {
+      const inherited = inheritedEvidenceShas2(change.evidence, fm.evidence_sha256);
+      if (inherited && inherited.join(",") === change.evidence_sha256.join(","))
+        delete change.evidence_sha256;
+    }
+    return change;
+  });
+  return { ...doc, changes };
+}
+var init_execution_facts = __esm({
+  "iNNfo/packages/nn-core/dist/changeset/execution-facts.js"() {
+    "use strict";
+    init_sourceRef();
+    init_evidence();
+  }
+});
+
 // iNNfo/packages/nn-core/dist/changeset/parser.js
 function stripQuotes2(str3) {
   const trimmed = str3.trim();
@@ -13666,36 +13767,6 @@ var init_parser3 = __esm({
     init_sourceRef();
     init_types2();
     CHANGESET_FRONTMATTER_INVALID2 = "CHANGESET_FRONTMATTER_INVALID";
-  }
-});
-
-// iNNfo/packages/nn-core/dist/changeset/evidence.js
-function isKeyword(value) {
-  return EVIDENCE_KEYWORDS.includes(value.toLowerCase());
-}
-function evidenceKeywordInList(value) {
-  const items = splitSourceFieldValue2(value);
-  if (items.length < 2)
-    return null;
-  for (const item of items) {
-    if (isKeyword(item))
-      return item.toLowerCase();
-  }
-  return null;
-}
-function splitEvidence2(value) {
-  const keyword = evidenceKeywordInList(value);
-  if (keyword) {
-    throw new Error(`EVIDENCE_KEYWORD_IN_LIST: "${keyword}" is only valid alone in evidence; cite the document, or use the keyword by itself`);
-  }
-  return splitSourceFieldValue2(value).map((item) => isKeyword(item) ? item.toLowerCase() : item);
-}
-var EVIDENCE_KEYWORDS;
-var init_evidence = __esm({
-  "iNNfo/packages/nn-core/dist/changeset/evidence.js"() {
-    "use strict";
-    init_sourceRef();
-    EVIDENCE_KEYWORDS = ["decision", "unknown"];
   }
 });
 
@@ -14255,6 +14326,41 @@ function isChangesetPath(path) {
   const parsed = parseName2(name);
   return parsed.kind === "nn" && parsed.stem.endsWith("_changes");
 }
+function changesetLikeOf2(path, doc) {
+  const fm = doc.frontmatter;
+  return {
+    path,
+    status: fm.status,
+    author: fm.author,
+    appliedAt: fm.applied_at,
+    ...typeof fm.batch === "string" ? { batch: fm.batch } : {},
+    ...fm.evidence_sha256 && typeof fm.evidence_sha256 === "object" ? { evidenceSha256: fm.evidence_sha256 } : {},
+    changes: doc.changes
+  };
+}
+function resolveChangeFacts(change, cs) {
+  const status = change.status ?? cs.status ?? "proposed";
+  const inheriting = cs.batch !== void 0;
+  const resolvedTarget2 = change.resolved_target ?? (inheriting && status === "applied" ? change.target : void 0);
+  const evidenceSha256 = change.evidence_sha256 ?? (status === "applied" ? inheritedEvidenceShas2(change.evidence, cs.evidenceSha256) : void 0);
+  const facts = { status };
+  const appliedAt = change.applied_at ?? cs.appliedAt;
+  const batch = change.batch ?? cs.batch;
+  const author = change.author ?? cs.author;
+  if (appliedAt !== void 0)
+    facts.appliedAt = appliedAt;
+  if (batch !== void 0)
+    facts.batch = batch;
+  if (author !== void 0)
+    facts.author = author;
+  if (resolvedTarget2 !== void 0)
+    facts.resolvedTarget = resolvedTarget2;
+  if (evidenceSha256 !== void 0)
+    facts.evidenceSha256 = evidenceSha256;
+  if (change.resolution !== void 0)
+    facts.resolution = change.resolution;
+  return facts;
+}
 function expandSetFields(change) {
   if (change.op !== "set_fields" || !change.applied)
     return [change];
@@ -14278,22 +14384,23 @@ function expandSetFields(change) {
 function loggedChanges(cs) {
   const changesetStatus = cs.status ?? "proposed";
   return cs.changes.flatMap((change, index) => {
-    const status = change.status ?? changesetStatus;
+    const facts = resolveChangeFacts(change, cs);
+    const status = facts.status;
     return expandSetFields({
       id: change.id,
       changeset: cs.path,
       index,
       status,
       changesetStatus,
-      appliedAt: change.applied_at ?? cs.appliedAt,
-      batch: change.batch,
-      author: change.author ?? cs.author,
+      appliedAt: facts.appliedAt,
+      batch: facts.batch,
+      author: facts.author,
       op: change.op,
       target: change.target,
-      resolvedTarget: change.resolved_target,
+      resolvedTarget: facts.resolvedTarget,
       evidence: change.evidence,
       evidenceItems: splitEvidence2(change.evidence),
-      evidenceSha256: change.evidence_sha256,
+      evidenceSha256: facts.evidenceSha256,
       extractedSlugs: change.extracted_slugs,
       from: change.from,
       to: change.to,
@@ -14321,6 +14428,7 @@ var init_load = __esm({
   "iNNfo/packages/nn-core/dist/changelog/load.js"() {
     "use strict";
     init_types2();
+    init_execution_facts();
     init_contract();
     init_parser3();
     init_evidence();
@@ -16225,7 +16333,7 @@ function extractExcerpt(content, unit) {
   }
 }
 function resolveCitation(raw, field, resolver, modelPath = "") {
-  const ref = parseCitation(raw);
+  const ref = parseCitation2(raw);
   if (!ref) {
     return { path: raw, exists: false, field, origin: "document", error: "MALFORMED" };
   }
@@ -16926,6 +17034,8 @@ function rewriteFrontmatter2(yamlText, fm, eol) {
   upsert("status", [`status: ${fm.status}`]);
   upsert("resolution", fm.resolution !== void 0 ? [`resolution: ${JSON.stringify(fm.resolution)}`] : null);
   upsert("applied_at", fm.applied_at !== void 0 ? [`applied_at: ${fm.applied_at}`] : null);
+  upsert("batch", fm.batch !== void 0 ? [`batch: ${fm.batch}`] : null);
+  upsert("evidence_sha256", fm.evidence_sha256 !== void 0 && Object.keys(fm.evidence_sha256).length > 0 ? (0, import_yaml16.stringify)({ evidence_sha256: fm.evidence_sha256 }).trim().split(/\r?\n/) : null);
   upsert("models", fm.models !== void 0 ? (0, import_yaml16.stringify)({ models: fm.models }).trim().split(/\r?\n/) : null);
   return lines.join(eol);
 }
@@ -17491,13 +17601,7 @@ async function loadStalenessHistory2(changesDir) {
     }
     const path = `changes/${filename}`;
     const fm = doc.frontmatter;
-    changesets.push({
-      path,
-      status: fm.status,
-      author: fm.author,
-      appliedAt: fm.applied_at,
-      changes: doc.changes
-    });
+    changesets.push(changesetLikeOf2(path, doc));
     const transitions = /* @__PURE__ */ new Map();
     for (const [modelKey, transition] of Object.entries(fm.models ?? {})) {
       transitions.set(modelKey.toLowerCase(), transition);
@@ -17896,6 +18000,7 @@ var init_changeset = __esm({
     init_types2();
     init_gates();
     init_evidence();
+    init_execution_facts();
     init_resolved_target();
     init_utils();
     init_hasher();
@@ -21870,6 +21975,11 @@ function rewriteFrontmatter(yamlText, fm, eol) {
     "applied_at",
     fm.applied_at !== void 0 ? [`applied_at: ${fm.applied_at}`] : null
   );
+  upsert("batch", fm.batch !== void 0 ? [`batch: ${fm.batch}`] : null);
+  upsert(
+    "evidence_sha256",
+    fm.evidence_sha256 !== void 0 && Object.keys(fm.evidence_sha256).length > 0 ? (0, import_yaml7.stringify)({ evidence_sha256: fm.evidence_sha256 }).trim().split(/\r?\n/) : null
+  );
   upsert(
     "models",
     fm.models !== void 0 ? (0, import_yaml7.stringify)({ models: fm.models }).trim().split(/\r?\n/) : null
@@ -22497,8 +22607,9 @@ async function artifactAlreadyRecorded(rootDir, rel) {
     } catch {
       continue;
     }
+    const changeset = changesetLikeOf2(`changes/${name}`, doc);
     for (const change of doc.changes) {
-      if (change.op !== "produce_artifact" || change.status !== "applied") continue;
+      if (change.op !== "produce_artifact" || resolveChangeFacts(change, changeset).status !== "applied") continue;
       if (change.target.replace(/\\/g, "/") === rel) return true;
     }
   }
@@ -22578,7 +22689,7 @@ async function evidenceShas(rootDir, evidence) {
   for (const item of items) {
     const lower = item.toLowerCase();
     if (lower === "decision" || lower === "unknown") return void 0;
-    const filePath = parseCitation(item)?.filePath ?? item.split("@")[0];
+    const filePath = evidencePath(item) ?? item;
     try {
       const bytes = await (0, import_promises10.readFile)((0, import_node_path17.join)(rootDir, filePath));
       shas.push((0, import_node_crypto4.createHash)("sha256").update(bytes).digest("hex"));
@@ -22655,6 +22766,8 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         errors: [{ path: relChangesetPath, message: `Invalid changeset: ${err}` }]
       };
     }
+    const recordedTargets = new Map(csDoc.changes.map((c) => [c.id, c.target]));
+    const writeBack = (doc) => serializeChangeset2(compactExecutionFacts(doc, recordedTargets));
     const parentOf2 = /* @__PURE__ */ new Map();
     const recordedIdOf = (id) => parentOf2.get(id) ?? id;
     const recordRejection = async (errors, changeId, warnings, persist = true) => {
@@ -22671,7 +22784,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
           target.status = "rejected";
           target.resolution = reason;
         }
-        const text = serializeChangeset2(fresh);
+        const text = writeBack(fresh);
         if (!altersNormativeLines(rawChangeset, text)) {
           await (0, import_promises10.writeFile)(resolvedChangesetPath, text, "utf-8");
         }
@@ -23618,7 +23731,8 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       }
       csDoc.frontmatter.status = "conflict";
       csDoc.frontmatter.applied_at = (/* @__PURE__ */ new Date()).toISOString();
-      const serializedCs2 = serializeChangeset2(recordedDocument());
+      csDoc.frontmatter.batch = changesetStem;
+      const serializedCs2 = writeBack(recordedDocument());
       if (altersNormativeLines(rawChangeset, serializedCs2)) {
         return {
           success: false,
@@ -23914,7 +24028,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         );
       }
     }
-    if (altersNormativeLines(rawChangeset, serializeChangeset2(recordedDocument()))) {
+    if (altersNormativeLines(rawChangeset, writeBack(recordedDocument()))) {
       return {
         success: false,
         changesetPath: relChangesetPath,
@@ -24060,11 +24174,11 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
     const latestMs = latest ? Date.parse(latest) : Number.NaN;
     const appliedAt = Number.isFinite(latestMs) && latestMs >= nowMs ? new Date(latestMs + 1).toISOString() : new Date(nowMs).toISOString();
     csDoc.frontmatter.applied_at = appliedAt;
+    csDoc.frontmatter.batch = batchId;
+    const evidenceMap = {};
     for (const change of csDoc.changes) {
-      change.applied_at = appliedAt;
-      change.batch = batchId;
-    }
-    for (const change of csDoc.changes) {
+      delete change.applied_at;
+      delete change.batch;
       if (change.status !== "applied") {
         delete change.resolved_target;
         delete change.evidence_sha256;
@@ -24081,10 +24195,16 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         else delete change.resolved_target;
       }
       const shas = await evidenceShas(rootDir, change.evidence);
-      if (shas) change.evidence_sha256 = shas;
-      else delete change.evidence_sha256;
+      if (shas) {
+        change.evidence_sha256 = shas;
+        evidencePaths(change.evidence)?.forEach((path, i) => {
+          evidenceMap[path] ??= shas[i];
+        });
+      } else delete change.evidence_sha256;
     }
-    const serializedCs = serializeChangeset2(recordedDocument());
+    if (Object.keys(evidenceMap).length > 0) csDoc.frontmatter.evidence_sha256 = evidenceMap;
+    else delete csDoc.frontmatter.evidence_sha256;
+    const serializedCs = writeBack(recordedDocument());
     try {
       const csStaging = (0, import_node_path17.join)((0, import_node_path17.dirname)(resolvedChangesetPath), `${(0, import_node_path17.basename)(resolvedChangesetPath)}.tmp`);
       await writeAndSync(csStaging, serializedCs);

@@ -12,10 +12,9 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parseChangeset } from '../changeset/parser.js'
-import type { ChangeItem } from '../changeset/types.js'
 import { isNNName, isSidecarName, parseName } from '../naming/contract.js'
 import type { ResolvedCitation } from './citations.js'
-import { buildChangeLogFromChangesets, type ChangesetLike } from '../changelog/load.js'
+import { buildChangeLogFromChangesets, changesetLikeOf, resolveChangeFacts, type ChangesetLike } from '../changelog/load.js'
 import type { ChangeLog, LoggedChange } from '../changelog/index.js'
 import { unitOf } from '../changelog/index.js'
 
@@ -109,6 +108,7 @@ interface ChangesetChangeRecord {
   applied_at?: string
   batch?: string
   resolved_target?: string
+  evidence_sha256?: readonly string[]
   /** Card data for the Changes tab: the diff, the added fields and the reason. */
   from?: string
   to?: string
@@ -204,6 +204,10 @@ export async function loadChangesetRecords(rootDir: string): Promise<ChangesetRe
       continue
     }
     const fm = doc.frontmatter as Record<string, unknown>
+    // Execution facts are resolved here, once (own value, else the changeset's), so
+    // the payload carries them per change and the browser never re-implements
+    // the inheritance.
+    const changeset = changesetLikeOf(`changes/${name}`, doc)
     records.push({
       path: `changes/${name}`,
       title: fm.title as string | undefined,
@@ -211,25 +215,28 @@ export async function loadChangesetRecords(rootDir: string): Promise<ChangesetRe
       author: fm.author as string | undefined,
       appliedAt: fm.applied_at as string | undefined,
       resolution: fm.resolution as string | undefined,
-      changes: doc.changes.map((c) => ({
-        id: c.id,
-        op: c.op,
-        target: c.target,
-        author: c.author,
-        notes: c.notes,
-        status: c.status,
-        evidence: c.evidence,
-        applied_at: c.applied_at,
-        batch: c.batch,
-        // Stamped by apply from S1b on; the console reads a persisted changeset.
-        resolved_target: (c as ChangeItem & { resolved_target?: string }).resolved_target,
-        from: c.from,
-        to: c.to,
-        concept: c.concept,
-        name: c.name,
-        fields: c.fields,
-        resolution: c.resolution,
-      })),
+      changes: doc.changes.map((c) => {
+        const facts = resolveChangeFacts(c, changeset)
+        return {
+          id: c.id,
+          op: c.op,
+          target: c.target,
+          author: facts.author,
+          notes: c.notes,
+          status: facts.status,
+          evidence: c.evidence,
+          applied_at: facts.appliedAt,
+          batch: facts.batch,
+          resolved_target: facts.resolvedTarget,
+          evidence_sha256: facts.evidenceSha256,
+          from: c.from,
+          to: c.to,
+          concept: c.concept,
+          name: c.name,
+          fields: c.fields,
+          resolution: c.resolution,
+        }
+      }),
     })
   }
   return records

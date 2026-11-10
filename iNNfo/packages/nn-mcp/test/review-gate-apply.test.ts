@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { mkdir, writeFile, readFile, rm } from 'node:fs/promises'
 import { parseChangeset } from '@cognnitive/nn-core'
 import { applyChange } from '../src/tools/apply-change.js'
+import { resolvedFacts } from './helpers/resolved-facts'
 
 /**
  * changeset-review-gate: applying a verdict requires a human console changeset, and
@@ -204,7 +205,7 @@ describe('a human console verdict applies without touching the model', () => {
 
     const doc = parseChangeset(await readFile(join(root, ref), 'utf-8'))
     expect(doc.frontmatter.status).toBe('applied')
-    expect(doc.changes[0].status).toBe('applied')
+    expect(resolvedFacts(doc).status).toBe('applied')
     expect(doc.frontmatter.models ?? {}).toEqual({})
   })
 

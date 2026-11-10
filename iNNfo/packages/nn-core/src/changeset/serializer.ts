@@ -114,7 +114,8 @@ function formatChangeItem(item: ChangeItem): string {
 }
 
 /**
- * Rewrites the frontmatter execution keys (`status`, `resolution`, `applied_at`, `models`) in place,
+ * Rewrites the frontmatter execution keys (`FRONTMATTER_EXECUTION_KEYS`: `status`, `resolution`,
+ * `applied_at`, `batch`, `models`, `evidence_sha256`) in place,
  * leaving every other frontmatter line byte-identical.
  */
 function rewriteFrontmatter(
@@ -161,6 +162,13 @@ function rewriteFrontmatter(
   upsert(
     'applied_at',
     fm.applied_at !== undefined ? [`applied_at: ${fm.applied_at}`] : null,
+  )
+  upsert('batch', fm.batch !== undefined ? [`batch: ${fm.batch}`] : null)
+  upsert(
+    'evidence_sha256',
+    fm.evidence_sha256 !== undefined && Object.keys(fm.evidence_sha256).length > 0
+      ? stringifyYaml({ evidence_sha256: fm.evidence_sha256 }).trim().split(/\r?\n/)
+      : null,
   )
   upsert(
     'models',

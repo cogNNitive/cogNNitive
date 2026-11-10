@@ -16,6 +16,7 @@ import {
   BLANK_URL,
   golden,
 } from '../../test/helpers/scaffold-fixtures'
+import { resolvedFacts } from '../../test/helpers/resolved-facts'
 
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-init-model')
 const specsDir = join(rootDir, 'specs')
@@ -81,7 +82,8 @@ describe('initKnowledge (add_model wrapper)', () => {
     const cs = parseChangeset(await readFile(join(changesDir, files[0]), 'utf-8'))
     expect(cs.frontmatter.status).toBe('applied')
     expect(cs.changes).toHaveLength(1)
-    expect(cs.changes[0]).toMatchObject({ op: 'add_model', target: 'NewModel_business', status: 'applied' })
+    expect(cs.changes[0]).toMatchObject({ op: 'add_model', target: 'NewModel_business' })
+    expect(resolvedFacts(cs).status).toBe('applied')
     expect(result.validation.valid).toBe(true)
   })
 
