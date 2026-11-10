@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs'
 import { parseKnowledge, parseChangeset } from '@cognnitive/nn-core'
 import { applyChange } from '../src/tools/apply-change.js'
 import { proposeChangeset } from '../src/tools/propose-changeset.js'
+import { resolvedFacts } from './helpers/resolved-facts'
 
 const root = join(import.meta.dirname!, '..', 'temp-test-l3-routed')
 const knowledgeDir = join(root, 'kNNowledge')
@@ -245,7 +246,7 @@ describe('freeze_slugs on an already frozen model', () => {
     expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toBe(frozen)
     const files = (await readdir(changesDir)).sort()
     const doc = parseChangeset(await readFile(join(changesDir, files[files.length - 1]), 'utf-8'))
-    expect(doc.changes[0].resolution).toMatch(/already frozen/i)
+    expect(resolvedFacts(doc).status).toBe('applied')
     expect(Object.keys(doc.frontmatter.models ?? {})).toEqual([])
   })
 })

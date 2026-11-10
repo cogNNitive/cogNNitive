@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
 import { mkdir, rm, writeFile } from 'node:fs/promises'
-import { checkStaleTarget } from '../../src/changeset/history.js'
+import { checkStaleTarget as checkStale, loadStalenessHistory } from '../../src/changeset/history.js'
+
+async function checkStaleTarget(dir: string, model: string, element: string, base: string) {
+  return checkStale(await loadStalenessHistory(dir), model, element, base)
+}
 import { serializeChangeset } from '../../src/changeset/serializer.js'
 import { computeProposalSha } from '../../src/changeset/hasher.js'
 import { loadChangesetRecords } from '../../src/console/element-history.js'
@@ -189,8 +193,8 @@ describe('2C: History Reverse-Scan & Staleness Check (checkStaleTarget)', () => 
     expect((await checkStaleTarget(tmpDir, 'innteresante/pitch', '00-gancho', 'V_0-1-0')).stale).toBe(false)
   })
 
-  it('bounds scan to 50 changesets', async () => {
-    // Generate 60 mock changesets; oldest one deletes cache
+  it('sees a deletion whatever the changeset count and filename order', async () => {
+    // 56 changesets; the deletion sorts first by filename
     await makeAppliedChangeset(
       '2026-01-01-00-delete_changes_NN.md',
       'core',
@@ -225,9 +229,10 @@ describe('2C: History Reverse-Scan & Staleness Check (checkStaleTarget)', () => 
       )
     }
 
-    // Since cap is 50, scanning from latest down will NOT reach the 56th file back
-    const result = await checkStaleTarget(tmpDir, 'core', 'cache', 'V_0-1-0', 50)
-    expect(result.stale).toBe(false)
+    // No count bound and no filename order: the oldest-named changeset is still read.
+    const result = await checkStaleTarget(tmpDir, 'core', 'cache', 'V_0-1-0')
+    expect(result.stale).toBe(true)
+    expect(result.code).toBe('STALE_TARGET_DELETED')
   })
 })
 

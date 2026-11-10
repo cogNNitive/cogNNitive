@@ -4,17 +4,18 @@
  *
  * The log already folds every applied change into element lifecycles: the last
  * `add_element` or `remove_element` of an element decides whether the element is
- * alive, and a later `add_element` resets it (the epoch cut). This module scans
- * the newest `maxScan` changesets into a log and asks it, instead of keeping its
- * own reverse-scan matching.
+ * alive, and a later `add_element` resets it (the epoch cut). This module reads
+ * every changeset once into a log (`loadStalenessHistory`) and answers each
+ * pending change from it (`checkStaleTarget`). The log orders changes with
+ * `compareChanges`, never by filename, and is never bounded by a count.
  */
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parseChangeset } from './parser.js'
 import { compareVersions } from '../workspace/integrity/versionStatus.js'
 import { slugify } from '../parser/slug.js'
-import { buildChangeLogFromChangesets, type ChangesetLike } from '../changelog/load.js'
-import type { LoggedChange } from '../changelog/index.js'
+import { buildChangeLogFromChangesets, changesetLikeOf, type ChangesetLike } from '../changelog/load.js'
+import type { ChangeLog, LoggedChange } from '../changelog/index.js'
 import type { ModelId } from '../address/index.js'
 
 export interface StalenessCheckResult {
@@ -29,26 +30,29 @@ interface VersionTransition {
   result_version?: string
 }
 
-interface ScannedHistory {
-  changesets: ChangesetLike[]
+/** The applied history of a domaiNN, read once per apply. */
+export interface StalenessHistory {
+  log: ChangeLog
   /** Changeset path -> authored model key (lowercase) -> version transition. */
   transitions: Map<string, Map<string, VersionTransition>>
 }
 
-/** Reads the newest `maxScan` `changes/` documents, newest filename first. */
-async function scanHistory(changesDir: string, maxScan: number): Promise<ScannedHistory> {
-  const history: ScannedHistory = { changesets: [], transitions: new Map() }
+/**
+ * Reads every `changes/` document once and builds the change log the staleness
+ * check answers from. Read it once per apply and pass it to every
+ * `checkStaleTarget` call of that apply.
+ */
+export async function loadStalenessHistory(changesDir: string): Promise<StalenessHistory> {
+  const changesets: ChangesetLike[] = []
+  const transitionsByPath: StalenessHistory['transitions'] = new Map()
   let entries: string[]
   try {
     entries = await readdir(changesDir)
   } catch {
-    return history
+    return { log: buildChangeLogFromChangesets([]), transitions: transitionsByPath }
   }
 
-  const files = entries
-    .filter((file) => file.endsWith('.md') && !file.startsWith('.'))
-    .sort((a, b) => b.localeCompare(a))
-    .slice(0, Math.max(0, maxScan))
+  const files = entries.filter((file) => file.endsWith('.md') && !file.startsWith('.'))
 
   for (const filename of files) {
     let content: string
@@ -65,21 +69,15 @@ async function scanHistory(changesDir: string, maxScan: number): Promise<Scanned
     }
     const path = `changes/${filename}`
     const fm = doc.frontmatter
-    history.changesets.push({
-      path,
-      status: fm.status,
-      author: fm.author,
-      appliedAt: fm.applied_at,
-      changes: doc.changes,
-    })
+    changesets.push(changesetLikeOf(path, doc))
     const transitions = new Map<string, VersionTransition>()
     for (const [modelKey, transition] of Object.entries(fm.models ?? {})) {
       transitions.set(modelKey.toLowerCase(), transition as VersionTransition)
     }
-    history.transitions.set(path, transitions)
+    transitionsByPath.set(path, transitions)
   }
 
-  return history
+  return { log: buildChangeLogFromChangesets(changesets), transitions: transitionsByPath }
 }
 
 /**
@@ -134,18 +132,15 @@ function lifecycleOf(log: { all: readonly LoggedChange[] }, modelIds: ReadonlySe
 /**
  * Checks whether the target element was deleted by an applied change after the
  * pending changeset's `base_version`. A later `add_element` resets the
- * lifecycle, so the element is alive again. Only the newest `maxScan`
- * changesets are inspected.
+ * lifecycle, so the element is alive again. Every applied changeset counts.
  */
-export async function checkStaleTarget(
-  changesDir: string,
+export function checkStaleTarget(
+  history: StalenessHistory,
   modelSlug: string,
   elementSlug: string,
   baseVersion: string,
-  maxScan: number = 50,
-): Promise<StalenessCheckResult> {
-  const { changesets, transitions } = await scanHistory(changesDir, maxScan)
-  const log = buildChangeLogFromChangesets(changesets)
+): StalenessCheckResult {
+  const { log, transitions } = history
   // The scan is keyed by model id plus slug; a recorded move keeps the pending
   // change attached to the same instance under every id it carried (design A10).
   const { ids, final } = identityChain(log, modelSlug)

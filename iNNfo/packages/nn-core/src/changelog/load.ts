@@ -2,7 +2,14 @@
  * Loading changesets into the change log. Browser-safe: it parses in-memory
  * snapshots and never touches the filesystem (that is `node.ts`).
  */
-import type { ChangeItem, ChangeOp, ChangeStatus } from '../changeset/types.js'
+import {
+  setFieldsEntries,
+  type ChangeItem,
+  type ChangeOp,
+  type ChangesetDocument,
+  type ChangeStatus,
+} from '../changeset/types.js'
+import { inheritedEvidenceShas } from '../changeset/execution-facts.js'
 import type { FileSnapshot } from '../queryUnits.js'
 import { isNNName, isSidecarName, isUnderRootSources, parseName } from '../naming/contract.js'
 import { parseChangeset } from '../changeset/parser.js'
@@ -22,6 +29,10 @@ export interface ChangesetLike {
   status?: string
   author?: string
   appliedAt?: string
+  /** Frontmatter `batch`: the batch identity every change inherits. */
+  batch?: string
+  /** Frontmatter `evidence_sha256`: cited path -> sha256, inherited per evidence entry. */
+  evidenceSha256?: Readonly<Record<string, string>>
   changes: ReadonlyArray<ChangeLike>
 }
 
@@ -76,37 +87,109 @@ export function parseChangesetSnapshots(files: ReadonlyArray<FileSnapshot>): Cha
     } catch {
       continue
     }
-    const fm = doc.frontmatter
-    changesets.push({
-      path: file.path,
-      status: fm.status,
-      author: fm.author,
-      appliedAt: fm.applied_at,
-      changes: doc.changes,
-    })
+    changesets.push(changesetLikeOf(file.path, doc))
   }
   return changesets
 }
 
+/** A parsed changeset document as the log reads it: its frontmatter facts and changes. */
+export function changesetLikeOf(path: string, doc: ChangesetDocument): ChangesetLike {
+  const fm = doc.frontmatter
+  return {
+    path,
+    status: fm.status,
+    author: fm.author,
+    appliedAt: fm.applied_at,
+    ...(typeof fm.batch === 'string' ? { batch: fm.batch } : {}),
+    ...(fm.evidence_sha256 && typeof fm.evidence_sha256 === 'object' ? { evidenceSha256: fm.evidence_sha256 } : {}),
+    changes: doc.changes,
+  }
+}
+
+/** The execution facts of one change, resolved against its changeset. */
+export interface ResolvedChangeFacts {
+  status: ChangeStatus
+  appliedAt?: string
+  batch?: string
+  author?: string
+  resolvedTarget?: string
+  evidenceSha256?: readonly string[]
+  resolution?: string
+}
+
+/**
+ * THE resolution of a change's execution facts (change-provenance): each fact is
+ * the change's own value when it carries one, else the value its changeset carries.
+ * A changeset written with inherited facts (it carries a frontmatter `batch`) gives
+ * an applied change without `resolved_target` its `target`; an older changeset, whose
+ * changes carry every fact, resolves exactly as before. Every reader of these facts
+ * (the log, the console records) goes through this function.
+ */
+export function resolveChangeFacts(change: ChangeLike, cs: Omit<ChangesetLike, 'changes' | 'path'>): ResolvedChangeFacts {
+  const status = (change.status ?? cs.status ?? 'proposed') as ChangeStatus
+  const inheriting = cs.batch !== undefined
+  const resolvedTarget =
+    change.resolved_target ?? (inheriting && status === 'applied' ? change.target : undefined)
+  const evidenceSha256 =
+    change.evidence_sha256 ?? (status === 'applied' ? inheritedEvidenceShas(change.evidence, cs.evidenceSha256) : undefined)
+  const facts: ResolvedChangeFacts = { status }
+  const appliedAt = change.applied_at ?? cs.appliedAt
+  const batch = change.batch ?? cs.batch
+  const author = change.author ?? cs.author
+  if (appliedAt !== undefined) facts.appliedAt = appliedAt
+  if (batch !== undefined) facts.batch = batch
+  if (author !== undefined) facts.author = author
+  if (resolvedTarget !== undefined) facts.resolvedTarget = resolvedTarget
+  if (evidenceSha256 !== undefined) facts.evidenceSha256 = evidenceSha256
+  if (change.resolution !== undefined) facts.resolution = change.resolution
+  return facts
+}
+
+/**
+ * An applied `set_fields` is logged as one `update_field` entry per field it set:
+ * the same id, hop, evidence and document index, the unit `model@slug&field`, and a
+ * `subIndex` that keeps the canonical order total. This is the ONE place the op is
+ * expanded; every consumer reads plain field units.
+ */
+function expandSetFields(change: LoggedChange): LoggedChange[] {
+  if (change.op !== 'set_fields' || !change.applied) return [change]
+  const entries = setFieldsEntries(change)
+  if (entries.length === 0) return [change]
+  const element = change.resolvedTarget ?? change.target
+  return entries.map((entry, subIndex) => {
+    const { from: _from, ...rest } = change
+    return {
+      ...rest,
+      op: 'update_field' as ChangeOp,
+      target: `${change.target}&${entry.field}`,
+      resolvedTarget: `${element}&${entry.field}`,
+      to: entry.to,
+      ...(entry.from !== undefined ? { from: entry.from } : {}),
+      subIndex,
+    }
+  })
+}
+
 function loggedChanges(cs: ChangesetLike): LoggedChange[] {
   const changesetStatus = (cs.status ?? 'proposed') as ChangeStatus
-  return cs.changes.map((change, index) => {
-    const status = (change.status ?? changesetStatus) as ChangeStatus
-    return {
+  return cs.changes.flatMap((change, index) => {
+    const facts = resolveChangeFacts(change, cs)
+    const status = facts.status
+    return expandSetFields({
       id: change.id,
       changeset: cs.path,
       index,
       status,
       changesetStatus,
-      appliedAt: change.applied_at ?? cs.appliedAt,
-      batch: change.batch,
-      author: change.author ?? cs.author,
+      appliedAt: facts.appliedAt,
+      batch: facts.batch,
+      author: facts.author,
       op: change.op as ChangeOp,
       target: change.target,
-      resolvedTarget: change.resolved_target,
+      resolvedTarget: facts.resolvedTarget,
       evidence: change.evidence,
       evidenceItems: splitEvidence(change.evidence),
-      evidenceSha256: change.evidence_sha256,
+      evidenceSha256: facts.evidenceSha256,
       extractedSlugs: change.extracted_slugs,
       from: change.from,
       to: change.to,
@@ -121,7 +204,7 @@ function loggedChanges(cs: ChangesetLike): LoggedChange[] {
       resolution: change.resolution,
       fields: change.fields,
       applied: status === 'applied',
-    }
+    })
   })
 }
 

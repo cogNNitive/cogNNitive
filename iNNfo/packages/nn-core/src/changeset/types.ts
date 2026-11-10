@@ -6,6 +6,7 @@
 /** Every operation a changeset change may carry. */
 export const CHANGE_OPS = [
   'update_field',
+  'set_fields',
   'add_element',
   'remove_element',
   'rename_element',
@@ -146,6 +147,16 @@ export interface ChangesetFrontmatter {
    */
   proposal_sha?: string
   applied_at?: string
+  /**
+   * Batch-wide execution fact: the batch identity (the changeset stem), inherited by
+   * every change that does not carry its own. Excluded from `proposal_sha`.
+   */
+  batch?: string
+  /**
+   * Batch-wide execution fact: cited workspace-relative path -> lowercase hex sha256
+   * of the file when the batch was applied. Excluded from `proposal_sha`.
+   */
+  evidence_sha256?: Record<string, string>
   /**
    * Why the changeset was `rejected` (a property of the proposal: failed validation or an
    * unresolved citation). Execution annotation, excluded from `proposal_sha`.
@@ -345,6 +356,150 @@ export function lineageChangeProblems(change: ChangeItem): string[] {
   }
 
   return problems
+}
+
+/** One field a `set_fields` change sets: its serialized value and optional precondition. */
+export interface SetFieldsEntry {
+  field: string
+  to: string
+  /** Expected current value; absent means no precondition on this field. */
+  from?: string
+}
+
+/** A problem of a `set_fields` change, with the code the proposal is refused with. */
+export interface SetFieldsProblem {
+  code: 'INVALID_OPERATION' | 'USE_UPDATE_ELEMENT_TEXT'
+  message: string
+}
+
+/**
+ * The top-level keys of a JSON object text, in order and WITH repetitions
+ * (`JSON.parse` keeps only the last of a repeated key). `text` must already be
+ * valid JSON.
+ */
+function jsonObjectKeys(text: string): string[] {
+  const keys: string[] = []
+  let depth = 0
+  let expectKey = false
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    if (ch === '"') {
+      let j = i + 1
+      while (j < text.length && text[j] !== '"') j += text[j] === '\\' ? 2 : 1
+      if (depth === 1 && expectKey) {
+        keys.push(JSON.parse(text.slice(i, j + 1)) as string)
+        expectKey = false
+      }
+      i = j
+      continue
+    }
+    if (ch === '{' || ch === '[') {
+      depth++
+      if (ch === '{' && depth === 1) expectKey = true
+    } else if (ch === '}' || ch === ']') {
+      depth--
+    } else if (ch === ',' && depth === 1) {
+      expectKey = true
+    }
+  }
+  return keys
+}
+
+type ParsedFieldMap =
+  | { ok: true; values: Map<string, string> }
+  | { ok: false; reason: string }
+
+/**
+ * Parses a `set_fields` `to` / `from` payload: a non-empty JSON object whose keys are
+ * field names (unique, no `&`/`@`) and whose values are serialized field values
+ * (a string, or a number or boolean written as its text).
+ */
+function parseFieldMap(raw: string | undefined, key: 'to' | 'from'): ParsedFieldMap {
+  if (raw === undefined) return { ok: false, reason: `set_fields requires "${key}"` }
+  const text = String(raw).trim()
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    return { ok: false, reason: `set_fields "${key}" must be a JSON object of field -> value` }
+  }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    return { ok: false, reason: `set_fields "${key}" must be a JSON object of field -> value` }
+  }
+  const keys = jsonObjectKeys(text)
+  if (keys.length === 0) return { ok: false, reason: `set_fields "${key}" must set at least one field` }
+  const seen = new Set<string>()
+  const values = new Map<string, string>()
+  for (const field of keys) {
+    if (seen.has(field)) return { ok: false, reason: `set_fields "${key}" repeats the field "${field}"` }
+    seen.add(field)
+    if (field.trim() === '' || field !== field.trim() || /[&@]/.test(field)) {
+      return { ok: false, reason: `set_fields "${key}" has an invalid field name "${field}"` }
+    }
+    const value = (parsed as Record<string, unknown>)[field]
+    if (typeof value === 'string') values.set(field, value)
+    else if (typeof value === 'number' || typeof value === 'boolean') values.set(field, String(value))
+    else return { ok: false, reason: `set_fields "${key}".${field} must be a serialized value (a string)` }
+  }
+  return { ok: true, values }
+}
+
+/**
+ * Structural problems of one `set_fields` change. `set_fields` sets several fields of
+ * one element (`target` `model@element`, no `&field`) from one evidence: `to` is a JSON
+ * object field -> serialized value, and the optional `from` holds the expected current
+ * value of a subset of the keys of `to`. A malformed payload is `INVALID_OPERATION`; the
+ * key `description` is `USE_UPDATE_ELEMENT_TEXT` (the prose body is not a field).
+ */
+export function setFieldsProblems(change: Pick<ChangeItem, 'op' | 'target' | 'to' | 'from'>): SetFieldsProblem[] {
+  if (change.op !== 'set_fields') return []
+  const problems: SetFieldsProblem[] = []
+  const target = String(change.target ?? '')
+  const at = target.indexOf('@')
+  if (at <= 0 || target.slice(at + 1).trim() === '' || target.includes('&')) {
+    problems.push({ code: 'INVALID_OPERATION', message: 'set_fields target must be model@element (no &field)' })
+  }
+  const to = parseFieldMap(change.to, 'to')
+  if (!to.ok) {
+    problems.push({ code: 'INVALID_OPERATION', message: to.reason })
+    return problems
+  }
+  if (change.from !== undefined) {
+    const from = parseFieldMap(change.from, 'from')
+    if (!from.ok) problems.push({ code: 'INVALID_OPERATION', message: from.reason })
+    else {
+      for (const field of from.values.keys()) {
+        if (!to.values.has(field)) {
+          problems.push({ code: 'INVALID_OPERATION', message: `set_fields "from" names "${field}", which "to" does not set` })
+        }
+      }
+    }
+  }
+  for (const field of to.values.keys()) {
+    if (field.toLowerCase() === 'description') {
+      problems.push({
+        code: 'USE_UPDATE_ELEMENT_TEXT',
+        message: 'the element prose is not a field; use update_element_text on the bare element target',
+      })
+    }
+  }
+  return problems
+}
+
+/**
+ * The fields a `set_fields` change sets, in the order `to` writes them, each with its
+ * precondition from `from`. Empty for a malformed change (see `setFieldsProblems`).
+ */
+export function setFieldsEntries(change: Pick<ChangeItem, 'op' | 'to' | 'from'>): SetFieldsEntry[] {
+  if (change.op !== 'set_fields') return []
+  const to = parseFieldMap(change.to, 'to')
+  if (!to.ok) return []
+  const from = change.from !== undefined ? parseFieldMap(change.from, 'from') : undefined
+  if (from && !from.ok) return []
+  return [...to.values].map(([field, value]) => {
+    const expected = from?.ok ? from.values.get(field) : undefined
+    return expected === undefined ? { field, to: value } : { field, to: value, from: expected }
+  })
 }
 
 /** The closed verdict values of a `review_gate` change (changeset-review-gate). */

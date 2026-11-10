@@ -1247,6 +1247,22 @@ notes:: "note ${n}"
     assert.doesNotMatch(html, /nn-changes-omitted/)
   })
 
+  it('a set_fields Change record lists each field, never the raw JSON payload', async () => {
+    await seed(0)
+    const cs =
+      `---\nspec_version: "V_0-4-0"\nlevel: 3\nparent_spec:\n  name: changes\n  url: "https://example.test/changes/spec_NN.md"\nblueprint_version: "V_0-9-0"\nstatus: applied\ntitle: "C"\n---\n\n# NN Change\n` +
+      `\n## NN Change: c-01\nop:: set_fields\ntarget:: business@enterprise\nfrom:: {"tier":"basic"}\nto:: {"tier":"gold","owner":"Ana"}\nevidence:: decision\n`
+    await writeFile(join(root, 'changes', 'c1_changes_NN.md'), cs, 'utf-8')
+    const { slot } = await exportDomain()
+    const record = slot.elements.find((e) => e.modelId === 'changes' && e.fields.op === 'set_fields')
+    assert.ok(record, 'the set_fields change is materialized')
+    assert.equal(record.fields.to, undefined, 'no raw JSON to field')
+    assert.equal(record.fields.from, undefined, 'no raw JSON from field')
+    assert.equal(record.fields['to.tier'], 'gold')
+    assert.equal(record.fields['to.owner'], 'Ana')
+    assert.equal(record.fields['from.tier'], 'basic')
+  })
+
   it('--no-changes omits the history, records changesOmitted and injects the banner', async () => {
     await seed(3)
     assertOmitted(await exportDomain(['--no-changes']), 3)

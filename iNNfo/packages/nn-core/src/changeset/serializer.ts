@@ -60,11 +60,14 @@ function formatChangeItem(item: ChangeItem): string {
   lines.push(`op:: ${item.op}`)
   lines.push(`target:: ${item.target}`)
 
+  // A `set_fields` payload is a one-line JSON object: written as is, never re-quoted.
+  const payload = (val: string): string =>
+    item.op === 'set_fields' && !val.includes('\n') && val.trim().startsWith('{') ? val : formatPropertyValue(val)
   if (item.from !== undefined) {
-    lines.push(`from:: ${formatPropertyValue(item.from)}`)
+    lines.push(`from:: ${payload(item.from)}`)
   }
   if (item.to !== undefined) {
-    lines.push(`to:: ${formatPropertyValue(item.to)}`)
+    lines.push(`to:: ${payload(item.to)}`)
   }
   if (item.base_hash !== undefined) {
     lines.push(`base_hash:: ${item.base_hash}`)
@@ -111,7 +114,8 @@ function formatChangeItem(item: ChangeItem): string {
 }
 
 /**
- * Rewrites the frontmatter execution keys (`status`, `resolution`, `applied_at`, `models`) in place,
+ * Rewrites the frontmatter execution keys (`FRONTMATTER_EXECUTION_KEYS`: `status`, `resolution`,
+ * `applied_at`, `batch`, `models`, `evidence_sha256`) in place,
  * leaving every other frontmatter line byte-identical.
  */
 function rewriteFrontmatter(
@@ -158,6 +162,13 @@ function rewriteFrontmatter(
   upsert(
     'applied_at',
     fm.applied_at !== undefined ? [`applied_at: ${fm.applied_at}`] : null,
+  )
+  upsert('batch', fm.batch !== undefined ? [`batch: ${fm.batch}`] : null)
+  upsert(
+    'evidence_sha256',
+    fm.evidence_sha256 !== undefined && Object.keys(fm.evidence_sha256).length > 0
+      ? stringifyYaml({ evidence_sha256: fm.evidence_sha256 }).trim().split(/\r?\n/)
+      : null,
   )
   upsert(
     'models',

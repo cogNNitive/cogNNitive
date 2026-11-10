@@ -1,6 +1,7 @@
 export * from './types.js'
 export * from './gates.js'
 export * from './evidence.js'
+export * from './execution-facts.js'
 export * from './resolved-target.js'
 export * from './utils.js'
 export * from './hasher.js'

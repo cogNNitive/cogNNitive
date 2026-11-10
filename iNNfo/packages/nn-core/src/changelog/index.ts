@@ -24,6 +24,11 @@ export interface LoggedChange {
   readonly changeset: string
   /** Zero-based document index of the change inside the changeset. */
   readonly index: number
+  /**
+   * An applied `set_fields` is logged as one `update_field` entry per field it set
+   * (same id, hop, evidence and position); this is the field's position in `to`.
+   */
+  readonly subIndex?: number
   /** The change's own status, else its changeset's status. */
   readonly status: ChangeStatus
   readonly changesetStatus: ChangeStatus

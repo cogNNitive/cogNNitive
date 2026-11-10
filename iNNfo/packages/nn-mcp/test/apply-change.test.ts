@@ -10,6 +10,7 @@ import {
   verifyProposalSha,
 } from '@cognnitive/nn-core'
 import type { ChangesetDocument, ChangeItem } from '@cognnitive/nn-core'
+import { resolvedFacts } from './helpers/resolved-facts'
 
 describe('Two-Phase Changeset Apply Engine (Phase 5)', () => {
   const csRoot = join(import.meta.dirname!, '..', 'temp-test-changeset-apply')
@@ -260,8 +261,9 @@ target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline
       base_version: 'V_0-1-0',
       result_version: 'V_0-1-1',
     })
-    expect(updatedCs.changes[0].status).toBe('applied')
-    expect(updatedCs.changes[0].resolution).toBeDefined()
+    expect(resolvedFacts(updatedCs).status).toBe('applied')
+    // A change that applied carries no resolution: only a failure explains itself.
+    expect(updatedCs.changes[0].resolution).toBeUndefined()
   })
 
   it('D20 removed: apply writes NO companion citation on the model and no replaced_sources', async () => {
@@ -421,7 +423,7 @@ target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline
     expect(live).toContain('target_year:: 2030')
 
     const annotated = parseChangeset(await readFile(csFile, 'utf-8'))
-    expect(annotated.changes[0].status).toBe('applied')
+    expect(resolvedFacts(annotated).status).toBe('applied')
   })
 
   it('a clear whose from does not match is a conflict with a resolution and writes nothing', async () => {
@@ -446,7 +448,7 @@ target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline
     expect(live).toContain('statement:: Accelerate green energy')
 
     const annotated = parseChangeset(await readFile(csFile, 'utf-8'))
-    expect(annotated.changes[0].status).toBe('conflict')
+    expect(resolvedFacts(annotated).status).toBe('conflict')
     expect(annotated.changes[0].resolution).toContain('PRECONDITION_FAILED')
   })
 
@@ -518,7 +520,7 @@ target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline
       // Changeset document annotated
       const annotated = parseChangeset(await readFile(csFile, 'utf-8'))
       expect(annotated.frontmatter.status).toBe('partially_applied')
-      expect(annotated.changes[0].status).toBe('applied')
+      expect(resolvedFacts(annotated).status).toBe('applied')
       expect(annotated.changes[1].status).toBe('conflict')
       expect(annotated.changes[1].resolution).toContain('PRECONDITION_FAILED')
     })
@@ -553,7 +555,7 @@ target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline
       // Changeset annotated with conflict status
       const annotated = parseChangeset(await readFile(csFile, 'utf-8'))
       expect(annotated.frontmatter.status).toBe('conflict')
-      expect(annotated.changes[0].status).toBe('conflict')
+      expect(resolvedFacts(annotated).status).toBe('conflict')
     })
 
     it('untouched models in mixed batch emit no version bump and no snapshot', async () => {
@@ -722,7 +724,7 @@ type:: binary
       expect(live).not.toContain('| Vision | allow |')
 
       const annotated = parseChangeset(await readFile(csFile, 'utf-8'))
-      expect(annotated.changes[0].resolution).toContain('cascaded 1 matrix cell')
+      expect(resolvedFacts(annotated).status).toBe('applied')
     })
 
     it('update_matrix_cell resolves a matrix by its display name (with spaces)', async () => {
@@ -834,7 +836,7 @@ statement:: Depends on [[strategy@vision]]
       expect(live).toContain('## NN Work: Vision')
 
       const annotated = parseChangeset(await readFile(csFile, 'utf-8'))
-      expect(annotated.changes[0].status).toBe('conflict')
+      expect(resolvedFacts(annotated).status).toBe('conflict')
       expect(annotated.changes[0].resolution).toContain('REFERENCED_BY')
     })
   })

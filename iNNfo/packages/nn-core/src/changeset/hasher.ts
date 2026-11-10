@@ -15,6 +15,20 @@ export const EXECUTION_FACT_KEYS = [
 export type ExecutionFactKey = (typeof EXECUTION_FACT_KEYS)[number]
 
 /**
+ * The frontmatter keys apply writes: execution facts of the whole batch, never
+ * proposal input. The seal covers only the changes (and the provenance markers),
+ * so none of these is part of `proposal_sha`.
+ */
+export const FRONTMATTER_EXECUTION_KEYS = [
+  'status',
+  'resolution',
+  'applied_at',
+  'batch',
+  'models',
+  'evidence_sha256',
+] as const
+
+/**
  * List of normative proposal property keys included in cryptographic proposal_sha.
  * Execution annotations (status, resolution, resolved_slug, resolved_target,
  * evidence_sha256, applied_at, batch) and the frontmatter execution fields

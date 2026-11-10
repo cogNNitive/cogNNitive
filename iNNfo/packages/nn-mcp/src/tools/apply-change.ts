@@ -33,13 +33,19 @@ import {
   resolvedTarget,
   axisSlug,
   splitEvidence,
-  parseCitation,
   slugifyHeading,
   isChangesetPath,
   isSidecarName,
   reviewGateProblems,
   gateDeclarationProblems,
   reviewGateProvenanceProblems,
+  setFieldsProblems,
+  setFieldsEntries,
+  compactExecutionFacts,
+  evidencePath,
+  evidencePaths,
+  changesetLikeOf,
+  resolveChangeFacts,
 } from '@cognnitive/nn-core'
 import type {
   SpecDocument,
@@ -361,8 +367,9 @@ async function artifactAlreadyRecorded(rootDir: string, rel: string): Promise<bo
     } catch {
       continue
     }
+    const changeset = changesetLikeOf(`changes/${name}`, doc)
     for (const change of doc.changes) {
-      if (change.op !== 'produce_artifact' || change.status !== 'applied') continue
+      if (change.op !== 'produce_artifact' || resolveChangeFacts(change, changeset).status !== 'applied') continue
       if (change.target.replace(/\\/g, '/') === rel) return true
     }
   }
@@ -461,7 +468,7 @@ async function evidenceShas(rootDir: string, evidence: string | undefined): Prom
   for (const item of items) {
     const lower = item.toLowerCase()
     if (lower === 'decision' || lower === 'unknown') return undefined
-    const filePath = parseCitation(item)?.filePath ?? item.split('@')[0]
+    const filePath = evidencePath(item) ?? item
     try {
       const bytes = await readFile(join(rootDir, filePath))
       shas.push(createHash('sha256').update(bytes).digest('hex'))
@@ -566,6 +573,14 @@ export async function executeChangesetApply(
       }
     }
 
+    /** The target each change was proposed with (apply rewrites targets in memory). */
+    const recordedTargets = new Map(csDoc.changes.map((c) => [c.id, c.target]))
+    /**
+     * The write-back: one block per recorded change, carrying only the execution facts
+     * that differ from the batch-wide ones in the frontmatter (change-provenance).
+     */
+    const writeBack = (doc: ChangesetDocument): string => serializeChangeset(compactExecutionFacts(doc, recordedTargets))
+
     // Persist a rejection that is intrinsic to the proposal (a malformed operation or
     // add_model, a mutation that can never apply as written). The write-back starts from
     // the raw text, so in-memory execution annotations of this run never leak into the
@@ -573,6 +588,13 @@ export async function executeChangesetApply(
     // validation) and environment or integrity failures (tamper, lock, immutability,
     // missing model or bluepriNNt) are returned as `rejected` but NOT recorded: the file
     // stays `proposed` and can be retried once the workspace changes.
+    /**
+     * A `set_fields` change is applied as one `update_field` sub-item per field (id
+     * `<id>&<field>`), so the precondition, staleness, impact and mutation paths are
+     * the update_field ones. `parentOf` maps a sub-item back to its recorded change.
+     */
+    const parentOf = new Map<string, string>()
+    const recordedIdOf = (id: string): string => parentOf.get(id) ?? id
     const recordRejection = async (
       errors: NonNullable<ApplyChangeResult['errors']>,
       changeId?: string,
@@ -588,12 +610,13 @@ export async function executeChangesetApply(
         fresh.frontmatter.status = 'rejected'
         fresh.frontmatter.resolution = reason
         fresh.frontmatter.proposal_sha = csDoc.frontmatter.proposal_sha
-        const target = changeId ? fresh.changes.find((c) => c.id === changeId) : undefined
+        const recordedId = changeId ? recordedIdOf(changeId) : undefined
+        const target = recordedId ? fresh.changes.find((c) => c.id === recordedId) : undefined
         if (target) {
           target.status = 'rejected'
           target.resolution = reason
         }
-        const text = serializeChangeset(fresh)
+        const text = writeBack(fresh)
         if (!altersNormativeLines(rawChangeset, text)) {
           await writeFile(resolvedChangesetPath, text, 'utf-8')
         }
@@ -1185,7 +1208,7 @@ export async function executeChangesetApply(
         return rejectProposal(
           'INVALID_OPERATION',
           change.target,
-          `change "${change.id}": a change must not carry inline fields; emit one update_field change per field`,
+          `change "${change.id}": a change must not carry inline fields; set them with one set_fields change for the fields that share one evidence, or one update_field change per field whose evidence differs`,
           change.id,
         )
       }
@@ -1202,6 +1225,72 @@ export async function executeChangesetApply(
           change.id,
         )
       }
+    }
+
+    // set_fields: the payload is checked defensively (propose_changeset already did),
+    // then the change is expanded into one update_field sub-item per field.
+    for (const change of csDoc.changes) {
+      const problem = setFieldsProblems(change)[0]
+      if (problem) {
+        return rejectProposal(problem.code, change.target, `change "${change.id}": ${problem.message}`, change.id)
+      }
+    }
+    /** The changes as recorded in the file: one entry per `## NN Change` block. */
+    const recordedChanges = csDoc.changes
+    /** set_fields id -> its sub-item ids, in `to` order. */
+    const setFieldsParts = new Map<string, string[]>()
+    csDoc.changes = csDoc.changes.flatMap((change): ChangeItem[] => {
+      if (change.op !== 'set_fields') return [change]
+      const subs = setFieldsEntries(change).map((entry): ChangeItem => {
+        const id = `${change.id}&${entry.field}`
+        parentOf.set(id, change.id)
+        return {
+          id,
+          op: 'update_field',
+          target: `${change.target}&${entry.field}`,
+          to: entry.to,
+          ...(entry.from !== undefined ? { from: entry.from } : {}),
+          ...(change.base_hash !== undefined ? { base_hash: change.base_hash } : {}),
+          ...(change.concept !== undefined ? { concept: change.concept } : {}),
+          ...(change.author !== undefined ? { author: change.author } : {}),
+          evidence: change.evidence,
+        }
+      })
+      setFieldsParts.set(change.id, subs.map((sub) => sub.id))
+      return subs
+    })
+    /**
+     * The document as it is written back: every recorded change, a set_fields folded
+     * back from its sub-items (conflict when any sub-item conflicted, its element
+     * address as resolved_target), so the file keeps ONE block per change.
+     */
+    const recordedDocument = (): ChangesetDocument => {
+      const current = new Map(csDoc.changes.map((c) => [c.id, c]))
+      const changes = recordedChanges.map((recorded): ChangeItem => {
+        const subIds = setFieldsParts.get(recorded.id)
+        if (!subIds) return current.get(recorded.id) ?? recorded
+        const subs = subIds.map((id) => current.get(id)).filter((c): c is ChangeItem => c !== undefined)
+        const folded: ChangeItem = { ...recorded }
+        for (const key of ['status', 'resolution', 'resolved_target', 'evidence_sha256', 'applied_at', 'batch'] as const) {
+          delete folded[key]
+        }
+        const failed = subs.find((c) => c.status !== undefined && c.status !== 'applied')
+        const first = subs[0]
+        if (failed) {
+          folded.status = failed.status
+          if (failed.resolution !== undefined) folded.resolution = failed.resolution
+        } else if (first?.status === 'applied') {
+          folded.status = 'applied'
+          folded.resolution = first.resolution
+          const unit = first.resolved_target
+          if (unit) folded.resolved_target = unit.slice(0, unit.lastIndexOf('&'))
+          if (first.evidence_sha256) folded.evidence_sha256 = first.evidence_sha256
+        }
+        if (first?.applied_at !== undefined) folded.applied_at = first.applied_at
+        if (first?.batch !== undefined) folded.batch = first.batch
+        return folded
+      })
+      return { ...csDoc, changes }
     }
 
     // produce_artifact pre-checks: the target is a safe, existing workspace path that is
@@ -1674,6 +1763,20 @@ export async function executeChangesetApply(
       blockedChanges,
     )
 
+    // set_fields is all or nothing: one conflicted sub-item conflicts every sibling.
+    for (const subIds of setFieldsParts.values()) {
+      const failed = conflictedSubset.find((c) => subIds.includes(c.id))
+      if (!failed) continue
+      const diag = conflictDiagnostics.get(failed.id)
+      for (let i = cleanSubset.length - 1; i >= 0; i--) {
+        const sibling = cleanSubset[i]!
+        if (!subIds.includes(sibling.id)) continue
+        cleanSubset.splice(i, 1)
+        conflictedSubset.push(sibling)
+        if (diag) conflictDiagnostics.set(sibling.id, diag)
+      }
+    }
+
     // All-Conflicted Exit Guard (D10): Zero model writes, zero snapshots
     const actionableClean = cleanSubset.filter((c) => !isNonMutating(c.op))
     if (actionableClean.length === 0 && conflictedSubset.length > 0) {
@@ -1685,7 +1788,8 @@ export async function executeChangesetApply(
       }
       csDoc.frontmatter.status = 'conflict'
       csDoc.frontmatter.applied_at = new Date().toISOString()
-      const serializedCs = serializeChangeset(csDoc)
+      csDoc.frontmatter.batch = changesetStem
+      const serializedCs = writeBack(recordedDocument())
       if (altersNormativeLines(rawChangeset, serializedCs)) {
         return {
           success: false,
@@ -1712,7 +1816,7 @@ export async function executeChangesetApply(
         status: 'conflict',
         models: {},
         appliedCount: 0,
-        conflictedCount: conflictedSubset.length,
+        conflictedCount: new Set(conflictedSubset.map((c) => recordedIdOf(c.id))).size,
         errors: Array.from(conflictDiagnostics.values()).map((d) => ({
           path: relChangesetPath,
           message: d.message,
@@ -2051,7 +2155,7 @@ export async function executeChangesetApply(
     // Proposal immutability (D1): the write-back must keep every normative line of every
     // change block byte-identical to the input. A difference aborts before Phase 2:
     // nothing is written and the lock is released (the surrounding finally).
-    if (altersNormativeLines(rawChangeset, serializeChangeset(csDoc))) {
+    if (altersNormativeLines(rawChangeset, writeBack(recordedDocument()))) {
       return {
         success: false,
         changesetPath: relChangesetPath,
@@ -2218,8 +2322,10 @@ export async function executeChangesetApply(
       .map((entry) => entry.modelSlug)
 
     // Annotate changeset document
-    const totalActionable = csDoc.changes.filter((c) => !isNonMutating(c.op)).length
-    const cleanAppliedCount = cleanSubset.filter((c) => !isNonMutating(c.op)).length
+    const totalActionable = recordedChanges.filter((c) => !isNonMutating(c.op)).length
+    const cleanAppliedCount = new Set(
+      cleanSubset.filter((c) => !isNonMutating(c.op)).map((c) => recordedIdOf(c.id)),
+    ).size
     const overallStatus: ChangeStatus = cleanAppliedCount === totalActionable ? 'applied' : 'partially_applied'
 
     const batchId = displayStem(basename(resolvedChangesetPath))
@@ -2234,15 +2340,17 @@ export async function executeChangesetApply(
       Number.isFinite(latestMs) && latestMs >= nowMs
         ? new Date(latestMs + 1).toISOString()
         : new Date(nowMs).toISOString()
+    // Batch-wide facts are written once, in the frontmatter; every change inherits
+    // them (`compactExecutionFacts` drops each equal per-change copy at write-back).
     csDoc.frontmatter.applied_at = appliedAt
-    for (const change of csDoc.changes) {
-      change.applied_at = appliedAt
-      change.batch = batchId
-    }
+    csDoc.frontmatter.batch = batchId
+    const evidenceMap: Record<string, string> = {}
     // Execution facts: the canonical unit address and the evidence anchors, written
     // only for changes this run applied. Apply always overwrites them, so a proposal
     // that pre-carried them cannot influence the log.
     for (const change of csDoc.changes) {
+      delete change.applied_at
+      delete change.batch
       if (change.status !== 'applied') {
         delete change.resolved_target
         delete change.evidence_sha256
@@ -2259,11 +2367,17 @@ export async function executeChangesetApply(
         else delete change.resolved_target
       }
       const shas = await evidenceShas(rootDir, change.evidence)
-      if (shas) change.evidence_sha256 = shas
-      else delete change.evidence_sha256
+      if (shas) {
+        change.evidence_sha256 = shas
+        evidencePaths(change.evidence)?.forEach((path, i) => {
+          evidenceMap[path] ??= shas[i]!
+        })
+      } else delete change.evidence_sha256
     }
+    if (Object.keys(evidenceMap).length > 0) csDoc.frontmatter.evidence_sha256 = evidenceMap
+    else delete csDoc.frontmatter.evidence_sha256
 
-    const serializedCs = serializeChangeset(csDoc)
+    const serializedCs = writeBack(recordedDocument())
     try {
       const csStaging = join(dirname(resolvedChangesetPath), `${basename(resolvedChangesetPath)}.tmp`)
       await writeAndSync(csStaging, serializedCs)
@@ -2280,7 +2394,7 @@ export async function executeChangesetApply(
       status: overallStatus,
       models: modelsTransitionMap,
       appliedCount: cleanAppliedCount,
-      conflictedCount: conflictedSubset.length,
+      conflictedCount: new Set(conflictedSubset.map((c) => recordedIdOf(c.id))).size,
       model: loadedModels.size === 1 ? loadedModels.values().next().value?.model : undefined,
       newPath: loadedModels.size === 1 ? loadedModels.values().next().value?.filePath : undefined,
       ...(createdModelIds.length > 0 ? { createdModels: createdModelIds } : {}),
@@ -2370,7 +2484,7 @@ async function synthesizeAndExecuteChangeset(
           path: 'fields',
           code: 'INVALID_OPERATION',
           message:
-            'INVALID_OPERATION: add_element must not carry inline fields; call update_field once per field (or propose a changeset)',
+            'INVALID_OPERATION: add_element must not carry inline fields; call update_field once per field, or propose a changeset with one set_fields change for the fields that share one evidence',
         },
       ],
     }
@@ -2534,6 +2648,22 @@ export async function applyChange(
           code: 'ADD_MODEL_REQUIRES_CHANGESET',
           message:
             'ADD_MODEL_REQUIRES_CHANGESET: add_model is only valid inside a changeset; use propose_changeset or init_knowledge',
+        },
+      ],
+    }
+  }
+
+  // set_fields is a recorded multi-field change: a bare call has the single-field
+  // update_field, so the op exists only inside a changeset.
+  if (op === 'set_fields') {
+    return {
+      success: false,
+      errors: [
+        {
+          path: 'op',
+          code: 'SET_FIELDS_REQUIRES_CHANGESET',
+          message:
+            'SET_FIELDS_REQUIRES_CHANGESET: set_fields is only valid inside a changeset; use propose_changeset, or update_field for one field',
         },
       ],
     }
