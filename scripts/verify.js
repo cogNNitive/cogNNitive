@@ -329,7 +329,6 @@ const SLOW_SUITES = new Set([
   'scripts/export-console.test.mjs',
   'scripts/generate-docs-facts.test.mjs',
   'scripts/guard-template-immutability.test.js',
-  'scripts/lib/batch-status.test.mjs',
   'scripts/nn-session.test.mjs',
   'scripts/pre-push-check.test.js',
   'scripts/release/run-release.test.js',

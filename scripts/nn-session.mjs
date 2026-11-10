@@ -165,21 +165,24 @@ function removeNodeModulesLinks(dir) {
 }
 
 /**
- * Base ref for a new session: `origin/dev` after a best-effort fetch, so a stale
- * local `dev` in the primary never becomes the session's starting point. Falls
- * back to local `dev` only when `origin/dev` does not exist (no remote).
+ * Base ref for a new session: `origin/main` after a best-effort fetch, so a stale
+ * local `main` in the primary never becomes the session's starting point. Falls
+ * back to local `main` only when `origin/main` does not exist (no remote).
  */
 function sessionBase(root) {
   tryGit(['fetch', 'origin'], root) // best-effort; offline is fine
-  return tryGit(['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/dev'], root).ok ? 'origin/dev' : 'dev'
+  return tryGit(['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main'], root).ok ? 'origin/main' : 'main'
 }
+
+/** Refs a session branch counts as landed in (`main` may be stale locally). */
+const INTEGRATION_REFS = ['main', 'origin/main']
 
 function start(argv) {
   const root = repoRoot(argv)
   const id = sessionId(argv)
   const target = worktreePath(root, id)
   if (!existsSync(target)) {
-    // --no-track: a session branch must not track origin/dev (a bare `git push` would target dev).
+    // --no-track: a session branch must not track origin/main (a bare `git push` would target main).
     git(['worktree', 'add', '--no-track', '-b', `session/${id}`, target, sessionBase(root)], root)
     if (!argv.includes('--no-install')) {
       hydrateDependencies(target, root, argv.includes('--full-install'))
@@ -229,29 +232,16 @@ function status(argv) {
   const branch = tryGit(['symbolic-ref', '--short', 'HEAD'], root).out || '(detached)'
   const dirty = tryGit(['status', '--porcelain'], root).out
   const dirtyCount = dirty ? dirty.split(/\r?\n/).filter(Boolean).length : 0
-  const dev = (tryGit(['rev-list', '--left-right', '--count', 'origin/dev...dev'], root).out || '? ?').split(/\s+/)
-  const main = (tryGit(['rev-list', '--left-right', '--count', 'origin/main...origin/dev'], root).out || '? ?').split(/\s+/)
+  const main = (tryGit(['rev-list', '--left-right', '--count', 'origin/main...main'], root).out || '? ?').split(/\s+/)
   const worktrees = tryGit(['worktree', 'list'], root).out
   const stash = tryGit(['reflog', 'show', 'refs/stash'], root).out
 
   console.log('🌿 nn-session status')
   console.log(`- primary: ${branch} @ ${head} · ${dirtyCount === 0 ? 'clean' : `${dirtyCount} dirty`}`)
-  console.log(`- origin/dev...dev: ${dev[0]} behind · ${dev[1]} ahead`)
-  console.log(`- pending (origin/main..origin/dev): ${main[1]} commit(s)`)
+  console.log(`- origin/main...main: ${main[0]} behind · ${main[1]} ahead`)
   console.log('- worktrees:')
   for (const line of (worktrees || '').split(/\r?\n/).filter(Boolean)) console.log(`    ${line}`)
   console.log(`- stash: ${stash ? `${stash.split(/\r?\n/).filter(Boolean).length} entry(ies)` : 'none'}`)
-}
-
-/**
- * Read-only precheck for the dev -> main batch (skill §4-pre). Informational:
- * exits 0 unless `--strict` is given and the verdict is not READY.
- */
-async function batchStatus(argv) {
-  const { collectBatchStatus, renderBatchStatus } = await import('./lib/batch-status.mjs')
-  const result = collectBatchStatus({ root: repoRoot(argv) })
-  console.log(argv.includes('--json') ? JSON.stringify(result, null, 2) : renderBatchStatus(result))
-  if (argv.includes('--strict') && result.verdict !== 'READY') process.exitCode = 1
 }
 
 function stop(argv) {
@@ -263,12 +253,11 @@ function stop(argv) {
   const branchExists = tryGit(['rev-parse', '--verify', '--quiet', branch], root).ok
   const isIn = (ref) => tryGit(['merge-base', '--is-ancestor', branch, ref], root).ok
 
-  // Refuse to delete a branch with unique work. (`dev` may be stale locally
-  // while `origin/dev` already carries the branch, so check both.)
-  if (branchExists && !isIn('dev') && !isIn('origin/dev')) {
-    const bases = ['dev', 'origin/dev'].filter((ref) => tryGit(['rev-parse', '--verify', '--quiet', ref], root).ok)
+  // Refuse to delete a branch with unique work.
+  if (branchExists && !INTEGRATION_REFS.some(isIn)) {
+    const bases = INTEGRATION_REFS.filter((ref) => tryGit(['rev-parse', '--verify', '--quiet', ref], root).ok)
     const unique = tryGit(['log', '--oneline', branch, '--not', ...bases], root).out
-    console.error(`refusing: ${branch} has commits not in dev or origin/dev:\n${unique}`)
+    console.error(`refusing: ${branch} has commits not in main or origin/main:\n${unique}`)
     process.exit(1)
   }
 
@@ -325,7 +314,7 @@ function sweep(argv) {
       const target = wm[1]
       const branch = bm[1]
       const id = branch.replace(/^session\//, '')
-      if (isAncestor(branch, 'dev') || isAncestor(branch, 'origin/dev') || isAncestor(branch, 'main')) {
+      if (INTEGRATION_REFS.some((ref) => isAncestor(branch, ref))) {
         console.log(`sweeping merged session worktree: ${branch} (${target})`)
         stop(['stop', '--id', id, '--root', root])
       }
@@ -336,7 +325,7 @@ function sweep(argv) {
   const rawBranches = tryGit(['branch', '--list', 'session/*'], root).out
   const branches = rawBranches.split(/\r?\n/).map((b) => b.trim().replace(/^\*\s*/, '')).filter(Boolean)
   for (const branch of branches) {
-    if (isAncestor(branch, 'dev') || isAncestor(branch, 'origin/dev') || isAncestor(branch, 'main')) {
+    if (INTEGRATION_REFS.some((ref) => isAncestor(branch, ref))) {
       console.log(`deleting merged local branch: ${branch}`)
       tryGit(['branch', '-d', branch], root)
     }
@@ -347,10 +336,9 @@ const cmd = process.argv[2]
 if (cmd === 'start') start(process.argv.slice(2))
 else if (cmd === 'list') list(process.argv.slice(2))
 else if (cmd === 'status') status(process.argv.slice(2))
-else if (cmd === 'batch-status') await batchStatus(process.argv.slice(2))
 else if (cmd === 'stop') stop(process.argv.slice(2))
 else if (cmd === 'sweep') sweep(process.argv.slice(2))
 else {
-  console.error('usage: nn-session.mjs start|list|status|batch-status|stop|sweep [--id <id>] [--no-install] [--full-install] [--root <path>] [--json] [--strict]')
+  console.error('usage: nn-session.mjs start|list|status|stop|sweep [--id <id>] [--no-install] [--full-install] [--root <path>]')
   process.exit(2)
 }
