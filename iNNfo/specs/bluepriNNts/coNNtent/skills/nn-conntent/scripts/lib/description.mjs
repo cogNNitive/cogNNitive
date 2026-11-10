@@ -15,6 +15,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+export const CHAPTERS_START = '<!-- chapters:start -->';
+export const CHAPTERS_END = '<!-- chapters:end -->';
+
 /**
  * Formats seconds as `MM:SS`, or `H:MM:SS` when the value reaches one hour.
  * @param {number} totalSeconds
@@ -54,6 +57,55 @@ export function buildChapters(manifest) {
  */
 export function chapterLines(manifest) {
   return buildChapters(manifest).map((c) => `${c.timecode} ${c.title}`);
+}
+
+/**
+ * Builds the chapter block wrapped in markers.
+ * @param {{ fps?: number, tracks?: { scenes?: Array<any> } }} manifest
+ * @returns {string}
+ */
+export function renderChapterBlock(manifest) {
+  const lines = chapterLines(manifest);
+  return `${CHAPTERS_START}\n${lines.join('\n')}\n${CHAPTERS_END}`;
+}
+
+/**
+ * Updates description markdown text: seeds the chapter block or replaces the
+ * content between the markers, leaving all surrounding text untouched.
+ *
+ * @param {string} existingText
+ * @param {{ fps?: number, tracks?: { scenes?: Array<any> } }} manifest
+ * @returns {string}
+ */
+export function updateDescriptionText(existingText, manifest) {
+  const block = renderChapterBlock(manifest);
+  if (!existingText || !existingText.trim()) {
+    return block + '\n';
+  }
+  const startIdx = existingText.indexOf(CHAPTERS_START);
+  const endIdx = existingText.indexOf(CHAPTERS_END);
+  if (startIdx !== -1 && endIdx !== -1 && endIdx >= startIdx) {
+    const before = existingText.slice(0, startIdx);
+    const after = existingText.slice(endIdx + CHAPTERS_END.length);
+    return before + block + after;
+  }
+  return existingText.trimEnd() + '\n\n' + block + '\n';
+}
+
+/**
+ * Writes or updates the description file atomically by rename.
+ *
+ * @param {string} descriptionPath
+ * @param {{ fps?: number, tracks?: { scenes?: Array<any> } }} manifest
+ * @returns {string} The written text
+ */
+export function writeDescriptionFile(descriptionPath, manifest) {
+  const existing = fs.existsSync(descriptionPath) ? fs.readFileSync(descriptionPath, 'utf8') : '';
+  const updated = updateDescriptionText(existing, manifest);
+  const tmp = descriptionPath + '.tmp';
+  fs.writeFileSync(tmp, updated, 'utf8');
+  fs.renameSync(tmp, descriptionPath);
+  return updated;
 }
 
 /**

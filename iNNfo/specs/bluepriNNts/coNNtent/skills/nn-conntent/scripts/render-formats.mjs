@@ -173,7 +173,7 @@ export async function renderFormats({
       variants.push({ format: name, width: preset.width, height: preset.height, outputPath, skipped: true });
       continue;
     }
-    // An existing output is kept unless --force: a variant may already be published.
+    // An existing output is kept unless --force: a variant may already be delivered.
     if (!force && fs.existsSync(outputPath)) {
       variants.push({ format: name, width: preset.width, height: preset.height, outputPath, skipped: true });
       continue;

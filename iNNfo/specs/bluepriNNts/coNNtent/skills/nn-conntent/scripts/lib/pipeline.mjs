@@ -58,7 +58,7 @@ import { resolve as cascadeResolve } from './cascade.mjs';
 import { estimateScriptCost } from '../asset-cost-estimator.mjs';
 import { randomUUID } from 'node:crypto';
 import { readTimingRows, readLedgerRows } from './facts.mjs';
-import { chapterLines, readManifestForFinalize } from './description.mjs';
+import { chapterLines, readManifestForFinalize, writeDescriptionFile } from './description.mjs';
 import { DELIVERY_FORMATS, renderFormats } from '../render-formats.mjs';
 import { renderVideo } from './render.mjs';
 import { synthesizeAvatars } from '../synthesize-avatar.mjs';
@@ -585,15 +585,11 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
   log(`thumbnails: ${thumbnails.length} size(s)`);
 
   // 6b. Chapters: the printable block comes from the manifest the render just wrote.
-  // An authored `<slug>_description.md` wins; produce only seeds one when it is absent.
+  // Authored prose is preserved, and chapters are written atomically inside markers.
   const chapters = chapterLines(manifest);
   const descriptionPath = path.join(episodeDir, `${episode.slug}_description.md`);
-  if (!fs.existsSync(descriptionPath)) {
-    fs.writeFileSync(descriptionPath, chapters.join('\n') + '\n', 'utf8');
-    log(`description: chapters written to ${descriptionPath}`);
-  } else {
-    log(`description: chapters (the authored file was left untouched)\n${chapters.join('\n')}`);
-  }
+  writeDescriptionFile(descriptionPath, manifest);
+  log(`description: chapters written to ${descriptionPath}\n${chapters.join('\n')}`);
 
   // 6c. Output-set QA checkpoint
   const qaOutputSetFn = deps.qa?.qaOutputSet || deps.qaOutputSet || defaultQaOutputSet;

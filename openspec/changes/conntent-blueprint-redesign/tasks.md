@@ -249,9 +249,9 @@ Results go to `openspec/changes/conntent-blueprint-redesign/verifications.md` (o
 - [ ] 3b-5.3 RED+GREEN delivery runs automatically as the last step of Produce after QA; no separate Deliver procedure or `--deliver` flag. (C4)
 - [ ] 3b-5.4 RED `T/thumbnails.test.mjs`: `thumbnail_formats` default two sizes, thumbnails produced inside `produce`; title from Video `title`, base first scene still, no badge. [Q8] (two-phase-thumbnail)
 - [ ] 3b-5.5 GREEN `E/render-thumbnail.mjs`, `E/render-formats.mjs`; cascade fields consumed.
-- [ ] 3b-5.6 RED+GREEN `T/description.test.mjs`: `<slug>_description.md` generated after QA, with chapters, included in delivery. (conntent-publication-description)
-- [ ] 3b-5.7 RED+GREEN reconcile engine renderer description with HyperFrames; remove `published` references in `E/` and docs. (cognnitive-conntent-engine)
-- [ ] 3b-5.8 REFACTOR; E2E `produce-cold-cache` reaches `delivered v1` and rerun no-op.
+- [x] 3b-5.6 RED+GREEN `T/description.test.mjs`: `<slug>_description.md` generated after QA, with chapters, included in delivery. (conntent-publication-description)
+- [x] 3b-5.7 RED+GREEN reconcile engine renderer description with HyperFrames; remove `published` references in `E/` and docs. (cognnitive-conntent-engine)
+- [x] 3b-5.8 REFACTOR; E2E `produce-cold-cache` reaches `delivered v1` and rerun no-op.
 
 ## Phase 5: Console (Slice 4; PRs 4a-4d)
 

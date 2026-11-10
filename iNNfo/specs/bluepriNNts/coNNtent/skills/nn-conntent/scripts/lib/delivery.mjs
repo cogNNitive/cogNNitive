@@ -244,6 +244,8 @@ export async function deliver(input) {
     }
 
     const files = outputHashes(outputs);
+    const descFile = outputs.find((f) => path.basename(f).endsWith('_description.md'));
+    const description = descFile && fs.existsSync(descFile) ? fs.readFileSync(descFile, 'utf8') : undefined;
 
     fs.writeFileSync(
       path.join(staging, DELIVERY_META),
@@ -255,6 +257,7 @@ export async function deliver(input) {
           created_at: now.toISOString(),
           files,
           html: htmlName,
+          ...(description !== undefined ? { description } : {}),
         },
         null,
         2,

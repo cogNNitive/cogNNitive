@@ -432,6 +432,12 @@ test('3b-2.8 cold-cache E2E: script gate -> preview gate (0 avatars) -> delivery
     assert.equal(res1.summary.delivery.version, 'v1');
     assert.equal(res1.summary.delivery.created, true);
 
+    const metaV1 = JSON.parse(
+      fs.readFileSync(path.join(ws.episode, 'deliveries', 'v1', 'delivery.json'), 'utf8'),
+    );
+    assert.equal(typeof metaV1.description, 'string');
+    assert.ok(metaV1.description.includes('<!-- chapters:start -->'));
+
     const epDelivered = readEpisode(ws.scriptPath);
     assert.equal(epDelivered.status, 'delivered');
     assert.equal(epDelivered.fields.delivered_version, 'v1');

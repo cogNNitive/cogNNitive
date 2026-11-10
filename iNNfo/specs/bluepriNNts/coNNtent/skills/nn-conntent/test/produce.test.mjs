@@ -294,14 +294,12 @@ test('produce writes the e_description.md chapter block and never overwrites an 
     assert.match(desc, /^00:00 Opening$/m, 'the first scene starts at zero');
     assert.match(desc, /^00:03 Explaining$/m, 'the second scene starts at its frame time');
 
-    // An authored body wins: a second run must not clobber it.
-    fs.writeFileSync(path.join(ws.episode, 'e_description.md'), 'Authored prose.', 'utf8');
+    // An authored body wins: a second run preserves authored prose while updating chapters.
+    fs.writeFileSync(path.join(ws.episode, 'e_description.md'), 'Authored prose.\n', 'utf8');
     await produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render: fakeRender().render, log: () => {} } });
-    assert.equal(
-      fs.readFileSync(path.join(ws.episode, 'e_description.md'), 'utf8'),
-      'Authored prose.',
-      'the authored e_description.md is never overwritten',
-    );
+    const updated = fs.readFileSync(path.join(ws.episode, 'e_description.md'), 'utf8');
+    assert.match(updated, /^Authored prose\./, 'the authored prose is preserved');
+    assert.match(updated, /<!-- chapters:start -->\n00:00 Opening\n00:03 Explaining\n<!-- chapters:end -->/, 'chapters are appended');
   } finally {
     done(ws.root);
   }
