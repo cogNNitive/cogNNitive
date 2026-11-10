@@ -11971,6 +11971,7 @@ function historyItem(change, resolveEvidence) {
     id: change.id,
     op: change.op,
     target: unitOf(change),
+    ...change.batch !== void 0 ? { batch: change.batch } : {},
     author: change.author,
     timestamp: change.appliedAt,
     notes: stripWrappingQuotes(change.notes),

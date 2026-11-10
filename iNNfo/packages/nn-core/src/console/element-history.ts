@@ -48,6 +48,8 @@ export interface ElementHistoryItem {
   op: string
   /** The unit address the change touched. */
   target?: string
+  /** The batch (changeset stem) of the change, resolved: its own, else the changeset's. */
+  batch?: string
   author?: string
   timestamp?: string
   notes?: string
@@ -247,6 +249,7 @@ function historyItem(change: LoggedChange, resolveEvidence?: (evidence: string) 
     id: change.id,
     op: change.op,
     target: unitOf(change),
+    ...(change.batch !== undefined ? { batch: change.batch } : {}),
     author: change.author,
     timestamp: change.appliedAt,
     notes: stripWrappingQuotes(change.notes),
