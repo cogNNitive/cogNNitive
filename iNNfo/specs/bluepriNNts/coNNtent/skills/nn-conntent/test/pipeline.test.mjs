@@ -120,6 +120,10 @@ function fakeRender({ indexHtml } = {}) {
 const thumbStubs = () => ({
   thumbnailBase: 'first-frame.png',
   renderThumbnails: async ({ episodeDir, slug }) => [{ path: path.join(episodeDir, slug + '_thumbnail_stub.png') }],
+  qa: {
+    qaMaster: async () => ({ ok: true, checks: [] }),
+    qaOutputSet: async () => ({ ok: true, checks: [] }),
+  },
 });
 
 /** An injected writer that records every regeneration and can read the engine state. */
@@ -190,7 +194,16 @@ test('a failed QA regenerates and opens (exit 12)', async () => {
     const err = await stopOf(
       produce({
         episodePath: ws.scriptPath,
-        deps: { writeConsole, ...thumbStubs(), render: fakeRender({ indexHtml: null }), log: () => {} },
+        deps: {
+          writeConsole,
+          ...thumbStubs(),
+          render: fakeRender(),
+          qa: {
+            qaMaster: async () => ({ ok: false, checks: [{ id: 'mock-fail', status: 'fail' }] }),
+            qaOutputSet: async () => ({ ok: true, checks: [] }),
+          },
+          log: () => {},
+        },
       }),
     );
     assert.equal(err.exitCode, EXIT_QA);

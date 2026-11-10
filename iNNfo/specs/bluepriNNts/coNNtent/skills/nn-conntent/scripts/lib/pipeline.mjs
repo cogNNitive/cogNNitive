@@ -64,7 +64,7 @@ import { renderVideo } from './render.mjs';
 import { synthesizeAvatars } from '../synthesize-avatar.mjs';
 import { isAvatarLayer } from './avatar-jobs.mjs';
 import { resolveWorkspace } from './video-guard.mjs';
-import { checkOverlays } from './overlay-qa.mjs';
+import { qaMaster as defaultQaMaster, qaOutputSet as defaultQaOutputSet, writeQaReport } from './qa.mjs';
 import { recordStage, synthesizeEpisodeAssets } from './compile.mjs';
 import { NO_OPEN_ENV, resolveConsoleModulePath } from './nn-core.generated.cjs';
 
@@ -477,27 +477,34 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
   const masterPath = rendered.outputVideoPath;
   log(`render: ${masterPath} (${rendered.renderTimeMs} ms, link_mode=${rendered.linkMode || 'link'})`);
 
-  // 5b. Overlay QA gate: verify index.html exists and contains mount hosts for all overlays in manifest
+  // 5b. Master QA gate: duration, size, audio stream and overlay emission (structural and visible)
+  const qaMasterFn = deps.qa?.qaMaster || deps.qaMaster || defaultQaMaster;
   const qaStart = Date.now();
-  const projectIndexHtmlPath = path.join(episodeDir, 'hyperframes', 'index.html');
-  if (!fs.existsSync(projectIndexHtmlPath)) {
-    throw new ProduceStop(
-      'overlay-qa-failed',
-      `HyperFrames index.html missing at ${projectIndexHtmlPath}`,
-      { exitCode: EXIT_QA, details: { missing: ['index.html'] } },
-    );
-  }
-  const indexHtml = fs.readFileSync(projectIndexHtmlPath, 'utf8');
   const { manifest } = readManifestForFinalize({ episodeDir, scriptPath });
-  const missingOverlays = checkOverlays({ manifest, indexHtml });
-  if (missingOverlays.length > 0) {
+  const declaredSizes = resolveForEpisode(episode.model, scriptPath, 'output_formats').value;
+  const declaredSize = Array.isArray(declaredSizes) && declaredSizes.length > 0 ? String(declaredSizes[0]) : '1920x1920';
+
+  const masterQa = await qaMasterFn({
+    episodeDir,
+    manifest,
+    masterPath,
+    declaredSize,
+    deps: deps.qaDeps || deps,
+  });
+  recordStage(facts, { stage: 'qa', start: qaStart, end: Date.now() });
+
+  if (!masterQa.ok) {
+    writeQaReport(episodeDir, masterQa);
+    log(`qa: master checkpoint failed; report written to ${path.join(episodeDir, 'qa.json')}`);
+    await (deps.apply || applyChanges)(rootDir, [
+      fieldChange(modelId, episode.slug, 'status', 'failed_qa'),
+    ], { title: 'engine: failed_qa' });
     throw new ProduceStop(
-      'overlay-qa-failed',
-      `Overlay QA gate failed: missing host elements in index.html for overlays: ${missingOverlays.join(', ')}`,
-      { exitCode: EXIT_QA, details: { missing: missingOverlays } },
+      'qa-failed',
+      `QA failed at master checkpoint: ${(masterQa.checks || []).filter((c) => c.status === 'fail').map((c) => c.id).join(', ')}`,
+      { exitCode: EXIT_QA, details: { checkpoint: 'master', checks: masterQa.checks } },
     );
   }
-  recordStage(facts, { stage: 'qa', start: qaStart, end: Date.now() });
 
   // 6. Formats: every declared output after the first must exist.
   const declared = resolveForEpisode(episode.model, scriptPath, 'output_formats').value;
@@ -562,6 +569,36 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
     log(`description: chapters written to ${descriptionPath}`);
   } else {
     log(`description: chapters (the authored file was left untouched)\n${chapters.join('\n')}`);
+  }
+
+  // 6c. Output-set QA checkpoint
+  const qaOutputSetFn = deps.qa?.qaOutputSet || deps.qaOutputSet || defaultQaOutputSet;
+  const qaOutStart = Date.now();
+  const outputQa = await qaOutputSetFn({
+    episodeDir,
+    slug: episode.slug,
+    outputFormats: sizes,
+    thumbnailFormats,
+    deps: deps.qaDeps || deps,
+  });
+  recordStage(facts, { stage: 'qa', start: qaOutStart, end: Date.now() });
+
+  const combinedReport = {
+    ok: masterQa.ok && outputQa.ok,
+    checks: [...(masterQa.checks || []), ...(outputQa.checks || [])],
+  };
+  writeQaReport(episodeDir, combinedReport);
+
+  if (!outputQa.ok) {
+    log(`qa: output-set checkpoint failed; report written to ${path.join(episodeDir, 'qa.json')}`);
+    await (deps.apply || applyChanges)(rootDir, [
+      fieldChange(modelId, episode.slug, 'status', 'failed_qa'),
+    ], { title: 'engine: failed_qa' });
+    throw new ProduceStop(
+      'qa-failed',
+      `QA failed at output-set checkpoint: ${(outputQa.checks || []).filter((c) => c.status === 'fail').map((c) => c.id).join(', ')}`,
+      { exitCode: EXIT_QA, details: { checkpoint: 'output-set', checks: outputQa.checks } },
+    );
   }
 
   // 7. Delivery: the last step after QA. A passing run lands `deliveries/v<N>/`; an

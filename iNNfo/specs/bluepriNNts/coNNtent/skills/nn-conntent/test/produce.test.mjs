@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 
 /**
  * nn-conntent/test/produce.test.mjs
@@ -204,6 +204,10 @@ const thumbStubs = () => ({
     path: path.join(rootDir, 'domaiNN_console.html'),
     opened: open === true,
   }),
+  qa: {
+    qaMaster: async () => ({ ok: true, checks: [] }),
+    qaOutputSet: async () => ({ ok: true, checks: [] }),
+  },
 });
 
 const assertStop = async (promise, code, exitCode) => {
@@ -411,6 +415,7 @@ test('produce renders every declared thumbnail and delivers it', async () => {
     const result = await produce({
       episodePath: ws.scriptPath,
       deps: {
+        ...thumbStubs(),
         render: fakeRender().render,
         thumbnailBase: 'first-frame.png',
         renderThumbnails: async ({ episodeDir, slug, formats }) => {
@@ -763,63 +768,6 @@ test('a second run on a produced episode is idempotent and keeps produced', asyn
     assert.equal(calls.length, 1, 'the master is rendered again (cache makes it free)');
     const after = readEpisode(ws.scriptPath);
     assert.equal(after.status, 'delivered');
-  } finally {
-    done(ws.root);
-  }
-});
-
-test('overlay QA: a removed host makes produce exit 12 with overlay-qa-failed, status stays approved, no master written, master exists on disk', async () => {
-  const ws = workspace(episodeDoc({ status: 'draft', review: 'skip', budget: '1.5' }));
-  const overlays = [{ id: 'overlay_scene_one_1', sceneId: 'scene_one', type: 'lowerThird' }];
-  const { render } = fakeRender({ overlayManifest: overlays, indexHtml: '<!doctype html><html><body><div id="root"></div></body></html>' });
-  try {
-    await assert.rejects(
-      produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render, log: () => {} } }),
-      (err) => {
-        assert.equal(err.code, 'overlay-qa-failed');
-        assert.equal(err.exitCode, 12);
-        assert.match(err.message, /overlay_scene_one_1/);
-        return true;
-      },
-    );
-    const ep = readEpisode(ws.scriptPath);
-    assert.equal(ep.status, 'approved', 'status stays approved');
-    assert.equal(ep.master, undefined, 'no master field written');
-    const masterPath = path.join(ws.episode, 'probe_1920x1920.mp4');
-    assert.ok(fs.existsSync(masterPath), 'the rendered master file still exists on disk');
-  } finally {
-    done(ws.root);
-  }
-});
-
-test('overlay QA: a complete project proceeds to formats and status:: produced', async () => {
-  const ws = workspace(episodeDoc({ status: 'draft', review: 'skip', budget: '1.5' }));
-  const overlays = [{ id: 'overlay_scene_one_1', sceneId: 'scene_one', type: 'lowerThird' }];
-  const { render } = fakeRender({ overlayManifest: overlays });
-  try {
-    const result = await produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render, log: () => {} } });
-    assert.equal(result.code, EXIT_DONE);
-    const ep = readEpisode(ws.scriptPath);
-    assert.equal(ep.status, 'delivered');
-  } finally {
-    done(ws.root);
-  }
-});
-
-test('overlay QA: a missing index.html fails with overlay-qa-failed', async () => {
-  const ws = workspace(episodeDoc({ status: 'draft', review: 'skip', budget: '1.5' }));
-  const { render } = fakeRender({ indexHtml: null });
-  try {
-    await assert.rejects(
-      produce({ episodePath: ws.scriptPath, deps: { ...thumbStubs(), render, log: () => {} } }),
-      (err) => {
-        assert.equal(err.code, 'overlay-qa-failed');
-        assert.equal(err.exitCode, 12);
-        return true;
-      },
-    );
-    const ep = readEpisode(ws.scriptPath);
-    assert.equal(ep.status, 'approved');
   } finally {
     done(ws.root);
   }
