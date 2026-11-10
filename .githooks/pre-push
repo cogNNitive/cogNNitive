@@ -5,7 +5,7 @@
 #      running the heavy pipeline; CI gates the pull request.
 #   2. `npm run typecheck` and the docs-derived-facts prerequisite,
 #   3. the derived-artifact freshness guards, run concurrently,
-#   4. eslint, scoped to files changed against origin/dev.
+#   4. eslint, scoped to files changed against origin/main.
 #
 # This hook reads $remote_ref from stdin (one line per pushed ref:
 # "<local_ref> <local_sha> <remote_ref> <remote_sha>"). It never checks out or

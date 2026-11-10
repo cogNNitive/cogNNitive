@@ -15,7 +15,7 @@ summary:: Deterministic multi-group gate validating working tree hygiene, versio
 inputs_required:: Workspace Metamodel Specification
 outputs_expected:: Integrity Verification Gate Report
 executed_by:: Lead Maintainer
-procedure_model:: .agents/skills/nn-dev-check-integrity/SKILL.md
+procedure_model:: .agents/skills/nn-dev-development/SKILL.md
 
 ## NN Procedure: Release and Tag Subsystems
 category:: transformation
@@ -23,7 +23,7 @@ summary:: Orchestration procedure for bumper management, stable manifest generat
 inputs_required:: cogNNitive Repository Model
 outputs_expected:: Published Subsystem Bundles and Tags
 executed_by:: Release Manager
-procedure_model:: .agents/skills/nn-dev-release/SKILL.md
+procedure_model:: .agents/skills/nn-dev-development/SKILL.md
 
 ## NN Procedure: Track and Import Issues
 category:: audit

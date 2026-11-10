@@ -2,13 +2,11 @@ name: CI & Verify
 
 on:
   push:
-    # Chain work lives on `ds/**` and `feature/**` branches. Without them a whole
-    # stacked chain can be pushed with no run at all (the distributed-storage chain
-    # was: 19 PRs, zero CI runs).
-    branches: [ main, dev, 'session/**', 'ds/**', 'feature/**' ]
-  # No base filter. A chained PR targets its predecessor branch, never main/dev, so a
-  # base allowlist silently skips every PR of the chain. Every PR runs the gate; that
-  # is the point of the gate.
+    # `main` is the integration branch and every green push releases (auto-tag below).
+    # `dev` stays only until the branches still based on it have landed. Session
+    # branches are gated by their PR, so a push to them does not run CI twice.
+    branches: [ main, dev ]
+  # No base filter: every PR runs the gate, whatever branch it targets.
   pull_request:
   workflow_dispatch:
 
@@ -216,6 +214,51 @@ jobs:
           WEB_PUBLISH_SUBDIR: docs
           GITHUB_SHA: ${{ github.sha }}
         run: node scripts/publish-web.mjs
+
+  # ── Release = merge to main. After the gate is green, tag every release key that
+  #    changed (scripts/release/plan-auto-tags.js decides key and version) and run the
+  #    release workflow for each tag, one at a time, `blueprints` first. Tags pushed
+  #    with GITHUB_TOKEN trigger no workflow, so release.yml is called directly here.
+  auto-tag:
+    needs: [verify, site, quality, spec-integrity]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tags: ${{ steps.plan.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Plan release tags
+        id: plan
+        run: node scripts/release/plan-auto-tags.js
+
+      - name: Create and push tags
+        env:
+          TAGS: ${{ steps.plan.outputs.tags }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for tag in $(echo "$TAGS" | jq -r '.[]'); do
+            git tag -a "$tag" -m "release: $tag" "$GITHUB_SHA"
+            git push origin "refs/tags/$tag"
+            echo "- \`$tag\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+  release:
+    needs: auto-tag
+    if: needs.auto-tag.outputs.tags != '[]' && needs.auto-tag.outputs.tags != ''
+    strategy:
+      max-parallel: 1
+      matrix:
+        tag: ${{ fromJSON(needs.auto-tag.outputs.tags) }}
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ matrix.tag }}
+    secrets: inherit
 
   # UI smoke: Playwright (Chromium) over the committed TestLab console
   # artifacts via file://. Standalone job — never blocks verify/quality/site,

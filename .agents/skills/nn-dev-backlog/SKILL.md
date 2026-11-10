@@ -15,7 +15,7 @@ It is **agent-agnostic**: it names no tool of any specific AI agent. Where a ste
 capability (read files, run a command, delegate), use whatever your agent offers.
 
 Maintainer-only: not under `skills/`, not registered in `manifest/source.yaml`.
-Sibling of `nn-dev-development`, `nn-dev-issue-tracking`, `nn-dev-release`.
+Sibling of `nn-dev-development` and `nn-dev-issue-tracking`.
 Scope: repository root plus the `cogNNitive` GitHub repo.
 
 Read first: `nn-dev-development` (session isolation, change-size lanes §2b) and
@@ -115,7 +115,7 @@ Score each surviving item (value, effort, risk) and group into batches:
 - **High-risk items get one isolated batch each**, run in series, never mixed.
 - Risk means risk to the continuity of the code: public contracts, distributed bundles,
   release artifacts, anything CI cannot catch before `main`.
-- Heavy-lane items are marked `heavy` and go through the full SDD cycle, not direct work.
+- Heavy-lane items are marked `heavy` and get one OpenSpec delta first (`nn-dev-development` §2).
 - Respect the review budget: if a batch would exceed ~400 changed lines, split it
   (`chained-pr`, `work-unit-commits`).
 
@@ -150,7 +150,7 @@ a self-contained text brief (the receiving session starts with no memory) and st
 ```markdown
 # Batch <id> — <short title>
 
-**Lane:** light | heavy (heavy: run the SDD cycle per item; do not implement directly)
+**Lane:** light | heavy (heavy: write its OpenSpec delta first, per `nn-dev-development` §2)
 **Items:** <ids + one-line summary each, verified current as of <commit sha>>
 **Done when:** <observable criteria per item, copied from the backlog>
 **Area:** <files/modules expected to change; files NOT to touch>

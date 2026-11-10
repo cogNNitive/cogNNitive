@@ -22,7 +22,7 @@ pipeline **harvest → extract → verify → publish** repeatable.
 
 This skill is maintainer-only. It is **not** distributed: it is not under
 `actioNN/skills/` and is not registered in `manifest/source.yaml`. It is a sibling of
-`nn-dev-development`, `nn-dev-check-integrity`, `nn-dev-release`, and `nn-usage-audit`.
+`nn-dev-development` and `nn-usage-audit`.
 
 Scope: all operations limited to the cogNNitive repository root (`cogNNitive`).
 
@@ -172,8 +172,8 @@ Completion criterion: the generator exits 0, `npm run check:docs-links` passes w
 
 1. `mem_save` a summary of what was published (title e.g. `Harvested session rationale
    into docs`, type `pattern`/`architecture`, `capture_prompt: false`).
-2. Hand off to `nn-dev-check-integrity` (docs group green, no generated drift), then to
-   `nn-dev-release` for the batched `dev` → `main` merge.
+2. Open the PR to `main` (`nn-dev-development` §4); CI checks the docs build and
+   generated drift, and merging releases.
 
 ---
 

@@ -46,7 +46,7 @@ before(() => {
   const base = mkdtempSync(join(tmpdir(), 'nn-session-tpl-'))
   const repo = join(base, 'repo')
   mkdirSync(repo, { recursive: true })
-  git(['init', '-b', 'dev'], repo)
+  git(['init', '-b', 'main'], repo)
   git(['config', 'user.email', 't@test'], repo)
   git(['config', 'user.name', 't'], repo)
   writeFileSync(join(repo, 'f.txt'), 'x')
@@ -294,6 +294,8 @@ test('status prints a one-block health report and exits 0', () => {
     assert.ok(s.out.includes('nn-session status'), 'header')
     assert.ok(s.out.includes('primary:'), 'primary line')
     assert.ok(s.out.includes('worktrees:'), 'worktree block')
+    assert.ok(s.out.includes('origin/main...main'), 'compares the primary against origin/main')
+    assert.ok(!s.out.includes('origin/dev'), 'no dev integration branch')
   } finally {
     rmSync(base, { recursive: true, force: true })
   }
@@ -319,31 +321,31 @@ test('stop tolerates a deregistered, empty leftover dir without crashing', () =>
   }
 })
 
-test('start cuts the session branch from origin/dev, not a stale local dev', () => {
+test('start cuts the session branch from origin/main, not a stale local main', () => {
   const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
   const repo = makeRepo(base)
   const origin = join(base, 'origin.git')
   const other = join(base, 'other')
   const target = join(dirname(repo), 'cogNNitive-b1')
   try {
-    git(['init', '--bare', '-b', 'dev', origin], base)
+    git(['init', '--bare', '-b', 'main', origin], base)
     git(['remote', 'add', 'origin', origin], repo)
-    git(['push', 'origin', 'dev'], repo)
-    // Another clone advances origin/dev; the primary's local dev stays behind.
+    git(['push', 'origin', 'main'], repo)
+    // Another clone advances origin/main; the primary's local main stays behind.
     git(['clone', origin, other], base)
     git(['config', 'user.email', 't@test'], other)
     git(['config', 'user.name', 't'], other)
     writeFileSync(join(other, 'newer.txt'), 'n')
     git(['add', '-A'], other)
     git(['commit', '-m', 'newer'], other)
-    git(['push', 'origin', 'dev'], other)
+    git(['push', 'origin', 'main'], other)
     const tip = git(['rev-parse', 'HEAD'], other)
-    assert.notEqual(git(['rev-parse', 'dev'], repo), tip, 'precondition: local dev is behind')
+    assert.notEqual(git(['rev-parse', 'main'], repo), tip, 'precondition: local main is behind')
 
     const s = run(['start', '--id', 'b1', '--root', repo, '--no-install'])
     assert.equal(s.code, 0)
-    assert.equal(git(['rev-parse', 'HEAD'], target), tip, 'session HEAD is the fetched origin/dev tip')
-    assert.ok(existsSync(join(target, 'newer.txt')), 'worktree has the commit local dev lacks')
+    assert.equal(git(['rev-parse', 'HEAD'], target), tip, 'session HEAD is the fetched origin/main tip')
+    assert.ok(existsSync(join(target, 'newer.txt')), 'worktree has the commit local main lacks')
   } finally {
     run(['stop', '--id', 'b1', '--root', repo])
     rmSync(base, { recursive: true, force: true })

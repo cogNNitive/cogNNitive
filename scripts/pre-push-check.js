@@ -26,7 +26,7 @@ const repoRoot = process.env.NN_PRE_PUSH_ROOT
   : path.join(__dirname, '..');
 const LINTABLE = /^(iNNfo|scripts)\/.*\.(?:[cm]?js|ts|tsx)$/;
 const NO_CODE_PATHS = /^openspec\//;
-const BASES =['origin/dev', 'origin/main'];
+const BASES = ['origin/main'];
 const ZERO = /^0+$/;
 
 /** Runs git in `cwd`; returns trimmed stdout or null on failure. */

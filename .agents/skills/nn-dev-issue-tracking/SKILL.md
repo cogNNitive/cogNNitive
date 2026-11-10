@@ -23,7 +23,7 @@ It exists because two repos both expose Issues and nothing owned the boundary:
   only surface an external user can reach.
 
 Maintainer-only: not under `skills/`, not registered in `manifest/source.yaml`. Sibling of
-`nn-dev-development`, `nn-dev-release`, `nn-dev-check-integrity` and `nn-template-audit`.
+`nn-dev-development` and `nn-template-audit`.
 Scope: repository root plus the two GitHub repos.
 
 Read [`references/imported-issues.md`](references/imported-issues.md) for the traceability
@@ -57,7 +57,7 @@ If engram is unavailable, say so once and proceed.
 
 ## 1. When to run
 
-- Before a release batch or a `dev → main` merge (alongside `nn-dev-check-integrity` Group 11).
+- Before merging a batch of PRs to `main`.
 - When the maintainer asks to triage the backlog, "check web issues", or "import the inbox".
 - Periodically, so the public intake does not drift (its whole point is to be monitored).
 
