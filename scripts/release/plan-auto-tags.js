@@ -93,11 +93,13 @@ function git(args, cwd) {
 /** Reads tags, authored versions and per-key commit messages from the repo at `cwd`. */
 function readRepoState(cwd) {
   const tags = git(['tag', '--list'], cwd).split('\n').map((t) => t.trim()).filter(Boolean);
+  /** @type {Record<string, string>} */
   const authored = {};
   for (const [key, rel] of Object.entries(AUTHORED_PACKAGES)) {
     const file = path.join(cwd, rel);
     if (fs.existsSync(file)) authored[key] = JSON.parse(fs.readFileSync(file, 'utf8')).version;
   }
+  /** @type {Record<string, string[]>} */
   const commitsSinceTag = {};
   for (const key of RELEASE_KEYS) {
     if (key in AUTHORED_PACKAGES) continue;
