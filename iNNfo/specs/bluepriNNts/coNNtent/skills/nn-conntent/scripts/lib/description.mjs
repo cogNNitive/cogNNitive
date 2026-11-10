@@ -12,11 +12,11 @@
  * Zero dependencies. ESM module.
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from 'node:fs'
+import path from 'node:path'
 
-export const CHAPTERS_START = '<!-- chapters:start -->';
-export const CHAPTERS_END = '<!-- chapters:end -->';
+export const CHAPTERS_START = '<!-- chapters:start -->'
+export const CHAPTERS_END = '<!-- chapters:end -->'
 
 /**
  * Formats seconds as `MM:SS`, or `H:MM:SS` when the value reaches one hour.
@@ -24,12 +24,12 @@ export const CHAPTERS_END = '<!-- chapters:end -->';
  * @returns {string}
  */
 export function formatTimecode(totalSeconds) {
-  const safe = Math.max(0, Math.floor(Number(totalSeconds) || 0));
-  const hours = Math.floor(safe / 3600);
-  const minutes = Math.floor((safe % 3600) / 60);
-  const seconds = safe % 60;
-  const pad = (n) => String(n).padStart(2, '0');
-  return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`;
+  const safe = Math.max(0, Math.floor(Number(totalSeconds) || 0))
+  const hours = Math.floor(safe / 3600)
+  const minutes = Math.floor((safe % 3600) / 60)
+  const seconds = safe % 60
+  const pad = (n) => String(n).padStart(2, '0')
+  return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`
 }
 
 /**
@@ -40,14 +40,14 @@ export function formatTimecode(totalSeconds) {
  * @returns {Array<{ startSeconds: number, timecode: string, title: string }>}
  */
 export function buildChapters(manifest) {
-  const fps = Number(manifest?.fps) || 30;
-  const scenes = manifest?.tracks?.scenes || [];
+  const fps = Number(manifest?.fps) || 30
+  const scenes = manifest?.tracks?.scenes || []
   return scenes.map((scene, index) => {
-    const fromFrame = Number(scene?.fromFrame) || 0;
-    const startSeconds = Math.floor(fromFrame / fps);
-    const title = String(scene?.props?.title || scene?.title || `Scene ${index + 1}`).trim();
-    return { startSeconds, timecode: index === 0 ? '00:00' : formatTimecode(startSeconds), title };
-  });
+    const fromFrame = Number(scene?.fromFrame) || 0
+    const startSeconds = Math.floor(fromFrame / fps)
+    const title = String(scene?.props?.title || scene?.title || `Scene ${index + 1}`).trim()
+    return { startSeconds, timecode: index === 0 ? '00:00' : formatTimecode(startSeconds), title }
+  })
 }
 
 /**
@@ -56,7 +56,7 @@ export function buildChapters(manifest) {
  * @returns {string[]}
  */
 export function chapterLines(manifest) {
-  return buildChapters(manifest).map((c) => `${c.timecode} ${c.title}`);
+  return buildChapters(manifest).map((c) => `${c.timecode} ${c.title}`)
 }
 
 /**
@@ -65,8 +65,8 @@ export function chapterLines(manifest) {
  * @returns {string}
  */
 export function renderChapterBlock(manifest) {
-  const lines = chapterLines(manifest);
-  return `${CHAPTERS_START}\n${lines.join('\n')}\n${CHAPTERS_END}`;
+  const lines = chapterLines(manifest)
+  return `${CHAPTERS_START}\n${lines.join('\n')}\n${CHAPTERS_END}`
 }
 
 /**
@@ -78,18 +78,18 @@ export function renderChapterBlock(manifest) {
  * @returns {string}
  */
 export function updateDescriptionText(existingText, manifest) {
-  const block = renderChapterBlock(manifest);
+  const block = renderChapterBlock(manifest)
   if (!existingText || !existingText.trim()) {
-    return block + '\n';
+    return block + '\n'
   }
-  const startIdx = existingText.indexOf(CHAPTERS_START);
-  const endIdx = existingText.indexOf(CHAPTERS_END);
+  const startIdx = existingText.indexOf(CHAPTERS_START)
+  const endIdx = existingText.indexOf(CHAPTERS_END)
   if (startIdx !== -1 && endIdx !== -1 && endIdx >= startIdx) {
-    const before = existingText.slice(0, startIdx);
-    const after = existingText.slice(endIdx + CHAPTERS_END.length);
-    return before + block + after;
+    const before = existingText.slice(0, startIdx)
+    const after = existingText.slice(endIdx + CHAPTERS_END.length)
+    return before + block + after
   }
-  return existingText.trimEnd() + '\n\n' + block + '\n';
+  return existingText.trimEnd() + '\n\n' + block + '\n'
 }
 
 /**
@@ -100,12 +100,12 @@ export function updateDescriptionText(existingText, manifest) {
  * @returns {string} The written text
  */
 export function writeDescriptionFile(descriptionPath, manifest) {
-  const existing = fs.existsSync(descriptionPath) ? fs.readFileSync(descriptionPath, 'utf8') : '';
-  const updated = updateDescriptionText(existing, manifest);
-  const tmp = descriptionPath + '.tmp';
-  fs.writeFileSync(tmp, updated, 'utf8');
-  fs.renameSync(tmp, descriptionPath);
-  return updated;
+  const existing = fs.existsSync(descriptionPath) ? fs.readFileSync(descriptionPath, 'utf8') : ''
+  const updated = updateDescriptionText(existing, manifest)
+  const tmp = descriptionPath + '.tmp'
+  fs.writeFileSync(tmp, updated, 'utf8')
+  fs.renameSync(tmp, descriptionPath)
+  return updated
 }
 
 /**
@@ -115,21 +115,21 @@ export function writeDescriptionFile(descriptionPath, manifest) {
  * @returns {{ manifest: any, manifestPath: string }}
  */
 export function readManifestForFinalize({ episodeDir, scriptPath, manifestPath } = {}) {
-  const file = manifestPath || path.join(episodeDir, 'hyperframes', 'manifest.json');
+  const file = manifestPath || path.join(episodeDir, 'hyperframes', 'manifest.json')
   if (!fs.existsSync(file)) {
-    throw new Error(`Missing build manifest at ${file}; run compile (or render) first`);
+    throw new Error(`Missing build manifest at ${file}; run compile (or render) first`)
   }
-  const manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
-  const source = manifest?.metadata?.scriptSource;
+  const manifest = JSON.parse(fs.readFileSync(file, 'utf8'))
+  const source = manifest?.metadata?.scriptSource
   if (source && path.resolve(source) !== path.resolve(scriptPath)) {
     throw new Error(
       `The manifest at ${file} was compiled from ${source}, not from ${scriptPath}; re-run compile`,
-    );
+    )
   }
   if (source && fs.statSync(file).mtimeMs < fs.statSync(scriptPath).mtimeMs) {
     throw new Error(
       `The manifest at ${file} is older than the script; re-run render (which recompiles) before finalizing`,
-    );
+    )
   }
-  return { manifest, manifestPath: file };
+  return { manifest, manifestPath: file }
 }

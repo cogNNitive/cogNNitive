@@ -8,23 +8,22 @@
  * Zero external dependencies. ESM module.
  */
 
-import crypto from 'node:crypto';
-import fs from 'node:fs';
-import path from 'node:path';
+import crypto from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
 
-import { canonicalJson } from './canonical.mjs';
+import { canonicalJson } from './canonical.mjs'
 
-export const DELIVERIES_DIR = 'deliveries';
-export const DELIVERY_META = 'delivery.json';
+export const DELIVERIES_DIR = 'deliveries'
+export const DELIVERY_META = 'delivery.json'
 
-const sha256File = (file) =>
-  crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const sha256File = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')
 
 /** The declared outputs as `[{ name, sha256 }]`, sorted by name. */
 export function outputHashes(outputs = []) {
   return [...outputs]
     .map((file) => ({ name: path.basename(file), sha256: sha256File(file) }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => a.name.localeCompare(b.name))
 }
 
 /** `sha256` over the canonical sorted `{name, sha256}` list. */
@@ -32,66 +31,70 @@ export function outputsHash(outputs = []) {
   return crypto
     .createHash('sha256')
     .update(canonicalJson(outputHashes(outputs)))
-    .digest('hex');
+    .digest('hex')
 }
 
 /** The highest `deliveries/v<N>/delivery.json`, or null. */
 export function latestDelivery(episodeDir) {
-  const root = path.join(episodeDir, DELIVERIES_DIR);
-  if (!fs.existsSync(root)) return null;
+  const root = path.join(episodeDir, DELIVERIES_DIR)
+  if (!fs.existsSync(root)) return null
   const versions = fs
     .readdirSync(root, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && /^v\d+$/.test(entry.name))
     .map((entry) => Number(entry.name.slice(1)))
-    .sort((a, b) => b - a);
+    .sort((a, b) => b - a)
   for (const version of versions) {
-    const metaPath = path.join(root, `v${version}`, DELIVERY_META);
-    if (!fs.existsSync(metaPath)) continue;
+    const metaPath = path.join(root, `v${version}`, DELIVERY_META)
+    if (!fs.existsSync(metaPath)) continue
     try {
-      return { version: `v${version}`, number: version, meta: JSON.parse(fs.readFileSync(metaPath, 'utf8')) };
+      return {
+        version: `v${version}`,
+        number: version,
+        meta: JSON.parse(fs.readFileSync(metaPath, 'utf8')),
+      }
     } catch {
-      continue;
+      continue
     }
   }
-  return null;
+  return null
 }
 
 /** Hard-link, or copy when the filesystem refuses the link (EXDEV/EPERM/...). */
 function linkOrCopy(source, destination, linkFile) {
   try {
-    linkFile(source, destination);
+    linkFile(source, destination)
   } catch (err) {
-    if (!['EXDEV', 'EPERM', 'EACCES', 'EMLINK', 'ENOTSUP'].includes(err?.code)) throw err;
-    fs.copyFileSync(source, destination);
+    if (!['EXDEV', 'EPERM', 'EACCES', 'EMLINK', 'ENOTSUP'].includes(err?.code)) throw err
+    fs.copyFileSync(source, destination)
   }
 }
 
 function episodeSlugOf(episodeDir, outputs = []) {
   try {
-    const entries = fs.readdirSync(episodeDir);
-    const doc = entries.find((e) => /_coNNtent_NN\.md$/i.test(e));
-    if (doc) return doc.replace(/_coNNtent_NN\.md$/i, '');
+    const entries = fs.readdirSync(episodeDir)
+    const doc = entries.find((e) => /_coNNtent_NN\.md$/i.test(e))
+    if (doc) return doc.replace(/_coNNtent_NN\.md$/i, '')
   } catch {}
   for (const out of outputs) {
-    const base = path.basename(out);
-    const m = base.match(/^([a-z0-9-]+)(?:_\d+x\d+)?(?:\.[^.]+)?$/i);
-    if (m && m[1]) return m[1].replace(/_thumbnail$/, '');
+    const base = path.basename(out)
+    const m = base.match(/^([a-z0-9-]+)(?:_\d+x\d+)?(?:\.[^.]+)?$/i)
+    if (m && m[1]) return m[1].replace(/_thumbnail$/, '')
   }
-  return path.basename(episodeDir);
+  return path.basename(episodeDir)
 }
 
 function findDomainRoot(episodeDir) {
-  let curr = path.resolve(episodeDir);
+  let curr = path.resolve(episodeDir)
   while (curr && curr !== path.dirname(curr)) {
-    if (fs.existsSync(path.join(curr, 'domaiNN_NN.md'))) return curr;
-    curr = path.dirname(curr);
+    if (fs.existsSync(path.join(curr, 'domaiNN_NN.md'))) return curr
+    curr = path.dirname(curr)
   }
-  return null;
+  return null
 }
 
 function renderDeliveryHtml({ slug, version, outputs = [], createdAt }) {
-  const videoFiles = outputs.filter((f) => path.basename(f).endsWith('.mp4'));
-  const thumbFiles = outputs.filter((f) => /\.(png|jpe?g|webp)$/i.test(path.basename(f)));
+  const videoFiles = outputs.filter((f) => path.basename(f).endsWith('.mp4'))
+  const thumbFiles = outputs.filter((f) => /\.(png|jpe?g|webp)$/i.test(path.basename(f)))
   const playersHtml = videoFiles
     .map(
       (f) =>
@@ -100,13 +103,13 @@ function renderDeliveryHtml({ slug, version, outputs = [], createdAt }) {
     <div class="nn-visual-details">${path.basename(f)}</div>
   </div>`,
     )
-    .join('\n');
+    .join('\n')
   const thumbsHtml = thumbFiles
     .map(
       (f) =>
         `  <img class="nn-delivery-thumbnail" src="./${path.basename(f)}" alt="${path.basename(f)}" />`,
     )
-    .join('\n');
+    .join('\n')
 
   return `<!doctype html>
 <html lang="en" data-theme="light">
@@ -143,7 +146,7 @@ ${thumbsHtml}
     </div>
   </div>
 </body>
-</html>`;
+</html>`
 }
 
 /**
@@ -175,47 +178,50 @@ export async function deliver(input) {
     slug: customSlug,
     model: customModel,
     models: customModels,
-  } = input;
-  const hash = outputsHash(outputs);
-  const latest = latestDelivery(episodeDir);
-  if (latest && (latest.meta.outputs_hash === hash || latest.meta.input_fingerprint === inputFingerprint)) {
-    return { version: latest.version, created: false, outputsHash: hash, inputFingerprint };
+  } = input
+  const hash = outputsHash(outputs)
+  const latest = latestDelivery(episodeDir)
+  if (
+    latest &&
+    (latest.meta.outputs_hash === hash || latest.meta.input_fingerprint === inputFingerprint)
+  ) {
+    return { version: latest.version, created: false, outputsHash: hash, inputFingerprint }
   }
 
-  const number = latest ? latest.number + 1 : 1;
-  const deliveriesDir = path.join(episodeDir, DELIVERIES_DIR);
-  fs.mkdirSync(deliveriesDir, { recursive: true });
-  const staging = path.join(deliveriesDir, `.tmp-v${number}`);
-  const final = path.join(deliveriesDir, `v${number}`);
+  const number = latest ? latest.number + 1 : 1
+  const deliveriesDir = path.join(episodeDir, DELIVERIES_DIR)
+  fs.mkdirSync(deliveriesDir, { recursive: true })
+  const staging = path.join(deliveriesDir, `.tmp-v${number}`)
+  const final = path.join(deliveriesDir, `v${number}`)
   if (fs.existsSync(final)) {
-    throw new Error(`Delivery ${final} already exists and cannot be replaced`);
+    throw new Error(`Delivery ${final} already exists and cannot be replaced`)
   }
-  fs.rmSync(staging, { recursive: true, force: true });
-  fs.mkdirSync(staging, { recursive: true });
+  fs.rmSync(staging, { recursive: true, force: true })
+  fs.mkdirSync(staging, { recursive: true })
   try {
     for (const file of outputs) {
-      linkOrCopy(file, path.join(staging, path.basename(file)), linkFile);
+      linkOrCopy(file, path.join(staging, path.basename(file)), linkFile)
     }
 
-    const slug = customSlug || episodeSlugOf(episodeDir, outputs);
-    const htmlName = `${slug}_delivery.html`;
-    const domainRoot = customRootDir || findDomainRoot(episodeDir);
+    const slug = customSlug || episodeSlugOf(episodeDir, outputs)
+    const htmlName = `${slug}_delivery.html`
+    const domainRoot = customRootDir || findDomainRoot(episodeDir)
     const relOutFile = domainRoot
       ? path.relative(domainRoot, path.join(final, htmlName)).replace(/\\/g, '/')
-      : path.join('deliveries', `v${number}`, htmlName).replace(/\\/g, '/');
+      : path.join('deliveries', `v${number}`, htmlName).replace(/\\/g, '/')
 
-    let writeConsoleFn = typeof customWriteConsole === 'function' ? customWriteConsole : null;
+    let writeConsoleFn = typeof customWriteConsole === 'function' ? customWriteConsole : null
     if (!writeConsoleFn && domainRoot) {
       try {
-        const mod = await import('../../../../../../../scripts/export-console.mjs');
-        if (typeof mod.writeConsole === 'function') writeConsoleFn = mod.writeConsole;
+        const mod = await import('../../../../../../../scripts/export-console.mjs')
+        if (typeof mod.writeConsole === 'function') writeConsoleFn = mod.writeConsole
       } catch {}
     }
 
-    let htmlWritten = false;
+    let htmlWritten = false
     if (writeConsoleFn && domainRoot) {
       try {
-        const modelName = customModel || (customModels && customModels[0]) || slug;
+        const modelName = customModel || (customModels && customModels[0]) || slug
         const res = await writeConsoleFn({
           rootDir: domainRoot,
           stagingDir: staging,
@@ -226,9 +232,9 @@ export async function deliver(input) {
             outFile: relOutFile,
           },
           open: false,
-        });
+        })
         if (res && res.status !== 'error') {
-          htmlWritten = true;
+          htmlWritten = true
         }
       } catch {}
     }
@@ -239,13 +245,14 @@ export async function deliver(input) {
         version: `v${number}`,
         outputs,
         createdAt: now.toISOString(),
-      });
-      fs.writeFileSync(path.join(staging, htmlName), htmlContent, 'utf8');
+      })
+      fs.writeFileSync(path.join(staging, htmlName), htmlContent, 'utf8')
     }
 
-    const files = outputHashes(outputs);
-    const descFile = outputs.find((f) => path.basename(f).endsWith('_description.md'));
-    const description = descFile && fs.existsSync(descFile) ? fs.readFileSync(descFile, 'utf8') : undefined;
+    const files = outputHashes(outputs)
+    const descFile = outputs.find((f) => path.basename(f).endsWith('_description.md'))
+    const description =
+      descFile && fs.existsSync(descFile) ? fs.readFileSync(descFile, 'utf8') : undefined
 
     fs.writeFileSync(
       path.join(staging, DELIVERY_META),
@@ -263,12 +270,12 @@ export async function deliver(input) {
         2,
       ),
       'utf8',
-    );
-    fs.renameSync(staging, final);
+    )
+    fs.renameSync(staging, final)
   } catch (err) {
-    fs.rmSync(staging, { recursive: true, force: true });
-    throw err;
+    fs.rmSync(staging, { recursive: true, force: true })
+    throw err
   }
 
-  return { version: `v${number}`, created: true, outputsHash: hash, inputFingerprint };
+  return { version: `v${number}`, created: true, outputsHash: hash, inputFingerprint }
 }
