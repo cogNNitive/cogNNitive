@@ -362,6 +362,10 @@ test('3b-2.8 cold-cache E2E: script gate -> preview gate (0 avatars) -> delivery
   const baseDeps = {
     cacheDir: ws.cacheDir,
     render,
+    thumbnailBase: 'first-frame.png',
+    synthesizeAvatarOptions: {
+      measureDuration: async () => 1.5,
+    },
     qa: {
       qaMaster: async () => ({ ok: true, checks: [] }),
       qaOutputSet: async () => ({ ok: true, checks: [] }),

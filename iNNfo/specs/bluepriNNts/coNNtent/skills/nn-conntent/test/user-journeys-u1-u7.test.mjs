@@ -176,6 +176,7 @@ function fakeRender() {
 
 function thumbStubs() {
   return {
+    thumbnailBase: 'first-frame.png',
     renderThumbnails: async ({ episodeDir, slug }) => {
       const p1 = path.join(episodeDir, `${slug}_thumbnail_2560x1440.png`)
       const p2 = path.join(episodeDir, `${slug}_thumbnail_1080x1920.png`)
