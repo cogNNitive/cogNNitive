@@ -1736,6 +1736,50 @@ export async function writeConsole(opts = {}) {
   // widen it before adding the optional scope.
   /** @type {Record<string, unknown>} */
   const payloadMeta = domainPayload.model.meta
+  const stagingDir =
+    opts.stagingDir || opts.staging || scopeObj.stagingDir || scopeObj.staging || null
+  const isDelivery =
+    view === 'conntent-delivery' ||
+    Boolean(scopeObj.delivery) ||
+    Boolean(stagingDir) ||
+    (typeof scopeObj.outFile === 'string' &&
+      /(?:^|\/)deliveries\/v\d+\//.test(scopeObj.outFile))
+
+  // For delivery view, sanitize internal operating data (costs, budget, ledger, image prompts)
+  if (isDelivery) {
+    domainPayload.model.elements = domainPayload.model.elements.filter((el) => {
+      const c = String(el.concept || '').toLowerCase()
+      return !['ledger', 'cost', 'spend', 'budget'].some((k) => c.includes(k))
+    })
+    const STRIP_FIELD_RE =
+      /^(cost|costs|budget|budgets|spend|ledger|prompt|image_prompt|prompts|negative_prompt)$/i
+    for (const el of domainPayload.model.elements) {
+      if (el.fields && typeof el.fields === 'object') {
+        for (const k of Object.keys(el.fields)) {
+          if (STRIP_FIELD_RE.test(k)) delete el.fields[k]
+        }
+      }
+    }
+    if (domainPayload.viewData) {
+      const stripData = (obj) => {
+        if (!obj || typeof obj !== 'object') return
+        for (const k of Object.keys(obj)) {
+          if (STRIP_FIELD_RE.test(k)) {
+            delete obj[k]
+          } else if (typeof obj[k] === 'object') {
+            stripData(obj[k])
+          }
+        }
+      }
+      stripData(domainPayload.viewData)
+    }
+    if (domainPayload.model.meta) {
+      delete domainPayload.model.meta.ledger
+      delete domainPayload.model.meta.costs
+      delete domainPayload.model.meta.budget
+    }
+  }
+
   const readOnly = scopeObj.readOnly === true
   if (scoped) {
     const scopeMeta = { models: [...scopeModelIds].sort(), label: scopeLabelOf(selected) }
@@ -1756,7 +1800,21 @@ export async function writeConsole(opts = {}) {
   let familyDir = null
   let familyKey = null
   let relativePath = null
-  if (view) {
+  if (isDelivery) {
+    familyDir = null
+    familyKey = null
+    if (typeof scopeObj.outFile === 'string' && scopeObj.outFile) {
+      const abs = resolve(root, scopeObj.outFile)
+      if (!isInsideRoot(abs, root)) {
+        throw new ConsoleExportError(`outFile must resolve inside ${root}.`, 'OUTFILE_INVALID')
+      }
+      relativePath = relative(root, abs).replace(/\\/g, '/')
+    } else {
+      relativePath = payloadHelper.consoleOutputPath(
+        scopeObj.delivery ? { delivery: scopeObj.delivery } : scope,
+      )
+    }
+  } else if (view) {
     familyKey = scoped ? `${view}-${scopeKey}_view` : `${view}_view`
     familyDir = `artifacts/${familyKey}`
   } else {
@@ -1764,7 +1822,7 @@ export async function writeConsole(opts = {}) {
   }
   // A caller may pin the exact file (for example the delivery HTML inside
   // deliveries/v<N>/); it must stay inside the domaiNN.
-  if (typeof scopeObj.outFile === 'string' && scopeObj.outFile) {
+  if (typeof scopeObj.outFile === 'string' && scopeObj.outFile && !isDelivery) {
     const abs = resolve(root, scopeObj.outFile)
     if (!isInsideRoot(abs, root)) {
       throw new ConsoleExportError(`outFile must resolve inside ${root}.`, 'OUTFILE_INVALID')
@@ -1772,6 +1830,23 @@ export async function writeConsole(opts = {}) {
     familyDir = null
     familyKey = null
     relativePath = relative(root, abs).replace(/\\/g, '/')
+  }
+
+  const finalAbsPath = relativePath ? join(root, relativePath) : null
+  if (
+    isDelivery &&
+    finalAbsPath &&
+    existsSync(finalAbsPath) &&
+    !stagingDir
+  ) {
+    return {
+      path: finalAbsPath,
+      relativePath,
+      status: 'error',
+      error: `Delivery console already exists at ${relativePath}; deliveries are immutable`,
+      knowledgeVersions: versionsOf(modelSummaries),
+      opened: false,
+    }
   }
 
   const outDirAbs = familyDir ? join(root, familyDir) : dirname(join(root, relativePath))
@@ -1826,8 +1901,21 @@ export async function writeConsole(opts = {}) {
 
   if (!familyDir) {
     // Stable file: replaced through a temp file + rename, only when the bytes move.
-    absPath = join(root, relativePath)
+    const stagingDirAbs = stagingDir ? resolve(root, stagingDir) : null
+    absPath = stagingDirAbs ? join(stagingDirAbs, basename(relativePath)) : finalAbsPath
     relPath = relativePath
+
+    if (isDelivery && finalAbsPath && existsSync(finalAbsPath)) {
+      return {
+        path: finalAbsPath,
+        relativePath: relPath,
+        status: 'error',
+        error: `Delivery console already exists at ${relativePath}; deliveries are immutable`,
+        knowledgeVersions,
+        opened: false,
+      }
+    }
+
     let isUnchanged = false
     if (!slimmed && existsSync(absPath)) {
       const previous = await readFile(absPath, 'utf-8')

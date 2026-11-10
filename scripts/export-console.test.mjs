@@ -871,6 +871,46 @@ notes:: "Please review the tagline"
       assert.match(html, /"models":\["business_V_0-2-5"\]/)
     })
 
+    it('writes into staging directory while relativePath is the final delivery path', async () => {
+      const { writeConsole } = await load()
+      const stagingDir = join(tempDir, 'staging_tmp')
+      await mkdir(stagingDir, { recursive: true })
+      const res = await writeConsole({
+        rootDir: tempDir,
+        stagingDir,
+        scope: {
+          models: ['business_V_0-2-5'],
+          readOnly: true,
+          outFile: 'deliveries/v1/probe_delivery.html',
+        },
+        open: false,
+      })
+      assert.equal(res.status, 'written')
+      assert.equal(res.relativePath, 'deliveries/v1/probe_delivery.html')
+      assert.equal(res.path, join(stagingDir, 'probe_delivery.html'))
+      assert.equal(existsSync(res.path), true)
+    })
+
+    it('refuses to replace an existing delivery console', async () => {
+      const { writeConsole } = await load()
+      const finalDir = join(tempDir, 'deliveries', 'v1')
+      await mkdir(finalDir, { recursive: true })
+      await writeFile(join(finalDir, 'probe_delivery.html'), 'existing', 'utf8')
+      const res = await writeConsole({
+        rootDir: tempDir,
+        scope: {
+          models: ['business_V_0-2-5'],
+          readOnly: true,
+          outFile: 'deliveries/v1/probe_delivery.html',
+        },
+        open: false,
+      })
+      assert.equal(res.status, 'error')
+      assert.match(res.error, /already exists/i)
+      assert.equal(await readFile(join(finalDir, 'probe_delivery.html'), 'utf8'), 'existing')
+    })
+
+
     it('an outFile outside the domain is refused', async () => {
       const { writeConsole } = await load()
       await assert.rejects(

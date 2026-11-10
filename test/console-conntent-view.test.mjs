@@ -253,3 +253,149 @@ test('the view never writes the review field and offers no Deliver button', () =
   assert.equal(buttons.some((text) => /deliver/i.test(text)), false)
   assert.equal(document.body.textContent.includes('Clean orphans'), false)
 })
+
+function bootDelivery({ viewData = VIEW_DATA, model = MODEL, deliveryVersion = 'v1' } = {}) {
+  const registry = nnConsole.createViewRegistry()
+  const factory = new Function('registerView', readFileSync(VIEW_FILE, 'utf8'))
+  const registrar = registry.registrar('conntent', 'probe')
+  factory(registrar)
+  const deliveryModel = {
+    ...model,
+    meta: {
+      ...model.meta,
+      consoleScope: {
+        view: 'conntent-delivery',
+        readOnly: true,
+        models: ['e_probe'],
+        label: 'Probe Episode v1',
+      },
+    },
+  }
+  const booted = bootConsole({
+    registry,
+    model: deliveryModel,
+    viewData: { 'conntent-delivery': viewData, conntent: viewData },
+  })
+  return booted
+}
+
+test('the view module registers conntent-delivery as a readonly view', () => {
+  const registry = nnConsole.createViewRegistry()
+  const factory = new Function('registerView', readFileSync(VIEW_FILE, 'utf8'))
+  factory(registry.registrar('conntent', 'probe'))
+  const views = registry.list()
+  const deliveryView = views.find((v) => v.id === 'conntent-delivery')
+  assert.ok(deliveryView, 'conntent-delivery view is registered')
+  assert.equal(deliveryView.kind, 'readonly')
+})
+
+test('conntent-delivery renders read-only episode panel with sibling relative media and no controls', () => {
+  const booted = bootDelivery()
+  const { document } = booted
+  assert.equal(document.querySelector('#nn-rail'), null, 'no rail')
+  assert.equal(document.querySelector('#nn-tab-explorer'), null, 'no explorer')
+  const deliveryEl = document.querySelector('[data-nn-delivery-view]') || document.querySelector('.nn-delivery-view')
+  assert.ok(deliveryEl, 'delivery view container is rendered')
+  assert.match(deliveryEl.textContent, /Probe Episode/)
+  assert.match(deliveryEl.textContent, /v1/)
+  const players = deliveryEl.querySelectorAll('video')
+  assert.ok(players.length > 0, 'at least one player exists')
+  const src = players[0].getAttribute('src')
+  assert.match(src, /^\.\//, 'media path starts with ./')
+  assert.equal(deliveryEl.querySelectorAll('button[data-nn-verdict]').length, 0, 'no verdict buttons')
+  assert.equal(deliveryEl.querySelectorAll('textarea.nn-narration').length, 0, 'no editable narration')
+  assert.equal(draftsOf(booted).length, 0, 'no drafts created')
+  assert.equal(deliveryEl.querySelector('[data-nn-subsection="config"]'), null, 'config omitted')
+  assert.equal(deliveryEl.querySelector('[data-nn-subsection="status"]'), null, 'status omitted')
+  assert.doesNotMatch(deliveryEl.textContent, /cost|budget|ledger/i, 'no cost/budget/ledger')
+  assert.equal(deliveryEl.querySelector('[data-nn-superseded]'), null, 'no superseded mark')
+})
+
+test('editing a components slot opens the component picker dialog with slot filter and upward lookup', () => {
+  const componentViewData = JSON.parse(JSON.stringify(VIEW_DATA))
+  componentViewData.tree.series[0].episodes[0].components = [
+    {
+      name: 'boxed',
+      slot: 'title',
+      duration: 3,
+      aspect: ['16:9'],
+      source: 'local',
+      tokens: ['colors.text'],
+      level: 'series',
+      shadowed: false,
+      preview: 'series/s/library/components/boxed/preview.mp4',
+    },
+    {
+      name: 'boxed',
+      slot: 'title',
+      duration: 3,
+      aspect: ['16:9'],
+      source: 'local',
+      tokens: ['colors.text'],
+      level: 'domain',
+      shadowed: true,
+      preview: 'library/components/boxed/preview.mp4',
+    },
+    {
+      name: 'plain',
+      slot: 'quote',
+      duration: 2,
+      aspect: ['16:9'],
+      source: 'local',
+      tokens: [],
+      level: 'domain',
+      shadowed: false,
+      preview: null,
+    },
+    {
+      name: 'kinetic',
+      slot: 'title',
+      duration: 4,
+      aspect: ['16:9', '9:16'],
+      source: 'registry:kinetic@1.0.0',
+      tokens: ['colors.primary'],
+      level: 'blueprint',
+      shadowed: false,
+      preview: 'library/components/kinetic/preview.mp4',
+    },
+  ]
+  componentViewData.tree.series[0].episodes[0].scenes[0].sources.push({
+    name: 'components',
+    source: 'series',
+    value: 'title=boxed, quote=plain',
+    type: 'string',
+  })
+  const booted = bootConntent({ viewData: componentViewData })
+  const { document, dom } = booted
+
+  const openBtn = document.querySelector('[data-nn-picker="components"][data-nn-slot="title"]') ||
+                  document.querySelector('[data-nn-component-slot="title"]')
+  assert.ok(openBtn, 'picker trigger button exists for title slot')
+  openBtn.click()
+
+  const dialog = document.querySelector('[data-nn-component-picker]')
+  assert.ok(dialog, 'picker dialog opened')
+
+  const items = dialog.querySelectorAll('[data-nn-component-item]')
+  assert.equal(items.length, 3, 'only 3 title components listed')
+  assert.equal(dialog.querySelector('[data-nn-component="plain"]'), null, 'quote component not listed')
+
+  const domainBoxed = dialog.querySelector('[data-nn-component="boxed"][data-nn-level="domain"]')
+  assert.ok(domainBoxed.hasAttribute('data-nn-shadowed'), 'domain entry is marked shadowed')
+  const seriesBoxed = dialog.querySelector('[data-nn-component="boxed"][data-nn-level="series"]')
+  assert.ok(!seriesBoxed.hasAttribute('data-nn-shadowed'), 'series entry is selectable')
+
+  const kineticItem = dialog.querySelector('[data-nn-component="kinetic"]')
+  kineticItem.querySelector('[data-nn-select-component]').click()
+  const drafts = draftsOf(booted)
+  assert.equal(drafts.length, 1, 'draft proposed')
+  assert.equal(drafts[0].field, 'components')
+  assert.match(drafts[0].proposed, /title=kinetic/)
+
+  openBtn.click()
+  assert.ok(document.querySelector('[data-nn-component-picker]'))
+  const event = new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+  document.dispatchEvent(event)
+  assert.equal(document.querySelector('[data-nn-component-picker]'), null, 'dialog closed by Escape')
+})
+

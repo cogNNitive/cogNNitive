@@ -12715,10 +12715,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // Binds the file slug and source; a declared id that differs is rejected.
     function registrar(id, source) {
       return function (def) {
-        if (def && def.id !== undefined && def.id !== id) {
+        var viewId = def && def.id !== undefined ? def.id : id
+        if (def && def.id !== undefined && def.id !== id && !def.id.startsWith(id + '-')) {
           reject(id, [source], 'view "' + id + '": declared id "' + def.id + '" does not match the file slug')
         }
-        return register(Object.assign({}, def, { id: id, source: source }))
+        return register(Object.assign({}, def, { id: viewId, source: source }))
       }
     }
 
@@ -12953,9 +12954,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       bootErrors.push({ id: id, sources: sources, reason: reason })
     }
     var scopedView = consoleScopeOf(opts.meta)
-    if (scopedView && shell.explorer) shell.explorer.classList.remove('active')
+    if (scopedView && shell.explorer) {
+      shell.explorer.classList.remove('active')
+      if (shell.explorer.parentNode) shell.explorer.parentNode.removeChild(shell.explorer)
+    }
     registry.list().forEach(function (v) {
       if (scopedView && v.id !== scopedView) return
+      if (!scopedView && v.kind === 'readonly' && v.id === 'conntent-delivery') return
       var clash = tabs.filter(function (t) {
         return t.id === v.id
       })[0]

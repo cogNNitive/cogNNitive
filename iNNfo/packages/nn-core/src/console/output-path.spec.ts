@@ -16,4 +16,29 @@ describe('consoleOutputPath', () => {
   it('rejects an empty model key', () => {
     expect(() => consoleOutputPath({ model: '' })).toThrow(/model key/)
   })
+
+  it('builds the delivery console path for an episode version', () => {
+    expect(
+      consoleOutputPath({
+        series: 'botijos-today',
+        episode: 'gas-pump',
+        version: 2,
+      }),
+    ).toBe(
+      'series/botijos-today/episodes/gas-pump/deliveries/v2/gas-pump_delivery.html',
+    )
+
+    expect(
+      consoleOutputPath({
+        delivery: {
+          series: 'botijos-today',
+          episode: 'gas-pump',
+          version: 'v2',
+        },
+      }),
+    ).toBe(
+      'series/botijos-today/episodes/gas-pump/deliveries/v2/gas-pump_delivery.html',
+    )
+  })
 })
+

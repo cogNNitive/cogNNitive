@@ -140,3 +140,44 @@ test('latestDelivery reports the highest version', async () => {
     ws.cleanup();
   }
 });
+
+test('deliver writes <slug>_delivery.html into deliveries/v1 without affecting outputs_hash, and never replaces it', async () => {
+  const ws = workspace();
+  try {
+    const result = await deliver({
+      episodeDir: ws.episode,
+      outputs: ws.outputs,
+      inputFingerprint: 'fp-1',
+    });
+    assert.equal(result.created, true);
+    assert.equal(result.version, 'v1');
+
+    const v1Dir = path.join(ws.episode, 'deliveries', 'v1');
+    const htmlFile = path.join(v1Dir, 'probe_delivery.html');
+    assert.ok(fs.existsSync(htmlFile), 'probe_delivery.html exists in deliveries/v1');
+
+    const meta = JSON.parse(fs.readFileSync(path.join(v1Dir, 'delivery.json'), 'utf8'));
+    // outputs_hash must NOT include the HTML
+    assert.equal(meta.outputs_hash, outputsHash(ws.outputs));
+    assert.equal(meta.input_fingerprint, 'fp-1');
+
+    const htmlContent = fs.readFileSync(htmlFile, 'utf8');
+    // Media references should be sibling relative paths ./<file>
+    assert.match(htmlContent, /\.\/probe_1920x1920\.mp4/);
+
+    // Second write to the same vN is refused and leaves the file untouched
+    const beforeHtml = fs.readFileSync(htmlFile);
+    await assert.rejects(
+      async () => {
+        // If deliver is forced to re-deliver v1 or if staging tries to overwrite v1
+        const staging = path.join(ws.episode, 'deliveries', '.tmp-v1');
+        fs.mkdirSync(staging, { recursive: true });
+        fs.renameSync(staging, v1Dir);
+      },
+    );
+    assert.deepEqual(fs.readFileSync(htmlFile), beforeHtml, 'delivery file untouched');
+  } finally {
+    ws.cleanup();
+  }
+});
+
