@@ -218,7 +218,7 @@ Results go to `openspec/changes/conntent-blueprint-redesign/verifications.md` (o
 - [ ] 3b-2.5 GREEN `E/lib/gates.mjs` budget insertion; `pipeline.mjs` stops.
 - [ ] 3b-2.6 RED `T/animatic.test.mjs`: animatic uses real audio and the character pose still or the prompt-generated image; named constants 640 px wide, 15 fps. [Q11] (conntent-produce-command "The animatic", C8)
 - [ ] 3b-2.7 GREEN `E/lib/render.mjs` animatic path, `<slug>_animatic_<W>x<H>.mp4`.
-- [ ] 3b-2.8 RED `T/produce-cold-cache.test.mjs` (fake providers via `synthesizerOptions`): stop 10 at script -> human fixture changeset -> stop 10 at preview with ZERO avatar calls -> approve -> TTS precedes avatar; editing scene 2 regenerates only scene 2's avatar; rerun no-op. (E2E for U3)
+- [x] 3b-2.8 RED `T/produce-cold-cache.test.mjs` (fake providers via `synthesizerOptions`): stop 10 at script -> human fixture changeset -> stop 10 at preview with ZERO avatar calls -> approve -> TTS precedes avatar; editing scene 2 regenerates only scene 2's avatar; rerun no-op. (E2E for U3)
 - [ ] 3b-2.9 GREEN wire `produce` step 1: apply pending `changes/*.md` with `author_kind: human` and `origin: console` on start (via `executeChangesetApply`). (console-changes-direct-write "produce applies pending")
 - [ ] 3b-2.10 REFACTOR; run `node --test` on all pipeline tests.
 

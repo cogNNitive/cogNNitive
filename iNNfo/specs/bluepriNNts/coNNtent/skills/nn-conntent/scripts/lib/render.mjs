@@ -58,6 +58,7 @@ export async function renderVideo(options) {
       stageDeps: options.stageDeps,
       facts: options.facts,
       onProgress,
+      synthesizerOptions: options.synthesizerOptions,
     });
     recordStage(options.facts, {
       stage: 'compile',
@@ -75,7 +76,7 @@ export async function renderVideo(options) {
     // Render Refuses Missing Avatar Clips: a still avatar Layer would silently render as
     // a static frame, so the run stops here and names the synthesis command instead.
     const missingAvatars = avatarVideos?.missingLayers || [];
-    if (missingAvatars.length > 0) {
+    if (missingAvatars.length > 0 && options.kind !== 'animatic') {
       const named = missingAvatars.map((m) => `${m.sceneId}/${m.layerName}`).join(', ');
       throw new VideoRenderError(
         `Cannot render: ${missingAvatars.length} avatar Layer(s) have no cached lip-sync clip (${named}). ` +

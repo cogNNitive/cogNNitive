@@ -67,6 +67,7 @@ export function computePlanHash(scriptContent, models = {}, prices = {}) {
     .normalize('NFC')
     .replace(/\r\n?/g, '\n')
     .split('\n')
+    .filter((line) => !/^\s*(status|delivered_version|master|review)::/i.test(line) && !/^\s*knowledge_version:\s*/i.test(line))
     .map((l) => l.replace(/\s+$/, ''))
     .join('\n')
     .trim();

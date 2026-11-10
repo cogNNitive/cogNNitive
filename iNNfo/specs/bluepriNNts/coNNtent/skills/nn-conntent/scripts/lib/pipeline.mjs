@@ -393,10 +393,18 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
 
   const runId = deps.runId || randomUUID();
   const facts = { rootDir, runId, episode: episode.slug, planHash };
+  const synthOptions = options.synthesizerOptions || deps.synthesizerOptions;
+  const cacheDir = deps.cacheDir || options.cacheDir;
 
   // 4b. Synthesis of audio and images (before avatars so narration audio is cached for avatars)
   const synthAssets = deps.synthesizeEpisodeAssets || synthesizeEpisodeAssets;
-  await synthAssets({ scriptPath, facts, recordSynthesisStages: true });
+  await synthAssets({
+    scriptPath,
+    facts,
+    recordSynthesisStages: true,
+    ...(synthOptions ? { synthesizerOptions: synthOptions } : {}),
+    ...(cacheDir ? { cacheDir } : {}),
+  });
 
   const alignCaptions = deps.alignEpisodeCaptions || alignEpisodeCaptions;
   await alignCaptions({ scriptPath, facts, deps });
@@ -415,6 +423,9 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
       masterHeight: Number.isFinite(masterHeight) ? masterHeight : 1920,
       facts,
       stageDeps: deps.stageDeps,
+      ...(deps.render ? { render: deps.render } : {}),
+      ...(synthOptions ? { synthesizerOptions: synthOptions } : {}),
+      ...(cacheDir ? { cacheDir } : {}),
     });
     log(`animatic: ${animatic.outputVideoPath}`);
 
@@ -441,7 +452,7 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
       bags,
       alignmentKeys: deps.alignmentKeys,
       stills: deps.stills,
-      planHashes: deps.planHashes,
+      planHashes: deps.planHashes || Object.fromEntries((parsed.scenes || []).map((s) => [s.slug || s.id, planHash])),
     });
     const verdicts = readAppliedVerdicts(rootDir, modelId);
     const open = previewGateStates(previewEntries, verdicts).filter((state) => state.state !== 'approved');
@@ -465,7 +476,14 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
   const avatarLayers = (episode.model.elements?.Layer || []).filter(isAvatarLayer);
   if (avatarLayers.length > 0 && !options.dryRun) {
     const sync = (deps.synthesizeAvatars || synthesizeAvatars);
-    await sync({ scriptPath });
+    await sync({
+      scriptPath,
+      ...(cacheDir ? { cacheDir } : {}),
+      ...(synthOptions?.env ? { env: synthOptions.env } : {}),
+      ...(synthOptions?.fetch ? { fetch: synthOptions.fetch } : {}),
+      ...(synthOptions?.sleep ? { sleep: synthOptions.sleep } : {}),
+      ...(deps.synthesizeAvatarOptions || {}),
+    });
     log(`avatars: ${avatarLayers.length} layer(s) synthesized or picked up from cache`);
   }
 
@@ -477,6 +495,8 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
     gsapPath: deps.gsapPath,
     stageDeps: deps.stageDeps,
     recordSynthesisStages: false,
+    ...(synthOptions ? { synthesizerOptions: synthOptions } : {}),
+    ...(cacheDir ? { cacheDir } : {}),
   });
   const masterPath = rendered.outputVideoPath;
   log(`render: ${masterPath} (${rendered.renderTimeMs} ms, link_mode=${rendered.linkMode || 'link'})`);
