@@ -203,9 +203,10 @@ export function captionsCacheKey({ audioSha, text, engine = 'auto', engineVersio
   return sha256Hex(canonicalJson({ audio_sha: audioSha, text: String(text || ''), engine, engine_version: String(engineVersion || '') }));
 }
 
-/** The `hyperframes transcribe` argv (no model: the selected engine owns it). */
-export function transcribeArgs({ audioPath, language }) {
+/** The `hyperframes transcribe` argv (explicit model when provided). */
+export function transcribeArgs({ audioPath, language, model }) {
   const args = ['-y', 'hyperframes', 'transcribe', String(audioPath), '--json', '--engine', 'auto'];
+  if (model) args.push('--model', String(model));
   if (language) args.push('--language', String(language));
   return args;
 }
@@ -214,14 +215,14 @@ export function transcribeArgs({ audioPath, language }) {
  * Transcribe one audio file in a throwaway cwd. The CLI prints a summary on stdout and
  * writes the word list to `transcript.json`. `deps.run` is the seam for tests.
  *
- * @param {{ audioPath: string, language?: string, deps?: { run?: Function, cwd?: string } }} input
+ * @param {{ audioPath: string, language?: string, model?: string, deps?: { run?: Function, cwd?: string } }} input
  */
-export function runTranscribe({ audioPath, language, deps = {} }) {
+export function runTranscribe({ audioPath, language, model, deps = {} }) {
   const run = deps.run || ((args, options) => execFileSync('npx', args, options));
   const cwd = deps.cwd || fs.mkdtempSync(path.join(os.tmpdir(), 'nn-transcribe-'));
   let summary
   try {
-    summary = JSON.parse(String(run(transcribeArgs({ audioPath, language }), { cwd, encoding: 'utf8' })));
+    summary = JSON.parse(String(run(transcribeArgs({ audioPath, language, model }), { cwd, encoding: 'utf8' })));
   } catch (err) {
     return { ok: false, reason: 'transcribe-failed', error: err };
   }

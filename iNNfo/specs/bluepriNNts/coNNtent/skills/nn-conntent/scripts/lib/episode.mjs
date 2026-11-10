@@ -15,6 +15,13 @@ import { loadKnowledgeModel } from './knowledge-model.mjs';
 import { loadCascadeBags, withScriptPresets } from './video-scope.mjs';
 import { resolve } from './cascade.mjs';
 
+let _captionsValidator = null;
+
+/** Registers the captions validator (owned by captions-stage.mjs). */
+export function registerCaptionsValidator(fn) {
+  _captionsValidator = fn;
+}
+
 /** The closed set of Episode states (conntent-episode-lifecycle). */
 export const EPISODE_STATUSES = [
   'idea',
@@ -125,6 +132,9 @@ export function assertProducible(episode, installedVersion) {
         `${episode.blueprintVersion ?? '(none)'} but the installed coNNtent blueprint is ${installedVersion}. ` +
         'Old episodes stay archives; nothing was converted.',
     );
+  }
+  if (_captionsValidator) {
+    _captionsValidator(episode);
   }
 }
 

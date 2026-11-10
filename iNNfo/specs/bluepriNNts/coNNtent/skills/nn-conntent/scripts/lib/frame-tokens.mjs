@@ -154,7 +154,7 @@ export function loadFrameFolder({ frameDir }) {
  * @param {{ frameDir: string, projectDir: string }} input
  */
 export function emitHyperframesFrame({ frameDir, projectDir }) {
-  const out = path.join(projectDir, 'hyperframes');
+  const out = path.basename(projectDir) === 'hyperframes' ? projectDir : path.join(projectDir, 'hyperframes');
   fs.mkdirSync(out, { recursive: true });
   const src = path.join(frameDir, 'FRAME.md');
   if (fs.existsSync(src)) fs.copyFileSync(src, path.join(out, 'frame.md'));

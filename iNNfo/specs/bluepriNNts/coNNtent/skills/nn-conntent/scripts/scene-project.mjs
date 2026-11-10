@@ -205,6 +205,27 @@ ${tween}
     })
     .join('\n');
 
+  let captionsHostHtml = '';
+  const narrationCaptions = plan.narrationCaptions ?? manifest?.metadata?.narrationCaptions ?? manifest?.captions;
+  if (narrationCaptions) {
+    let inner = '';
+    if (Array.isArray(narrationCaptions)) {
+      inner = narrationCaptions
+        .map((entry) => {
+          const s = roundMs(Number(entry.start) || 0);
+          const e = roundMs(Number(entry.end) || s);
+          const d = roundMs(e - s);
+          const cls = entry.kind ? `caption-${entry.kind}` : 'caption-entry';
+          return `    <span class="${cls}" data-start="${s}" data-end="${e}" data-duration="${d}">${esc(entry.text)}</span>`;
+        })
+        .join('\n');
+      if (inner) inner = '\n' + inner + '\n  ';
+    } else if (typeof narrationCaptions === 'string') {
+      inner = narrationCaptions;
+    }
+    captionsHostHtml = `  <div id="captions" class="clip" data-track-kind="captions" data-start="0" data-duration="${total}" data-track-index="900">${inner}</div>\n`;
+  }
+
   const indexHtml = `<!doctype html>
 <html lang="en">
   <head>
@@ -221,7 +242,7 @@ ${tween}
 ${sceneHosts}
 ${overlayHosts}
 ${animationHosts}
-${plan.narrationCaptions ? `  <div id="captions" class="clip" data-track-kind="captions" data-start="0" data-duration="${total}" data-track-index="900"></div>\n` : ''}${audioEls}
+${captionsHostHtml}${audioEls}
     </div>
     <script>window.__timelines[${JSON.stringify(compositionId)}] = gsap.timeline({ paused: true });</script>
   </body>
@@ -249,7 +270,8 @@ ${plan.narrationCaptions ? `  <div id="captions" class="clip" data-track-kind="c
  */
 export function emitHyperframesProject(manifest, plan = {}) {
   if (!plan.projectDir) throw new Error('emitHyperframesProject: plan.projectDir is required');
-  const built = buildProject(manifest, plan);
+  const narrationCaptions = plan.narrationCaptions ?? manifest?.metadata?.narrationCaptions ?? manifest?.captions;
+  const built = buildProject(manifest, { ...plan, narrationCaptions });
   const dir = path.resolve(plan.projectDir);
   writeGuarded(dir, built.files);
 
