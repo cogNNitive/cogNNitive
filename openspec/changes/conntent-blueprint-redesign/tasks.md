@@ -309,7 +309,7 @@ Results go to `openspec/changes/conntent-blueprint-redesign/verifications.md` (o
 - [ ] 5b.1 RED `T/detect-state.test.mjs`: `detectState(root)`: no `domaiNN_NN.md` -> Set up the Domain; no frame/character and no series -> Define a Frame/Character, skippable [Q5]; once a series exists they are never proposed again; no series -> Create a Series; series without episode -> Plan; open gate or draft -> Produce; legacy layout -> the `layout.mjs` message; after each procedure the next is proposed. (conntent-skill, conntent-procedures "State-aware entry point")
 - [ ] 5b.2 GREEN `skills/nn-conntent/SKILL.md` and `E/lib/detect-state.mjs`.
 - [ ] 5b.3 RED+GREEN `nn-video-script` refuses when `domaiNN_NN.md` pins coNNtent or `series/*/*_coNNtent_NN.md` exists, with a pointer to `nn-conntent` (skill tests under `skills/nn-video-script/`). (F13)
-- [ ] 5b.4 RED+GREEN simulate U1-U7 on a fresh domaiNN fixture end to end (fake providers).
+- [x] 5b.4 RED+GREEN simulate U1-U7 on a fresh domaiNN fixture end to end (fake providers).
 
 ## Phase 7: Living specs, release, verification, archive
 
