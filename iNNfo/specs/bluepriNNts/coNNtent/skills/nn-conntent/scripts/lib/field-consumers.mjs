@@ -76,6 +76,8 @@ export const FIELD_CONSUMERS = {
   price_date: ['lib/catalog.mjs'],
   price_source: ['lib/catalog.mjs'],
   stale_after_days: ['lib/catalog.mjs'],
+  captions: ['lib/captions-stage.mjs', 'scene-compiler.mjs'],
+  caption_model: ['lib/captions-stage.mjs'],
 };
 
 /**
@@ -101,8 +103,6 @@ export const PLANNED_CONSUMERS = {
   text_from: '5',
   placement: '5',
   timing: '5',
-  captions: '3b-3 (captions)',
-  caption_model: '3b-3 (captions)',
 };
 
 /** Fields that are annotation by design: never engine input, so never a phantom. */

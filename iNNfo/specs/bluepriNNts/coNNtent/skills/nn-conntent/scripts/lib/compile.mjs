@@ -33,7 +33,9 @@ import { buildImageOptions } from './image-options.mjs';
 import { appendTimingRow, timingRow } from './facts.mjs';
 import { assertImageSize, loadMergedCatalog } from './catalog.mjs';
 import { warnUnpricedAllowedModels } from '../asset-cost-estimator.mjs';
-import { loadFrame } from './frame-tokens.mjs';
+import { loadFrame, emitHyperframesFrame } from './frame-tokens.mjs';
+import { captionsCacheKey } from './captions.mjs';
+import { resolveCaptionModel } from './captions-stage.mjs';
 import { probeDuration } from './media-duration.mjs';
 import { checkMissingAsset } from './missing-asset.mjs';
 import { resolveAnimations, assertAnimationIds } from './animations.mjs';
@@ -848,7 +850,55 @@ export async function compileVideo(options) {
   // the emitter styles overlays from brand tokens instead of hardcoded values.
   // Absent a frame, the manifest carries nothing and the emitter keeps its own
   // defaults.
-  if (frameInfo) manifest.metadata.frame = { path: frameInfo.path, tokens: frameInfo.tokens };
+  if (frameInfo) {
+    manifest.metadata.frame = { path: frameInfo.path, tokens: frameInfo.tokens };
+    emitHyperframesFrame({ frameDir: path.dirname(frameInfo.path), projectDir: scriptDir });
+  }
+
+  // Collect aligned captions from cache for scenes with captions != off
+  const allCaptions = [];
+  const fps = options.fps || parsed.fps || manifest.fps || 30;
+  for (let i = 0; i < parsed.scenes.length; i++) {
+    const sc = parsed.scenes[i];
+    const sceneBags = { ...bags, video: parsed.video || {}, scene: sc.fields || sc.properties || sc };
+    const mode = resolve('captions', sceneBags).value || 'off';
+    const captionModel = resolve('caption_model', sceneBags).value || null;
+    const sceneTrack = manifest.tracks?.scenes?.[i];
+    const sceneStartSec = (sceneTrack ? sceneTrack.fromFrame : 0) / fps;
+
+    if (mode !== 'off' && sc.narration && sc.narration.trim().length > 0) {
+      const lang = parsed.language || resolve('language', bags).value || 'en';
+      const modelName = resolveCaptionModel({ language: lang, captionModel });
+      const audioSha = audioAssets[sc.id]?.sha256;
+      if (audioSha) {
+        const cacheKey = captionsCacheKey({
+          audioSha,
+          text: sc.narration.trim(),
+          engine: 'auto',
+          engineVersion: `${modelName}:${lang}`,
+        });
+        const cacheFile = path.join(cacheDir, 'captions', `${cacheKey}.json`);
+        if (fs.existsSync(cacheFile)) {
+          try {
+            const data = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+            const items = mode === 'lines' ? (data.lines || []) : (data.words || []);
+            for (const item of items) {
+              allCaptions.push({
+                text: item.text,
+                start: sceneStartSec + Number(item.start || 0),
+                end: sceneStartSec + Number(item.end || item.start || 0),
+                kind: mode === 'lines' ? 'line' : 'word',
+              });
+            }
+          } catch {}
+        }
+      }
+    }
+  }
+  if (allCaptions.length > 0) {
+    manifest.metadata.narrationCaptions = allCaptions;
+    manifest.narrationCaptions = allCaptions;
+  }
 
   // The resolved slot components ride on the manifest so the emitter mounts the
   // right file and the render driver stages it into `<project>/components/`.

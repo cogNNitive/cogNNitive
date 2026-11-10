@@ -66,6 +66,7 @@ import { isAvatarLayer } from './avatar-jobs.mjs';
 import { resolveWorkspace } from './video-guard.mjs';
 import { qaMaster as defaultQaMaster, qaOutputSet as defaultQaOutputSet, writeQaReport } from './qa.mjs';
 import { recordStage, synthesizeEpisodeAssets } from './compile.mjs';
+import { alignEpisodeCaptions } from './captions-stage.mjs';
 import { NO_OPEN_ENV, resolveConsoleModulePath } from './nn-core.generated.cjs';
 
 export const EXIT_DONE = 0;
@@ -396,6 +397,9 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
   // 4b. Synthesis of audio and images (before avatars so narration audio is cached for avatars)
   const synthAssets = deps.synthesizeEpisodeAssets || synthesizeEpisodeAssets;
   await synthAssets({ scriptPath, facts, recordSynthesisStages: true });
+
+  const alignCaptions = deps.alignEpisodeCaptions || alignEpisodeCaptions;
+  await alignCaptions({ scriptPath, facts, deps });
 
   // 4b. Preview gate: after the cheap spend (TTS, images, captions, animatic) and before
   // any avatar call. The hash covers what the reviewer heard and saw.
