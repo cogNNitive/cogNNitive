@@ -2,7 +2,7 @@ import { slugify } from '../parser/slug.js'
 import { slugifyHeading } from '../sourceRef.js'
 import { parsePropertyValue } from '../parser/sections.js'
 import { hashParsedElement } from '../console/element-hash.js'
-import { checkStaleTarget } from './history.js'
+import { checkStaleTarget, loadStalenessHistory, type StalenessHistory } from './history.js'
 import { extractModelSlug } from './utils.js'
 import type { ChangeItem } from './types.js'
 import type { ParsedKnowledge } from '../types/index.js'
@@ -36,6 +36,10 @@ export async function partitionChangeset(
   const cleanSubset: ChangeItem[] = []
   const conflictedSubset: ChangeItem[] = []
   const conflictDiagnostics = new Map<string, { code: string; message: string }>()
+  // One read of the applied log per apply, shared by every change of the batch.
+  let history: StalenessHistory | undefined
+  const stalenessHistory = async (dir: string): Promise<StalenessHistory> =>
+    (history ??= await loadStalenessHistory(dir))
 
   for (const change of changes) {
     if (change.op === 'comment') {
@@ -134,7 +138,7 @@ export async function partitionChangeset(
         model.frontmatter.knowledge_version ||
         ''
       if (baseVer && elementIdent) {
-        const staleRes = await checkStaleTarget(changesDir, targetModelSlug, elementIdent, baseVer)
+        const staleRes = checkStaleTarget(await stalenessHistory(changesDir), targetModelSlug, elementIdent, baseVer)
         if (staleRes.stale) {
           const code = staleRes.code ?? 'STALE_TARGET_DELETED'
           const msg = staleRes.message || `STALE_TARGET_DELETED: Target element was deleted after base_version ${baseVer}`
