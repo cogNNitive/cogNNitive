@@ -23124,7 +23124,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         return rejectProposal(
           "INVALID_OPERATION",
           change.target,
-          `change "${change.id}": a change must not carry inline fields; emit one update_field change per field`,
+          `change "${change.id}": a change must not carry inline fields; set them with one set_fields change for the fields that share one evidence, or one update_field change per field whose evidence differs`,
           change.id
         );
       }

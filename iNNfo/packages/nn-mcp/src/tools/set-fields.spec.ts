@@ -277,3 +277,36 @@ describe('set_fields as a bare operation', () => {
     expect(await changesetFiles()).toEqual([])
   })
 })
+
+describe('inline fields point to set_fields and update_field', () => {
+  it('propose_changeset rejects inline fields and writes no file', async () => {
+    const result = await propose([
+      { op: 'add_element', target: 'm@grow', concept: 'Alert', name: 'Grow', fields: { owner: 'Ana' }, evidence: 'decision' },
+    ])
+    expect(result.success).toBe(false)
+    const error = result.errors!.find((e) => e.code === 'INVALID_OPERATION')!
+    expect(error.message).toContain('set_fields')
+    expect(error.message).toContain('update_field')
+    expect(await changesetFiles()).toEqual([])
+  })
+
+  it('apply_change records a hand-written add_element with inline fields as rejected', async () => {
+    const before = await readFile(join(root, 'kNNowledge', 'm_NN.md'), 'utf-8')
+    const cs = await writeHandCs([
+      { id: 'c-01', op: 'add_element', target: 'm@grow', concept: 'Alert', name: 'Grow', fields: { owner: 'Ana' }, evidence: 'decision' },
+    ])
+    const applied = await applyChange(root, cs)
+    expect(applied.success).toBe(false)
+    const error = applied.errors!.find((e) => e.code === 'INVALID_OPERATION')!
+    expect(error.message).toContain('set_fields')
+    expect(error.message).toContain('update_field')
+    expect(await readFile(join(root, 'kNNowledge', 'm_NN.md'), 'utf-8')).toBe(before)
+    expect(parseChangeset(await readFile(join(root, cs), 'utf-8')).frontmatter.status).toBe('rejected')
+  })
+
+  it('the bare add_element refusal points to set_fields and update_field', async () => {
+    const res = await applyChange(root, 'm', 'add_element', { conceptName: 'Alert', elementName: 'Grow', fields: { owner: 'Ana' } })
+    expect(res.success).toBe(false)
+    expect(res.errors?.[0]?.message).toContain('set_fields')
+  })
+})
