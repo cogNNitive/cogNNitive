@@ -515,6 +515,16 @@ describe('console-views lib', () => {
       assert.ok(out.indexOf('/*BUNDLE*/') < out.indexOf('data-nn-view="p"'), 'views run after the bundle')
     })
 
+    it('inlines a module only once when it registers multiple views, while header documents all ids', () => {
+      const view1 = { id: 'conntent', origin: 'bluepriNNt', source: 'pkg/console-view-conntent.js', code: GOOD, sha256: 'a'.repeat(64) }
+      const view2 = { id: 'conntent-delivery', origin: 'bluepriNNt', source: 'pkg/console-view-conntent.js', code: GOOD, sha256: 'a'.repeat(64) }
+      const out = inlineConsoleAssets(shell, { bundle: '/*BUNDLE*/', css: '.a{}', views: [view1, view2] })
+      assert.ok(out.includes('conntent bluepriNNt pkg/console-view-conntent.js'))
+      assert.ok(out.includes('conntent-delivery bluepriNNt pkg/console-view-conntent.js'))
+      const scriptMatches = out.match(/data-nn-view-source="pkg\/console-view-conntent\.js"/g)
+      assert.equal(scriptMatches?.length, 1, 'module script is inlined exactly once')
+    })
+
     it('fails when the shell lacks an expected anchor', () => {
       assert.throws(() => inlineConsoleAssets('<html></html>', { bundle: 'b', css: 'c', views: [] }), /anchor/)
     })
