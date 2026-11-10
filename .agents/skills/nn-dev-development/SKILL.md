@@ -124,8 +124,10 @@ tag shapes are a contract. Nobody tags by hand.
 ## 7. Clean up
 
 `node scripts/nn-session.mjs sweep` removes every session worktree and local branch
-already merged into `main`. `stop --id <id>` removes one; it refuses unmerged or dirty
-worktrees. Remote branch deletion is the maintainer's.
+already merged into `main`, skipping (and naming) any with uncommitted changes.
+`stop --id <id>` removes one; it refuses unmerged or dirty worktrees. Never remove a
+worktree with a bare `git worktree remove`: its `node_modules` junctions stop git
+halfway and leave a half-deleted folder; `stop` unlinks them first. Remote branch deletion is the maintainer's.
 
 ## Git rules
 

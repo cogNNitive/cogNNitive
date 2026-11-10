@@ -252,6 +252,48 @@ test('stop refuses a dirty worktree with an explanation instead of crashing', ()
   }
 })
 
+test('sweep skips a dirty merged worktree and still removes the clean ones', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  const dirtyTarget = join(dirname(repo), 'cogNNitive-w1')
+  const cleanTarget = join(dirname(repo), 'cogNNitive-w2')
+  try {
+    run(['start', '--id', 'w1', '--root', repo, '--no-install'])
+    run(['start', '--id', 'w2', '--root', repo, '--no-install'])
+    writeFileSync(join(dirtyTarget, 'f.txt'), 'changed')
+
+    const sw = runAll(['sweep', '--root', repo])
+    assert.equal(sw.code, 0, sw.out)
+    assert.ok(sw.out.includes('skipped session/w1'), 'names the skipped worktree')
+    assert.ok(existsSync(dirtyTarget), 'dirty worktree kept')
+    assert.ok(!existsSync(cleanTarget), 'clean merged worktree removed after the dirty one')
+    assert.equal(git(['branch', '--list', 'session/w2'], repo), '', 'clean branch deleted')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('sweep deletes a branch merged into main even when the primary is on another branch', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  try {
+    git(['branch', 'dev'], repo)
+    git(['checkout', '-q', '-b', 'session/m1'], repo)
+    writeFileSync(join(repo, 'g.txt'), 'y')
+    git(['add', '-A'], repo)
+    git(['commit', '-m', 'feature'], repo)
+    git(['checkout', '-q', 'main'], repo)
+    git(['merge', '-q', '--ff-only', 'session/m1'], repo)
+    git(['checkout', '-q', 'dev'], repo) // primary HEAD does not contain session/m1
+
+    const sw = run(['sweep', '--root', repo])
+    assert.equal(sw.code, 0, sw.out)
+    assert.equal(git(['branch', '--list', 'session/m1'], repo), '', 'merged branch deleted')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('stop removes a legacy node_modules junction without deleting primary sources', () => {
   const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
   const repo = makeRepo(base)

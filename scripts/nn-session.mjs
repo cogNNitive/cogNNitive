@@ -245,8 +245,19 @@ function status(argv) {
 }
 
 function stop(argv) {
-  const root = repoRoot(argv)
-  const id = sessionId(argv)
+  const refusal = stopSession(repoRoot(argv), sessionId(argv))
+  if (refusal) {
+    console.error(refusal)
+    process.exit(1)
+  }
+}
+
+/**
+ * Removes one session worktree and its branch. Returns a refusal message instead
+ * of exiting, so `sweep` can skip one session and carry on with the rest.
+ * @returns {string | null}
+ */
+function stopSession(root, id) {
   const target = worktreePath(root, id)
   const branch = `session/${id}`
 
@@ -257,8 +268,7 @@ function stop(argv) {
   if (branchExists && !INTEGRATION_REFS.some(isIn)) {
     const bases = INTEGRATION_REFS.filter((ref) => tryGit(['rev-parse', '--verify', '--quiet', ref], root).ok)
     const unique = tryGit(['log', '--oneline', branch, '--not', ...bases], root).out
-    console.error(`refusing: ${branch} has commits not in main or origin/main:\n${unique}`)
-    process.exit(1)
+    return `refusing: ${branch} has commits not in main or origin/main:\n${unique}`
   }
 
   const registered = worktreeRegistered(root, target)
@@ -269,8 +279,7 @@ function stop(argv) {
     // only real uncommitted changes refuse. (#1982)
     const dirty = tryGit(['status', '--porcelain'], target).out
     if (dirty) {
-      console.error(`refusing: ${target} has uncommitted changes:\n${dirty}\nsave what matters and revert the rest, then stop again.`)
-      process.exit(1)
+      return `refusing: ${target} has uncommitted changes:\n${dirty}\nsave what matters and revert the rest, then stop again.`
     }
     removeNodeModulesLinks(target)
     tryGit(['worktree', 'remove', target], root)
@@ -292,12 +301,13 @@ function stop(argv) {
 
   if (!registered && !branchExists && !dirExists) {
     console.log(`nothing to stop for session/${id}`)
-    return
+    return null
   }
   console.log(`removed ${target}`)
   if (dirExists) {
     console.error(`note: ${target} still exists (locked); delete it once the lock holder closes.`)
   }
+  return null
 }
 
 function sweep(argv) {
@@ -316,7 +326,8 @@ function sweep(argv) {
       const id = branch.replace(/^session\//, '')
       if (INTEGRATION_REFS.some((ref) => isAncestor(branch, ref))) {
         console.log(`sweeping merged session worktree: ${branch} (${target})`)
-        stop(['stop', '--id', id, '--root', root])
+        const refusal = stopSession(root, id)
+        if (refusal) console.error(`skipped ${branch}: ${refusal}`)
       }
     }
   }
@@ -327,7 +338,9 @@ function sweep(argv) {
   for (const branch of branches) {
     if (INTEGRATION_REFS.some((ref) => isAncestor(branch, ref))) {
       console.log(`deleting merged local branch: ${branch}`)
-      tryGit(['branch', '-d', branch], root)
+      // `-d` checks against the primary's HEAD, which may not be main; ancestry
+      // of main or origin/main was proven just above.
+      tryGit(['branch', '-D', branch], root)
     }
   }
 }
