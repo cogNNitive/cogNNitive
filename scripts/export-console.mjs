@@ -1773,10 +1773,11 @@ export async function writeConsole(opts = {}) {
       }
       stripData(domainPayload.viewData)
     }
-    if (domainPayload.model.meta) {
-      delete domainPayload.model.meta.ledger
-      delete domainPayload.model.meta.costs
-      delete domainPayload.model.meta.budget
+    if (domainPayload.model && domainPayload.model.meta) {
+      const meta = /** @type {Record<string, any>} */ (domainPayload.model.meta)
+      delete meta.ledger
+      delete meta.costs
+      delete meta.budget
     }
   }
 
@@ -2260,7 +2261,7 @@ async function runMain(argv, options = {}) {
   })
   const written = result.status === 'written' ? 1 : 0
   const unchanged = result.status === 'unchanged' ? 1 : 0
-  if (result.openError) {
+  if ('openError' in result && result.openError) {
     process.stderr.write(`WARNING: [export-console] could not open the console: ${result.openError}\n`)
   }
   console.log(
