@@ -21,7 +21,7 @@
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
-import { parseFrontmatter } from '../parser/index.js'
+import { parseFrontmatter, parseKnowledge } from '../parser/index.js'
 import { resolveBlueprintPackage, parseSpecName, normalizeVersion } from '../resolver.js'
 import { findCanonicalBlueprint } from '../schema/canonical-registry.js'
 import { resolveBlueprintSchema } from '../schema/compose.js'
@@ -44,6 +44,11 @@ export interface ConsoleProcedure {
   path: string
 }
 
+export interface ConsoleCatalog {
+  models: Record<string, any>
+  voices: Record<string, any>
+}
+
 export interface ConsoleSchemaResolution {
   /** The blueprint-derived schema, or `undefined` for the derived fallback. */
   schema: BlueprintSchema | undefined
@@ -51,6 +56,7 @@ export interface ConsoleSchemaResolution {
   procedures: ConsoleProcedure[]
   schemaSource: 'blueprint' | 'derived'
   warnings: string[]
+  catalog?: ConsoleCatalog | null
 }
 
 /** A resolved blueprint: its raw content and, when known, its on-disk directory. */
@@ -196,6 +202,50 @@ async function collectIncludes(
   return { byRef, all }
 }
 
+async function resolveCatalog(
+  parent: ResolvedBlueprint,
+  warnings: string[],
+): Promise<ConsoleCatalog | null> {
+  const fm = parseFrontmatter(parent.content)
+  const catalogRel = fm?.catalog
+  if (!catalogRel || typeof catalogRel !== 'string') return null
+  if (!parent.dir) {
+    warnings.push(`Blueprint declares catalog '${catalogRel}' but has no on-disk directory.`)
+    return null
+  }
+  const catalogPath = isAbsolute(catalogRel) ? catalogRel : resolve(parent.dir, catalogRel)
+  if (!existsSync(catalogPath)) {
+    warnings.push(`Blueprint catalog '${catalogRel}' not found at '${catalogPath}'.`)
+    return null
+  }
+  try {
+    const text = await readFile(catalogPath, 'utf-8')
+    const parsed = parseKnowledge(text)
+    const collect = (concept: string): Record<string, any> => {
+      const out: Record<string, any> = {}
+      for (const element of parsed.elements.get(concept) || []) {
+        const fields = element.fields || {}
+        const slug = String(element.slug || fields.slug || element.name)
+        out[slug] = {
+          slug,
+          name: element.name,
+          ...fields,
+        }
+      }
+      return out
+    }
+    return {
+      models: collect('Model'),
+      voices: collect('Voice'),
+    }
+  } catch (err) {
+    warnings.push(
+      `Blueprint catalog '${catalogRel}' failed to parse: ${err instanceof Error ? err.message : String(err)}`,
+    )
+    return null
+  }
+}
+
 /**
  * Resolve a model's parent blueprint and derive the console `schema` slot plus
  * its `procedures` catalog. Never throws: any failure degrades to the derived slot.
@@ -217,7 +267,7 @@ export async function resolveConsoleSchema(
       warnings.push(
         `Schema resolution for parent_spec '${opts.parentName}' not found; derived schema used.`,
       )
-      return { schema: undefined, procedures: [], schemaSource: 'derived', warnings }
+      return { schema: undefined, procedures: [], schemaSource: 'derived', warnings, catalog: null }
     }
 
     const includes = await collectIncludes(
@@ -239,9 +289,11 @@ export async function resolveConsoleSchema(
       ...includes.all.flatMap((inc) => proceduresOf(inc)),
     ]
 
-    return { schema, procedures, schemaSource: 'blueprint', warnings }
+    const catalog = await resolveCatalog(parent, warnings)
+
+    return { schema, procedures, schemaSource: 'blueprint', warnings, catalog }
   } catch (err) {
     warnings.push(`Schema resolution warning: ${err instanceof Error ? err.message : String(err)}`)
-    return { schema: undefined, procedures: [], schemaSource: 'derived', warnings }
+    return { schema: undefined, procedures: [], schemaSource: 'derived', warnings, catalog: null }
   }
 }
