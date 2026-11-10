@@ -9491,12 +9491,10 @@ var REQUIRED_BY_PRIMITIVE = {
   [MATRIX_DEFINITION]: ["source", "target"]
 };
 
-// iNNfo/packages/nn-core/src/changeset/parser.ts
-var import_yaml6 = __toESM(require_dist(), 1);
-
 // iNNfo/packages/nn-core/src/changeset/types.ts
 var CHANGE_OPS = [
   "update_field",
+  "set_fields",
   "add_element",
   "remove_element",
   "rename_element",
@@ -9595,8 +9593,76 @@ function extractInstanceProblems(change) {
   }
   return problems;
 }
+function jsonObjectKeys(text2) {
+  const keys = [];
+  let depth = 0;
+  let expectKey = false;
+  for (let i = 0; i < text2.length; i++) {
+    const ch = text2[i];
+    if (ch === '"') {
+      let j = i + 1;
+      while (j < text2.length && text2[j] !== '"') j += text2[j] === "\\" ? 2 : 1;
+      if (depth === 1 && expectKey) {
+        keys.push(JSON.parse(text2.slice(i, j + 1)));
+        expectKey = false;
+      }
+      i = j;
+      continue;
+    }
+    if (ch === "{" || ch === "[") {
+      depth++;
+      if (ch === "{" && depth === 1) expectKey = true;
+    } else if (ch === "}" || ch === "]") {
+      depth--;
+    } else if (ch === "," && depth === 1) {
+      expectKey = true;
+    }
+  }
+  return keys;
+}
+function parseFieldMap(raw, key) {
+  if (raw === void 0) return { ok: false, reason: `set_fields requires "${key}"` };
+  const text2 = String(raw).trim();
+  let parsed;
+  try {
+    parsed = JSON.parse(text2);
+  } catch {
+    return { ok: false, reason: `set_fields "${key}" must be a JSON object of field -> value` };
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return { ok: false, reason: `set_fields "${key}" must be a JSON object of field -> value` };
+  }
+  const keys = jsonObjectKeys(text2);
+  if (keys.length === 0) return { ok: false, reason: `set_fields "${key}" must set at least one field` };
+  const seen = /* @__PURE__ */ new Set();
+  const values = /* @__PURE__ */ new Map();
+  for (const field of keys) {
+    if (seen.has(field)) return { ok: false, reason: `set_fields "${key}" repeats the field "${field}"` };
+    seen.add(field);
+    if (field.trim() === "" || field !== field.trim() || /[&@]/.test(field)) {
+      return { ok: false, reason: `set_fields "${key}" has an invalid field name "${field}"` };
+    }
+    const value = parsed[field];
+    if (typeof value === "string") values.set(field, value);
+    else if (typeof value === "number" || typeof value === "boolean") values.set(field, String(value));
+    else return { ok: false, reason: `set_fields "${key}".${field} must be a serialized value (a string)` };
+  }
+  return { ok: true, values };
+}
+function setFieldsEntries(change) {
+  if (change.op !== "set_fields") return [];
+  const to = parseFieldMap(change.to, "to");
+  if (!to.ok) return [];
+  const from = change.from !== void 0 ? parseFieldMap(change.from, "from") : void 0;
+  if (from && !from.ok) return [];
+  return [...to.values].map(([field, value]) => {
+    const expected = from?.ok ? from.values.get(field) : void 0;
+    return expected === void 0 ? { field, to: value } : { field, to: value, from: expected };
+  });
+}
 
 // iNNfo/packages/nn-core/src/changeset/parser.ts
+var import_yaml6 = __toESM(require_dist(), 1);
 function stripQuotes(str2) {
   const trimmed = str2.trim();
   if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
@@ -9894,7 +9960,9 @@ function compareChanges(a, b) {
   if (byStamp !== 0) return byStamp;
   const byFile = compareStrings(a.changeset, b.changeset);
   if (byFile !== 0) return byFile;
-  return a.index - b.index;
+  const byIndex = a.index - b.index;
+  if (byIndex !== 0) return byIndex;
+  return (a.subIndex ?? -1) - (b.subIndex ?? -1);
 }
 
 // iNNfo/packages/nn-core/src/references.ts
@@ -10352,11 +10420,29 @@ function parseChangesetSnapshots(files) {
   }
   return changesets;
 }
+function expandSetFields(change) {
+  if (change.op !== "set_fields" || !change.applied) return [change];
+  const entries = setFieldsEntries(change);
+  if (entries.length === 0) return [change];
+  const element = change.resolvedTarget ?? change.target;
+  return entries.map((entry, subIndex) => {
+    const { from: _from, ...rest } = change;
+    return {
+      ...rest,
+      op: "update_field",
+      target: `${change.target}&${entry.field}`,
+      resolvedTarget: `${element}&${entry.field}`,
+      to: entry.to,
+      ...entry.from !== void 0 ? { from: entry.from } : {},
+      subIndex
+    };
+  });
+}
 function loggedChanges(cs) {
   const changesetStatus = cs.status ?? "proposed";
-  return cs.changes.map((change, index) => {
+  return cs.changes.flatMap((change, index) => {
     const status = change.status ?? changesetStatus;
-    return {
+    return expandSetFields({
       id: change.id,
       changeset: cs.path,
       index,
@@ -10385,7 +10471,7 @@ function loggedChanges(cs) {
       resolution: change.resolution,
       fields: change.fields,
       applied: status === "applied"
-    };
+    });
   });
 }
 function buildChangeLogFromChangesets(changesets) {

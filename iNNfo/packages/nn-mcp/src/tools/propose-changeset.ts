@@ -22,6 +22,7 @@ import {
   isChangesetPath,
   isSidecarName,
   resolveCitation,
+  setFieldsProblems,
 } from '@cognnitive/nn-core'
 import type { ChangeItem, ChangesetDocument, SpecDocument } from '@cognnitive/nn-core'
 import { findKnowledgeFile, ModelIdError } from './spec.js'
@@ -183,6 +184,11 @@ function requiredKeyProblems(change: ChangeItem, label: string): string[] {
         problems.push(`${label}: update_field requires "to"`)
       }
       break
+    case 'set_fields':
+      // Payload shape (`to` / `from` objects, the description key) is checked by
+      // `setFieldsProblems`, which carries the refusal codes.
+      need('to', ' (a JSON object of field -> value)')
+      break
     case 'add_element':
       need('concept')
       need('name')
@@ -324,6 +330,14 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
     ]
     for (const message of shape) errors.push({ path: label, code: 'INVALID_OPERATION', message })
     if (shape.length > 0 || !change.target) continue
+
+    if (change.op === 'set_fields') {
+      const problems = setFieldsProblems(change)
+      for (const problem of problems) {
+        errors.push({ path: label, code: problem.code, message: `${label}: ${problem.message}` })
+      }
+      if (problems.length > 0) continue
+    }
 
     if (change.op === 'update_field') {
       const field = change.target.split('&')[1] ?? ''
@@ -548,8 +562,13 @@ export function normalizeOperations(raw: unknown): { operations: ChangeItem[]; e
     }
     const item: Record<string, unknown> = { id: `c-${String(index + 1).padStart(2, '0')}` }
     for (const key of STRING_KEYS) {
-      const value = source[key]
+      let value = source[key]
       if (value === undefined || value === null) continue
+      // A set_fields payload may arrive as an object (or a stray array); it is
+      // sealed as its one-line JSON text, and its shape is validated afterwards.
+      if (source['op'] === 'set_fields' && (key === 'to' || key === 'from') && typeof value === 'object') {
+        value = JSON.stringify(value)
+      }
       if (typeof value !== 'string') {
         errors.push({ path: `operations[${index}]`, code: 'INVALID_OPERATION', message: `operations[${index}].${key} must be a string` })
         continue
@@ -564,7 +583,8 @@ export function normalizeOperations(raw: unknown): { operations: ChangeItem[]; e
         code: 'INVALID_OPERATION',
         message:
           `operations[${index}].fields is not a change key: a change carries no inline fields. ` +
-          `Emit one "update_field" change per field (target model@element&field), with its own evidence`,
+          `Set the fields afterwards with one "set_fields" change (target model@element, to {field: value}) ` +
+          `for the fields that share one evidence, or one "update_field" change per field whose evidence differs`,
       })
       return
     }

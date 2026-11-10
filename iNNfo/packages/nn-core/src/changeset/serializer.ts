@@ -60,11 +60,14 @@ function formatChangeItem(item: ChangeItem): string {
   lines.push(`op:: ${item.op}`)
   lines.push(`target:: ${item.target}`)
 
+  // A `set_fields` payload is a one-line JSON object: written as is, never re-quoted.
+  const payload = (val: string): string =>
+    item.op === 'set_fields' && !val.includes('\n') && val.trim().startsWith('{') ? val : formatPropertyValue(val)
   if (item.from !== undefined) {
-    lines.push(`from:: ${formatPropertyValue(item.from)}`)
+    lines.push(`from:: ${payload(item.from)}`)
   }
   if (item.to !== undefined) {
-    lines.push(`to:: ${formatPropertyValue(item.to)}`)
+    lines.push(`to:: ${payload(item.to)}`)
   }
   if (item.base_hash !== undefined) {
     lines.push(`base_hash:: ${item.base_hash}`)

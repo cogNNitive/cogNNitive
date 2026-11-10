@@ -17,6 +17,11 @@ export interface ChangeOrderKey {
   changeset: string
   /** Zero-based index of the change inside the changeset. */
   index: number
+  /**
+   * Zero-based position of a unit inside one change that the log expands into
+   * several entries (an applied `set_fields`, one entry per field). Absent otherwise.
+   */
+  subIndex?: number
 }
 
 /** The UTC stamp a changeset filename carries, `''` when it carries none. */
@@ -31,7 +36,8 @@ function compareStrings(a: string, b: string): number {
 
 /**
  * Total order: `applied_at`, then the filename UTC stamp, then the changeset
- * filename, then the document index. Two distinct changes never compare equal.
+ * filename, then the document index, then the unit position inside an expanded
+ * change. Two distinct log entries never compare equal.
  */
 export function compareChanges(a: ChangeOrderKey, b: ChangeOrderKey): number {
   const byAppliedAt = compareStrings(a.appliedAt ?? '', b.appliedAt ?? '')
@@ -43,5 +49,8 @@ export function compareChanges(a: ChangeOrderKey, b: ChangeOrderKey): number {
   const byFile = compareStrings(a.changeset, b.changeset)
   if (byFile !== 0) return byFile
 
-  return a.index - b.index
+  const byIndex = a.index - b.index
+  if (byIndex !== 0) return byIndex
+
+  return (a.subIndex ?? -1) - (b.subIndex ?? -1)
 }

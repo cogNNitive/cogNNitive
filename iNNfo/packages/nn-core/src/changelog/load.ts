@@ -2,7 +2,7 @@
  * Loading changesets into the change log. Browser-safe: it parses in-memory
  * snapshots and never touches the filesystem (that is `node.ts`).
  */
-import type { ChangeItem, ChangeOp, ChangeStatus } from '../changeset/types.js'
+import { setFieldsEntries, type ChangeItem, type ChangeOp, type ChangeStatus } from '../changeset/types.js'
 import type { FileSnapshot } from '../queryUnits.js'
 import { isNNName, isSidecarName, isUnderRootSources, parseName } from '../naming/contract.js'
 import { parseChangeset } from '../changeset/parser.js'
@@ -88,11 +88,36 @@ export function parseChangesetSnapshots(files: ReadonlyArray<FileSnapshot>): Cha
   return changesets
 }
 
+/**
+ * An applied `set_fields` is logged as one `update_field` entry per field it set:
+ * the same id, hop, evidence and document index, the unit `model@slug&field`, and a
+ * `subIndex` that keeps the canonical order total. This is the ONE place the op is
+ * expanded; every consumer reads plain field units.
+ */
+function expandSetFields(change: LoggedChange): LoggedChange[] {
+  if (change.op !== 'set_fields' || !change.applied) return [change]
+  const entries = setFieldsEntries(change)
+  if (entries.length === 0) return [change]
+  const element = change.resolvedTarget ?? change.target
+  return entries.map((entry, subIndex) => {
+    const { from: _from, ...rest } = change
+    return {
+      ...rest,
+      op: 'update_field' as ChangeOp,
+      target: `${change.target}&${entry.field}`,
+      resolvedTarget: `${element}&${entry.field}`,
+      to: entry.to,
+      ...(entry.from !== undefined ? { from: entry.from } : {}),
+      subIndex,
+    }
+  })
+}
+
 function loggedChanges(cs: ChangesetLike): LoggedChange[] {
   const changesetStatus = (cs.status ?? 'proposed') as ChangeStatus
-  return cs.changes.map((change, index) => {
+  return cs.changes.flatMap((change, index) => {
     const status = (change.status ?? changesetStatus) as ChangeStatus
-    return {
+    return expandSetFields({
       id: change.id,
       changeset: cs.path,
       index,
@@ -121,7 +146,7 @@ function loggedChanges(cs: ChangesetLike): LoggedChange[] {
       resolution: change.resolution,
       fields: change.fields,
       applied: status === 'applied',
-    }
+    })
   })
 }
 

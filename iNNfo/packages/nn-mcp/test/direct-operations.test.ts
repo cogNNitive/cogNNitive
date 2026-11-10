@@ -90,7 +90,7 @@ describe('direct apply_change operations are a closed, classified set', () => {
     // ... and every classified operation is real (a ChangeOp may be apply-only).
     // `review_gate` is apply-only: the bare-intent path refuses it (GATE_VERDICT_REFUSED),
     // exactly like `comment`.
-    const apply_only = new Set(['comment', 'add_model', 'move_model', 'produce_artifact', 'review_gate'])
+    const apply_only = new Set(['comment', 'add_model', 'move_model', 'produce_artifact', 'review_gate', 'set_fields'])
     for (const [name, ops] of Object.entries(lists)) {
       for (const op of ops) {
         expect(implemented.has(op) || (name === 'ChangeOp' && apply_only.has(op)), `${name}.${op}`).toBe(true)
