@@ -116,7 +116,30 @@ describe('produce_artifact', () => {
     const result = await propose([{ ...artifactChange, target: 'artifacts/ghost.md' }])
     expect(result.success).toBe(false)
     expect(result.errors?.[0].code).toBe('ARTIFACT_NOT_FOUND')
+    expect(result.errors?.[0].message).toContain('"artifacts/ghost.md" does not exist in this domain')
+    expect(result.errors?.[0].message).toContain('no artifact registry')
+    expect(result.errors?.[0].message).toContain('Write the file first')
     expect(await files()).toEqual([])
+  })
+
+  it('a directory target names the directory case and writes no changeset', async () => {
+    await mkdir(join(artifactsDir, 'bundle'), { recursive: true })
+    const result = await propose([{ ...artifactChange, target: 'artifacts/bundle' }])
+    expect(result.success).toBe(false)
+    expect(result.errors?.[0].code).toBe('ARTIFACT_NOT_A_FILE')
+    expect(result.errors?.[0].message).toContain('"artifacts/bundle" is a directory; produce_artifact records one file')
+    expect(await files()).toEqual([])
+  })
+
+  it('apply rejects an artifact removed after the proposal, with the same actionable message', async () => {
+    const proposed = await propose([artifactChange])
+    const written = await readFile(join(root, proposed.changeset!), 'utf-8')
+    await rm(join(artifactsDir, 'report_20261002T101500Z.md'))
+    const applied = await applyChange(root, proposed.changeset!)
+    expect(applied.success).toBe(false)
+    expect(applied.errors?.[0].code).toBe('ARTIFACT_NOT_FOUND')
+    expect(applied.errors?.[0].message).toContain('does not exist in this domain')
+    expect(await readFile(join(root, proposed.changeset!), 'utf-8')).toBe(written)
   })
 
   it('rejects an unsafe path and a model changeset or sidecar', async () => {

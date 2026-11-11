@@ -40,6 +40,7 @@ import {
   gateDeclarationProblems,
   reviewGateProvenanceProblems,
   setFieldsProblems,
+  elementSlugProblems,
   setFieldsEntries,
   compactExecutionFacts,
   evidencePath,
@@ -60,6 +61,7 @@ import type {
 import { findKnowledgeFile, resolveBlueprintWithCache, normalizeId, ModelIdError } from './spec.js'
 import { buildNodeDomainIndex, loadDeclarations } from './domain-index.js'
 import { canonicalizeTarget, modelIdAliases } from './model-id.js'
+import { artifactTargetProblem } from './produce-artifact.js'
 import { findElementInModel, mutationArgsForChange, parseTargetAddress } from './change-args.js'
 import { writeProposedChangeset } from './propose-changeset.js'
 import { findDanglingReferrers } from './move-referrers.js'
@@ -1235,6 +1237,13 @@ export async function executeChangesetApply(
         return rejectProposal(problem.code, change.target, `change "${change.id}": ${problem.message}`, change.id)
       }
     }
+
+    // An element slug the address grammar cannot carry applies but is then not
+    // addressable (console regeneration fails), so it is refused before any write.
+    for (const change of csDoc.changes) {
+      const problem = elementSlugProblems(change)[0]
+      if (problem) return rejectProposal(problem.code, change.target, problem.message, change.id)
+    }
     /** The changes as recorded in the file: one entry per `## NN Change` block. */
     const recordedChanges = csDoc.changes
     /** set_fields id -> its sub-item ids, in `to` order. */
@@ -1322,13 +1331,9 @@ export async function executeChangesetApply(
           change.id,
         )
       }
-      const info = await stat(join(rootDir, rel)).catch(() => null)
-      if (!info || !info.isFile()) {
-        return rejectPhase1(
-          'ARTIFACT_NOT_FOUND',
-          rel,
-          `change "${change.id}" records "${rel}", which does not exist`,
-        )
+      const artifactProblem = await artifactTargetProblem(rootDir, rel)
+      if (artifactProblem) {
+        return rejectPhase1(artifactProblem.code, rel, `change "${change.id}": ${artifactProblem.message}`)
       }
       if (await artifactAlreadyRecorded(rootDir, rel)) {
         blockedChanges.set(change.id, {

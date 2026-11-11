@@ -160,3 +160,24 @@ describe('2A: Batch Slug Collision & Intra-Batch Rewriting (resolveBatchSlugs)',
     expect(result.conflictedChanges.size).toBe(0)
   })
 })
+
+describe('elementSlugProblems (issue #614: dotted slugs are not addressable)', () => {
+  it('refuses a dotted slug with a named code and a suggested valid slug', async () => {
+    const { elementSlugProblems, INVALID_ELEMENT_SLUG } = await import('../../src/index.js')
+    const problems = elementSlugProblems({ id: 'c-01', op: 'add_element', slug: 'pipelinepartners.co' })
+    expect(problems).toHaveLength(1)
+    expect(problems[0].code).toBe(INVALID_ELEMENT_SLUG)
+    expect(problems[0].message).toContain('change "c-01"')
+    expect(problems[0].message).toContain('"pipelinepartners.co"')
+    expect(problems[0].message).toContain('Use "pipelinepartnersco" instead.')
+  })
+
+  it('accepts a valid slug, a missing slug, a mixed-case slug and leaves add_model to its own check', async () => {
+    const { elementSlugProblems } = await import('../../src/index.js')
+    expect(elementSlugProblems({ id: 'c-01', op: 'add_element', slug: 'pipeline-partners' })).toEqual([])
+    expect(elementSlugProblems({ id: 'c-01', op: 'add_element', slug: 'nn-person--dr-egon' })).toEqual([])
+    expect(elementSlugProblems({ id: 'c-01', op: 'add_element', slug: 'Pipeline-Partners' })).toEqual([])
+    expect(elementSlugProblems({ id: 'c-01', op: 'add_element' })).toEqual([])
+    expect(elementSlugProblems({ id: 'c-01', op: 'add_model', slug: 'a.b' })).toEqual([])
+  })
+})
