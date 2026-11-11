@@ -72,7 +72,7 @@ agent-bootstrap:
   }, null, 2), 'utf-8');
 
   try {
-    const res = await spawnAsync([managerScript, 'status', '--skills-dir', skillsDir, '--state', stateFile], {
+    const res = await spawnAsync([managerScript, 'status', '--skills-dir', skillsDir, '--blueprints-dir', path.join(tmpDir, 'bluepriNNts'), '--state', stateFile], {
       env: { ...process.env, SM_MANIFEST_URL: server.url },
     });
     assert.strictEqual(res.status, 0, `Manifest with ref should parse without error. stderr: ${res.stderr}`);
@@ -138,7 +138,7 @@ agent-bootstrap:
   fs.writeFileSync(legacyStateFile, JSON.stringify(legacyContent, null, 2), 'utf-8');
 
   try {
-    const res = await spawnAsync([managerScript, 'status', '--skills-dir', tmpDir, '--state', targetStateFile], {
+    const res = await spawnAsync([managerScript, 'status', '--skills-dir', tmpDir, '--blueprints-dir', path.join(tmpDir, 'bluepriNNts'), '--state', targetStateFile], {
       env: { ...process.env, SM_MANIFEST_URL: server.url },
     });
     assert.strictEqual(res.status, 0, `Status execution should succeed. Got stderr: ${res.stderr}`);

@@ -985,7 +985,30 @@ async function cmdStatus(args) {
     });
   }
 
+  // Catalog bluepriNNts hydrated outside the manager: compare the installed
+  // spec's blueprint_version with the catalog's adopted version.
+  const behindBlueprints = [];
+  for (const { name, version } of untrackedInstalledBlueprints(args.blueprintsDir, state, manifestNames)) {
+    const catalogEntry = findCatalogEntry(catalog, name);
+    let status;
+    if (!catalogEntry || !catalogEntry.adopted) status = 'unknown';
+    else if (compareBlueprintVersions(version, catalogEntry.adopted) < 0) status = 'outdated';
+    else status = 'up-to-date';
+    if (status === 'outdated') behindBlueprints.push({ name: (catalogEntry && catalogEntry.name) || name, version, adopted: catalogEntry.adopted });
+    rows.push({
+      type: 'catalog',
+      name,
+      pinned: catalogEntry && catalogEntry.adopted ? String(catalogEntry.adopted) : '-',
+      installed: version || '-',
+      status,
+    });
+  }
+
   printStatusTable(rows);
+
+  for (const bp of behindBlueprints) {
+    console.log(`\nbluepriNNt ${bp.name} ${bp.version || '(unknown version)'} is older than the catalog (${bp.adopted}). Run: ${blueprintInstallCommand(bp.name)}`);
+  }
 
   if (outdatedSkills.length > 0 || outdatedBlueprints.length > 0 || outdatedConsoleAssets.length > 0 || outdatedMcp.length > 0) {
     console.log('\nDiff previews for outdated items:');
@@ -1260,6 +1283,63 @@ function findCatalogEntry(catalog, name) {
   return null;
 }
 
+/** The exact command that installs (or reinstalls) catalog bluepriNNt `name` from anywhere. */
+function blueprintInstallCommand(name) {
+  return `node ~/.agents/skills/nn-skills-lifecycle/scripts/skills-manager.js install --blueprint ${name} --yes`;
+}
+
+/** Orders two `V_x-y-z` versions; an unparseable one sorts first. */
+function compareBlueprintVersions(a, b) {
+  const parse = (v) => {
+    const m = /^V_(\d+)-(\d+)-(\d+)$/i.exec(String(v || '').trim());
+    return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : [-1, -1, -1];
+  };
+  const pa = parse(a);
+  const pb = parse(b);
+  for (let i = 0; i < 3; i++) if (pa[i] !== pb[i]) return pa[i] - pb[i];
+  return 0;
+}
+
+/**
+ * Catalog bluepriNNt packages present under `blueprintsDir` (`<name>/spec_NN.md`)
+ * that neither the manifest nor the state file records — hydrated outside the
+ * manager (e.g. by nn-mcp). Their installed version is the spec's
+ * `blueprint_version`, the only record of what is on disk.
+ * @param {string} blueprintsDir
+ * @param {object} state
+ * @param {Set<string>} manifestNames
+ * @returns {{ name: string, version: string | null }[]}
+ */
+function untrackedInstalledBlueprints(blueprintsDir, state, manifestNames) {
+  const known = new Set(
+    [...manifestNames, ...Object.keys(state.blueprints || {})].map((n) => String(n).toLowerCase()),
+  );
+  let entries;
+  try {
+    entries = fs.readdirSync(blueprintsDir, { withFileTypes: true });
+  } catch (_) {
+    return [];
+  }
+  const found = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || known.has(entry.name.toLowerCase())) continue;
+    let text;
+    try {
+      text = fs.readFileSync(path.join(blueprintsDir, entry.name, 'spec_NN.md'), 'utf-8');
+    } catch (_) {
+      continue;
+    }
+    const field = (key) => {
+      const m = new RegExp(`^${key}:\\s*["']?([^"'\\r\\n]+?)["']?\\s*$`, 'm').exec(text);
+      return m ? m[1] : null;
+    };
+    const name = field('blueprint_name') || entry.name;
+    if (known.has(name.toLowerCase())) continue;
+    found.push({ name, version: field('blueprint_version') });
+  }
+  return found.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 /**
  * Fetches + extracts a blueprint package once and summarizes what installing it
  * would bring (embedded skills, npm deps, CLI, env, binaries), for one consent
@@ -1467,6 +1547,19 @@ async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString(
     const catalogEntry = findCatalogEntry(catalog, name);
     if (!catalogEntry || !catalogEntry.release_tag) continue;
     if (entry && entry.commit === catalogEntry.release_tag) continue;
+    selectedCatalog.push({ name, catalogEntry });
+  }
+  // Catalog bluepriNNts hydrated outside the manager (no state entry) whose
+  // installed blueprint_version is older than the catalog's adopted version.
+  for (const { name, version } of untrackedInstalledBlueprints(args.blueprintsDir, state, manifestNames)) {
+    if (args.positional.length > 0 && !args.positional.includes(name)) continue;
+    const catalogEntry = findCatalogEntry(catalog, name);
+    if (!catalogEntry || !catalogEntry.adopted) continue;
+    if (compareBlueprintVersions(version, catalogEntry.adopted) >= 0) continue;
+    if (!catalogEntry.release_tag) {
+      console.log(`bluepriNNt ${name} ${version || '(unknown version)'} is older than the catalog (${catalogEntry.adopted}), which is not released yet; nothing to install.`);
+      continue;
+    }
     selectedCatalog.push({ name, catalogEntry });
   }
 
@@ -2114,6 +2207,8 @@ module.exports = {
   cmdInstallBlueprint,
   loadBlueprintCatalog,
   findCatalogEntry,
+  untrackedInstalledBlueprints,
+  blueprintInstallCommand,
   DEFAULT_BLUEPRINT_REPO,
   DEFAULT_CATALOG_PATH,
   cmdUpdate,
