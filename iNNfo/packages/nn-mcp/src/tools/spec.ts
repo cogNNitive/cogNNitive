@@ -698,13 +698,12 @@ export async function hydrateBlueprint(
         }
       }
 
-      // Default: hydrate into workspace package directory specs/bluepriNNts/<name>/<version>/
-      const targetPkgDir = await hydrateBlueprintPackageAtomically(
-        rootDir,
-        pkg.name,
-        pkg.version,
-        content,
-      )
+      // Default: hydrate into workspace package directory specs/bluepriNNts/<name>/<version>/,
+      // the whole package (skills/, procedures/, defaults/, assets/...), not the spec alone.
+      const targetPkgDir = await hydrateBlueprintPackageAtomically(rootDir, pkg.name, pkg.version, {
+        spec: content,
+        sourceDir: pkg.packagePath,
+      })
       return {
         success: true,
         templateName,

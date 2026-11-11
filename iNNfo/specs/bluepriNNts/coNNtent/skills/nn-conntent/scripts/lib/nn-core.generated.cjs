@@ -5,6 +5,7 @@
  * Drift-guarded by scripts/verify.js (core-mirror --check).
  */
 // @ts-nocheck
+const __nnImportMetaUrl = require('node:url').pathToFileURL(__filename).href;
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -4011,10 +4012,10 @@ var require_resolve_block_map = __commonJS({
       let offset = bm.offset;
       let commentEnd = null;
       for (const collItem of bm.items) {
-        const { start, key, sep: sep4, value } = collItem;
+        const { start, key, sep: sep5, value } = collItem;
         const keyProps = resolveProps.resolveProps(start, {
           indicator: "explicit-key-ind",
-          next: key ?? sep4?.[0],
+          next: key ?? sep5?.[0],
           offset,
           onError,
           parentIndent: bm.indent,
@@ -4028,7 +4029,7 @@ var require_resolve_block_map = __commonJS({
             else if ("indent" in key && key.indent !== bm.indent)
               onError(offset, "BAD_INDENT", startColMsg);
           }
-          if (!keyProps.anchor && !keyProps.tag && !sep4) {
+          if (!keyProps.anchor && !keyProps.tag && !sep5) {
             commentEnd = keyProps.end;
             if (keyProps.comment) {
               if (map.comment)
@@ -4052,7 +4053,7 @@ var require_resolve_block_map = __commonJS({
         ctx.atKey = false;
         if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
           onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
-        const valueProps = resolveProps.resolveProps(sep4 ?? [], {
+        const valueProps = resolveProps.resolveProps(sep5 ?? [], {
           indicator: "map-value-ind",
           next: value,
           offset: keyNode.range[2],
@@ -4068,7 +4069,7 @@ var require_resolve_block_map = __commonJS({
             if (ctx.options.strict && keyProps.start < valueProps.found.offset - 1024)
               onError(keyNode.range, "KEY_OVER_1024_CHARS", "The : indicator must be at most 1024 chars after the start of an implicit block mapping key");
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep4, null, valueProps, onError);
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep5, null, valueProps, onError);
           if (ctx.schema.compat)
             utilFlowIndentCheck.flowIndentCheck(bm.indent, value, onError);
           offset = valueNode.range[2];
@@ -4159,7 +4160,7 @@ var require_resolve_end = __commonJS({
       let comment = "";
       if (end) {
         let hasSpace = false;
-        let sep4 = "";
+        let sep5 = "";
         for (const token of end) {
           const { source, type } = token;
           switch (type) {
@@ -4173,13 +4174,13 @@ var require_resolve_end = __commonJS({
               if (!comment)
                 comment = cb;
               else
-                comment += sep4 + cb;
-              sep4 = "";
+                comment += sep5 + cb;
+              sep5 = "";
               break;
             }
             case "newline":
               if (comment)
-                sep4 += source;
+                sep5 += source;
               hasSpace = true;
               break;
             default:
@@ -4222,18 +4223,18 @@ var require_resolve_flow_collection = __commonJS({
       let offset = fc.offset + fc.start.source.length;
       for (let i = 0; i < fc.items.length; ++i) {
         const collItem = fc.items[i];
-        const { start, key, sep: sep4, value } = collItem;
+        const { start, key, sep: sep5, value } = collItem;
         const props = resolveProps.resolveProps(start, {
           flow: fcName,
           indicator: "explicit-key-ind",
-          next: key ?? sep4?.[0],
+          next: key ?? sep5?.[0],
           offset,
           onError,
           parentIndent: fc.indent,
           startOnNewline: false
         });
         if (!props.found) {
-          if (!props.anchor && !props.tag && !sep4 && !value) {
+          if (!props.anchor && !props.tag && !sep5 && !value) {
             if (i === 0 && props.comma)
               onError(props.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
             else if (i < fc.items.length - 1)
@@ -4287,8 +4288,8 @@ var require_resolve_flow_collection = __commonJS({
             }
           }
         }
-        if (!isMap && !sep4 && !props.found) {
-          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep4, null, props, onError);
+        if (!isMap && !sep5 && !props.found) {
+          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep5, null, props, onError);
           coll.items.push(valueNode);
           offset = valueNode.range[2];
           if (isBlock(value))
@@ -4300,7 +4301,7 @@ var require_resolve_flow_collection = __commonJS({
           if (isBlock(key))
             onError(keyNode.range, "BLOCK_IN_FLOW", blockMsg);
           ctx.atKey = false;
-          const valueProps = resolveProps.resolveProps(sep4 ?? [], {
+          const valueProps = resolveProps.resolveProps(sep5 ?? [], {
             flow: fcName,
             indicator: "map-value-ind",
             next: value,
@@ -4311,8 +4312,8 @@ var require_resolve_flow_collection = __commonJS({
           });
           if (valueProps.found) {
             if (!isMap && !props.found && ctx.options.strict) {
-              if (sep4)
-                for (const st of sep4) {
+              if (sep5)
+                for (const st of sep5) {
                   if (st === valueProps.found)
                     break;
                   if (st.type === "newline") {
@@ -4329,7 +4330,7 @@ var require_resolve_flow_collection = __commonJS({
             else
               onError(valueProps.start, "MISSING_CHAR", `Missing , or : between ${fcName} items`);
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep4, null, valueProps, onError) : null;
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep5, null, valueProps, onError) : null;
           if (valueNode) {
             if (isBlock(value))
               onError(valueNode.range, "BLOCK_IN_FLOW", blockMsg);
@@ -4509,7 +4510,7 @@ var require_resolve_block_scalar = __commonJS({
           chompStart = i + 1;
       }
       let value = "";
-      let sep4 = "";
+      let sep5 = "";
       let prevMoreIndented = false;
       for (let i = 0; i < contentStart; ++i)
         value += lines[i][0].slice(trimIndent) + "\n";
@@ -4526,24 +4527,24 @@ var require_resolve_block_scalar = __commonJS({
           indent = "";
         }
         if (type === Scalar.Scalar.BLOCK_LITERAL) {
-          value += sep4 + indent.slice(trimIndent) + content;
-          sep4 = "\n";
+          value += sep5 + indent.slice(trimIndent) + content;
+          sep5 = "\n";
         } else if (indent.length > trimIndent || content[0] === "	") {
-          if (sep4 === " ")
-            sep4 = "\n";
-          else if (!prevMoreIndented && sep4 === "\n")
-            sep4 = "\n\n";
-          value += sep4 + indent.slice(trimIndent) + content;
-          sep4 = "\n";
+          if (sep5 === " ")
+            sep5 = "\n";
+          else if (!prevMoreIndented && sep5 === "\n")
+            sep5 = "\n\n";
+          value += sep5 + indent.slice(trimIndent) + content;
+          sep5 = "\n";
           prevMoreIndented = true;
         } else if (content === "") {
-          if (sep4 === "\n")
+          if (sep5 === "\n")
             value += "\n";
           else
-            sep4 = "\n";
+            sep5 = "\n";
         } else {
-          value += sep4 + content;
-          sep4 = " ";
+          value += sep5 + content;
+          sep5 = " ";
           prevMoreIndented = false;
         }
       }
@@ -4726,25 +4727,25 @@ var require_resolve_flow_scalar = __commonJS({
         trimBoth = /^[ \t]+|[ \t]+$/g;
       }
       let res = match[1].replace(trimEnd, "");
-      let sep4 = " ";
+      let sep5 = " ";
       let pos = line.lastIndex;
       while (match = line.exec(source)) {
         const lm = match[1].replace(trimBoth, "");
         if (lm === "") {
-          if (sep4 === "\n")
-            res += sep4;
+          if (sep5 === "\n")
+            res += sep5;
           else
-            sep4 = "\n";
+            sep5 = "\n";
         } else {
-          res += sep4 + lm;
-          sep4 = " ";
+          res += sep5 + lm;
+          sep5 = " ";
         }
         pos = line.lastIndex;
       }
       const last = /[ \t]*(.*)/sy;
       last.lastIndex = pos;
       match = last.exec(source);
-      return res + sep4 + (match?.[1] ?? "");
+      return res + sep5 + (match?.[1] ?? "");
     }
     function doubleQuotedValue(source, onError) {
       let res = "";
@@ -5554,14 +5555,14 @@ var require_cst_stringify = __commonJS({
         }
       }
     }
-    function stringifyItem({ start, key, sep: sep4, value }) {
+    function stringifyItem({ start, key, sep: sep5, value }) {
       let res = "";
       for (const st of start)
         res += st.source;
       if (key)
         res += stringifyToken(key);
-      if (sep4)
-        for (const st of sep4)
+      if (sep5)
+        for (const st of sep5)
           res += st.source;
       if (value)
         res += stringifyToken(value);
@@ -6728,18 +6729,18 @@ var require_parser = __commonJS({
         if (this.type === "map-value-ind") {
           const prev = getPrevProps(this.peek(2));
           const start = getFirstKeyStartProps(prev);
-          let sep4;
+          let sep5;
           if (scalar.end) {
-            sep4 = scalar.end;
-            sep4.push(this.sourceToken);
+            sep5 = scalar.end;
+            sep5.push(this.sourceToken);
             delete scalar.end;
           } else
-            sep4 = [this.sourceToken];
+            sep5 = [this.sourceToken];
           const map = {
             type: "block-map",
             offset: scalar.offset,
             indent: scalar.indent,
-            items: [{ start, key: scalar, sep: sep4 }]
+            items: [{ start, key: scalar, sep: sep5 }]
           };
           this.onKeyLine = true;
           this.stack[this.stack.length - 1] = map;
@@ -6892,15 +6893,15 @@ var require_parser = __commonJS({
                 } else if (isFlowToken(it.key) && !includesToken(it.sep, "newline")) {
                   const start2 = getFirstKeyStartProps(it.start);
                   const key = it.key;
-                  const sep4 = it.sep;
-                  sep4.push(this.sourceToken);
+                  const sep5 = it.sep;
+                  sep5.push(this.sourceToken);
                   delete it.key;
                   delete it.sep;
                   this.stack.push({
                     type: "block-map",
                     offset: this.offset,
                     indent: this.indent,
-                    items: [{ start: start2, key, sep: sep4 }]
+                    items: [{ start: start2, key, sep: sep5 }]
                   });
                 } else if (start.length > 0) {
                   it.sep = it.sep.concat(start, this.sourceToken);
@@ -7094,13 +7095,13 @@ var require_parser = __commonJS({
             const prev = getPrevProps(parent);
             const start = getFirstKeyStartProps(prev);
             fixFlowSeqItems(fc);
-            const sep4 = fc.end.splice(1, fc.end.length);
-            sep4.push(this.sourceToken);
+            const sep5 = fc.end.splice(1, fc.end.length);
+            sep5.push(this.sourceToken);
             const map = {
               type: "block-map",
               offset: fc.offset,
               indent: fc.indent,
-              items: [{ start, key: fc, sep: sep4 }]
+              items: [{ start, key: fc, sep: sep5 }]
             };
             this.onKeyLine = true;
             this.stack[this.stack.length - 1] = map;
@@ -10122,7 +10123,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
         if (!targetVersion || fmVersion === targetVersion || bpVersion === targetVersion) {
           return {
             name: base,
-            version: targetVersion || fmVersion || "0.1.0",
+            version: targetVersion || bpVersion || fmVersion || "0.1.0",
             packagePath: globalBaseDir,
             specFilePath: specFile,
             isPackageDir: true,
@@ -18516,6 +18517,15 @@ function canonicalSpecFilename(requestName, content) {
   const base = requestName.replace(/\.(md|markdown)$/i, "").replace(/_(NN|FORMAT|F)$/i, "").split(/_V_/i)[0];
   return `${base}_V_${fmVersion.replace(/\./g, "-")}`;
 }
+function packageCopyFilter(sourceDir) {
+  return (src) => {
+    const rel = (0, import_node_path13.relative)(sourceDir, src);
+    if (!rel) return true;
+    const parts = rel.split(import_node_path13.sep);
+    if (parts.some((p) => p.startsWith(".") || p === "node_modules")) return false;
+    return !(parts.length === 1 && /^V_\d/i.test(parts[0]));
+  };
+}
 async function writeStagedTree(stagingDir, subdir, files) {
   if (!files) return;
   for (const [rel, content] of Object.entries(files)) {
@@ -18546,6 +18556,9 @@ async function hydrateBlueprintPackageAtomically(rootDir, base, version, payload
   await (0, import_promises4.mkdir)(baseBlueprintsDir, { recursive: true });
   const stagingDir = (0, import_node_path13.join)(baseBlueprintsDir, `.staging-${uniqueSuffix()}`);
   await (0, import_promises4.mkdir)(stagingDir, { recursive: true });
+  if (pkg.sourceDir) {
+    await (0, import_promises4.cp)(pkg.sourceDir, stagingDir, { recursive: true, filter: packageCopyFilter(pkg.sourceDir) });
+  }
   const specFileName = SPEC_FILENAME2;
   const namedFileName = `${base}_${verSegment}_NN.md`;
   await (0, import_promises4.writeFile)((0, import_node_path13.join)(stagingDir, specFileName), pkg.spec, "utf-8");
@@ -18559,9 +18572,8 @@ async function hydrateBlueprintPackageAtomically(rootDir, base, version, payload
   } catch (err) {
     console.warn(`[resolver-node] Staging rename failed (${err}); falling back to copy`);
     try {
-      const { cp } = await import("node:fs/promises");
       await (0, import_promises4.mkdir)(targetPkgDir, { recursive: true });
-      await cp(stagingDir, targetPkgDir, { recursive: true });
+      await (0, import_promises4.cp)(stagingDir, targetPkgDir, { recursive: true });
       await (0, import_promises4.rm)(stagingDir, { recursive: true, force: true }).catch(() => {
       });
     } catch (err2) {
@@ -24274,13 +24286,12 @@ var import_node_fs9 = require("node:fs");
 var import_node_os2 = require("node:os");
 var import_node_path19 = require("node:path");
 var import_node_url2 = require("node:url");
-var import_meta = {};
 var DEV_ROOT_MARKER2 = (0, import_node_path19.join)("iNNfo", "specs", "bluepriNNts", "console", "artifact_shell.html");
 var EXPORT_MODULE = "export-console.mjs";
 var NO_OPEN_ENV = "INNFO_CONSOLE_NO_OPEN";
 function devCheckoutRoot(opts = {}) {
   const requires = opts.requires ?? [];
-  let dir = opts.startDir ?? (0, import_node_path19.dirname)((0, import_node_url2.fileURLToPath)(import_meta.url));
+  let dir = opts.startDir ?? (0, import_node_path19.dirname)((0, import_node_url2.fileURLToPath)(__nnImportMetaUrl));
   for (; ; ) {
     if ((0, import_node_fs9.existsSync)((0, import_node_path19.join)(dir, DEV_ROOT_MARKER2)) && requires.every((rel) => (0, import_node_fs9.existsSync)((0, import_node_path19.join)(dir, rel)))) return dir;
     const parent = (0, import_node_path19.dirname)(dir);

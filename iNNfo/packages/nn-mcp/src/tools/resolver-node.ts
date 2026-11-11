@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
-import { readdir, readFile, mkdir, writeFile, rename, rm } from 'node:fs/promises'
+import { readdir, readFile, mkdir, writeFile, rename, rm, cp } from 'node:fs/promises'
 import { readFileSync } from 'node:fs'
-import { join, isAbsolute } from 'node:path'
+import { join, isAbsolute, relative, sep } from 'node:path'
 import { isInsideRoot, isDriveQualified, isDriveContained } from './path-guard.js'
 import { fileURLToPath } from 'node:url'
 import { homedir, tmpdir } from 'node:os'
@@ -238,6 +238,23 @@ export interface TemplatePackagePayload {
   assets?: Record<string, string>
   /** Embedded skills; keys are relative to `skills/` (e.g. `nn-conntent/SKILL.md`). */
   skills?: Record<string, string>
+  /**
+   * An installed package directory copied byte for byte into the package before the
+   * entries above are written (skills, procedures, defaults, binary assets...). Dot
+   * entries, `node_modules` and top-level `V_*` version directories are left behind.
+   */
+  sourceDir?: string
+}
+
+/** Copy filter for {@link TemplatePackagePayload.sourceDir}. */
+function packageCopyFilter(sourceDir: string): (src: string) => boolean {
+  return (src) => {
+    const rel = relative(sourceDir, src)
+    if (!rel) return true
+    const parts = rel.split(sep)
+    if (parts.some((p) => p.startsWith('.') || p === 'node_modules')) return false
+    return !(parts.length === 1 && /^V_\d/i.test(parts[0]))
+  }
 }
 
 async function writeStagedTree(
@@ -270,8 +287,9 @@ function uniqueSuffix(): string {
  * Creates a staging directory `specs/bluepriNNts/<base>/.staging-<pid>-<time>/`,
  * writes the canonical `spec_NN.md`, a backward-compatible alias
  * `<base>_V_<version>_NN.md`, and any `procedures/`, `samples/` and `assets/`
- * carried by a full package payload, then atomically renames the staging
- * directory to `specs/bluepriNNts/<base>/V_<version>/`. If the target package
+ * carried by a full package payload (a `sourceDir` is copied byte for byte
+ * first), then atomically renames the staging directory to
+ * `specs/bluepriNNts/<base>/V_<version>/`. If the target package
  * directory already exists and is non-empty it is treated as immutable and left
  * untouched.
  *
@@ -311,6 +329,9 @@ export async function hydrateBlueprintPackageAtomically(
   const stagingDir = join(baseBlueprintsDir, `.staging-${uniqueSuffix()}`)
   await mkdir(stagingDir, { recursive: true })
 
+  if (pkg.sourceDir) {
+    await cp(pkg.sourceDir, stagingDir, { recursive: true, filter: packageCopyFilter(pkg.sourceDir) })
+  }
   const specFileName = SPEC_FILENAME
   const namedFileName = `${base}_${verSegment}_NN.md`
   await writeFile(join(stagingDir, specFileName), pkg.spec, 'utf-8')
@@ -327,7 +348,6 @@ export async function hydrateBlueprintPackageAtomically(
     // log + continue: cross-device rename fallback — copy + remove instead.
     console.warn(`[resolver-node] Staging rename failed (${err}); falling back to copy`)
     try {
-      const { cp } = await import('node:fs/promises')
       await mkdir(targetPkgDir, { recursive: true })
       await cp(stagingDir, targetPkgDir, { recursive: true })
       await rm(stagingDir, { recursive: true, force: true }).catch(() => {})
