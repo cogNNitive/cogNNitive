@@ -284,6 +284,19 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
   const pendingHuman = await (deps.applyPending || applyPendingHumanChangesets)(rootDir)
   for (const outcome of pendingHuman) {
     log(`intake: applied pending ${outcome.changeset} (${outcome.status})`)
+    // A rejection names its reason, so the author fixes the changeset instead of
+    // retrying blind (#606).
+    if (outcome.success === false) {
+      const errors = Array.isArray(outcome.errors) ? outcome.errors : []
+      if (errors.length === 0) {
+        log('intake:   changeset-rejected: no rejection reason reached the intake')
+      }
+      for (const error of errors) {
+        const code = error?.code || 'changeset-rejected'
+        const where = error?.path ? ` [${error.path}]` : ''
+        log(`intake:   ${code}: ${error?.message || String(error)}${where}`)
+      }
+    }
   }
 
   let episode = readEpisode(scriptPath, { model: deps.model })
