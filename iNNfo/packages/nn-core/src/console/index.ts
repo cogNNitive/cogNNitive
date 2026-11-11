@@ -35,3 +35,9 @@ export {
 export { latestOfFamily } from '../writeOnce/plan.js'
 export { writeOnce } from '../writeOnce/fs.js'
 export { hashParsedElement } from './element-hash.js'
+
+// The domain index is the single source of model ids: the exporter addresses each
+// model by its index id (a hierarchical `<container>/<slug>` for a distributed
+// instance, the stem for a compact model), never by its filename stem.
+export { buildDomainIndex } from '../domain/index.js'
+export { discoverDomainModels } from '../helpers.js'
