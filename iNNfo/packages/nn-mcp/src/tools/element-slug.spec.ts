@@ -6,10 +6,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
 import { mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises'
 import { parseChangeset, verifyProposalSha } from '@cognnitive/nn-core'
-import { proposeChangeset } from './propose-changeset.ts'
-import { applyChange } from './apply-change.ts'
-import type { ConsoleWriter } from './console-regeneration.ts'
-import { resolvedFacts } from '../../test/helpers/resolved-facts.ts'
+import { proposeChangeset } from './propose-changeset'
+import { applyChange } from './apply-change'
+import type { ConsoleWriter } from './console-regeneration'
+import { resolvedFacts } from '../../test/helpers/resolved-facts'
 
 const root = join(import.meta.dirname!, '..', '..', 'temp-test-element-slug')
 const knowledgeDir = join(root, 'kNNowledge')
