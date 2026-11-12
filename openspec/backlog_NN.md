@@ -206,10 +206,10 @@ evidence:: planGc at iNNfo/packages/nn-core/src/writeOnce/plan.ts:27 has no arch
 value:: M
 effort:: M
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: iNNfo/specs/bluepriNNts/console/ui-kit.js:3731,3745 render "Save Snapshot" and "Copy AI Prompt" as always-visible inline buttons in the navbar group; there is no collapse menu, and views still have no generic chip/field editor component (no ChipEditor in the tree; test/helpers/console-boot.mjs:97 notes tag proposals are plain values until it lands). Verified 2026-11-07.
+evidence:: Shipped in PR #624: TopBarActions keeps Save Snapshot and Copy AI Prompt inline and adds a narrow-width trigger plus a role=menu list that runs the same handlers (iNNfo/specs/bluepriNNts/console/ui-kit.js, CSS in the kit's own table), and nnUI.ChipEditor gives views a generic multi-value field (removable chips, datalist of declared options, onChange with the whole list). Covered by test/console-shell-actions.test.mjs.
 done_when:: The header actions collapse behind one menu at narrow widths, and a generic chip/field editor component is available to views.
 ref:: issue-490
 batch:: b3d-console-shell-and-resolver
@@ -337,7 +337,7 @@ order:: 5
 lane:: light
 items:: console-shell-actions
 risk:: M
-state:: planned
+state:: done
 
 ## NN Batch: b3e-console-payload-size
 order:: 6
