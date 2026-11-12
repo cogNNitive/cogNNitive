@@ -56,10 +56,11 @@ batch:: b3a-source-import-guards
 value:: M
 effort:: M
 risk:: L
-status:: open
+status:: partial
 lane:: light
 verdict:: current
-evidence:: iNNfo/specs/bluepriNNts/metrics/assets/console-view-timeline.js:43,77-91 uses Scenario only for the horizon; there is no variant series, comparison cards or all-variant CSV.
+evidence:: Light slice shipped in PR #621: iNNfo/specs/bluepriNNts/metrics/assets/console-view-timeline.js derives one series per Scenario (its own horizon plus the rows its scenario-metrics Includes cells name, every row when the matrix does not cover the scenario), covered by test/console-timeline-view.test.mjs. Still open: side-by-side comparison cards, the all-variant CSV export, and the blueprint NOTE at iNNfo/specs/bluepriNNts/metrics/spec_NN.md:335 that still says "the artifact renders one neutral flow"; that wording needs a blueprint_version bump, which the Template Immutability Guard pairs with a canonical-sample rename and the hardcoded scripts/sync-samples.mjs mapping.
+done_when:: Every Scenario of a metrics model renders as its own timeline series with that scenario's horizon and the rows its `scenario-metrics` cells include.
 batch:: b3b-metrics-scenario-compare
 
 ## NN Item: markers-review
@@ -322,7 +323,7 @@ order:: 3
 lane:: light
 items:: metrics-scenario-compare
 risk:: L
-state:: planned
+state:: in-progress
 
 ## NN Batch: b3c-markers-review
 order:: 4
