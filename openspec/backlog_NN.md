@@ -33,6 +33,12 @@ captured:: 2026-10-31
 ## NN Idea: Regenerate testlab console fixtures that still ship innfo-ui.css
 captured:: 2026-10-31
 
+## NN Idea: Remember a reuse import-guard decision so a later --scan stops re-flagging the same duplicate
+captured:: 2026-11-12
+
+## NN Idea: Near-duplicate guard for an incoming binary (needs a converted body before the guard runs; today only exact raw bytes match)
+captured:: 2026-11-12
+
 # NN Item
 
 ## NN Item: source-import-guards
