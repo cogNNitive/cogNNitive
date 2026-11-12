@@ -56,21 +56,22 @@ batch:: b3a-source-import-guards
 value:: M
 effort:: M
 risk:: L
-status:: partial
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: Light slice shipped in PR #621: iNNfo/specs/bluepriNNts/metrics/assets/console-view-timeline.js derives one series per Scenario (its own horizon plus the rows its scenario-metrics Includes cells name, every row when the matrix does not cover the scenario), covered by test/console-timeline-view.test.mjs. Still open: side-by-side comparison cards, the all-variant CSV export, and the blueprint NOTE at iNNfo/specs/bluepriNNts/metrics/spec_NN.md:335 that still says "the artifact renders one neutral flow"; that wording needs a blueprint_version bump, which the Template Immutability Guard pairs with a canonical-sample rename and the hardcoded scripts/sync-samples.mjs mapping.
-done_when:: Every Scenario of a metrics model renders as its own timeline series with that scenario's horizon and the rows its `scenario-metrics` cells include.
+evidence:: Shipped in PR #621 (per-scenario series) and PR #622 (comparison cards, all-variant CSV, blueprint V_0-5-3): iNNfo/specs/bluepriNNts/metrics/assets/console-view-timeline.js derives one series per Scenario with its own horizon and the rows its scenario-metrics Includes cells name, cards compare variants, and one button exports every variant to a single CSV. Covered by test/console-timeline-view.test.mjs; the V_0-1-0 scope note now describes what ships.
+done_when:: Every Scenario of a metrics model renders as its own timeline series with that scenario's horizon and the rows its `scenario-metrics` cells include, and the variants can be compared and exported together.
 batch:: b3b-metrics-scenario-compare
 
 ## NN Item: markers-review
 value:: M
 effort:: M
 risk:: M
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: resolveKnowledgeModel picks the first match at iNNfo/specs/bluepriNNts/console/nn-runtime.js:2414-2422 and matrixCellDef matches by matrix name only at console/review.js:24-31; no apply-time value check at apply-change.ts:1085-1097.
+evidence:: Shipped in PR #623: resolveKnowledgeModel refuses a name two models answer to instead of returning the first match (iNNfo/specs/bluepriNNts/console/nn-runtime.js), matrixCellDef breaks a same-named matrix tie by the cell target concept (console/review.js), and updateMatrixCell rejects a value the blueprint does not declare (iNNfo/packages/nn-core/src/mutate.ts). Covered by test/console-marker-resolution.test.mjs and the 4.2 block of nn-core tests/mutate.test.ts.
+done_when:: A review marker resolves to the model and matrix the author named (an ambiguous name resolves to nothing), and apply_change refuses a matrix cell value the blueprint does not declare.
 batch:: b3c-markers-review
 
 ## NN Item: derived-artifacts-consolidation
@@ -323,14 +324,14 @@ order:: 3
 lane:: light
 items:: metrics-scenario-compare
 risk:: L
-state:: in-progress
+state:: done
 
 ## NN Batch: b3c-markers-review
 order:: 4
 lane:: light
 items:: markers-review
 risk:: M
-state:: planned
+state:: done
 
 ## NN Batch: b3d-console-shell-and-resolver
 order:: 5

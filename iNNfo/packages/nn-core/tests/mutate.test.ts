@@ -27,6 +27,67 @@ speed:: high
 | Fast Delivery | High Synergy | Moderate Synergy |
 `
 
+describe('4.2: update_matrix_cell honours the declared matrix values', () => {
+  function swotSchema(values?: string[]): BlueprintSchema {
+    return {
+      concepts: [],
+      matrices: [
+        {
+          name: 'SWOT Matrix',
+          source: 'Strengths',
+          target: 'Opportunities',
+          params: '',
+          ...(values ? { values } : {}),
+        },
+      ],
+      taxonomy: [],
+    } as BlueprintSchema
+  }
+
+  const update = (model: ReturnType<typeof parseKnowledge>, value: string, schema?: BlueprintSchema) =>
+    applyMutation(
+      model,
+      'update_matrix_cell',
+      { matrixName: 'SWOT Matrix', row: 'Fast Delivery', col: 'Market Expansion', value },
+      schema,
+    )
+
+  it('rejects a value the blueprint does not declare', () => {
+    const model = parseKnowledge(MODEL_WITH_MATRIX)
+    const result = update(model, 'Made Up Synergy', swotSchema(['High Synergy', 'Moderate Synergy']))
+    expect(result.success).toBe(false)
+    expect(result.errors?.[0]?.message).toContain('not declared by matrix "SWOT Matrix"')
+    expect(result.errors?.[0]?.message).toContain('"High Synergy"')
+    expect(model.matrices[0].cells.find((c) => c.col === 'Market Expansion')?.value).toBe('High Synergy')
+  })
+
+  it('accepts a declared value, case-insensitively', () => {
+    const model = parseKnowledge(MODEL_WITH_MATRIX)
+    const result = update(model, 'moderate synergy', swotSchema(['High Synergy', 'Moderate Synergy']))
+    expect(result.success).toBe(true)
+    expect(model.matrices[0].cells.find((c) => c.col === 'Market Expansion')?.value).toBe('moderate synergy')
+  })
+
+  it('always accepts the two empty-cell conventions', () => {
+    for (const empty of ['-', '']) {
+      const model = parseKnowledge(MODEL_WITH_MATRIX)
+      expect(update(model, empty, swotSchema(['High Synergy'])).success).toBe(true)
+    }
+  })
+
+  it('leaves a matrix with no declared values free-form', () => {
+    const model = parseKnowledge(MODEL_WITH_MATRIX)
+    expect(update(model, 'Anything Goes', swotSchema()).success).toBe(true)
+  })
+
+  it('does not gate a matrix the schema does not declare', () => {
+    const model = parseKnowledge(MODEL_WITH_MATRIX)
+    const other = swotSchema(['High Synergy'])
+    other.matrices[0] = { ...other.matrices[0], name: 'Other Matrix' }
+    expect(update(model, 'Anything Goes', other).success).toBe(true)
+  })
+})
+
 describe('Phase 4: Matrix Cell Mutation & Slug Target Resolution', () => {
   it('4.1.1 update_matrix_cell updates an existing cell value in a matrix by row and column name', () => {
     const model = parseKnowledge(MODEL_WITH_MATRIX)
