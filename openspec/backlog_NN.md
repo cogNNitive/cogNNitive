@@ -33,16 +33,22 @@ captured:: 2026-10-31
 ## NN Idea: Regenerate testlab console fixtures that still ship innfo-ui.css
 captured:: 2026-10-31
 
+## NN Idea: Remember a reuse import-guard decision so a later --scan stops re-flagging the same duplicate
+captured:: 2026-11-12
+
+## NN Idea: Near-duplicate guard for an incoming binary (needs a converted body before the guard runs; today only exact raw bytes match)
+captured:: 2026-11-12
+
 # NN Item
 
 ## NN Item: source-import-guards
 value:: M
 effort:: M
 risk:: L
-status:: partial
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: skills/nn-sources/scripts/lib/duplicate-guards.js:87,122 provide detectDuplicates and searchConversationHistory but only tests call them (skills/nn-sources/test/unit/test-duplicate-guards.js); no scanner or procedure wires them and no reuse, adjust or scratch prompt exists. The editor half of the original item is dead.
+evidence:: Shipped in the source-import-guards PR: `guardIncomingSource` composes the duplicate and history guards and `scanner.js` runs it before any normalisation, asking reuse / adjust / from scratch; `--scan` reports the decision per flagged file and the interactive menu asks it. Covered by `skills/nn-sources/test/unit/test-import-guards.js`. The editor half of the original item is dead.
 done_when:: The scanner runs the history and duplicate guards before normalising an incoming source and asks reuse, adjust or from scratch.
 batch:: b3a-source-import-guards
 
@@ -309,7 +315,7 @@ order:: 2
 lane:: light
 items:: source-import-guards
 risk:: L
-state:: planned
+state:: done
 
 ## NN Batch: b3b-metrics-scenario-compare
 order:: 3
