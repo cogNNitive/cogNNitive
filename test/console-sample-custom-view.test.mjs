@@ -137,7 +137,7 @@ describe('sample custom view (test/_samples_nn/consoles/views/missing-descriptio
     row.querySelector('input').value = 'A proposed description.'
     row.querySelector('button').click()
 
-    assert.match(doc.querySelector('#nn-review-dock .nn-dock-drafts').textContent, /Unsent:\s*1/)
+    assert.match(doc.querySelector('#nn-feedback-open').textContent, /Changes ·\s*1/)
     const downloads = exportChangeset(dom)
     assert.equal(downloads.length, 1, 'a single changeset')
     const [{ text, filename }] = downloads
