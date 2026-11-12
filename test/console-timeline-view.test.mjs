@@ -188,6 +188,98 @@ describe('metrics timeline view (bluepriNNt)', () => {
       assert.equal(gridCalls.length, 1)
       assert.equal(container.querySelector('.nn-timeline-title'), null, 'one series renders without a heading')
       assert.deepEqual(gridCalls[0].meta, { months: 24, startYear: 2026, startMonth: 3 })
+      assert.equal(container.querySelector('button.nn-btn-csv'), null, 'a single variant offers no all-variant export')
+    })
+
+    // ── an empty horizon is not zero months ─────────────────────────
+    it('ignores a scenario whose horizon is blank instead of rendering a zero-month grid', () => {
+      const def = loadView()
+      def.mount({
+        container,
+        payload: {
+          model: {
+            elements: [
+              { id: 's1', concept: 'Scenario', name: 'No horizon', fields: { scenarioMonths: '' }, modelId: 'm1', modelTitle: 'Metrics' },
+              { id: 'm-1', concept: 'Metrics', name: 'Revenue', fields: { metricValue: '1' }, modelId: 'm1', modelTitle: 'Metrics' },
+            ],
+          },
+        },
+        modal: { edit() {} },
+      })
+      assert.equal(gridCalls.length, 0, 'a blank horizon is not a projection')
+      assert.match(container.textContent, /No timeline projection/)
+    })
+
+    // ── comparison cards ────────────────────────────────────────────
+    it('summarises each variant beside its grid: type, horizon, row count and exclusive rows', () => {
+      mountWith([SCENARIO_MATRIX])
+      const summaries = Array.from(container.querySelectorAll('.nn-timeline-summary')).map((p) => p.textContent)
+      assert.equal(summaries.length, 2, 'one summary per variant')
+      assert.match(summaries[0], /historical/, 'the first card names its scenario type')
+      assert.match(summaries[0], /12 months/)
+      assert.match(summaries[0], /2 rows/)
+      assert.doesNotMatch(summaries[0], /exclusive/i, 'a narrower variant owns no exclusive row')
+      assert.match(summaries[1], /projection/)
+      assert.match(summaries[1], /36 months/)
+      assert.match(summaries[1], /3 rows/)
+      assert.match(summaries[1], /exclusive: Vault Expansion Capex/i, 'a row only this variant carries is called out')
+    })
+
+    it('omits the exclusive clause when every variant carries the same rows', () => {      mountWith([{ ...SCENARIO_MATRIX, cells: {} }])
+      const summaries = Array.from(container.querySelectorAll('.nn-timeline-summary')).map((p) => p.textContent)
+      assert.equal(summaries.length, 2)
+      assert.doesNotMatch(summaries[0], /exclusive/i)
+      assert.doesNotMatch(summaries[1], /exclusive/i)
+    })
+
+    // ── all-variant CSV ─────────────────────────────────────────────
+    it('exports every variant in one CSV from a single button', () => {
+      const def = loadView()
+      const blobs = []
+      const realBlob = global.Blob
+      const realCreate = global.URL.createObjectURL
+      const realRevoke = global.URL.revokeObjectURL
+      global.Blob = class { constructor(parts) { blobs.push(parts.join('')) } }
+      global.URL.createObjectURL = () => 'blob:variants'
+      global.URL.revokeObjectURL = () => {}
+      const origCreateElement = doc.createElement.bind(doc)
+      let downloadName = null
+      doc.createElement = (tag) => {
+        const el = origCreateElement(tag)
+        if (tag === 'a') {
+          el.click = () => {
+            downloadName = el.download
+          }
+        }
+        return el
+      }
+      try {
+        def.mount({ container, payload: { model: { elements: metricsElements(), matrices: [SCENARIO_MATRIX] } }, modal: { edit() {} } })
+        const button = container.querySelector('button.nn-btn-csv')
+        assert.ok(button, 'the view offers the all-variant export')
+        assert.match(button.textContent, /all variants/i)
+        button.click()
+
+        assert.equal(downloadName, 'timeline_variants.csv')
+        assert.equal(blobs.length, 1, 'the whole file is written once')
+        const csv = blobs[0]
+        const lines = csv.split('\r\n')
+        assert.equal(
+          lines[0],
+          '"Scenario","Scenario Type","Months","Start Year","Start Month","Group","Metric","Type","Unit","Base Value","Growth Rule"',
+        )
+        assert.equal(lines.length, 1 + 2 + 3, 'one row per variant and metric')
+        assert.match(csv, /"Year 1 Baseline"/)
+        assert.match(csv, /"Regional Expansion"/)
+        assert.match(csv, /"Metrics","Monthly Net Result"/)
+        assert.match(csv, /"Vault Expansion Capex"/, 'a row of the wider variant is in the file')
+        assert.doesNotMatch(csv, /"0","0"/, 'a scenario without a start month leaves the cell empty, not zero')
+      } finally {
+        global.Blob = realBlob
+        global.URL.createObjectURL = realCreate
+        global.URL.revokeObjectURL = realRevoke
+        doc.createElement = origCreateElement
+      }
     })
   })
 })

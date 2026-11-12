@@ -112,7 +112,7 @@ test('the three superseded samples are replaced by versions without sources::', 
 
   const replacements = [
     [dir('business-model'), 'Ghostbusters_V_0-4-3_business-model_NN.md'],
-    [dir('metrics'), 'Ghostbusters_V_0-5-2_metrics_NN.md'],
+    [dir('metrics'), 'Ghostbusters_V_0-5-3_metrics_NN.md'],
     [dir('organization'), 'Ghostbusters_V_0-4-1_organization_NN.md'],
   ]
   for (const [d, name] of replacements) {
