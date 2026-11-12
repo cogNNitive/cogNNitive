@@ -39,6 +39,9 @@ captured:: 2026-11-12
 ## NN Idea: Near-duplicate guard for an incoming binary (needs a converted body before the guard runs; today only exact raw bytes match)
 captured:: 2026-11-12
 
+## NN Idea: Citation table in the console payload (share one resolved citation per source instead of repeating it per element; ~21% on the reported domain, but 30/100 MB thresholds make the payload-format change a poor trade today)
+captured:: 2026-11-12
+
 # NN Item
 
 ## NN Item: source-import-guards
@@ -219,10 +222,10 @@ batch:: b3d-console-shell-and-resolver
 value:: H
 effort:: M
 risk:: M
-status:: open
+status:: shipped
 lane:: heavy
 verdict:: current
-evidence:: scripts/console-views.mjs:525 fixes warnBytes 5_000_000 and failBytes 15_000_000, and scripts/export-console.mjs:1672 throws CONSOLE_TOO_LARGE; the export now degrades first (scripts/export-console.mjs:1656) instead of aborting, so a domain above the threshold still writes. The payload is compacted but citation objects are still repeated per element. Verified 2026-11-04. Partly addressed by PR #567: compact serialization plus a degrade path that drops resolved citations and reports the strategy; the citation-table compaction (~21% on the reported domain) and a per-domain console.sizeBudget remain.
+evidence:: Shipped in PR #625 with the delta spec openspec/changes/archive/2026-11-12-console-size-budget: a domain declares console_size_budget_warn/fail in the domaiNN_NN.md frontmatter (validated, reported when unusable), scripts/console-views.mjs resolveSizeBudget + evaluateSizeBudget report the thresholds and the strategy actually applied, and the export degrades in a fixed order (strip resolved citations, then per-element provenance/history) before CONSOLE_TOO_LARGE. Covered by scripts/console-size-budget.test.mjs. The citation-table compaction was dropped on purpose: thresholds moved 5/15 MB to 30/100 MB in PR #567, so a ~21% payload win no longer pays for a payload-format change.
 done_when:: The export degrades instead of aborting (compact payload or lazily loaded chunks), a domain above the current fail threshold still exports, and the size gate reports the chosen strategy.
 ref:: issue-488
 batch:: b3e-console-payload-size
@@ -345,7 +348,7 @@ order:: 6
 lane:: heavy
 items:: console-payload-size
 risk:: M
-state:: planned
+state:: done
 
 ## NN Batch: b4a-derived-artifacts
 order:: 7
