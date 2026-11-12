@@ -226,7 +226,7 @@ const MUTATION_HANDLERS: Record<string, MutationHandler> = {
   remove_element: (model, args) => removeElement(model, args),
   rename_concept: (model, args) => renameConcept(model, args),
   rename_element: (model, args, schema) => renameElement(model, args, schema),
-  update_matrix_cell: (model, args) => updateMatrixCell(model, args),
+  update_matrix_cell: (model, args, schema) => updateMatrixCell(model, args, schema),
   update_element_text: (model, args) => updateElementText(model, args),
   update_concept_text: (model, args, schema) => updateConceptText(model, args, schema),
   update_concept_field: (model, args, schema) => updateConceptField(model, args, schema),
@@ -990,6 +990,7 @@ function updateField(
 function updateMatrixCell(
   model: ParsedKnowledge,
   args: Record<string, unknown>,
+  schema?: BlueprintSchema,
 ): MutationResult {
   const matrixName = (args.matrixName as string) || ''
   let matrixSlug = (args.matrixSlug as string) || ''
@@ -1072,6 +1073,25 @@ function updateMatrixCell(
     )
   }
 
+  // The blueprint is the only authority on which values a matrix cell may hold.
+  // A console select already limits the choice; this closes the hand-written
+  // changeset path, where an undeclared value would land as a silent schema
+  // break no reviewer can see. Matrices that declare no values stay free-form.
+  const declared = declaredMatrixValues(schema, matrixName || matrixSlug, matrix.name)
+  if (declared && declared.length > 0 && val !== undefined && !cellValueAllowed(val, declared)) {
+    return {
+      success: false,
+      errors: [
+        {
+          path: '',
+          message: `Value "${val}" is not declared by matrix "${matrix.name}": allowed ${declared
+            .map((v) => `"${v}"`)
+            .join(', ')} (or "-" for an empty cell).`,
+        },
+      ],
+    }
+  }
+
   const cell = matrix.cells.find((c) => matchesCoord(c.row, row) && matchesCoord(c.col, col))
   if (cell) {
     cell.value = val
@@ -1080,6 +1100,51 @@ function updateMatrixCell(
   }
 
   return { success: true }
+}
+
+/**
+ * The blueprint declaration governing a matrix, by name or slug. `requested` is
+ * whatever the caller addressed the matrix with (a name or a slug); `resolvedName`
+ * is the name of the matrix the model actually owns.
+ */
+function matrixDeclOf(
+  schema: BlueprintSchema | undefined,
+  requested: string,
+  resolvedName: string,
+): BlueprintSchema['matrices'][number] | undefined {
+  if (!schema || !Array.isArray(schema.matrices)) return undefined
+  const wantName = resolvedName.toLowerCase()
+  const wantRequested = (requested || '').toLowerCase()
+  const wantRequestedSlug = wantRequested ? slugify(wantRequested).toLowerCase() : ''
+  const match = (d: BlueprintSchema['matrices'][number], key: string): boolean =>
+    d.name.toLowerCase() === key ||
+    slugify(d.name).toLowerCase() === key ||
+    slugifyHeading(d.name).toLowerCase() === key
+  return (
+    schema.matrices.find((d) => d.name.toLowerCase() === wantName) ||
+    schema.matrices.find((d) => wantRequested && match(d, wantRequested)) ||
+    schema.matrices.find((d) => wantRequestedSlug && match(d, wantRequestedSlug))
+  )
+}
+
+/** The values a matrix declares, or null when the declaration leaves them open. */
+function declaredMatrixValues(
+  schema: BlueprintSchema | undefined,
+  requested: string,
+  resolvedName: string,
+): string[] | null {
+  const decl = matrixDeclOf(schema, requested, resolvedName)
+  return decl && Array.isArray(decl.values) && decl.values.length > 0 ? decl.values : null
+}
+
+/**
+ * Whether a cell value satisfies the declaration. `''` and `-` are the two
+ * documented ways to leave a cell empty, so they never need a declaration.
+ */
+function cellValueAllowed(value: string, declared: string[]): boolean {
+  const v = String(value).trim().toLowerCase()
+  if (v === '' || v === '-') return true
+  return declared.some((d) => String(d).trim().toLowerCase() === v)
 }
 
 function removeElement(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
