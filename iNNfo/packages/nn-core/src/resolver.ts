@@ -616,7 +616,7 @@ export async function resolveBlueprintPackage(
         if (!targetVersion || fmVersion === targetVersion || bpVersion === targetVersion) {
           return {
             name: base,
-            version: targetVersion || fmVersion || '0.1.0',
+            version: targetVersion || bpVersion || fmVersion || '0.1.0',
             packagePath: globalBaseDir,
             specFilePath: specFile,
             isPackageDir: true,

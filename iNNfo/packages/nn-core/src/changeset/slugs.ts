@@ -2,6 +2,37 @@ import { slugify } from '../parser/slug.js'
 import type { ChangeItem } from './types.js'
 import type { ParsedKnowledge } from '../types/index.js'
 import { escapeRegex, extractModelSlug } from './utils.js'
+import { SLUG_RE } from '../address/grammar.js'
+import { slugifyHeading } from '../sourceRef.js'
+
+export const INVALID_ELEMENT_SLUG = 'INVALID_ELEMENT_SLUG'
+
+export interface ElementSlugProblem {
+  code: typeof INVALID_ELEMENT_SLUG
+  message: string
+}
+
+/**
+ * An explicit element `slug` the address grammar cannot carry (`pipelinepartners.co`).
+ * Such a slug applies but is then not addressable, so it is refused before any write.
+ * The slug is compared lowercased and trimmed, the form batch slug resolution assigns.
+ * `add_model` is skipped: it refuses any `slug` on its own (`addModelProblems`).
+ */
+export function elementSlugProblems(change: Pick<ChangeItem, 'id' | 'op' | 'slug'>): ElementSlugProblem[] {
+  if (change.op === 'add_model' || typeof change.slug !== 'string') return []
+  const slug = change.slug.trim().toLowerCase()
+  if (slug === '' || SLUG_RE.test(slug)) return []
+  const suggestion = slugifyHeading(change.slug)
+  const hint = SLUG_RE.test(suggestion) ? ` Use "${suggestion}" instead.` : ''
+  return [
+    {
+      code: INVALID_ELEMENT_SLUG,
+      message:
+        `change "${change.id}" slug "${change.slug}" is not an addressable slug ` +
+        `(lowercase letters and digits joined by hyphens; no dots, spaces or other punctuation).${hint}`,
+    },
+  ]
+}
 
 export interface SlugResolutionResult {
   changes: ChangeItem[]

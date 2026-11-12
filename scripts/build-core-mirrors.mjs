@@ -82,6 +82,23 @@ function loadEsbuild() {
   )
 }
 
+/**
+ * esbuild empties `import.meta` in cjs output, so nn-core code that locates itself with
+ * `fileURLToPath(import.meta.url)` (console/locate-writer) threw on `undefined` inside a
+ * mirror (#611). A mirror that uses `import.meta.url` gets it defined as its own file URL,
+ * declared after the banner and after any "use strict" directive so the prologue stands.
+ */
+const IMPORT_META_URL = '__nnImportMetaUrl'
+const IMPORT_META_URL_SHIM = `const ${IMPORT_META_URL} = require('node:url').pathToFileURL(__filename).href;`
+
+function withImportMetaUrl(code, banner) {
+  if (!code.includes(IMPORT_META_URL)) return code
+  const strictAnchor = `${banner}\n"use strict";\n`
+  const anchor = code.startsWith(strictAnchor) ? strictAnchor : `${banner}\n`
+  if (!code.startsWith(anchor)) throw new Error('build-core-mirrors: generated code does not start with its banner')
+  return `${anchor}${IMPORT_META_URL_SHIM}\n${code.slice(anchor.length)}`
+}
+
 async function renderTarget(target, esbuild) {
   const result = await esbuild.build({
     entryPoints: [target.entry],
@@ -95,9 +112,10 @@ async function renderTarget(target, esbuild) {
     },
     write: false,
     legalComments: 'none',
+    define: { 'import.meta.url': IMPORT_META_URL },
     banner: { js: target.banner },
   })
-  const rawCode = result.outputFiles[0].text.replace(/\r\n/g, '\n')
+  const rawCode = withImportMetaUrl(result.outputFiles[0].text.replace(/\r\n/g, '\n'), target.banner)
   return rawCode
     .replace(/(?:\.\.\/)+(?:[\w.-]+\/)?node_modules\//g, 'node_modules/')
     .replace(/(?:\.\.\/)+(?:[\w.-]+\/)?iNNfo\//g, 'iNNfo/')

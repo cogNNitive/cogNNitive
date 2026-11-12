@@ -1,4 +1,4 @@
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, join, resolve } from 'node:path'
 import {
   ENTRYPOINT_FILENAME,
@@ -23,10 +23,12 @@ import {
   isSidecarName,
   resolveCitation,
   setFieldsProblems,
+  elementSlugProblems,
 } from '@cognnitive/nn-core'
 import type { ChangeItem, ChangesetDocument, SpecDocument } from '@cognnitive/nn-core'
 import { findKnowledgeFile, ModelIdError } from './spec.js'
 import { canonicalizeTarget, modelIdAliases, modelIdOfTarget } from './model-id.js'
+import { artifactTargetProblem } from './produce-artifact.js'
 import { buildNextSteps, regenerateConsole, type ConsoleOutcome, type NextSteps, type RegenerateOptions } from './console-regeneration.js'
 import { findDanglingReferrers } from './move-referrers.js'
 
@@ -331,6 +333,12 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
     for (const message of shape) errors.push({ path: label, code: 'INVALID_OPERATION', message })
     if (shape.length > 0 || !change.target) continue
 
+    const slugProblems = elementSlugProblems({ ...change, id: `c-${String(index + 1).padStart(2, '0')}` })
+    for (const problem of slugProblems) {
+      errors.push({ path: `${label}.slug`, code: problem.code, message: `${label}: ${problem.message}` })
+    }
+    if (slugProblems.length > 0) continue
+
     if (change.op === 'set_fields') {
       const problems = setFieldsProblems(change)
       for (const problem of problems) {
@@ -474,13 +482,9 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
       })
       continue
     }
-    const info = await stat(join(rootDir, rel)).catch(() => null)
-    if (!info || !info.isFile()) {
-      errors.push({
-        path: label,
-        code: 'ARTIFACT_NOT_FOUND',
-        message: `ARTIFACT_NOT_FOUND: "${rel}" does not exist`,
-      })
+    const problem = await artifactTargetProblem(rootDir, rel)
+    if (problem) {
+      errors.push({ path: label, code: problem.code, message: `${problem.code}: ${problem.message}` })
     }
   }
   if (errors.length > 0) return errors
