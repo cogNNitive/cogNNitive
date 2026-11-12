@@ -138,7 +138,9 @@ risk:: M
 status:: open
 lane:: heavy
 verdict:: current
-evidence:: No RACI scope exists in iNNfo/packages/nn-core/src outside canonical-registry.ts; changesets carry author (changeset/hasher.ts:19) and only applied, partially_applied and conflict statuses, with no approve or request-changes artifact. The editor-on-save option is dead.
+evidence:: No RACI scope exists in iNNfo/packages/nn-core/src outside canonical-registry.ts; changesets carry author (changeset/hasher.ts:19) and only applied, partially_applied and conflict statuses, with no approve or request-changes artifact. The editor-on-save option is dead. Verified 2026-11-12.
+done_when:: A changeset records who approved it or who requested changes, an approve and a request-changes artifact exist with their author, and a test covers both paths. Provisional criteria, confirm before briefing.
+batch:: b5-kb-change-governance
 
 ## NN Item: contextual-docs-links
 value:: L
@@ -147,7 +149,7 @@ risk:: L
 status:: open
 lane:: light
 verdict:: current
-evidence:: No docs:: or canonical-doc field appears in skills/*/SKILL.md or manifest; the open decision between a public site link and a bundled page is unresolved.
+evidence:: No docs:: or canonical-doc field appears in skills/*/SKILL.md or manifest; the open decision between a public site link and a bundled page is unresolved, so the item cannot be briefed until it is decided. Verified 2026-11-12.
 ref:: issue-355
 
 ## NN Item: video-vector-actor-catalog
@@ -158,6 +160,8 @@ status:: open
 lane:: heavy
 verdict:: current
 evidence:: The coNNtent blueprint's Layer type options are avatar, media, text and animation (coNNtent/spec_NN.md:282-285), so an actor layer type exists; what is missing is the actor catalog and rig (no assets/characters in the tree), and defaults/video-defaults_NN.md:21-23 still points at WaveSpeed (wavespeed-ai/z-image/turbo, wavespeed-ai/infinitetalk-fast). Re-checked 2026-11-07.
+done_when:: The blueprint ships an actor catalog and rig under assets/characters, and defaults/video-defaults_NN.md stops pinning a vendor model id for the actor layer. Provisional criteria, confirm before briefing.
+batch:: b5b-video-vector-actor-catalog
 
 ## NN Item: docs-skills-retirement
 value:: L
@@ -169,6 +173,7 @@ verdict:: current
 evidence:: docs/skills/ still tracks 17 files (templates/workflow, samples, js, setup) and iNNfo/validation-baseline.json:11 and scripts/verify.js:138,182 still reference it; no open Item covers the audit. Confirmed 2026-11-01.
 done_when:: Every file under docs/skills/ is either migrated to its living home or retired with a recorded reason, the references in iNNfo/validation-baseline.json and scripts/verify.js are updated, and verify.js is green.
 ref:: issue-430
+batch:: b5c-docs-skills-retirement
 
 ## NN Item: coNNtent-procedures
 value:: M
@@ -179,6 +184,7 @@ lane:: heavy
 verdict:: current
 evidence:: The coNNtent blueprint ships a procedures/ folder containing only usage_procedures_NN.md (checked 2026-11-04): neither draft-scene-visuals nor produce-video exists, and openspec/specs/video-template/spec.md:75 requires generate_video_script_procedures_NN.md to reference the skill tools. The real draft-scene-visuals procedure lives only in the external workspace video_NN and as a test fixture under iNNfo/packages/nn-core/tests/fixtures/video-golden/procedures/, which has no media-collection gate.
 done_when:: The coNNtent blueprint declares and ships a procedures/ folder with two generic procedures promoted from video_NN: draft-scene-visuals (cleaned of series, language, vendor and machine specifics, and carrying the pre-draft gate that clean screenshots and rendered HyperFrames clips must exist under assets/<slug>/media/ before the draft JSON or build-draft-html.mjs) and produce-video (a router that lists series through their scope documents and hands off to the procedure each series declares). select-news is not shipped here: it moves to the iNNbox_NN domain, which specializes in acquiring sources. A test asserts the folder is declared and every shipped procedure resolves, and the blueprint version is bumped and repinned. Open decisions before the change: procedure language, file naming against the video-template requirement, and whether the gate also becomes a hard check in build-draft-html.mjs.
+batch:: b5d-conntent-procedures
 
 ## NN Item: cognitivize-archive-and-gc-decisions
 value:: L
@@ -186,8 +192,8 @@ effort:: M
 risk:: M
 status:: open
 lane:: light
-verdict:: current
-evidence:: planGc at iNNfo/packages/nn-core/src/writeOnce/plan.ts:27 has no archive rule; scripts/export-console.mjs:216 findModelFiles and skills/nn-sources/SKILL.md:43 conversations naming remain from the cognitivize-in-place follow-ups. Some smaller bullets were not individually verified.
+verdict:: unverifiable
+evidence:: planGc at iNNfo/packages/nn-core/src/writeOnce/plan.ts:27 has no archive rule; scripts/export-console.mjs:216 findModelFiles and skills/nn-sources/SKILL.md:43 conversations naming remain from the cognitivize-in-place follow-ups. Some smaller bullets were not individually verified, so the item is unverifiable as a whole and needs refinement before it can be briefed. Verified 2026-11-12.
 
 ## NN Item: console-shell-actions
 value:: M
@@ -220,9 +226,10 @@ risk:: H
 status:: open
 lane:: heavy
 verdict:: current
-evidence:: The changes blueprint op list declares update_field, remove_element, rename_field and set_field_default but no remove_field (iNNfo/packages/nn-core/src/schema/canonical-registry.ts:30 lists the full op set), and update_field requires a non-null `to`, so a legacy L3 `sources::` can never be cleared. apply_change validates the whole model, so one banned field blocks every changeset touching that model.
+evidence:: The changes blueprint op list declares update_field, remove_element, rename_field and set_field_default but no remove_field (iNNfo/packages/nn-core/src/schema/canonical-registry.ts:30 lists the full op set), and update_field requires a non-null `to`, so a legacy L3 `sources::` can never be cleared. apply_change validates the whole model, so one banned field blocks every changeset touching that model. Issue 614 reports the same root from a production domain; the rest of that report is the cross-domain-export item. Verified 2026-11-12.
 done_when:: A changeset can drop a field key from an element (a remove_field op, or an explicit removal value on update_field), the serializer then omits the key rather than emitting an empty line, and a model carrying a banned `sources::` can be repaired through the sanctioned changeset path alone.
 ref:: issue-560
+batch:: b6-remove-banned-l3-field
 
 ## NN Item: number-field-changeset
 value:: M
@@ -245,6 +252,55 @@ verdict:: current
 evidence:: The coNNtent engine writes series/<s>/assets/<slug>/ while references/folder-contract.md declares series/<s>/episodes/<slug>/, and produce.modelIdOf only recognizes the assets/ parent (produce.mjs:101-107), so an episode outside assets/ yields a bare slug. Verified 2026-11-07.
 done_when:: The blueprint's declared folder contract and the engine agree on one layout, the id derivation follows the contract wherever an episode lives, and a test covers an episode outside assets/.
 ref:: issue-565
+batch:: b4j-episode-layout-drift
+
+## NN Item: procedure-reference-form
+value:: M
+effort:: M
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: The shipped coNNtent procedures use wikilinks in reference fields (iNNfo/specs/bluepriNNts/coNNtent/procedures/usage_procedures_NN.md:29,35-36 in output::, parent:: and next::), validate_knowledge reports ADDRESS_MALFORMED for each, and the console stepper and iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/test/procedures.test.mjs parse [[...]], so moving the documents alone breaks them. Verified 2026-11-12.
+done_when:: One accepted reference form exists for procedure documents: validate_knowledge accepts it, the console stepper, the procedure tests and the shipped coNNtent procedures all agree on it, and the usage document validates with zero errors.
+ref:: issue-617
+batch:: b3f-procedure-references
+
+## NN Item: orphan-model-lineage-guard
+value:: M
+effort:: M
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: lineageAudit is defined at iNNfo/packages/nn-core/src/changeset/lineage/plan.ts:41 and called nowhere in the tree, so a model or element written as a raw file and registered through sync_domain_manifest keeps element.history and provenance undefined and the console Changes tab renders "No recorded changes targeting this unit". Nothing on the write path rejects it. Verified 2026-11-12.
+done_when:: Creating a model or element outside a changeset either fails the write or records an explicit audit entry, and a test covers the raw-file plus sync_domain_manifest path.
+ref:: issue-587
+batch:: b3g-orphan-model-guard
+
+## NN Item: cross-domain-export
+value:: M
+effort:: L
+risk:: M
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: iNNfo/packages/nn-mcp/src/tools/propose-changeset.ts:467 still returns ARTIFACT_NOT_FOUND when a domain has no artifact registry, so an export cannot be recorded in lineage; iNNfo/packages/nn-core/src/parser/slug.ts rejects no dot, so a slug like pipelinepartners.co applies and then fails console regeneration and stays unaddressable; no export contract and no export-okf script exist. The sources:: half of the same report belongs to remove-banned-l3-field. Verified 2026-11-12.
+done_when:: A dotted slug is rejected before apply, produce_artifact works in a domain without an artifact registry or fails with an actionable error naming the fix, an export can be recorded in lineage, and one documented export contract covers the cross-domain path.
+ref:: issue-614
+batch:: b4h-cross-domain-export
+
+## NN Item: conntent-blueprint-gaps
+value:: M
+effort:: L
+risk:: M
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: The five production gaps in issue 612 are still open: no narration whitespace normalization before synthesis in iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent (only slug helpers normalize), a Preset does not satisfy the conditional field it declares, no Scene Kind or Preset contributes layers, animation inputs are unspecified, and review iteration has no path. Verified 2026-11-12.
+done_when:: Narration whitespace is normalized before synthesis or flagged by the validator, a Preset value satisfies the conditional field it declares, a Scene Kind or Preset contributes layers, animation inputs are documented and validated, and a review iteration step exists; one test per fixed gap.
+ref:: issue-612
+batch:: b4i-conntent-blueprint-gaps
 
 # NN Batch
 
@@ -318,8 +374,78 @@ items:: product-site-projection
 risk:: M
 state:: planned
 
-## NN Batch: b9-packages-to-root
+## NN Batch: b4h-cross-domain-export
 order:: 13
+lane:: heavy
+items:: cross-domain-export
+risk:: M
+state:: planned
+
+## NN Batch: b4i-conntent-blueprint-gaps
+order:: 14
+lane:: heavy
+items:: conntent-blueprint-gaps
+risk:: M
+state:: planned
+
+## NN Batch: b4j-episode-layout-drift
+order:: 15
+lane:: heavy
+items:: episode-layout-drift
+risk:: M
+state:: planned
+
+## NN Batch: b3f-procedure-references
+order:: 16
+lane:: light
+items:: procedure-reference-form
+risk:: M
+state:: planned
+
+## NN Batch: b3g-orphan-model-guard
+order:: 17
+lane:: light
+items:: orphan-model-lineage-guard
+risk:: M
+state:: planned
+
+## NN Batch: b5-kb-change-governance
+order:: 18
+lane:: heavy
+items:: kb-change-governance
+risk:: M
+state:: planned
+
+## NN Batch: b5b-video-vector-actor-catalog
+order:: 19
+lane:: heavy
+items:: video-vector-actor-catalog
+risk:: M
+state:: planned
+
+## NN Batch: b5c-docs-skills-retirement
+order:: 20
+lane:: heavy
+items:: docs-skills-retirement
+risk:: M
+state:: planned
+
+## NN Batch: b5d-conntent-procedures
+order:: 21
+lane:: heavy
+items:: coNNtent-procedures
+risk:: M
+state:: planned
+
+## NN Batch: b6-remove-banned-l3-field
+order:: 22
+lane:: heavy
+items:: remove-banned-l3-field
+risk:: H
+state:: planned
+
+## NN Batch: b9-packages-to-root
+order:: 23
 lane:: heavy
 items:: packages-to-root
 risk:: H
