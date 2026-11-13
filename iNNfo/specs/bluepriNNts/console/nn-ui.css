@@ -9561,3 +9561,29 @@ pre.nn-file-preview-code {
   color: #7dd3fc;
 }
 
+
+/* Production dashboard navigation; scene review still uses the shared UI. */
+.nn-pipeline-dashboard { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 24px; }
+.nn-pipeline-dashboard [hidden] { display: none !important; }
+.nn-pipeline-nav { display: flex; flex-direction: column; gap: 8px; padding: 16px; border-right: 1px solid var(--color-base-300, #e5e5e5); align-self: start; }
+.nn-pipeline-nav .btn { justify-content: flex-start; }
+.nn-pipeline-nav [aria-current="page"] { background: var(--color-base-200, #f4f4f5); font-weight: 600; }
+.nn-pipeline-workspace { min-width: 0; padding-top: 16px; }
+.nn-pipeline-workspace h2 { margin: 0 0 8px; }
+.nn-pipeline-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 24px 0; }
+.nn-pipeline-metrics .btn { height: auto; display: flex; flex-direction: column; align-items: flex-start; white-space: normal; padding: 16px; }
+.nn-pipeline-metrics strong { font-size: 28px; }
+.nn-pipeline-row { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--color-base-300, #e5e5e5); }
+.nn-pipeline-row > div { min-width: 0; overflow-wrap: anywhere; }
+.nn-pipeline-row h3 { margin: 4px 0 8px; }
+.nn-pipeline-row p { margin: 4px 0; }
+.nn-pipeline-player { width: min(100%, 560px); max-height: 360px; background: #171717; border-radius: 8px; }
+.nn-pipeline-dashboard .nn-scene-header .nn-src-badge { display: none; }
+@media (max-width: 760px) {
+  .nn-pipeline-dashboard { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .nn-pipeline-nav { flex-direction: row; flex-wrap: wrap; border-right: 0; }
+  .nn-pipeline-metrics { grid-template-columns: minmax(0, 1fr); }
+  .nn-pipeline-row { flex-wrap: wrap; }
+  .nn-pipeline-dashboard .nn-scene-header { flex-wrap: wrap; }
+  .nn-pipeline-dashboard .nn-scene-title-group { flex: 1 1 100%; min-width: 0; }
+}
