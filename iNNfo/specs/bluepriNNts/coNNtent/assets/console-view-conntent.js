@@ -200,11 +200,24 @@ registerView({
           }, { doc: doc }))
           else valueBox.appendChild(el('span', null, name + ': ' + (draftValue == null ? 'Not set' : String(draftValue))))
           if (engineManaged || subject.editable === false) Array.prototype.forEach.call(valueBox.querySelectorAll('[data-ku-action="edit"]'), function (action) { action.remove() })
-          valueBox.appendChild(el('p', 'text-xs text-base-content/60', draft ? 'Proposed · not applied' :
-            engineManaged ? 'Engine managed' : source === 'mixed' ? 'Mixed origins' : source ? (source === concept.toLowerCase() || (concept === 'Video' && source === 'video') ? 'Set here' : 'Inherited · ' + source) : 'Not set here'))
-          if (!draft && effective && effective.origins) valueBox.appendChild(el('p', 'text-xs text-base-content/60', Object.keys(effective.origins).map(function (key) { return key + ': ' + effective.origins[key] }).join(' · ')))
-          if (definition.description) valueBox.appendChild(el('p', 'text-xs text-base-content/60', definition.description))
-          if (name === 'presets') valueBox.appendChild(el('p', 'text-xs text-base-content/60', 'Only presets assigned here. Inherited presets still apply.'))
+          var origin = draft ? 'proposed' : engineManaged ? 'engine' : source || 'unset'
+          var originNames = { video: 'Episode', kind: 'Scene Kind', blueprint: 'Blueprint', mixed: 'Mixed origins', unset: 'Not set', engine: 'Engine managed', proposed: 'Proposed · not applied' }
+          var originBadge = el('span', 'badge badge-sm nn-source-from', originNames[origin] || origin.charAt(0).toUpperCase() + origin.slice(1))
+          originBadge.setAttribute('data-nn-source-from', origin)
+          originBadge.title = draft ? 'Pending proposal' : source === concept.toLowerCase() ? 'Assigned on this ' + concept.toLowerCase() : source ? 'Value origin: ' + originBadge.textContent : 'No assigned value'
+          valueBox.appendChild(originBadge)
+          var helpText = definition.description || ''
+          if (name === 'presets') helpText += ' Only presets assigned here. Inherited presets still apply.'
+          if (!draft && effective && effective.origins) helpText += ' Origins: ' + Object.keys(effective.origins).map(function (key) { return key + ': ' + effective.origins[key] }).join(' · ')
+          if (helpText) {
+            var help = el('details', 'nn-setting-help')
+            var helpToggle = el('summary', null, 'ⓘ')
+            helpToggle.setAttribute('aria-label', 'Information about ' + name)
+            helpToggle.title = 'Information about ' + name
+            help.appendChild(helpToggle)
+            help.appendChild(el('p', 'nn-setting-help-text', helpText))
+            valueBox.appendChild(help)
+          }
           if (name === 'components') renderComponentSlotButtons(valueBox, { value: Array.isArray(draftValue) ? draftValue.join(',') : draftValue }, subject, episode)
         }
         fieldRefreshers.push(refresh)
@@ -690,18 +703,6 @@ registerView({
             audio.setAttribute('data-nn-narration-audio', '')
             media.appendChild(audio)
           }
-          if (scene.video) {
-            media.appendChild(el('p', 'text-xs text-base-content/60', scene.videoLabel || 'Scene video'))
-            var scenePlayer = doc.createElement('video')
-            scenePlayer.className = 'nn-pipeline-player'
-            scenePlayer.src = scene.video
-            scenePlayer.controls = true
-            scenePlayer.preload = 'metadata'
-            scenePlayer.setAttribute('playsinline', '')
-            scenePlayer.setAttribute('aria-label', 'Scene video: ' + (scene.name || scene.slug))
-            if (scene.still) scenePlayer.poster = scene.still
-            media.appendChild(scenePlayer)
-          }
           sceneBody.appendChild(media)
           thumb.addEventListener('click', function () {
             openLightbox(scene)
@@ -730,7 +731,7 @@ registerView({
               chip.setAttribute('data-nn-layer', layer.slug)
               chip.title = layer.text || layer.asset || layer.slug
               pills.appendChild(chip)
-              var layerSettings = el('details', 'nn-conntent-fields')
+              var layerSettings = el('details', 'nn-conntent-fields nn-layer-settings')
               layerSettings.appendChild(el('summary', null, layer.name || layer.slug))
               layerSettings.appendChild(renderSettings(layer, 'Layer', episode))
               lSection.appendChild(layerSettings)

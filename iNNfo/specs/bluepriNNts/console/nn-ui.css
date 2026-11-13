@@ -9591,3 +9591,21 @@ pre.nn-file-preview-code {
   .nn-pipeline-dashboard .nn-scene-header { flex-wrap: wrap; }
   .nn-pipeline-dashboard .nn-scene-title-group { flex: 1 1 100%; min-width: 0; }
 }
+
+/* Pipeline settings: scope cards, compact origins and on-demand field guidance. */
+.nn-pipeline-settings > .nn-conntent-fields, .nn-layer-settings { border: 1px solid var(--nn-border); border-radius: 10px; background: var(--nn-surface); overflow: hidden; }
+.nn-pipeline-settings > .nn-conntent-fields > summary, .nn-layer-settings > summary { padding: 14px 16px; font-size: 14px; font-weight: 650; color: var(--nn-text); background: var(--nn-surface-2); }
+.nn-layer-settings { margin: 10px 0; }
+.nn-layer-settings > summary { font-size: 15px; }
+.nn-layer-settings > .nn-pipeline-settings { padding: 4px 12px; }
+.nn-pipeline-settings > .nn-conntent-fields > .nn-pipeline-setting { margin: 0 16px; }
+.nn-pipeline-setting:last-child { border-bottom: 0; }
+.nn-pipeline-setting > div:first-child { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
+.nn-pipeline-setting .nn-source-from { font-size: 10px; }
+.nn-setting-help { display: inline-block; }
+.nn-setting-help > summary { list-style: none; cursor: pointer; color: var(--nn-muted); padding: 2px 6px; font-size: 16px; border-radius: 5px; }
+.nn-setting-help > summary::-webkit-details-marker { display: none; }
+.nn-setting-help > summary:hover, .nn-setting-help > summary:focus-visible { color: var(--nn-text); background: var(--nn-surface-2); }
+.nn-setting-help[open] { flex-basis: 100%; }
+.nn-setting-help-text { padding: 10px 12px; background: var(--nn-surface-2); border-radius: 6px; font-size: 12px; color: var(--nn-muted); line-height: 1.5; }
+.nn-source-from[data-nn-source-from="scene"], .nn-source-from[data-nn-source-from="layer"] { background: var(--nn-surface-2); color: var(--nn-text); }
