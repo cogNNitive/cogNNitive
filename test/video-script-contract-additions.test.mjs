@@ -163,9 +163,9 @@ async function runTests() {
     }
   }
 
-  // 6. The blueprint contract itself (capability video-blueprint and video-presets), V_0-19-0.
+  // 6. The current blueprint contract (capability video-blueprint and video-presets).
   {
-    assert.match(SPEC, /^blueprint_version: "V_0-19-0"$/m, 'the blueprint declares V_0-19-0');
+    assert.match(SPEC, /^blueprint_version: "V_\d+-\d+-\d+"$/m, 'the blueprint declares a semantic version');
     assert.match(SPEC, /^## NN Concept Definition: Preset$/m, 'Preset is a top-level Concept');
     assert.doesNotMatch(SPEC, /^## NN Concept Definition: Template$/m, 'Template is gone');
     assert.doesNotMatch(SPEC, /^## NN Field Definition: Template$/m);

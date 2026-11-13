@@ -15,8 +15,11 @@ import fs from 'node:fs'
 import { join } from 'node:path'
 
 import { loadKnowledgeModel } from '../skills/nn-conntent/scripts/lib/knowledge-model.mjs'
-import { loadCascadeBags, withScriptPresets } from '../skills/nn-conntent/scripts/lib/video-scope.mjs'
+import { bagsToChain, loadCascadeBags, withScriptPresets } from '../skills/nn-conntent/scripts/lib/video-scope.mjs'
+import { resolve as resolveScope } from '../skills/nn-conntent/scripts/lib/nn-core.generated.cjs'
 import { createCascade } from '../skills/nn-conntent/scripts/lib/cascade.mjs'
+import { kindBagOf, loadSeriesGrammar } from '../skills/nn-conntent/scripts/lib/kinds.mjs'
+import { assignLayersToScenes } from '../skills/nn-conntent/scripts/scene-compiler.mjs'
 import { lowerEpisode, scriptSubjectsFromScenes } from '../skills/nn-conntent/scripts/lib/review-subject.mjs'
 import { previewSubjectsFromScenes } from '../skills/nn-conntent/scripts/lib/preview-subject.mjs'
 import { evaluateGate, readAppliedVerdicts, reopenCause } from '../skills/nn-conntent/scripts/lib/gates.mjs'
@@ -101,13 +104,22 @@ async function renderedScenes(rootDir, episodeDir, master) {
 }
 
 /** Every cascade field's effective value and source at one position. */
-function fieldsFor(cascade, scene, layer) {
+function fieldsFor(cascade, scene, layer, bags) {
   const out = {}
   const at = cascade.at(scene, layer)
   for (const [name, def] of Object.entries(registry.fields || {})) {
     if (!def || !def.cascade) continue
     const resolved = at.get(name)
     out[name] = { value: resolved.value, source: resolved.source }
+    if (bags && (name === 'components' || name === 'sounds')) {
+      const union = resolveScope(bagsToChain(bags), name, 'union')
+      if (union.present && Array.isArray(union.value)) {
+        const origins = Object.fromEntries((union.explain?.entries || []).map((entry) => [entry.name, entry.from?.scope || null]))
+        const levels = [...new Set(Object.values(origins))]
+        out[name] = { value: union.value.map((entry) => entry.name + '=' + entry.value),
+          source: levels.length === 1 ? levels[0] : 'mixed', origins }
+      }
+    }
   }
   return out
 }
@@ -126,9 +138,8 @@ function path_relative(from, to) {
 }
 
 /** The layers of one scene, in document order, with the pill data the view shows. */
-function layersOf(model, sceneSlug, episodeDir, rootDir) {
-  return (model.elements?.Layer || [])
-    .filter((layer) => layer && layer.parentSlug === sceneSlug)
+function layersOf(sourceLayers, sceneSlug, episodeDir, rootDir, knowledgeId, sceneBags) {
+  return (sourceLayers || [])
     .map((layer) => {
       const fields = layer.fields || {}
       const asset = fields.asset ? String(fields.asset) : ''
@@ -137,6 +148,9 @@ function layersOf(model, sceneSlug, episodeDir, rootDir) {
       const kind = IMAGE_EXT.has(ext) ? 'image' : VIDEO_EXT.has(ext) ? 'video' : fields.type ? String(fields.type) : ''
       const present = Boolean(abs && fs.existsSync(abs))
       return {
+        elementId: knowledgeId + '@' + layer.slug,
+        recordFields: { ...fields, name: layer.name, description: layer.description || '' },
+        fields: fieldsFor(createCascade({ bags: { ...sceneBags, layer: fields } }), sceneSlug, layer.slug, { ...sceneBags, layer: fields }),
         slug: String(layer.slug || ''),
         name: String(layer.name || layer.slug || ''),
         type: fields.type ? String(fields.type) : '',
@@ -213,6 +227,7 @@ async function episodeFacts({ rootDir, series, episode, sourceHashes = {} }) {
   const videoBag = (model.elements?.Video || [])[0]?.fields || {}
   const cascadeBags = { ...bags, video: { ...(bags.video || {}), ...videoBag } }
   const cascade = createCascade({ model, scriptPath: episode.scriptPath, bags: cascadeBags })
+  const grammar = loadSeriesGrammar(episode.dir)
   const language = cascade.at().get('language').value
   const reviewGates = cascade.at().get('review_gates').value
   const gateList = Array.isArray(reviewGates) ? reviewGates.map(String) : reviewGates ? [String(reviewGates)] : ['script', 'preview']
@@ -262,13 +277,17 @@ async function episodeFacts({ rootDir, series, episode, sourceHashes = {} }) {
   }
 
   const rendered = await renderedScenes(rootDir, episode.dir, fields.master)
+  const sourceScenes = model.elements?.Scene || []
+  const layerBuckets = assignLayersToScenes(sourceScenes, model.elements?.Layer || [])
   const sceneViews = (parsed.scenes || []).map((scene) => {
     const sceneSlug = scene.slug || scene.id
     const entry = scriptEntries.find((e) => e.scene === sceneSlug)
     const preview = previewEntries.find((e) => e.scene === sceneSlug)
-    const fields = fieldsFor(cascade, sceneSlug)
     const sceneEl = (model.elements?.Scene || []).find((s) => s.slug === sceneSlug) || {}
-    const layers = layersOf(model, sceneSlug, episode.dir, rootDir)
+    const sceneBags = { ...cascadeBags, kind: kindBagOf(grammar, sceneEl.fields?.kind) || {}, scene: sceneEl.fields || {} }
+    const sceneCascade = createCascade({ bags: sceneBags })
+    const fields = fieldsFor(sceneCascade, sceneSlug, undefined, sceneBags)
+    const layers = layersOf(layerBuckets[sourceScenes.indexOf(sceneEl)], sceneSlug, episode.dir, rootDir, knowledgeId, sceneBags)
     // The narration audio the reviewer hears is the exact TTS cache entry the engine will
     // use; the same builder as compile/avatar keeps the key identical.
     let audio = null
@@ -287,6 +306,8 @@ async function episodeFacts({ rootDir, series, episode, sourceHashes = {} }) {
       slug: sceneSlug,
       knowledgeId,
       elementId: knowledgeId + '@' + sceneSlug,
+      editable: Boolean(sceneEl.slug),
+      recordFields: { ...sceneEl.fields, name: sceneEl.name, description: sceneEl.description || '' },
       name: scene.name,
       kind: String(sceneEl.fields?.kind || ''),
       narration: scene.narration || '',
@@ -330,6 +351,11 @@ async function episodeFacts({ rootDir, series, episode, sourceHashes = {} }) {
     modelId,
     knowledgeId,
     elementId: knowledgeId + '@' + (video.slug || slug),
+    recordFields: { ...video.fields, name: video.name, description: video.description || '' },
+    fields: fieldsFor(cascade, undefined, undefined, cascadeBags),
+    sceneKinds: ['Libre', ...Object.keys(grammar.kinds).filter((name) => name !== 'Libre')],
+    availablePresets: [...new Set((bags.presetIndex?.sources || []).flatMap((source) =>
+      (source.elements?.Preset || []).map((preset) => preset.name)))],
     title: String(fields.title || slug),
     status: String(fields.status || ''),
     language: language || null,
@@ -389,7 +415,7 @@ export async function collect({ rootDir } = {}) {
   const pending = series.flatMap((s) =>
     s.episodes.flatMap((e) => e.pending.map((gate) => ({ series: s.slug, episode: e.slug, ...gate }))),
   )
-  return { tree: { domain: root, series }, pending }
+  return { tree: { domain: root, series }, pending, fieldDefinitions: registry.fields }
 }
 
 /**

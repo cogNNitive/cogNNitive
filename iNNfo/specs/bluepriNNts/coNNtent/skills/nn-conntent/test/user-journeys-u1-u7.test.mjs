@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+import { BLUEPRINT_VERSION } from './helpers/blueprint-version.mjs'
 
 /**
  * nn-conntent/test/user-journeys-u1-u7.test.mjs
@@ -274,10 +274,10 @@ function buildEpisodeContent({
   return `---
 level: 3
 parent_spec:
-  name: "coNNtent_V_0-19-0"
+  name: "coNNtent_${BLUEPRINT_VERSION}"
   url: "https://example.invalid/coNNtent/spec_NN.md"
 knowledge_version: "V_0-1-0"
-blueprint_version: "V_0-19-0"
+blueprint_version: "${BLUEPRINT_VERSION}"
 title: "User Journey Episode 1"
 ---
 
@@ -347,7 +347,7 @@ test('User Journeys U1-U7 end to end simulation', async (t) => {
       )
 
       // Copy blueprint spec and defaults
-      fs.mkdirSync(path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-19-0'), {
+      fs.mkdirSync(path.join(root, 'specs', 'bluepriNNts', 'coNNtent', BLUEPRINT_VERSION), {
         recursive: true,
       })
       fs.copyFileSync(
@@ -356,7 +356,7 @@ test('User Journeys U1-U7 end to end simulation', async (t) => {
       )
       fs.copyFileSync(
         path.join(BLUEPRINT, 'spec_NN.md'),
-        path.join(root, 'specs', 'bluepriNNts', 'coNNtent', 'V_0-19-0', 'spec_NN.md'),
+        path.join(root, 'specs', 'bluepriNNts', 'coNNtent', BLUEPRINT_VERSION, 'spec_NN.md'),
       )
       fs.copyFileSync(
         path.join(BLUEPRINT, 'defaults', 'video-defaults_NN.md'),
@@ -464,9 +464,9 @@ Professional presenter persona.
 level: 3
 scope: true
 parent_spec:
-  name: "coNNtent_V_0-19-0"
+  name: "coNNtent_${BLUEPRINT_VERSION}"
   url: "https://example.invalid/coNNtent/spec_NN.md"
-blueprint_version: "V_0-19-0"
+blueprint_version: "${BLUEPRINT_VERSION}"
 title: "The Main Show"
 ---
 
@@ -789,10 +789,10 @@ character:: lucas
       const autoContent = `---
 level: 3
 parent_spec:
-  name: "coNNtent_V_0-19-0"
+  name: "coNNtent_${BLUEPRINT_VERSION}"
   url: "https://example.invalid/coNNtent/spec_NN.md"
 knowledge_version: "V_0-1-0"
-blueprint_version: "V_0-19-0"
+blueprint_version: "${BLUEPRINT_VERSION}"
 title: "Autopilot Episode"
 ---
 
