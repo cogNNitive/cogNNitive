@@ -608,6 +608,9 @@ function buildSteps(repoRoot, options = {}) {
   steps.push(roFresh('console-payload'));
   // 7b-ter. Single-file console bundle drift guard (offline: reads the UMD sources, no network).
   steps.push(roFresh('console-bundle'));
+  // 7b-quinquies. Committed MCP CDN bundle must announce the package.json version
+  // (the nn-mcp-v0.37.0 release shipped 0.36.0 bytes before this guard existed).
+  steps.push(roFresh('mcp-bundle'));
   // 7b-quater. Offline canonical-registry mirror drift guard (embedded spec copies).
   steps.push(roFresh('canonical-registry'));
   // 7c. Samples SSOT Drift Guard.

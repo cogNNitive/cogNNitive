@@ -19,6 +19,7 @@ const FRESHNESS_GUARDS = [
   { id: 'canonical-registry', desc: 'Check Canonical Registry Mirror Fresh', script: 'scripts/generate-canonical-registry.mjs', args: ['--check'], regen: 'node scripts/generate-canonical-registry.mjs' },
   { id: 'console-payload', desc: 'Check Console Payload Mirror Fresh', script: 'scripts/build-console-payload.mjs', args: ['--check'], regen: 'node scripts/build-console-payload.mjs' },
   { id: 'console-bundle', desc: 'Check Console Bundle Fresh', script: 'scripts/build-console-bundle.mjs', args: ['--check'], regen: 'node scripts/build-console-bundle.mjs' },
+  { id: 'mcp-bundle', desc: 'Check MCP Bundle Freshness', script: 'scripts/build-mcp-bundle.mjs', args: ['--check'], regen: 'node scripts/build-mcp-bundle.mjs' },
   { id: 'samples-parity', desc: 'Check Samples Parity with _samples_nn', script: 'scripts/sync-samples.mjs', args: ['--check'], regen: 'node scripts/sync-samples.mjs' },
   { id: 'version-parity', desc: 'Check Version Parity with Specs and Skills', script: 'scripts/sync-versions.mjs', args: ['--check'], regen: 'node scripts/sync-versions.mjs' },
   { id: 'console-shells-fresh', desc: 'Check Generated Console Shells Fresh', script: 'scripts/build-console-shells.mjs', args: ['--check'], regen: 'node scripts/build-console-shells.mjs' },
