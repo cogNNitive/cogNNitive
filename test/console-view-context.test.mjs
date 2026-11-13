@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { nnConsole, bootConsole } from './helpers/console-boot.mjs'
+import { nnConsole, bootConsole, MODEL } from './helpers/console-boot.mjs'
 import { openModals, topmostModal, wrapModal, submitEdit, submitComment, offersPropose } from './helpers/console-contract.mjs'
 
 const def = (id, over = {}) => ({
@@ -348,6 +348,15 @@ describe('S2b review follow-up: store.propose validates its input', () => {
     assert.equal(name.original, 'Ecto-1')
     assert.equal(description.original, 'Car.')
     assert.equal(role.original, 'Interceptor')
+  })
+
+  it('media corrections use the raw document path, not the rebased display path', () => {
+    const model = structuredClone(MODEL)
+    model.elements[0].fields.asset = 'series/episodes/one/media/avatar.png'
+    model.elements[0].rawFields = { asset: 'media/avatar.png' }
+    const { ctxs } = bootViews([def('alpha')], { model })
+    ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'correction', field: 'asset', proposed: 'media/new.png' })
+    assert.equal(ctxs.alpha.store.drafts()[0].original, 'media/avatar.png')
   })
 })
 
