@@ -7,12 +7,12 @@ describe('S1b: draft count stays live without reload', () => {
     const { document, res } = bootConsole()
     assert.ok(res.controller, 'review controller present')
     res.controller.enable()
-    assert.match(document.querySelector('#nn-review-dock .nn-dock-drafts').textContent, /Unsent:\s*0/)
+    assert.match(document.querySelector('#nn-feedback-open').textContent, /Changes ·\s*0/)
 
     addCommentDraft(document)
 
     assert.match(document.querySelector('.nn-banner-drafts').textContent, /unsent:\s*1/)
-    assert.match(document.querySelector('#nn-review-dock .nn-dock-drafts').textContent, /Unsent:\s*1/)
+    assert.match(document.querySelector('#nn-feedback-open').textContent, /Changes ·\s*1/)
     assert.match(document.querySelector('.nn-review-count').textContent, /^1 pending change/)
   })
 
@@ -24,7 +24,7 @@ describe('S1b: draft count stays live without reload', () => {
     assert.ok(del, 'delete control rendered in review tab')
     del.click()
     assert.match(document.querySelector('.nn-banner-drafts').textContent, /unsent:\s*0/)
-    assert.match(document.querySelector('#nn-review-dock .nn-dock-drafts').textContent, /Unsent:\s*0/)
+    assert.match(document.querySelector('#nn-feedback-open').textContent, /Changes ·\s*0/)
     assert.match(document.querySelector('.nn-review-count').textContent, /^0 pending changes/)
   })
 
@@ -45,7 +45,7 @@ describe('S1b: draft count stays live without reload', () => {
     assert.equal(after, card, 'card DOM node identity preserved')
     assert.ok(card.contains(control), 'control still inside the same card')
     assert.match(document.querySelector('.nn-banner-drafts').textContent, /unsent:\s*1/)
-    assert.match(document.querySelector('#nn-review-dock .nn-dock-drafts').textContent, /Unsent:\s*1/)
+    assert.match(document.querySelector('#nn-feedback-open').textContent, /Changes ·\s*1/)
     assert.match(document.querySelector('.nn-review-count').textContent, /^1 pending change/)
   })
 
