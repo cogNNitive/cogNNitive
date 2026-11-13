@@ -151,7 +151,7 @@ function resolveBase() {
   const explicit = getArg('--base');
   if (explicit) return explicit;
 
-  // 1. In CI pull request, diff against the PR's target base branch (e.g. 'dev').
+  // 1. In CI pull request, diff against the PR's target base branch.
   const ghBase = process.env.GITHUB_BASE_REF;
   if (ghBase) {
     for (const ref of [`origin/${ghBase}`, ghBase]) {
@@ -170,41 +170,7 @@ function resolveBase() {
     }
   }
 
-  // 2. If branched from origin/dev (newer ancestor than origin/main), compare against dev merge-base.
-  for (const candidate of ['origin/dev', 'dev']) {
-    try {
-      execFileSync('git', ['rev-parse', '--verify', '--quiet', candidate], {
-        stdio: ['ignore', 'ignore', 'ignore'],
-      });
-      const devBase = execFileSync('git', ['merge-base', 'HEAD', candidate], {
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore'],
-      }).trim();
-      if (devBase) {
-        try {
-          execFileSync('git', ['rev-parse', '--verify', '--quiet', 'origin/main'], {
-            stdio: ['ignore', 'ignore', 'ignore'],
-          });
-          const mainBase = execFileSync('git', ['merge-base', 'HEAD', 'origin/main'], {
-            encoding: 'utf8',
-            stdio: ['ignore', 'pipe', 'ignore'],
-          }).trim();
-          if (mainBase && devBase !== mainBase) {
-            execFileSync('git', ['merge-base', '--is-ancestor', mainBase, devBase], {
-              stdio: ['ignore', 'ignore', 'ignore'],
-            });
-            return devBase;
-          }
-        } catch {
-          return devBase;
-        }
-      }
-    } catch {
-      // try next candidate
-    }
-  }
-
-  // 3. Fallback to origin/main merge-base, or HEAD
+  // 2. Fallback to origin/main merge-base, or HEAD
   try {
     execFileSync('git', ['rev-parse', '--verify', '--quiet', 'origin/main'], {
       stdio: ['ignore', 'ignore', 'ignore'],
