@@ -986,7 +986,67 @@ registerView({
     root.appendChild(workspace)
     ;[home, episodeList, deliveryPage, changesPage, heading, domain, episodeSection].forEach(function (node) { workspace.appendChild(node) })
     seriesSection.hidden = true
+    // Move the existing episode cards between layouts; editors and drafts stay shared.
+    var layout = 'Dashboard'
+    var layoutTabs = el('div', 'nn-pipeline-layout-tabs flex gap-2')
+    layoutTabs.setAttribute('role', 'tablist')
+    layoutTabs.setAttribute('aria-label', 'Pipeline layout')
+    var hierarchy = el('section', 'nn-pipeline-hierarchy')
+    hierarchy.setAttribute('aria-label', 'Production hierarchy')
+    hierarchy.appendChild(el('h2', null, 'Production hierarchy'))
+    hierarchy.appendChild(el('p', 'text-base-content/60', 'Expand a series, then an episode to review its scenes and settings.'))
+    var layoutButtons = {}
+    ;['Dashboard', 'Hierarchy'].forEach(function (name) {
+      var tab = button(name, function () { layout = name; display() })
+      tab.setAttribute('role', 'tab')
+      layoutButtons[name] = tab
+      layoutTabs.appendChild(tab)
+    })
+    root.insertBefore(layoutTabs, root.firstChild)
+    root.appendChild(hierarchy)
+    data.series.forEach(function (series) {
+      var branch = el('details', 'nn-hierarchy-card nn-hierarchy-series')
+      branch.setAttribute('data-nn-hierarchy-series', series.slug)
+      var summary = el('summary')
+      summary.appendChild(el('strong', null, series.title))
+      summary.appendChild(badge(series.episodes.length + ' episodes'))
+      branch.appendChild(summary)
+      var contents = el('div', 'nn-hierarchy-contents')
+      episodeCards.filter(function (item) { return item.series === series }).forEach(function (item) {
+        var episodeBranch = el('details', 'nn-hierarchy-card nn-hierarchy-episode')
+        episodeBranch.setAttribute('data-nn-hierarchy-episode', item.episode.slug)
+        var episodeSummary = el('summary')
+        episodeSummary.appendChild(el('strong', null, item.episode.title))
+        episodeSummary.appendChild(badge(item.episode.status || 'idea'))
+        episodeSummary.appendChild(badge((item.episode.scenes || []).length + ' scenes'))
+        episodeBranch.appendChild(episodeSummary)
+        var episodeContents = el('div', 'nn-hierarchy-contents')
+        var tabs = el('div', 'flex gap-2 flex-wrap my-4')
+        item.hierarchyTab = 'Script & review'
+        item.hierarchyButtons = {}
+        ;['Overview', 'Script & review', 'Configuration', 'Deliveries'].forEach(function (name) {
+          var tab = button(name, function () { item.hierarchyTab = name; display() })
+          item.hierarchyButtons[name] = tab
+          tabs.appendChild(tab)
+        })
+        episodeContents.appendChild(tabs)
+        item.hierarchyHost = episodeContents
+        episodeBranch.appendChild(episodeContents)
+        episodeBranch.addEventListener('toggle', function () {
+          if (!episodeBranch.open) Array.prototype.forEach.call(item.node.querySelectorAll('audio,video'), function (media) { media.pause() })
+        })
+        contents.appendChild(episodeBranch)
+      })
+      if (!series.episodes.length) contents.appendChild(el('p', 'empty-state', 'No episodes yet.'))
+      branch.appendChild(contents)
+      hierarchy.appendChild(branch)
+    })
+    if (!data.series.length) hierarchy.appendChild(el('p', 'empty-state', 'No series yet.'))
     function display() {
+      var isHierarchy = layout === 'Hierarchy'
+      navigation.hidden = workspace.hidden = !isHierarchy ? false : true
+      hierarchy.hidden = !isHierarchy
+      Object.keys(layoutButtons).forEach(function (name) { layoutButtons[name].setAttribute('aria-selected', String(layout === name)) })
       home.hidden = activePage !== 'Home'
       episodeList.hidden = activePage !== 'Episodes'
       deliveryPage.hidden = activePage !== 'Deliveries'
@@ -1007,10 +1067,14 @@ registerView({
         heading.appendChild(tabs)
       }
       episodeCards.forEach(function (item) {
-        item.node.hidden = activePage !== 'Episode' || item !== activeEpisode
+        var parent = isHierarchy ? item.hierarchyHost : episodeSection
+        if (item.node.parentNode !== parent) parent.appendChild(item.node)
+        item.node.hidden = !isHierarchy && (activePage !== 'Episode' || item !== activeEpisode)
+        var selectedTab = isHierarchy ? item.hierarchyTab : activeTab
+        Object.keys(item.hierarchyButtons).forEach(function (name) { item.hierarchyButtons[name].setAttribute('aria-pressed', String(item.hierarchyTab === name)) })
         Array.prototype.forEach.call(item.node.querySelectorAll('.nn-conntent-body > [data-nn-subsection]'), function (section) {
           var id = section.getAttribute('data-nn-subsection')
-          section.hidden = activeTab === 'Overview' ? ['review', 'status'].indexOf(id) === -1 : activeTab === 'Script & review' ? ['review', 'script'].indexOf(id) === -1 : activeTab === 'Configuration' ? id !== 'config' : id !== 'deliveries'
+          section.hidden = selectedTab === 'Overview' ? ['review', 'status'].indexOf(id) === -1 : selectedTab === 'Script & review' ? ['review', 'script'].indexOf(id) === -1 : selectedTab === 'Configuration' ? id !== 'config' : id !== 'deliveries'
         })
         if (item.node.hidden) Array.prototype.forEach.call(item.node.querySelectorAll('audio,video'), function (media) { media.pause() })
       })

@@ -195,3 +195,31 @@ test('an episode without scenes still exposes its own configuration', () => {
   assert.match(config.querySelector('[data-nn-setting="voice"]').textContent, /episode-voice/)
   dom.window.close()
 })
+
+
+test('hierarchy nests the same editable episode cards under series and preserves layout state', () => {
+  const { container, dom } = fixture()
+  const cards = [...container.querySelectorAll('[data-nn-episode-config]')]
+  click(container, 'Hierarchy')
+  const hierarchy = container.querySelector('.nn-pipeline-hierarchy')
+  assert.equal(hierarchy.hidden, false)
+  assert.equal(container.querySelector('.nn-pipeline-workspace').hidden, true)
+  for (const card of cards) {
+    assert.ok(card.closest('[data-nn-hierarchy-episode]'))
+    assert.ok(card.closest('[data-nn-hierarchy-series]'))
+    assert.equal(card.hidden, false)
+    assert.equal(card.querySelector('[data-nn-subsection="script"]').hidden, false)
+  }
+  const branch = cards[0].closest('[data-nn-hierarchy-episode]')
+  branch.open = true
+  click(branch, 'Configuration')
+  assert.equal(cards[0].querySelector('[data-nn-subsection="config"]').hidden, false)
+  click(container, 'Dashboard')
+  assert.equal(hierarchy.hidden, true)
+  assert.ok(cards.every(card => card.parentNode.getAttribute('data-nn-section') === 'episode'))
+  click(container, 'Hierarchy')
+  assert.equal(branch.open, true)
+  assert.equal(cards[0].querySelector('[data-nn-subsection="config"]').hidden, false)
+  assert.equal(container.querySelectorAll('[data-nn-episode-config]').length, cards.length)
+  dom.window.close()
+})

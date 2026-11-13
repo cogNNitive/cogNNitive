@@ -9609,3 +9609,14 @@ pre.nn-file-preview-code {
 .nn-setting-help[open] { flex-basis: 100%; }
 .nn-setting-help-text { padding: 10px 12px; background: var(--nn-surface-2); border-radius: 6px; font-size: 12px; color: var(--nn-muted); line-height: 1.5; }
 .nn-source-from[data-nn-source-from="scene"], .nn-source-from[data-nn-source-from="layer"] { background: var(--nn-surface-2); color: var(--nn-text); }
+
+.nn-pipeline-layout-tabs, .nn-pipeline-hierarchy { grid-column: 1 / -1; }
+.nn-pipeline-layout-tabs { border-bottom: 1px solid var(--nn-border); padding-bottom: 12px; }
+.nn-pipeline-layout-tabs [aria-selected="true"] { background: var(--nn-text); color: var(--nn-surface); }
+.nn-hierarchy-card { border: 1px solid var(--nn-border); border-radius: 12px; background: var(--nn-surface); margin: 14px 0; overflow: hidden; }
+.nn-hierarchy-card > summary { cursor: pointer; padding: 16px; background: var(--nn-surface-2); }
+.nn-hierarchy-card > summary > * { margin-right: 12px; }
+.nn-hierarchy-series > summary { font-size: 17px; }
+.nn-hierarchy-contents { padding: 0 16px 12px; min-width: 0; }
+.nn-hierarchy-episode > .nn-hierarchy-contents > .nn-episode-card { margin: 0; }
+@media (max-width: 640px) { .nn-hierarchy-contents { padding: 0 8px 8px; } .nn-hierarchy-card > summary { padding: 12px; } }
