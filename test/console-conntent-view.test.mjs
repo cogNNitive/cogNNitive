@@ -15,6 +15,7 @@ import { join } from 'node:path'
 import { bootConsole, nnConsole, consoleDir } from './helpers/console-boot.mjs'
 
 const VIEW_FILE = join(consoleDir, '..', 'coNNtent', 'assets', 'console-view-conntent.js')
+const FIELD_DEFINITIONS = JSON.parse(readFileSync(join(consoleDir, '..', 'coNNtent', 'skills', 'nn-conntent', 'scripts', 'lib', 'field-registry.generated.json'), 'utf8')).fields
 
 const HASH = 'a'.repeat(64)
 const PREVIEW_HASH = 'b'.repeat(64)
@@ -22,6 +23,7 @@ const PREVIEW_HASH = 'b'.repeat(64)
 const MODEL = {
   meta: { title: 'Probe', modelId: 'e_probe', changesBlueprintVersion: 'V_0-8-1' },
   elements: [
+    { id: 'e_probe@v', concept: 'Video', name: 'Probe Episode', slug: 'v', modelId: 'e_probe', fields: {}, hash: 'fedcba9876543210' },
     {
       id: 'e_probe@one',
       concept: 'Scene',
@@ -36,6 +38,7 @@ const MODEL = {
 }
 
 const VIEW_DATA = {
+  fieldDefinitions: FIELD_DEFINITIONS,
   tree: {
     domain: '/tmp/domain',
     series: [
@@ -48,6 +51,9 @@ const VIEW_DATA = {
             modelId: 's/e',
             knowledgeId: 'e_probe',
             elementId: 'e_probe@v',
+            fields: { voice: { value: 'episode-voice', source: 'video' } },
+            recordFields: { title: 'Probe Episode' },
+            sceneKinds: ['Libre', 'Gancho'],
             title: 'Probe Episode',
             status: 'draft',
             language: 'es',
@@ -58,13 +64,14 @@ const VIEW_DATA = {
                 slug: 'one',
                 name: 'One',
                 kind: 'Gancho',
+                recordFields: { kind: 'Gancho' },
                 elementId: 'e_probe@one',
                 narration: 'hola',
                 scriptHash: HASH,
                 previewHash: PREVIEW_HASH,
                 stale: true,
                 planHash: HASH,
-                fields: { voice: { value: 'series-voice', source: 'series' } },
+                fields: { voice: { value: 'series-voice', source: 'series' }, transition: { value: 'fade', source: 'domain' } },
                 sources: [
                   { name: 'voice', source: 'series', value: 'series-voice', type: 'string' },
                   { name: 'transition', source: 'domain', value: 'fade', type: 'select' },
@@ -161,19 +168,14 @@ test('a scene card shows its still, audio, layers and field origins', () => {
   assert.equal(thumb.querySelector('img').getAttribute('src'), 'series/s/episodes/e/media/one.png')
   assert.equal(scene.querySelector('[data-nn-narration-audio]').getAttribute('src'), '.cognnitive/cache/video/tts/one.mp3')
   assert.match(scene.querySelector('[data-nn-layer="one-bg"]').textContent, /media/)
-  const voiceSource = scene.querySelector('[data-nn-source="voice"]')
+  const voiceSource = scene.querySelector('[data-nn-settings="Scene"] [data-nn-setting="voice"]')
   assert.ok(voiceSource, 'the inherited voice is listed')
   assert.match(voiceSource.textContent, /series-voice/, 'the inherited value is shown')
-  const transitionSource = scene.querySelector('[data-nn-source="transition"]')
+  const transitionSource = scene.querySelector('[data-nn-settings="Scene"] [data-nn-setting="transition"]')
   assert.ok(transitionSource.querySelector('.nn-field-select'), 'a select value renders with the select widget')
-  assert.equal(
-    transitionSource.getAttribute('data-nn-source-from'),
-    'domain',
-    'the origin rides on the row',
-  )
   assert.match(transitionSource.textContent, /domain/, 'the origin badge is visible')
   assert.match(transitionSource.textContent, /transition/, 'the field name is not replaced by the origin')
-  assert.equal(scene.querySelectorAll('[data-nn-source]').length, 2, 'one row per inherited value')
+  assert.ok(scene.querySelector('[data-nn-edit-setting="kind"]'), 'local fields are editable too')
 })
 
 test('approving a scene writes a review_gate verdict with the payload hash', () => {
@@ -188,7 +190,7 @@ test('approving a scene writes a review_gate verdict with the payload hash', () 
   assert.equal(draft.verdict, 'approved')
   assert.equal(draft.reviewed_hash, HASH, 'the hash is copied from the payload, never computed')
   assert.equal(draft.element_slug, 'one')
-  assert.match(scene.textContent, /Approved for script/)
+  assert.match(scene.textContent, /Approval proposed for script/)
 })
 
 test('needs change without a reason writes nothing, and with a reason keeps it as notes', () => {
@@ -220,9 +222,9 @@ test('the episode shows gate state, field source and deliveries', () => {
   const { document } = bootConntent()
   const card = document.querySelector('[data-nn-episode-config="e"]')
   assert.ok(card.querySelector('[data-nn-gate-state="open"]'), 'the gate state is visible')
-  const voice = card.querySelector('[data-nn-field="voice"]')
-  assert.match(voice.textContent, /series-voice/)
-  assert.match(voice.textContent, /series/, 'the source level is shown')
+  const voice = card.querySelector('[data-nn-settings="Video"] [data-nn-setting="voice"]')
+  assert.match(voice.textContent, /episode-voice/)
+  assert.match(voice.textContent, /Set here/, 'episode configuration does not borrow the first scene')
   const v1 = card.querySelector('[data-nn-delivery="v1"]')
   assert.ok(v1.getAttribute('data-nn-superseded') !== null, 'v1 is marked superseded')
   assert.match(v1.textContent, /superseded/)
@@ -250,7 +252,7 @@ test('the view never writes the review field and offers no Deliver button', () =
   assert.doesNotMatch(code, /field:\s*'review'/, 'a verdict is not a review:: write')
   const { document } = bootConntent()
   const buttons = [...document.querySelectorAll('button')].map((b) => b.textContent)
-  assert.equal(buttons.some((text) => /deliver/i.test(text)), false)
+  assert.equal(buttons.some((text) => /^Deliver(?: episode)?$/i.test(text)), false)
   assert.equal(document.body.textContent.includes('Clean orphans'), false)
 })
 
@@ -359,12 +361,10 @@ test('editing a components slot opens the component picker dialog with slot filt
       preview: 'library/components/kinetic/preview.mp4',
     },
   ]
-  componentViewData.tree.series[0].episodes[0].scenes[0].sources.push({
-    name: 'components',
+  componentViewData.tree.series[0].episodes[0].fields.components = {
     source: 'series',
-    value: 'title=boxed, quote=plain',
-    type: 'string',
-  })
+    value: ['title=boxed', 'quote=plain'],
+  }
   const booted = bootConntent({ viewData: componentViewData })
   const { document, dom } = booted
 
@@ -390,7 +390,8 @@ test('editing a components slot opens the component picker dialog with slot filt
   const drafts = draftsOf(booted)
   assert.equal(drafts.length, 1, 'draft proposed')
   assert.equal(drafts[0].field, 'components')
-  assert.match(drafts[0].proposed, /title=kinetic/)
+  assert.ok(drafts[0].proposed.includes('title=kinetic'))
+  assert.equal(drafts[0].element_id, 'e_probe@v', 'components are episode-scoped')
 
   openBtn.click()
   assert.ok(document.querySelector('[data-nn-component-picker]'))

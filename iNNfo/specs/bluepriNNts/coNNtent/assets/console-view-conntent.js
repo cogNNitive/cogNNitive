@@ -27,6 +27,9 @@ registerView({
     var doc = ctx.container.ownerDocument
     var data = (ctx.viewData && ctx.viewData.tree) || { series: [] }
     var pending = (ctx.viewData && ctx.viewData.pending) || []
+    var fieldDefinitions = (ctx.viewData && ctx.viewData.fieldDefinitions) || {}
+    var fieldRefreshers = []
+    var fieldModal = null
 
     // What each gate protects. The strip shows it so a reviewer knows what a click freezes.
     var GATE_INFO = {
@@ -36,8 +39,6 @@ registerView({
       qa: { label: 'Automatic QA', protects: 'always on, no approval' },
     }
     var GATE_ORDER = ['script', 'preview', 'budget']
-    // Broadest to narrowest, so a reader starts at the level that shapes the most.
-    var CONTEXT_ORDER = ['blueprint', 'domain', 'series', 'kind', 'preset', 'video', 'scene']
     // The content a gate reviews, and the hash the payload published for it.
     function hashFor(scene, gate) {
       if (gate === 'preview') return scene.previewHash
@@ -120,6 +121,127 @@ registerView({
       }
       if (gate === 'preview' && scene.planHash) change.plan_hash = scene.planHash
       return propose(change)
+    }
+
+    function settingGroup(name) {
+      if (/^voice|^language$/.test(name)) return 'Voice & language'
+      if (/^avatar|^image|^character$|^pose$|^background$|^frame$|^fit$/.test(name)) return 'Visuals'
+      if (/^background_audio|^transition$|^sounds$|^components$|^position$|^placement$|^timing$|animation$|^z_index$/.test(name)) return 'Audio & composition'
+      if (/^thumbnail|^output_formats$|^captions$|^caption_model$|^intro$/.test(name)) return 'Publishing'
+      if (/^review|^budget$|^status$|^master$|^delivered_version$/.test(name)) return 'Workflow & outputs'
+      return 'Content'
+    }
+
+    function closeFieldModal() {
+      if (!fieldModal) return
+      var modal = fieldModal
+      fieldModal = null
+      if (modal.open && typeof modal.close === 'function') modal.close()
+      modal.remove()
+    }
+
+    // The registry supplies coverage; the exported schema supplies catalog picklists.
+    function renderSettings(subject, concept, episode) {
+      var host = el('div', 'nn-pipeline-settings')
+      host.setAttribute('data-nn-settings', concept)
+      host.setAttribute('data-nn-element-id', subject.elementId || '')
+      var definitions = Object.assign({}, fieldDefinitions)
+      ;((ctx.payload && ctx.payload.schema && ctx.payload.schema.fields) || []).forEach(function (field) {
+        if (field.concept !== concept && field.concept !== '*') return
+        definitions[field.name] = Object.assign({}, definitions[field.name], field,
+          { concepts: [concept], cascade: !!(definitions[field.name] && definitions[field.name].cascade) })
+      })
+      definitions.name = { concepts: [concept], type: 'string', description: 'Display name. The stable address stays unchanged.' }
+      if (concept !== 'Scene') definitions.description = { concepts: [concept], type: 'markdown', description: 'Element description.' }
+      var groups = {}
+      Object.keys(definitions).filter(function (name) {
+        var concepts = definitions[name].concepts || []
+        return concepts.indexOf(concept) !== -1 || concepts.indexOf('*') !== -1
+      }).sort(function (a, b) {
+        var first = ['kind', 'type', 'title', 'name', 'description', 'presets', 'tags']
+        var left = first.indexOf(a), right = first.indexOf(b)
+        return (left < 0 ? first.length : left) - (right < 0 ? first.length : right) || a.localeCompare(b)
+      }).forEach(function (name) {
+        var definition = definitions[name]
+        var groupName = settingGroup(name)
+        if (!groups[groupName]) {
+          var group = el('details', 'nn-conntent-fields')
+          group.open = groupName === 'Content'
+          group.appendChild(el('summary', null, groupName))
+          groups[groupName] = group
+          host.appendChild(group)
+        }
+        var row = el('div', 'nn-pipeline-setting')
+        row.setAttribute('data-nn-setting', name)
+        var valueBox = el('div')
+        row.appendChild(valueBox)
+        var records = subject.recordFields || {}
+        var effective = subject.fields && subject.fields[name]
+        var local = Object.prototype.hasOwnProperty.call(records, name)
+        var value = definition.cascade && name !== 'presets' && effective ? effective.value : records[name]
+        var source = definition.cascade && name !== 'presets' && effective ? effective.source : local ? concept.toLowerCase() : null
+        var engineManaged = name === 'review' || name === 'master' || name === 'delivered_version'
+        var options = definition.options || []
+        if (name === 'kind') options = episode.sceneKinds || options
+        if (name === 'presets') options = episode.availablePresets || options
+        var draftValue
+        function refresh() {
+          var drafts = ctx.store && ctx.store.drafts ? ctx.store.drafts() : []
+          var matching = drafts.filter(function (draft) {
+            return draft.kind === 'correction' && draft.field === name &&
+              (draft.elementId || draft.element_id) === subject.elementId
+          })
+          var draft = matching[matching.length - 1]
+          draftValue = draft ? draft.proposed : value
+          valueBox.textContent = ''
+          if (ctx.ui && ctx.ui.FieldRow) valueBox.appendChild(ctx.ui.FieldRow({
+            name: name, value: draftValue == null ? '' : draftValue, type: definition.type,
+            model: episode.knowledgeId, element: subject.slug,
+          }, { doc: doc }))
+          else valueBox.appendChild(el('span', null, name + ': ' + (draftValue == null ? 'Not set' : String(draftValue))))
+          if (engineManaged || subject.editable === false) Array.prototype.forEach.call(valueBox.querySelectorAll('[data-ku-action="edit"]'), function (action) { action.remove() })
+          valueBox.appendChild(el('p', 'text-xs text-base-content/60', draft ? 'Proposed · not applied' :
+            engineManaged ? 'Engine managed' : source === 'mixed' ? 'Mixed origins' : source ? (source === concept.toLowerCase() || (concept === 'Video' && source === 'video') ? 'Set here' : 'Inherited · ' + source) : 'Not set here'))
+          if (!draft && effective && effective.origins) valueBox.appendChild(el('p', 'text-xs text-base-content/60', Object.keys(effective.origins).map(function (key) { return key + ': ' + effective.origins[key] }).join(' · ')))
+          if (definition.description) valueBox.appendChild(el('p', 'text-xs text-base-content/60', definition.description))
+          if (name === 'presets') valueBox.appendChild(el('p', 'text-xs text-base-content/60', 'Only presets assigned here. Inherited presets still apply.'))
+          if (name === 'components') renderComponentSlotButtons(valueBox, { value: Array.isArray(draftValue) ? draftValue.join(',') : draftValue }, subject, episode)
+        }
+        fieldRefreshers.push(refresh)
+        refresh()
+        if (!engineManaged && subject.editable !== false && ctx.ui && ctx.ui.EditModal) {
+          var edit = button('Edit ' + name, function () {
+            closeFieldModal()
+            fieldModal = ctx.ui.EditModal({
+              title: 'Edit ' + (subject.name || subject.title || subject.slug) + ' → ' + name,
+              fieldName: name, type: options.length && !definition.multiple ? 'select' : definition.type,
+              multiple: !!definition.multiple, options: options,
+              value: draftValue == null ? (definition.multiple ? [] : '') : draftValue,
+              startTab: 'edit', modelId: episode.knowledgeId,
+            }, { doc: doc, onSave: function (result) {
+              propose(result.isComment ? { kind: 'comment', elementId: subject.elementId, field: name, comment: result.comment } :
+                { kind: 'correction', elementId: subject.elementId, field: name, proposed: result.proposed, comment: result.comment })
+            }, onCancel: closeFieldModal })
+            fieldModal.setAttribute('data-nn-setting-editor', name)
+            var opened = fieldModal
+            opened.addEventListener('close', function () {
+              if (fieldModal === opened) fieldModal = null
+              opened.remove()
+            }, { once: true })
+            doc.body.appendChild(fieldModal)
+            if (typeof fieldModal.showModal === 'function') fieldModal.showModal()
+            else fieldModal.setAttribute('open', '')
+          })
+          edit.setAttribute('data-nn-edit-setting', name)
+          row.appendChild(edit)
+        }
+        groups[groupName].appendChild(row)
+      })
+      ;['Content', 'Voice & language', 'Visuals', 'Audio & composition', 'Publishing', 'Workflow & outputs'].forEach(function (name) {
+        if (groups[name]) host.appendChild(groups[name])
+      })
+      host.appendChild(el('p', 'text-xs text-base-content/60', 'Edits are shared changeset proposals. Effective values and media refresh after applying changes and regenerating the console.'))
+      return host
     }
 
     var episodeCards = []
@@ -268,7 +390,7 @@ registerView({
             selectBtn.addEventListener('click', function () {
               var slots = parseComponentsMap(entry.value)
               slots[slot] = c.name
-              var proposed = Object.keys(slots).map(function (k) { return k + '=' + slots[k] }).join(', ')
+              var proposed = Object.keys(slots).map(function (k) { return k + '=' + slots[k] })
               propose({
                 kind: 'correction',
                 elementId: (scene && scene.elementId) || (episode && episode.elementId),
@@ -589,9 +711,11 @@ registerView({
           var nSection = labelled('Narration')
           var narration = el('textarea', 'nn-narration')
           narration.value = scene.narration || ''
+          narration.disabled = scene.editable === false
+          narration.setAttribute('aria-label', 'Narration for ' + (scene.name || scene.slug))
           narration.setAttribute('data-nn-scene-narration', '')
           narration.addEventListener('change', function () {
-            if (scene.elementId) propose({ kind: 'correction', elementId: scene.elementId, field: 'narration', proposed: narration.value })
+            if (scene.elementId) propose({ kind: 'correction', elementId: scene.elementId, field: 'description', proposed: narration.value })
           })
           nSection.appendChild(narration)
           sceneBody.appendChild(nSection)
@@ -606,72 +730,18 @@ registerView({
               chip.setAttribute('data-nn-layer', layer.slug)
               chip.title = layer.text || layer.asset || layer.slug
               pills.appendChild(chip)
+              var layerSettings = el('details', 'nn-conntent-fields')
+              layerSettings.appendChild(el('summary', null, layer.name || layer.slug))
+              layerSettings.appendChild(renderSettings(layer, 'Layer', episode))
+              lSection.appendChild(layerSettings)
             })
             lSection.appendChild(pills)
             sceneBody.appendChild(lSection)
           }
-          if ((scene.sources || []).length > 0) {
-            var sSection = labelled('Fields')
-            var sourceDetails = el('details', 'nn-conntent-fields nn-source-details')
-            sourceDetails.open = false
-            sourceDetails.setAttribute('data-nn-sources', '')
-            var perContext = {}
-            scene.sources.forEach(function (entry) {
-              perContext[entry.source] = (perContext[entry.source] || 0) + 1
-            })
-            var counts = Object.keys(perContext)
-              .sort(function (a, b) {
-                return CONTEXT_ORDER.indexOf(a) - CONTEXT_ORDER.indexOf(b)
-              })
-              .map(function (context) {
-                return perContext[context] + ' from ' + context
-              })
-              .join(', ')
-            sourceDetails.appendChild(
-              el('summary', null, scene.sources.length + ' field' + (scene.sources.length === 1 ? '' : 's') + ' · ' + counts),
-            )
-            var fieldGrid = el('div', 'nn-source-grid')
-            // One flat list, ordered by where each value comes from; the origin rides on the
-            // row as a badge, and the kebab opens the console's own unit sheet.
-            scene.sources
-              .slice()
-              .sort(function (a, b) {
-                var byContext = CONTEXT_ORDER.indexOf(a.source) - CONTEXT_ORDER.indexOf(b.source)
-                return byContext !== 0 ? byContext : a.name.localeCompare(b.name)
-              })
-              .forEach(function (entry) {
-                var row = el('div', 'nn-source-row')
-                row.setAttribute('data-nn-source', entry.name)
-                row.setAttribute('data-nn-source-from', entry.source)
-                // No `inherited` flag: it would replace the field name with "inherited from …"
-                // and point the address at a pseudo-element the console cannot open.
-                var fieldRow = ctx.ui && typeof ctx.ui.FieldRow === 'function'
-                  ? ctx.ui.FieldRow(
-                      {
-                        name: entry.name,
-                        value: entry.value,
-                        type: entry.type,
-                        model: episode.knowledgeId,
-                        element: scene.slug,
-                      },
-                      { doc: doc, modelId: episode.knowledgeId, elementId: scene.elementId },
-                    )
-                  : el('span', 'nn-param-label', entry.name)
-                row.appendChild(fieldRow)
-                var originBadge = badge(entry.source, 'nn-src-badge nn-source-from')
-                originBadge.setAttribute('data-nn-source-from', entry.source)
-                row.appendChild(originBadge)
-
-                if (entry.name === 'components') {
-                  renderComponentSlotButtons(row, entry, scene, episode)
-                }
-
-                fieldGrid.appendChild(row)
-              })
-            sourceDetails.appendChild(fieldGrid)
-            sSection.appendChild(sourceDetails)
-            sceneBody.appendChild(sSection)
-          }
+          var sceneSettings = labelled('Scene settings')
+          sceneSettings.appendChild(renderSettings(scene, 'Scene', episode))
+          if (scene.editable === false) sceneSettings.appendChild(el('p', 'text-xs text-base-content/60', 'Generated scene. Change its Scene Kind in the series configuration.'))
+          sceneBody.appendChild(sceneSettings)
 
           // Verdict: only for the current gate, and only while it is not approved.
           var verdictBox = el('div', 'nn-form-section nn-verdict-box')
@@ -723,38 +793,10 @@ registerView({
         }
         body.appendChild(scriptBox)
 
-        // ── Config: the resolved cascade of the first scene, collapsed ──────────────
-        var configBox = labelled('Config')
+        // Episode values are resolved before scene overrides, even with no scenes.
+        var configBox = labelled('Episode configuration')
         configBox.setAttribute('data-nn-subsection', 'config')
-        if (episode.scenes && episode.scenes.length > 0) {
-          var first = episode.scenes[0]
-          var names = Object.keys(first.fields || {})
-          var details = el('details', 'nn-conntent-fields')
-          details.appendChild(el('summary', null, 'Cascade fields · ' + first.slug + ' · ' + names.length))
-          if (names.length === 0) {
-            details.appendChild(el('p', 'empty-state', 'No cascade fields resolved.'))
-          } else {
-            var table = el('table', 'table nn-fields')
-            var headRow = el('tr')
-            ;['Field', 'Value', 'Source'].forEach(function (label) {
-              headRow.appendChild(el('th', null, label))
-            })
-            table.appendChild(headRow)
-            names.forEach(function (name) {
-              var field = first.fields[name]
-              var row = el('tr')
-              row.setAttribute('data-nn-field', name)
-              row.appendChild(el('td', null, name))
-              row.appendChild(el('td', null, field && field.value !== null ? String(field.value) : ''))
-              row.appendChild(el('td', null, String((field && field.source) || '')))
-              table.appendChild(row)
-            })
-            details.appendChild(table)
-          }
-          configBox.appendChild(details)
-        } else {
-          configBox.appendChild(el('p', 'empty-state', 'No cascade fields to show.'))
-        }
+        configBox.appendChild(renderSettings(episode, 'Video', episode))
         body.appendChild(configBox)
 
         var status = labelled('Status')
@@ -921,6 +963,7 @@ registerView({
       changesPage.appendChild(button('Export changeset', function () { ctx.changeset.openExport() }, true))
     }
     function updateChanges() {
+      fieldRefreshers.forEach(function (refresh) { refresh() })
       changeList.textContent = ''
       var drafts = ctx.store && ctx.store.drafts ? ctx.store.drafts() : []
       if (!drafts.length) changeList.appendChild(el('p', 'empty-state', 'No changes proposed yet.'))
@@ -976,7 +1019,7 @@ registerView({
     var unsubscribe = ctx.store && ctx.store.onChange ? ctx.store.onChange(updateChanges) : null
     display()
 
-    return { unmount: function () { if (typeof unsubscribe === 'function') unsubscribe() } }
+    return { unmount: function () { closeFieldModal(); if (typeof unsubscribe === 'function') unsubscribe() } }
   },
 })
 
