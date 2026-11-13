@@ -143,7 +143,16 @@ describe('TestLab coverage domain fixtures', () => {
     // The reviewer covers rename, description, one field of each type, and a matrix cell.
     assert.match(reviewer, /op:: rename_element/)
     assert.match(reviewer, /op:: update_matrix_cell/)
-    for (const f of FIELDS) assert.match(reviewer, new RegExp(`&${f}\\b`), `reviewer never edits ${f}`)
+    // A field edit is recorded either as its own `update_field` (`&field`) or as one
+    // key of a `set_fields` payload; both shapes name the field exactly once per batch.
+    for (const f of FIELDS) {
+      const asUpdateField = new RegExp(`&${f}\\b`)
+      const asSetFieldsKey = new RegExp(`"${f}"\\s*:`)
+      assert.ok(
+        asUpdateField.test(reviewer) || asSetFieldsKey.test(reviewer),
+        `reviewer never edits ${f}`,
+      )
+    }
 
     // Every change in both chain sets attributes its mandatory evidence.
     for (const cs of [admin, reviewer]) {
