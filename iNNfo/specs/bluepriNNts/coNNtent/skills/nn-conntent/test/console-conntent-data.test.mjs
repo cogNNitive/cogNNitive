@@ -242,3 +242,25 @@ test('a delivered episode reports its versions, path, contents and delivery page
     ws.cleanup();
   }
 });
+
+test('scene players address the last rendered master using manifest timings', async () => {
+  const ws = workspace()
+  try {
+    const script = path.join(ws.episodeDir, 'e_coNNtent_NN.md')
+    fs.writeFileSync(script, EPISODE.replace('status:: draft', 'status:: draft\nmaster:: master.mp4'))
+    fs.writeFileSync(path.join(ws.episodeDir, 'master.mp4'), 'test media')
+    fs.mkdirSync(path.join(ws.episodeDir, 'hyperframes'))
+    const manifest = path.join(ws.episodeDir, 'hyperframes', 'manifest.json')
+    fs.writeFileSync(manifest, JSON.stringify({ fps: 30, tracks: { scenes: [
+      { id: 'scene_one', fromFrame: 60, durationInFrames: 90 },
+    ] } }))
+    let scene = (await collect({ rootDir: ws.root })).tree.series[0].episodes[0].scenes[0]
+    assert.equal(scene.video, 'series/s/episodes/e/master.mp4#t=2.000,5.000')
+    assert.equal(scene.videoLabel, 'Last rendered scene')
+    fs.writeFileSync(manifest, JSON.stringify({ fps: 0, tracks: { scenes: [] } }))
+    scene = (await collect({ rootDir: ws.root })).tree.series[0].episodes[0].scenes[0]
+    assert.equal(scene.video, null)
+  } finally {
+    ws.cleanup()
+  }
+})

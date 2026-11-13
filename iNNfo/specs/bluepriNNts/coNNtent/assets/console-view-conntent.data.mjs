@@ -74,6 +74,32 @@ async function readPlanHash(episodeDir) {
   }
 }
 
+/** A playable segment of the last master; no media is generated or embedded. */
+async function renderedScenes(rootDir, episodeDir, master) {
+  const clips = new Map()
+  if (!master) return clips
+  const masterPath = join(episodeDir, String(master))
+  if (!fs.existsSync(masterPath)) return clips
+  const relative = rootRelative(rootDir, masterPath)
+  if (!relative) return clips
+  let manifest
+  try {
+    manifest = JSON.parse(await readFile(join(episodeDir, 'hyperframes', 'manifest.json'), 'utf8'))
+  } catch {
+    return clips
+  }
+  const fps = Number(manifest.fps)
+  if (!Number.isFinite(fps) || fps <= 0) return clips
+  for (const scene of manifest.tracks?.scenes || []) {
+    const start = Number(scene.fromFrame) / fps
+    const end = start + Number(scene.durationInFrames) / fps
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start) continue
+    const slug = String(scene.id || '').replace(/^scene_/, '')
+    if (slug) clips.set(slug, `${relative}#t=${start.toFixed(3)},${end.toFixed(3)}`)
+  }
+  return clips
+}
+
 /** Every cascade field's effective value and source at one position. */
 function fieldsFor(cascade, scene, layer) {
   const out = {}
@@ -235,6 +261,7 @@ async function episodeFacts({ rootDir, series, episode, sourceHashes = {} }) {
     gates.push({ gate: 'budget', scene: null, ...evaluateGate({ gate: 'budget', scene: null, currentHash: planHash || '', planHash: planHash || null, verdicts }) })
   }
 
+  const rendered = await renderedScenes(rootDir, episode.dir, fields.master)
   const sceneViews = (parsed.scenes || []).map((scene) => {
     const sceneSlug = scene.slug || scene.id
     const entry = scriptEntries.find((e) => e.scene === sceneSlug)
@@ -270,8 +297,9 @@ async function episodeFacts({ rootDir, series, episode, sourceHashes = {} }) {
       sources: inheritedSources(fields),
       layers,
       still: (layers.find((l) => l.still) || {}).still || null,
-      // The first playable asset of the scene (a video layer), for the thumbnail and lightbox.
-      video: (layers.find((l) => l.assetKind === 'video' && l.media) || {}).media || null,
+      // Last rendered composition, falling back to an individual video layer.
+      video: rendered.get(sceneSlug) || (layers.find((l) => l.assetKind === 'video' && l.media) || {}).media || null,
+      videoLabel: rendered.has(sceneSlug) ? 'Last rendered scene' : 'Scene video asset',
       audio,
       gates: gates.filter((g) => g.scene === sceneSlug),
     }
