@@ -21,6 +21,42 @@ function render(text) {
 }
 
 describe('nnUI.Markdown (safe subset)', () => {
+  it('renders backtick and tilde fences as literal code blocks', () => {
+    for (const fence of ['```yaml', '~~~text']) {
+      const marker = fence.slice(0, 3)
+      const text = '**literal** <img src=x onerror=1> [link](javascript:alert)'
+      const root = render(`${fence}\n${text}\n${marker}`)
+      assert.equal(root.querySelector('pre > code')?.textContent, text)
+      assert.equal(root.querySelector('pre > code').children.length, 0)
+      assert.equal(root.querySelector('img, a, strong'), null)
+    }
+  })
+
+  it('separates fenced blocks from adjacent paragraphs without blank lines', () => {
+    const root = render('Before\n```\ncode\n```\nAfter')
+    assert.deepEqual([...root.children].map(node => node.tagName), ['P', 'PRE', 'P'])
+    assert.equal(root.querySelector('pre > code').textContent, 'code')
+    assert.equal(root.lastChild.textContent, 'After')
+  })
+
+  it('closes fences only with the same marker and at least the opening length', () => {
+    const root = render('````\n```\n~~~\n```` trailing\n`````\nAfter')
+    assert.equal(root.querySelector('pre > code')?.textContent, '```\n~~~\n```` trailing')
+    assert.equal(root.querySelector('p').textContent, 'After')
+  })
+
+  it('keeps an unclosed fence literal until the end of input', () => {
+    const root = render('~~~\n**literal**\n\nlast line')
+    assert.equal(root.querySelector('pre > code')?.textContent, '**literal**\n\nlast line')
+  })
+
+  it('does not treat backticks in a backtick fence info string as a fence', () => {
+    const root = render('```bad`info\nplain')
+    assert.equal(root.querySelector('pre'), null)
+    assert.match(root.textContent, /plain/)
+    assert.equal(render('~~~has`backtick\ncode\n~~~').querySelector('pre > code')?.textContent, 'code')
+  })
+
   it('renders the subset as structure', () => {
     const root = render('## Goal\n\n- **fast**\n- *cheap*\n\n1. one\n2. two\n\nplain `code` and _em_')
     assert.equal(root.querySelector('h2').textContent, 'Goal')
