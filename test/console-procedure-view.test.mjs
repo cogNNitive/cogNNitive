@@ -100,6 +100,59 @@ describe('procedure view (bluepriNNt)', () => {
     assert.equal(container.innerHTML, '')
   })
 
+  it('renders Markdown descriptions while keeping references out of code and links', (context) => {
+    const require = createRequire(import.meta.url)
+    global.nnUI = require(join(repoRoot, 'iNNfo/specs/bluepriNNts/console/ui-kit.js'))
+    context.after(() => { delete global.nnUI })
+    const opened = []
+    global.nnConsole = { ...runtime, renderRefDialog: (_doc, element) => opened.push(element.id) }
+    const model = payload()
+    model.model.elements[0].description = [
+      '**Owner:** Step One',
+      '## Instructions',
+      'First paragraph.',
+      'Second paragraph with `Step One`.',
+      '[Step One](https://example.com/docs)',
+      '```yaml\nStep One: **literal**\nfb-42\n```',
+    ].join('\n\n')
+    const handle = require(stepperPath).mount(container, model)
+    context.after(() => handle.unmount())
+    const description = container.querySelector('.exec-step-desc')
+    assert.equal(description.tagName, 'DIV')
+    assert.equal(description.querySelector('strong')?.textContent, 'Owner:')
+    assert.equal(description.querySelector('h2')?.textContent, 'Instructions')
+    assert.equal(description.querySelectorAll('p').length, 4)
+    const reference = description.querySelector('[data-nn-component=ku-unit]')
+    assert.ok(reference, 'prose reference remains a pill')
+    reference.click()
+    assert.deepEqual(opened, ['work-s1'])
+    const inline = description.querySelector('p code')
+    assert.equal(inline.textContent, 'Step One')
+    assert.equal(inline.children.length, 0)
+    const code = description.querySelector('pre > code')
+    assert.equal(code.textContent, 'Step One: **literal**\nfb-42')
+    assert.equal(code.children.length, 0)
+    const link = description.querySelector('a')
+    assert.equal(link.textContent, 'Step One')
+    assert.equal(link.children.length, 0)
+    assert.equal(link.getAttribute('href'), 'https://example.com/docs')
+    assert.equal(link.getAttribute('rel'), 'noopener noreferrer')
+  })
+
+  it('keeps HTML and unsafe URLs inert in Markdown descriptions', (context) => {
+    const require = createRequire(import.meta.url)
+    global.nnUI = require(join(repoRoot, 'iNNfo/specs/bluepriNNts/console/ui-kit.js'))
+    context.after(() => { delete global.nnUI })
+    const model = payload()
+    model.model.elements[0].description = '**Safe**\n\n<img src=x onerror=1><script>alert(1)</script>\n\n[bad](javascript:alert)\n\n[bad](data:text/html,test)'
+    const handle = require(stepperPath).mount(container, model)
+    context.after(() => handle.unmount())
+    const description = container.querySelector('.exec-step-desc')
+    assert.equal(description.querySelector('strong')?.textContent, 'Safe')
+    assert.equal(description.querySelector('img, script, a'), null)
+    assert.match(description.textContent, /<img src=x onerror=1>/)
+  })
+
   it('lists the blueprint procedures with usage first as "Getting started"', () => {
     const stepper = createRequire(import.meta.url)(stepperPath)
     const p = payload()
