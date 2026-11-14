@@ -42,6 +42,12 @@ captured:: 2026-11-12
 ## NN Idea: Citation table in the console payload (share one resolved citation per source instead of repeating it per element; ~21% on the reported domain, but 30/100 MB thresholds make the payload-format change a poor trade today)
 captured:: 2026-11-12
 
+## NN Idea: Procedures bluepriNNt guidance - tell the authoring agent not to set output_status a priori (the field is a free string and a shipped model had every step at verificado before any run)
+captured:: 2026-11-14
+
+## NN Idea: Port a domain-local console renderer test into the repo as a fixture-based test of iNNfo/specs/bluepriNNts/console/nn-console.bundle.js (markdown, code, unsafe HTML, clickable references); the local copy depends on the installed bundle under the user home
+captured:: 2026-11-14
+
 # NN Item
 
 ## NN Item: source-import-guards
