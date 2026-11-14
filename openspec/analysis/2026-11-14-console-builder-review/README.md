@@ -38,6 +38,7 @@ lines). Generated, vendored and minified files were out of scope.
 | `cross-critique-gpt-luna.md` | 2 | same |
 | `cross-critique-deepseek.md` | 2 | same |
 | `consolidated-plan-and-verdict.md` | 3 | verdict, vote table, decisions D1 to D25, execution order, open questions |
+| `audit-verdicts.md` | after 3 | the `nn-dev-backlog` audit of the 25 decisions against the code: corrections to the plan, register overlaps, answers to its open questions |
 | `review-panel-spec.md` | n/a | the format contract the reports follow (named `review-panel_spec_NN.md` when the reports were written; renamed here so tools that scan `*_NN.md` do not treat it as an iNNfo document) |
 | `orchestrator-prompt.md` | n/a | the brief the orchestrator executed |
 
@@ -59,8 +60,9 @@ worktree and its UTF-8 BOM removed (the files differ by those three bytes).
 The reports are model output, not verified fact, and they carry no verified/measured/
 inferred labels. The orchestrator checked the code only where reviewers disagreed
 (listed in section 6 of the consolidated plan). `D4` was verified at
-`scripts/export-console.mjs:1988` versus `:2089`. Everything else stays unverified
-until the backlog audit gives it a verdict with a citation.
+`scripts/export-console.mjs:1988` versus `:2089`. The `nn-dev-backlog` audit in
+`audit-verdicts.md` then verified every decision against the code and found 15 corrections
+to the plan; the claims in the three analyses and critiques themselves stay model output.
 
 ## Process deviations
 
@@ -72,8 +74,11 @@ until the backlog audit gives it a verdict with a citation.
 
 ## Backlog traceability convention
 
-- Every backlog item and batch id from this review starts with `console-builder-`
-  (for example `console-builder-d01-csp-hash`).
+- Every backlog item id from this review starts with `console-builder-` (for example
+  `console-builder-d01-csp-hash`, where `d01` is decision D1). Every batch id contains it
+  after the phase prefix (for example `b10a-console-builder-csp-hash`), and every Idea names
+  it in its text. `grep console-builder- openspec/backlog_NN.md` lists everything that
+  came from this review.
 - `ref::` points at the decision:
   `openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D<n>`.
 - Any GitHub issue opened from it carries the label `source:console-builder-review`
