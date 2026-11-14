@@ -580,6 +580,18 @@ done_when:: A test asserts that every sha256 token in the shell CSP matches an i
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D21
 batch:: b10g-console-builder-hygiene
 
+## NN Item: console-builder-d26-view-convention-contract
+value:: M
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: Raised by the maintainer after the review, not by any reviewer, so it carries no decision id in the plan. Discovery is convention-only (scripts/console-views.mjs:8-13): bluepriNNt views are flat `<pkg>/assets/console-view-<slug>.js` (:29-30) and domaiNN views are `<domainRoot>/consoles/views/<slug>.js` (:28). The failures that are already loud: a bad slug (:124-126), a reserved id (:127), a duplicate id across origins (:211), an orphan `.data.mjs` (:110-115), a symlinked view (:97-99), ES module syntax (:129), and two versions of one blueprint resolving to different view folders (:197-201). The failures that stay silent: `viewFiles` skips every entry that does not end in `.js` (:95, pinned as intended for notes and folders at test/console-views-lib.test.mjs:245-253), a bluepriNNt `assets/` folder whose files lack the `console-view-` prefix yields no views (:96) while the export still succeeds, a domaiNN view named `console-view-<slug>.js` under `consoles/views/` silently registers the id `console-view-<slug>` because the domaiNN root keeps the whole stem (:102-104), and `viewRootCandidates` falls back to the next tier when an existing folder is empty (:176), so a domain copy that ships zero views hides the installed package's views with no warning. `<domainRoot>/specs/bluepriNNts/<base>/assets` (:48-53) is itself an undocumented discovery path. Existing onWarning covers only a missing blueprint package (:184-187). Audited 2026-11-14 at main 551d5a18. Scope decision: document and enforce the contract that exists; add no discovery path.
+done_when:: discoverViews reports through onWarning, naming the offending path and the expected one, when (a) a bluepriNNt assets folder holds .js files without the console-view- prefix, (b) a domaiNN view file is named console-view-<slug>.js under consoles/views, and (c) a views folder yields no views while a later tier does; each message is pinned by a test and names both paths, and the three cases leave an otherwise valid export succeeding.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D26
+batch:: b10i-console-builder-view-convention
+
 # NN Batch
 
 ## NN Batch: b3a-source-import-guards
@@ -783,4 +795,11 @@ order:: 31
 lane:: light
 items:: console-builder-d08-output-capture
 risk:: M
+state:: planned
+
+## NN Batch: b10i-console-builder-view-convention
+order:: 32
+lane:: light
+items:: console-builder-d26-view-convention-contract
+risk:: L
 state:: planned
