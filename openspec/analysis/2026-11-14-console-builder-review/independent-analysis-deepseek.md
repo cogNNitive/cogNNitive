@@ -120,7 +120,7 @@ budget compared as if they were the same unit. Because `want` is also the byte c
 read at 1127, a 500-byte read of UTF-8 text can end mid-codepoint, and
 `buf.toString('utf8')` at 1131 then emits a replacement character as the last glyph of
 the preview. For non-ASCII sources — the normal case for this project's Spanish content
-— every truncated preview ends with `�`, and the budget accounting stays in bytes while
+— every truncated preview ends with `U+FFFD`, and the budget accounting stays in bytes while
 the cap it is compared to is in characters.
 
 ## NN Findings: F8 runExportConsole swaps process globals instead of threading a writer

@@ -42,8 +42,11 @@ lines). Generated, vendored and minified files were out of scope.
 | `review-panel-spec.md` | n/a | the format contract the reports follow (named `review-panel_spec_NN.md` when the reports were written; renamed here so tools that scan `*_NN.md` do not treat it as an iNNfo document) |
 | `orchestrator-prompt.md` | n/a | the brief the orchestrator executed |
 
-The reports carry no edits: only the line endings differ, because git normalizes
-Markdown to LF (see `.gitattributes`). GPT-6 Luna's phase 1 report was copied from its
+The reports carry no edits beyond two mechanical ones. The line endings differ, because
+git normalizes Markdown to LF (see `.gitattributes`). And one literal replacement character
+quoted inside `independent-analysis-deepseek.md` (line 123, a finding about previews that end
+in that glyph) was replaced by the text `U+FFFD`, because the repository's text-encoding
+guard rejects tracked replacement characters. GPT-6 Luna's phase 1 report was copied from its
 worktree and its UTF-8 BOM removed (the files differ by those three bytes).
 
 ## How to read them
