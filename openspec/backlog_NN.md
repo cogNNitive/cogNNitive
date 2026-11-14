@@ -48,6 +48,15 @@ captured:: 2026-11-14
 ## NN Idea: Port a domain-local console renderer test into the repo as a fixture-based test of iNNfo/specs/bluepriNNts/console/nn-console.bundle.js (markdown, code, unsafe HTML, clickable references); the local copy depends on the installed bundle under the user home
 captured:: 2026-11-14
 
+## NN Idea: Console builder (console-builder-d22): avoid repeated full HTML renders in the export size degradation, but only after measuring heap and time on a near-100 MB domain; see openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md decision D22
+captured:: 2026-11-14
+
+## NN Idea: Console builder (console-builder-d23): add a bounded retry on EPERM, EBUSY and EACCES to the atomic rename in writeConsole, modeled on persistAtomic in iNNfo/packages/nn-mcp/src/apply-change.ts (issue 188), and refuse the copy fallback; see openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md decision D23
+captured:: 2026-11-14
+
+## NN Idea: Console builder (console-builder-d24): add a closing-brace-then-slash division row to the findModuleSyntax scanner test table in test/console-views-lib.test.mjs; the scanner itself stays; see openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md decision D24
+captured:: 2026-11-14
+
 # NN Item
 
 ## NN Item: source-import-guards
@@ -319,6 +328,258 @@ done_when:: Narration whitespace is normalized before synthesis or flagged by th
 ref:: issue-612
 batch:: b4i-conntent-blueprint-gaps
 
+## NN Item: console-builder-d01-csp-hash
+value:: M
+effort:: M
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/console-views.mjs:524 rewrites only the first script-src match and the pattern is unanchored, so it also matches the script-src prefix of script-src-elem; :523 returns the page unchanged when no hashes can be added; :500 CSP_META needs http-equiv before content with double quotes. A policy with no script-src is left as is with no diagnostic. Shells come from INNFO_CONSOLE_DIR, the repo, the script folder or ~/.agents/console (scripts/export-console.mjs:91-97), never from a domain. Creating script-src must copy the default-src sources or it narrows the policy; throw only when hashes.size > 0 because test/console-views-lib.test.mjs:628-631 pins the no-op. The lane is borderline: CSP is not literally one of the four heavy triggers, so confirm with the maintainer. Audited 2026-11-14 at main 551d5a18.
+done_when:: allowInlineScripts on a policy with no script-src, with script-src-elem before script-src, and with single-quoted or reordered meta attributes either adds the hashes to the effective directive or throws, while the shipped-shell output stays byte-identical.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D1
+batch:: b10a-console-builder-csp-hash
+
+## NN Item: console-builder-d02-scaffold-input
+value:: M
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:2219-2222 joins an unvalidated blueprint into iNNfo/specs/bluepriNNts/<blueprint>/assets, and :2241, :2264, :2272 and :2282 interpolate the title inside single quotes while :2238, :2262 and :2279 put it in block comments. The base-name guard already exists in scripts/console-views.mjs:45 (viewRootCandidates). path.join does not reset on an absolute segment, so a dot-dot segment is the only escape and the blast radius is one generated file. SPEC_BASE_RE (console-views.mjs:33) is not exported, so reuse needs an export; test/console-view-scaffold.test.mjs:61 pins the title Resumen de Programas, so escape in place instead of switching quote style. Audited 2026-11-14 at main 551d5a18.
+done_when:: --blueprint ../x is rejected with a usage error and writes nothing, and --title "O'Brien */" yields a view that compiles and registers the literal title.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D2
+batch:: b10b-console-builder-cli-input
+
+## NN Item: console-builder-d03-delivery-guard-scope
+value:: M
+effort:: S
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:1893-1894 sets isDelivery with the literal view === conntent-delivery and the strip of cost, budget, ledger and prompt fields is at :1900-1933; a second literal is at iNNfo/packages/nn-core/src/console/output-path.ts:57. No test mentions image_prompt or negative_prompt outside the pattern at :1906. The only real producer (delivery.mjs:225-235) also passes stagingDir and an outFile under deliveries/v1, so renaming the view would not leak there; it leaks only for callers passing just the view, so the leak is latent. Drive the strip from scope (delivery, stagingDir, outFile): a new delivery true field on registered views would be a public view-contract change and would make the lane heavy. isDelivery also drives the output path (:1955-1968) and the immutability checks. Audited 2026-11-14 at main 551d5a18.
+done_when:: A writeConsole call with a delivery scope, or one named by a view other than conntent-delivery, drops cost, budget, ledger and prompt fields, pinned by a new test.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D3
+batch:: b10c-console-builder-delivery-guard
+
+## NN Item: console-builder-d04-staging-immutability-check
+value:: L
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:1988 tests isDelivery, finalAbsPath and existsSync(finalAbsPath) and ends with && !stagingDir, while :2089 has the same test without !stagingDir (both from commit 14e57b40; verified again 2026-11-14). The late abort has no side effects because writeFileAtomic has not run, and the only production caller pre-checks (delivery.mjs:196). Which side to change is a design choice: dropping !stagingDir at :1988 fails early, while adding it at :2089 allows staged-over-existing and moves the failure to renameSync (delivery.mjs:274). This is not a security item. Sequence with console-builder-d12-writeconsole-contract, which edits the :2089 return. Audited 2026-11-14 at main 551d5a18.
+done_when:: A staged delivery export onto an existing final file either fails before the expensive work or succeeds and leaves the final file untouched, pinned by a regression test.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D4
+batch:: b10c-console-builder-delivery-guard
+
+## NN Item: console-builder-d05-stale-asset-fingerprint
+value:: M
+effort:: M
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:466-474 inspectDomainConsole compares only bundle and shell mtimes and its only call is the --status print at :2387; --stale selects through inspectModelStatus (:2431), which looks at no assets, so a view-only or CSS-only edit is skipped. A per-view sha256 already exists in the page header comment (scripts/console-views.mjs:425-431) as an alternative source. Adding a meta field regenerates every console once and is additive. Land console-builder-d13-asset-candidates first, which simplifies the CSS and bundle path discovery. Audited 2026-11-14 at main 551d5a18.
+done_when:: After editing a view script or nn-ui.css with all models fresh, --stale re-exports instead of printing All models are fresh.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D5
+batch:: b10f-console-builder-identity-freshness
+
+## NN Item: console-builder-d06-model-identity-path
+value:: M
+effort:: M
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:1582 sets filePath to the file name (the basename) and the readers at :432, :442 and :486 match on filePath equal to the file name or the relative path with find or some, so duplicate basenames match the first entry; found by reading, no reproduction was run. Consumers: iNNfo/specs/bluepriNNts/console/nn-runtime.js:964, :975, :1169 and :1230-1237, and versionsOf feeding the MCP regenerate_console (console-regeneration.ts:31 and :130, keyed by id, not filePath). The modelFile and location of elements also use the basename (:1511-1514). Tests pin the basename at test/export-console.test.mjs:235 and :383, console-export.test.mjs:708, :754 and :802, and console-s3b-parity.test.mjs:309. No migration: readers accept both forms and consoles are regenerable; it is still a persisted-value change with a tolerant reader, so the lane is a judgment call. Audited 2026-11-14 at main 551d5a18.
+done_when:: Two models with the same filename in different folders, exported and then checked, both show fresh and --stale re-exports neither.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D6
+batch:: b10f-console-builder-identity-freshness
+
+## NN Item: console-builder-d07-scan-read-errors
+value:: M
+effort:: S
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:255-260 walk() in findModelFiles has a bare catch that returns, :377 and :411 swallow the same way, and :934-948 swallows in collectWorkspaceFiles; the reference pattern is listEntries in scripts/console-views.mjs:68-76. The backlog item cognitivize-archive-and-gc-decisions cites findModelFiles at a stale line (:216, now :242) and its concern is GC and archive rules, so the overlap is partial and the two stay separate. Rethrow in collectWorkspaceFiles is caught at :1845 and drops files with a warning, while rethrow in findModelFiles aborts the export, so decide which behavior is wanted. The review decision omitted findModelFiles, which is the actual reference of the gpt-luna finding. Audited 2026-11-14 at main 551d5a18.
+done_when:: A directory with EACCES makes the export fail with the directory path while ENOENT and ENOTDIR still yield empty.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D7
+batch:: b10d-console-builder-scan-errors
+
+## NN Item: console-builder-d08-output-capture
+value:: L
+effort:: M
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:2480-2503 replaces console.log, console.error, console.warn and the stdout and stderr write of process, while the JSDoc at :2475-2478 and the archived spec openspec/changes/archive/2026-10-19-simplify-change-workflow/specs/console-export-cli/spec.md:7 say it must not mutate globals. Only tests call runExportConsole; the MCP calls writeConsole directly (iNNfo/packages/nn-mcp/src/console-regeneration.ts:103-107), so concurrent use is not a demonstrated scenario and the priority is lower than the review proposed. A log collector does not cover about 14 process.stderr.write sites and about 40 console sites. It conflicts with D7, D9 and D17 on the same functions, so land it alone and last. Audited 2026-11-14 at main 551d5a18.
+done_when:: Two overlapping runExportConsole calls each receive only their own output, and console.log is identical before and after.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D8
+batch:: b10h-console-builder-output-capture
+
+## NN Item: console-builder-d09-unknown-flag
+value:: M
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:227-231 gives --filter no guard against a value starting with two dashes and :232-236 falls through to args.root or args.model with no unknown-flag branch; a typo such as --no-opne becomes the root or a substring model match (:2415-2420). Related gap: --new-view, --template, --blueprint and --title silently ignore a missing value (:208-219) and a bare --new-view runs a full export. Only --no-open, --domain and --view appear in docs and scripts, so tightening is low risk. Audited 2026-11-14 at main 551d5a18.
+done_when:: --no-opne and --filter --no-open exit 2 with usage.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D9
+batch:: b10b-console-builder-cli-input
+
+## NN Item: console-builder-d10-preview-utf8
+value:: M
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:1122-1133 reads min(size, 500, budget) bytes and decodes them as utf8, so a multibyte preview comes out shorter than 500 characters and a split sequence ends in a replacement glyph. The review overstated it as affecting every truncated non-ASCII preview: the shortfall is always present but mild, and the glyph appears only when the cut splits a sequence. The existing test (test/console-export-files.test.mjs:244) checks only length <= 500. Audited 2026-11-14 at main 551d5a18.
+done_when:: A preview of 600 two-byte characters is capped at 500 characters with no trailing replacement glyph.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D10
+batch:: b10e-console-builder-files-section
+
+## NN Item: console-builder-d11-citation-basename
+value:: M
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:1086-1092 matches citations with basename(c.norm) === basename(rel), and the changes loop at :1100-1106 has the identical defect, which the review omitted. Only one assertion touches it (test/console-export-files.test.mjs:130). It does not depend on console-builder-d06-model-identity-path. Prefer the exact normalized path, then the longest matching suffix, then the basename only when unambiguous. Audited 2026-11-14 at main 551d5a18.
+done_when:: Two same-named files in different folders get citation counts only from their own paths, and bare-basename citations still count when unambiguous, in both the inventory and the changes loop.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D11
+batch:: b10e-console-builder-files-section
+
+## NN Item: console-builder-d12-writeconsole-contract
+value:: L
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: The JSDoc at scripts/export-console.mjs:1225 lists breakdown and summary, but the returns at :1989-1996, :2090-2097 and :2162-2169 carry neither; breakdown is only logged (:2075) and summary exists nowhere. The MCP type ConsoleWriterResult.status allows only written or unchanged (iNNfo/packages/nn-mcp/src/console-regeneration.ts:30), so the error status return already violates it. Land after console-builder-d04-staging-immutability-check, which edits the :2089 return. Audited 2026-11-14 at main 551d5a18.
+done_when:: The JSDoc and every return path of writeConsole agree, pinned by one test.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D12
+batch:: b10c-console-builder-delivery-guard
+
+## NN Item: console-builder-d13-asset-candidates
+value:: L
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:137 lists nn-console.bundle.js twice and :1323 lists nn-ui.css twice, both left by the breaking nn- rename (commit e68fb7d6); verified again 2026-11-14. Related remnants the review did not name: artifact_blueprint.html (:52) and the nn-or-innfo prefix pattern at :1296. Do not restore the legacy innfo- names. Audited 2026-11-14 at main 551d5a18.
+done_when:: The candidate lists are single paths and the existing asset tests pass.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D13
+batch:: b10f-console-builder-identity-freshness
+
+## NN Item: console-builder-d14-scope-key-order
+value:: L
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:496-498 takes the key prefix from the name of the first selected model and hashes the sorted relative paths, while loadModels sorts by the raw OS-separator path at :781; on Windows that order and the slash-normalized order at :497 can differ, so the CLI does not fully hide the dependence. Audited 2026-11-14 at main 551d5a18.
+done_when:: scopeKeyOf returns the same key for any permutation of selected.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D14
+batch:: b10g-console-builder-hygiene
+
+## NN Item: console-builder-d15-spec-name-parser
+value:: L
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/console-views.mjs:36-39 parses the spec version suffix with a case-sensitive pattern and no trim, while scripts/export-console.mjs:327-332 uses a case-insensitive pattern with trim and lowercase; coreBlueprintOf feeds only the core-catalog allowlist (:348). Keep each call site's naming and validation rules. Audited 2026-11-14 at main 551d5a18.
+done_when:: One helper serves both call sites, with a case and whitespace test per caller.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D15
+batch:: b10g-console-builder-hygiene
+
+## NN Item: console-builder-d16-code-unit-compare
+value:: L
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:435 sorts meta.generated and :1881 sorts path with localeCompare, and :781 holds a third inline code-unit comparison; compareCodeUnits in scripts/console-views.mjs:65 is not exported, so sharing needs an export. Both strings are fixed-format ASCII, so the impact is theoretical. Audited 2026-11-14 at main 551d5a18.
+done_when:: Both sorts use code-unit comparison and no localeCompare is left in the two files.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D16
+batch:: b10g-console-builder-hygiene
+
+## NN Item: console-builder-d17-rendertree-branches
+value:: L
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:526-551 has two near-duplicate loops in renderTree; the dot branch prints no directory line and uses no childIndent, so childIndent must be empty for that case. Tests at test/export-console.test.mjs:360 and :1002 cover --tree. Audited 2026-11-14 at main 551d5a18.
+done_when:: --tree output is byte-identical before and after.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D17
+batch:: b10g-console-builder-hygiene
+
+## NN Item: console-builder-d18-view-id-discovery
+value:: L
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/console-views.mjs:138 scans raw text with a lazy registerView pattern, so a commented-out or quoted registerView with id ghost yields a view and the lazy match can reach a later block's id; the runtime rule is at iNNfo/specs/bluepriNNts/console/nn-runtime.js:3537-3541 and the code is hashed twice (:135 and :147). Keep the extra view entries: the rejected decision D25 depends on them (they serve the cross-file duplicate check, the audit header and --view selection). Audited 2026-11-14 at main 551d5a18.
+done_when:: A commented-out or quoted registerView with id ghost and an unrelated object with an id yield no extra view, and ids that are neither the slug nor slug- prefixed are ignored.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D18
+batch:: b10g-console-builder-hygiene
+
+## NN Item: console-builder-d19-changeset-counts
+value:: L
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:1563-1578 runs a reduce and filter over all changesets inside the per-model loop, and :1575 is the set-like indexOf, so a model whose title and stem lower to the same string is counted once. Aggregate by modelPart into a Map and walk a model's keys through a Set. Audited 2026-11-14 at main 551d5a18.
+done_when:: Per-model changeCount is identical before and after, including a model whose title equals its stem.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D19
+batch:: b10g-console-builder-hygiene
+
+## NN Item: console-builder-d20-data-theme-guard
+value:: L
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:2006-2008 guards with html.includes of data-theme=, and the shipped iNNfo/specs/bluepriNNts/console/nn-ui.css contains 12 data-theme dark selectors (counted 2026-11-14) and is inlined before the check, so the block is unreachable with shipped assets. The shell's own html tag carries data-theme light at line 2 but not the literal being replaced. Deleting the block is the simplest option. Audited 2026-11-14 at main 551d5a18.
+done_when:: The block is deleted and buildHtml output is byte-identical for the shipped shell.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D20
+batch:: b10g-console-builder-hygiene
+
+## NN Item: console-builder-d21-shell-csp-hash-test
+value:: L
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: iNNfo/specs/bluepriNNts/console/artifact_shell.html has no executable inline script: only four JSON islands (nn-config, nn-schema, nn-model, nn-view-data) and three external scripts (counted 2026-11-14). The four hand-written hashes in its CSP (line 10, added by commit a54a9656) match nothing in the shell or in test/fixtures/testlab/domaiNN_console.html according to the audit, which hashed the shell's inline scripts. The review deferred this as unverified; it is now verified. Deleting the tokens changes a shipped release asset, so add the test first. Audited 2026-11-14 at main 551d5a18.
+done_when:: A test asserts that every sha256 token in the shell CSP matches an inline script in the shell, or the four tokens are removed.
+ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D21
+batch:: b10g-console-builder-hygiene
+
 # NN Batch
 
 ## NN Batch: b3a-source-import-guards
@@ -466,4 +727,60 @@ order:: 23
 lane:: heavy
 items:: packages-to-root
 risk:: H
+state:: planned
+
+## NN Batch: b10a-console-builder-csp-hash
+order:: 24
+lane:: light
+items:: console-builder-d01-csp-hash
+risk:: M
+state:: planned
+
+## NN Batch: b10b-console-builder-cli-input
+order:: 25
+lane:: light
+items:: console-builder-d02-scaffold-input, console-builder-d09-unknown-flag
+risk:: L
+state:: planned
+
+## NN Batch: b10c-console-builder-delivery-guard
+order:: 26
+lane:: light
+items:: console-builder-d03-delivery-guard-scope, console-builder-d04-staging-immutability-check, console-builder-d12-writeconsole-contract
+risk:: M
+state:: planned
+
+## NN Batch: b10d-console-builder-scan-errors
+order:: 27
+lane:: light
+items:: console-builder-d07-scan-read-errors
+risk:: M
+state:: planned
+
+## NN Batch: b10e-console-builder-files-section
+order:: 28
+lane:: light
+items:: console-builder-d10-preview-utf8, console-builder-d11-citation-basename
+risk:: L
+state:: planned
+
+## NN Batch: b10f-console-builder-identity-freshness
+order:: 29
+lane:: light
+items:: console-builder-d13-asset-candidates, console-builder-d06-model-identity-path, console-builder-d05-stale-asset-fingerprint
+risk:: M
+state:: planned
+
+## NN Batch: b10g-console-builder-hygiene
+order:: 30
+lane:: light
+items:: console-builder-d14-scope-key-order, console-builder-d15-spec-name-parser, console-builder-d16-code-unit-compare, console-builder-d17-rendertree-branches, console-builder-d18-view-id-discovery, console-builder-d19-changeset-counts, console-builder-d20-data-theme-guard, console-builder-d21-shell-csp-hash-test
+risk:: L
+state:: planned
+
+## NN Batch: b10h-console-builder-output-capture
+order:: 31
+lane:: light
+items:: console-builder-d08-output-capture
+risk:: M
 state:: planned

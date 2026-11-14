@@ -90,3 +90,42 @@ decision; register items through `nn-dev-backlog`. Delete `temp/analysis/<slug>/
 the maintainer says so.
 
 Not yet measured in either run: token and money cost. Say so instead of guessing.
+
+## 8. Hand-off: preserve, audit, register
+
+`temp/analysis/<slug>/` is scratch. Before it is deleted, and before anything becomes
+backlog work:
+
+1. **Preserve.** In a session worktree, commit the raw reports, the filled brief, the format
+   contract and a provenance `README.md` (date, analyzed SHA, models and settings,
+   deviations, how to read the ids) to `openspec/analysis/<date>-<slug>/`. Keep the reports
+   verbatim and label them as model output. Worked example:
+   `openspec/analysis/2026-11-14-console-builder-review/`.
+2. **Audit before registering.** Run `nn-dev-backlog` Phase 1 over the decisions: verify each
+   against the current code with a cited verdict, find overlaps with existing entries,
+   apply the lane rule of `nn-dev-development` §2 literally, and score value, effort and
+   risk. Archive what the items cannot carry (corrections to the plan, overlaps, answers to
+   its open questions) as `audit-verdicts.md` in the same folder.
+3. **Make it traceable.** Item ids start with `<slug>-d<nn>-`, `ref::` names the decision,
+   batch ids contain the slug, Ideas name it in their text. One `grep` lists everything that
+   came from the review.
+4. **Approval gate.** `nn-dev-backlog` §4 applies; a blanket approval given before the audit
+   does not count. Deferred decisions become Ideas; rejected ones get no entry (the reason
+   stays in the audit file).
+
+## 9. Lessons from the console builder audit
+
+What the audit found after the consolidator was done (15 corrections to its plan):
+
+1. Line numbers hold only for the analyzed SHA: check `git diff <sha> HEAD -- <files>`.
+2. The consolidator verifies only disagreements; the rest stays unverified until the audit.
+   One correction was a false premise about who calls a function.
+3. Check callers before ranking a concurrency or contract finding.
+4. Impact claims, especially performance, are inflated without measurement; mark them unproven.
+5. The consolidator's lane and risk calls are unreliable: run the lane rule yourself.
+6. `consensus: split` means one reviewer only, not "disputed"; audit those first.
+7. Providers write CRLF and sometimes a BOM. The repo normalizes `.md` to LF on commit; strip
+   BOMs and do not trust a delegate's claim about line endings.
+
+A walkthrough of the first run in T3 Code (roster, settings, quirks) is in
+[`references/t3-code.md`](references/t3-code.md); it is non-normative.
