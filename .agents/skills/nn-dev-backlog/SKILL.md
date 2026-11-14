@@ -18,7 +18,7 @@ Maintainer-only: not under `skills/`, not registered in `manifest/source.yaml`.
 Sibling of `nn-dev-development` and `nn-dev-issue-tracking`.
 Scope: repository root plus the `cogNNitive` GitHub repo.
 
-Read first: `nn-dev-development` (session isolation, change-size lanes §2b) and
+Read first: `nn-dev-development` (session isolation §1, change lanes §2) and
 `nn-dev-issue-tracking` (it owns every GitHub issue mutation).
 
 ---
@@ -62,7 +62,7 @@ There is no Now/Next/Later: batches already encode order.
 
 Adding an idea is one line in the Inbox. No scoring, no analysis, no audit.
 
-- It needs a write, so it needs a session worktree (`nn-dev-development` §1a). Every write
+- It needs a write, so it needs a session worktree (`nn-dev-development` §1). Every write
   session already has one; add the line there and let it travel with the session's commit.
 - From a read-only conversation in the primary checkout, start a worktree solely for the line.
 - Never triage while capturing.
@@ -102,7 +102,8 @@ Propose the best home for each entry on this ladder (least to most ceremony):
 2. **Item** — described, scored, not scheduled.
 3. **Issue** — reproducible defect, or small light-lane work (one module, no public contract).
 4. **Change** — heavy lane only: public contract, product behavior, release, migration,
-   cross-cutting (`nn-dev-development` §2b).
+   cross-cutting (`nn-dev-development` §2 lists the four heavy triggers: public contract,
+   stored-data or on-disk migration, security, major version; the rest is light).
 
 Two conversions to look for: **demotion** (an open change without enough substance or
 description becomes an issue or item) and **promotion** (an item with clear scope and high
@@ -159,7 +160,8 @@ a self-contained text brief (the receiving session starts with no memory) and st
 ## Rules
 - Start in an isolated session worktree (`node scripts/nn-session.mjs start --id <id>`);
   never write to the primary checkout.
-- One commit per work unit; PR into `dev` (merge commit, not squash). Never merge to `main`.
+- One commit per work unit; PR to `main` (merge commit, not squash), per `nn-dev-development`
+  §4. Merging the PR is the maintainer's call.
 - Verify with `node scripts/verify.js --only=<suite>` before pushing.
 - Retire this batch's items in `openspec/backlog_NN.md` **in the same PR** as the code.
 - If an item is obsolete or larger than described, STOP and report. Do not widen scope.
@@ -191,9 +193,18 @@ The first execution replaces the legacy `openspec/backlog.md` (~1100 lines):
 
 ## 7. Validating the document
 
-`parent_spec.url` is resolved relative to the **repo root**. Validate with the root set to
-the repo root and the document passed as content: id-mode validation only works inside a
-domaiNN, and `openspec/` is not one. Wrap this in a small script when it becomes routine.
+`parent_spec.url` is resolved relative to the **repo root** (the worktree root when you
+write from a session). Call the nn-mcp `validate_knowledge` tool with `id: backlog` and
+`root` set to that root (verified 2026-11-14: it found `openspec/backlog_NN.md`, resolved the
+private blueprint and returned `valid: true`). Three traps:
+
+- The id is the file stem without `_NN`. Passing the path fails with `MODEL_ADDRESSED_BY_PATH`.
+- A `root` of `openspec/` fails with `PARENT_RESOLUTION_FAILED`, because the repo-relative
+  `parent_spec.url` is then looked up under `openspec/`.
+- The `UNFROZEN_MODEL` warning is expected: the document has no frozen slugs.
+
+Passing the whole document as `content` with the repo root also works, but is heavy for a
+document of this size.
 
 ---
 
