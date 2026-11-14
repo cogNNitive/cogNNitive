@@ -295,6 +295,27 @@ Same body.`));
       const mdRes = await runGuard(args(mdFx), tmpDir);
       assert.strictEqual(mdRes.status, 0, `skill docs must not be validated as a template. stdout: ${mdRes.stdout}`);
       console.log('✔ *_NN.md files inside skills/ are not treated as bluepriNNt specs');
+
+      // A skill's own `test/` suites are not its contract: editing one needs no owner bump,
+      // while any other file in the same skill still does.
+      writeBase('tested/spec_NN.md', tpl('V_0-7-2', 'Owner body.'));
+      writeWork('tested/spec_NN.md', tpl('V_0-7-2', 'Owner body.'));
+      const testOnlyFx = writeFixture([
+        'M\tiNNfo/specs/bluepriNNts/tested/skills/s/test/a.test.mjs',
+        'A\tiNNfo/specs/bluepriNNts/tested/skills/s/test/fixtures/b.json',
+      ], 'skill-test-only.txt');
+      const testOnlyRes = await runGuard(args(testOnlyFx), tmpDir);
+      assert.strictEqual(testOnlyRes.status, 0, `skill test edits need no owner bump. stdout: ${testOnlyRes.stdout}`);
+
+      const mixedFx = writeFixture([
+        'M\tiNNfo/specs/bluepriNNts/tested/skills/s/test/a.test.mjs',
+        'M\tiNNfo/specs/bluepriNNts/tested/skills/s/scripts/run.mjs',
+      ], 'skill-test-mixed.txt');
+      const mixedRes = await runGuard(args(mixedFx), tmpDir);
+      assert.strictEqual(mixedRes.status, 1, 'a non-test skill edit alongside a test edit still needs the bump');
+      assert.ok(mixedRes.stdout.includes('skills/s/scripts/run.mjs'), 'names the skill file that needs the bump');
+      assert.ok(!mixedRes.stdout.includes('a.test.mjs'), 'does not name the exempt test file');
+      console.log('✔ edits under <skill>/test/ do not require an owner blueprint_version bump');
     }
 
     // 8c. Package `defaults/` documents: any A/M/D/R under `<bluepriNNt>/defaults/**` requires the

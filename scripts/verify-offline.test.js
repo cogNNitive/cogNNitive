@@ -22,6 +22,15 @@ assert.ok(!/gh auth token/.test(source), 'verify.js must not call `gh auth token
 assert.strictEqual(childEnv({ PATH: 'x' }).NN_OFFLINE, '1');
 assert.strictEqual(childEnv({ NN_OFFLINE: '0' }).NN_OFFLINE, '1', 'NN_OFFLINE cannot be overridden off');
 
+// 2b. No suite may open a browser on the maintainer's desktop: the console launcher honours
+//     INNFO_CONSOLE_NO_OPEN, and it cannot be overridden off under verify.
+assert.strictEqual(childEnv({ PATH: 'x' }).INNFO_CONSOLE_NO_OPEN, '1');
+assert.strictEqual(
+  childEnv({ INNFO_CONSOLE_NO_OPEN: '0' }).INNFO_CONSOLE_NO_OPEN,
+  '1',
+  'INNFO_CONSOLE_NO_OPEN cannot be overridden off',
+);
+
 // 3. Network- and release-state steps are gone.
 const steps = buildSteps(repoRoot);
 const flat = steps.filter((s) => !s.id.startsWith('test-')).map((s) => `${s.id} ${s.desc} ${(s.args || []).join(' ')}`).join('\n');
