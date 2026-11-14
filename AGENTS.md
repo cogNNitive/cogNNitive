@@ -25,7 +25,7 @@ regenerates it with different absolute paths). If it is missing locally, run
 under `.claude/skills/<name>/SKILL.md` (project-scoped) or the user's global
 `~/.claude/skills/<name>/SKILL.md`. To make these maintainer-only skills
 resolvable by name there too, thin pointer stubs exist at
-`.claude/skills/<name>/SKILL.md` for each of them — each one just tells the
+`.claude/skills/<name>/SKILL.md` for all four — each one just tells the
 agent to go read the real file under `.agents/skills/`. If the `Skill` tool
 ever again reports "Unknown skill" for one of the `nn-dev-*` skills, do not
 block the session on it: read `.agents/skills/<name>/SKILL.md` directly with

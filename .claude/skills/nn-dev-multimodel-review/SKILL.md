@@ -1,6 +1,6 @@
 ---
 name: nn-dev-multimodel-review
-description: Internal developer skill for cogNNitive maintainers. Runs a three-phase multi-model review of one component (independent analyses, cross critique, consolidation) and hands the result to nn-dev-backlog.
+description: Internal developer skill for cogNNitive maintainers. Runs an in-depth multi-model review of one repo component to find refactors, changes and improvements.
 ---
 
 # nn-dev-multimodel-review (pointer)
