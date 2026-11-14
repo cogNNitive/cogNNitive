@@ -27,7 +27,9 @@
  *     `<bluepriNNt>/skills/**` or `<bluepriNNt>/defaults/**` requires the
  *     owning `<bluepriNNt>/spec_NN.md` to carry a `blueprint_version` strictly
  *     greater than its base version (a base-less owner only needs a valid one),
- *     even when the owner spec itself is unchanged.
+ *     even when the owner spec itself is unchanged. A skill's own test suites
+ *     (`<bluepriNNt>/skills/<skill>/test/**`) are exempt: they verify the skill
+ *     and are not part of its contract.
  *   - non-template files and files under samples/ or assets/: ignored.
  *
  * Usage:
@@ -117,6 +119,8 @@ function isCanonicalBlueprint(relPath) {
 function ownerSpecOf(relPath) {
   const p = relPath.replace(/\\/g, '/');
   if (/\.generated\.[a-z0-9]+$/i.test(p)) return null;
+  // A skill's own `<skill>/test/` suites are verification, not contract: no owner bump.
+  if (/(?:^|\/)bluepriNNts\/[^/]+\/skills\/[^/]+\/test\//.test(p)) return null;
   const m = p.match(/^((?:.*?\/)??)(bluepriNNts\/[^/]+)\/(?:skills|defaults|catalog)\/.+/);
   return m ? `${m[1]}${m[2]}/spec_NN.md` : null;
 }
