@@ -247,15 +247,16 @@ batch:: b3e-console-payload-size
 
 ## NN Item: remove-banned-l3-field
 value:: H
-effort:: M
-risk:: H
+effort:: S
+risk:: L
 status:: open
-lane:: heavy
+lane:: light
 verdict:: current
-evidence:: The changes blueprint op list declares update_field, remove_element, rename_field and set_field_default but no remove_field (iNNfo/packages/nn-core/src/schema/canonical-registry.ts:30 lists the full op set), and update_field requires a non-null `to`, so a legacy L3 `sources::` can never be cleared. apply_change validates the whole model, so one banned field blocks every changeset touching that model. Issue 614 reports the same root from a production domain; the rest of that report is the cross-domain-export item. Verified 2026-11-12.
-done_when:: A changeset can drop a field key from an element (a remove_field op, or an explicit removal value on update_field), the serializer then omits the key rather than emitting an empty line, and a model carrying a banned `sources::` can be repaired through the sanctioned changeset path alone.
+evidence:: iNNfo/packages/nn-core/src/mutate.ts:935 removes fields and rawFields for empty string; iNNfo/packages/nn-mcp/test/apply-change.test.ts:402,429 covers clear and wrong-from conflict. Cross-review-sol C2 repairs a banned sources field through sealed apply. The missing-operation premise is obsolete; remaining work is precise guidance and a banned-field regression. Verified against 8a2958b8df4bd4e20363c37bf2feba7dd0bdffdc; private issue-560 recovery remains unverified.
+done_when:: Document update_field with to empty string (not null/undefined); a sealed serialized round-trip removes banned sources, preserves unrelated fields, validates and records the applied change; wrong from conflicts without writes. Add only a banned-field regression missing from existing generic clear tests; do not add remove_field or close issue-560 without checking its remaining incident.
 ref:: issue-560
 batch:: b6-remove-banned-l3-field
+merged_from:: improvement-plan P04, R3-reduced; missing-remove_field premise superseded
 
 ## NN Item: number-field-changeset
 value:: M
@@ -580,6 +581,58 @@ done_when:: A test asserts that every sha256 token in the shell CSP matches an i
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D21
 batch:: b10g-console-builder-hygiene
 
+## NN Item: delete-impact-completeness
+value:: H
+effort:: M
+risk:: H
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: iNNfo/packages/nn-mcp/src/tools/apply-change.ts:1684-1698 omits discovered peers on load failure before delete-impact computation; cross-review-sol C3 injected EACCES and remove_element still applied. Source unchanged at 8a2958b8df4bd4e20363c37bf2feba7dd0bdffdc.
+merged_from:: improvement-plan P01, QW-C5, R7-minimum
+done_when:: A discovered unreadable candidate blocks the affected remove_element before target persistence with a path-specific diagnostic; readable incoming references still conflict; unrelated non-destructive operations retain current behavior and partial-change handling remains correct.
+ref:: openspec/analysis/2026-11-14-improvement-plan.md
+batch:: b11a-safe-delete
+
+## NN Item: console-runtime-release-identity
+value:: M
+effort:: S
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: iNNfo/specs/bluepriNNts/console/nn-runtime.js:17 sets CONSOLE_VERSION to 0.1.0 and :6598,6603 uses it in exported provenance; scripts/lib/console-bundle.js:39,68 already receives the package release version. Not the model-path identity of console-builder-d06. Source unchanged at 8a2958b8df4bd4e20363c37bf2feba7dd0bdffdc.
+merged_from:: improvement-plan P02, QW-E1, DeepSeek-N4
+done_when:: Existing bundle composition derives runtime identity from the same release-info value as the banner; runtime exports and exported changesets match package version, shell release URLs stay correct and the model-version display is unchanged.
+ref:: openspec/analysis/2026-11-14-improvement-plan.md
+batch:: b11b-console-runtime-status
+
+## NN Item: console-synthetic-changes-freshness
+value:: M
+effort:: S
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: scripts/export-console.mjs:482 compares embedded and discovered model counts while :1736 adds a synthetic <changes> entry; cross-review-deepseek reproduces perpetual stale after re-export. Distinct from duplicate basename console-builder-d06 and asset freshness console-builder-d05. Source unchanged at 8a2958b8df4bd4e20363c37bf2feba7dd0bdffdc.
+merged_from:: improvement-plan P03, QW-E2
+done_when:: An unchanged fixture with changesets is fresh after export and re-export; a real model edit is stale; only synthetic summary entries are excluded and real changes documents and asset checks remain covered.
+ref:: openspec/analysis/2026-11-14-improvement-plan.md
+batch:: b11b-console-runtime-status
+
+## NN Item: authoring-guidance-consistency
+value:: M
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: skills/nn-innfo/SKILL.md:200,408,470 teaches INNFO_MODELS_DIR, :172,860,864 teaches workspace/procedures/, :1042 teaches [[Element Name]] despite current consumers; docs/documentation/content/reference/mcp-tools.md:55 misdescribes read_lineage effects. Source unchanged at 8a2958b8df4bd4e20363c37bf2feba7dd0bdffdc.
+merged_from:: improvement-plan P05, QW-D2, QW-D3, QW-D4, SOL-N1
+done_when:: Environment-variable, procedure-path and reference examples match current consumers and read_lineage documentation matches its read-only handler; no mass procedure migration, trigger change or public API change.
+ref:: openspec/analysis/2026-11-14-improvement-plan.md
+batch:: b6-remove-banned-l3-field
+
 ## NN Item: console-builder-d26-view-convention-contract
 value:: M
 effort:: S
@@ -630,175 +683,190 @@ risk:: M
 state:: done
 
 ## NN Batch: b4a-derived-artifacts
-order:: 7
+order:: 9
 lane:: heavy
 items:: derived-artifacts-consolidation
 risk:: H
 state:: planned
 
 ## NN Batch: b4b-query-unification
-order:: 8
+order:: 10
 lane:: heavy
 items:: query-language-unification
 risk:: H
 state:: planned
 
 ## NN Batch: b4d-manifest-section-ownership
-order:: 10
+order:: 12
 lane:: heavy
 items:: workspace-manifest-section-ownership
 risk:: M
 state:: planned
 
 ## NN Batch: b4e-okf-export
-order:: 11
+order:: 13
 lane:: heavy
 items:: okf-export-projector
 risk:: M
 state:: planned
 
 ## NN Batch: b4g-product-site
-order:: 12
+order:: 14
 lane:: heavy
 items:: product-site-projection
 risk:: M
 state:: planned
 
 ## NN Batch: b4h-cross-domain-export
-order:: 13
+order:: 15
 lane:: heavy
 items:: cross-domain-export
 risk:: M
 state:: planned
 
 ## NN Batch: b4i-conntent-blueprint-gaps
-order:: 14
+order:: 16
 lane:: heavy
 items:: conntent-blueprint-gaps
 risk:: M
 state:: planned
 
 ## NN Batch: b4j-episode-layout-drift
-order:: 15
+order:: 17
 lane:: heavy
 items:: episode-layout-drift
 risk:: M
 state:: planned
 
 ## NN Batch: b3f-procedure-references
-order:: 16
+order:: 18
 lane:: light
 items:: procedure-reference-form
 risk:: M
 state:: planned
 
 ## NN Batch: b3g-orphan-model-guard
-order:: 17
+order:: 19
 lane:: light
 items:: orphan-model-lineage-guard
 risk:: M
 state:: planned
 
 ## NN Batch: b5-kb-change-governance
-order:: 18
+order:: 20
 lane:: heavy
 items:: kb-change-governance
 risk:: M
 state:: planned
 
 ## NN Batch: b5b-video-vector-actor-catalog
-order:: 19
+order:: 21
 lane:: heavy
 items:: video-vector-actor-catalog
 risk:: M
 state:: planned
 
 ## NN Batch: b5c-docs-skills-retirement
-order:: 20
+order:: 22
 lane:: heavy
 items:: docs-skills-retirement
 risk:: M
 state:: planned
 
 ## NN Batch: b5d-conntent-procedures
-order:: 21
+order:: 23
 lane:: heavy
 items:: coNNtent-procedures
 risk:: M
 state:: planned
 
 ## NN Batch: b6-remove-banned-l3-field
-order:: 22
-lane:: heavy
-items:: remove-banned-l3-field
-risk:: H
+order:: 8
+lane:: light
+items:: remove-banned-l3-field, authoring-guidance-consistency
+risk:: L
 state:: planned
 
 ## NN Batch: b9-packages-to-root
-order:: 23
+order:: 25
 lane:: heavy
 items:: packages-to-root
 risk:: H
 state:: planned
 
 ## NN Batch: b10a-console-builder-csp-hash
-order:: 24
+order:: 26
 lane:: light
 items:: console-builder-d01-csp-hash
 risk:: M
 state:: planned
 
 ## NN Batch: b10b-console-builder-cli-input
-order:: 25
+order:: 27
 lane:: light
 items:: console-builder-d02-scaffold-input, console-builder-d09-unknown-flag
 risk:: L
 state:: planned
 
 ## NN Batch: b10c-console-builder-delivery-guard
-order:: 26
+order:: 28
 lane:: light
 items:: console-builder-d03-delivery-guard-scope, console-builder-d04-staging-immutability-check, console-builder-d12-writeconsole-contract
 risk:: M
 state:: planned
 
 ## NN Batch: b10d-console-builder-scan-errors
-order:: 27
+order:: 29
 lane:: light
 items:: console-builder-d07-scan-read-errors
 risk:: M
 state:: planned
 
 ## NN Batch: b10e-console-builder-files-section
-order:: 28
+order:: 30
 lane:: light
 items:: console-builder-d10-preview-utf8, console-builder-d11-citation-basename
 risk:: L
 state:: planned
 
 ## NN Batch: b10f-console-builder-identity-freshness
-order:: 29
+order:: 31
 lane:: light
 items:: console-builder-d13-asset-candidates, console-builder-d06-model-identity-path, console-builder-d05-stale-asset-fingerprint
 risk:: M
 state:: planned
 
 ## NN Batch: b10g-console-builder-hygiene
-order:: 30
+order:: 32
 lane:: light
 items:: console-builder-d14-scope-key-order, console-builder-d15-spec-name-parser, console-builder-d16-code-unit-compare, console-builder-d17-rendertree-branches, console-builder-d18-view-id-discovery, console-builder-d19-changeset-counts, console-builder-d20-data-theme-guard, console-builder-d21-shell-csp-hash-test
 risk:: L
 state:: planned
 
 ## NN Batch: b10h-console-builder-output-capture
-order:: 31
+order:: 33
 lane:: light
 items:: console-builder-d08-output-capture
 risk:: M
 state:: planned
 
+## NN Batch: b11a-safe-delete
+order:: 1
+lane:: heavy
+items:: delete-impact-completeness
+risk:: H
+state:: planned
+
+## NN Batch: b11b-console-runtime-status
+order:: 7
+lane:: light
+items:: console-runtime-release-identity, console-synthetic-changes-freshness
+risk:: M
+state:: planned
+
+
 ## NN Batch: b10i-console-builder-view-convention
-order:: 32
+order:: 34
 lane:: light
 items:: console-builder-d26-view-convention-contract
 risk:: L
