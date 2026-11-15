@@ -648,6 +648,17 @@ done_when:: discoverViews reports through onWarning, naming the offending path a
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D26
 batch:: b10i-console-builder-view-convention
 
+## NN Item: console-unread-provenance-payload
+value:: M
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: The exporter attaches two per-element maps: `element.history` (iNNfo/packages/nn-core/src/console/element-history.ts:297-298) and `element.provenance` (:307, only for a field with an applied change, each entry carrying deriveValueHistory at :303). Only `history` has readers: git grep for the word `provenance` over every browser-side console source at main 8db42769 (nn-runtime.js, review.js, ui-kit.js, studio.js, render-*.js and the per-blueprint assets/*.js view modules) returns zero hits, while `history` is read at nn-runtime.js:2744 and :5105, review.js:798-934 and studio.js:266. The doc comment at element-history.ts:5-6 still claims "the origin icon per field, reading `element.provenance`", so the payload carries a map no reader opens and pays deriveValueHistory on every export. Measured on iNNtake_NN on 2026-11-15: a 21.46 MB payload with a 20.16 MB model slot, where the provenance and history maps together accounted for 5.5 MB (the split is unmeasured). The only code that touches `element.provenance` is the second degrade step stripConsoleProvenance (scripts/console-views.mjs:582-597), called from scripts/export-console.mjs:2119 only when a console is already over the fail budget, and it deletes `provenance` and `history` together, so removing provenance from the payload must keep the history strip intact. Borderline lane: the payload shape changes, but the console is a regenerable artifact, no consumer reads the field, and the work stays inside scripts/ plus the nn-core console package.
+done_when:: The export emits no `element.provenance`, stripConsoleProvenance still drops `element.history` on the fail path with the strategy name and gate message kept accurate for what the step now does, element-history.ts documents no reader that does not exist, a console exported from a domain with applied changes still renders the Changes tab and the per-field value history, and the payload measured on iNNtake_NN shrinks by the provenance share without losing history.
+batch:: b12-console-unread-provenance
+
 # NN Batch
 
 ## NN Batch: b3a-source-import-guards
@@ -872,5 +883,12 @@ state:: planned
 order:: 34
 lane:: light
 items:: console-builder-d26-view-convention-contract
+risk:: L
+state:: planned
+
+## NN Batch: b12-console-unread-provenance
+order:: 35
+lane:: light
+items:: console-unread-provenance-payload
 risk:: L
 state:: planned
