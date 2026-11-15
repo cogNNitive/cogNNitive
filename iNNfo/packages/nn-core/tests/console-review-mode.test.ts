@@ -170,13 +170,15 @@ describe('console-review (no mode, always-on decoration)', () => {
     expect(env.document.documentElement.getAttribute('data-nn-structure')).toBeNull()
   })
 
-  it('keeps the changeset bar hidden while there are no drafts', () => {
+  it('keeps one changes entry and no floating dock while there are no drafts', () => {
     renderModelConsole()
     bootConsole()
-    const dock = env.document.getElementById('nn-review-dock')
-    expect(dock).not.toBeNull()
-    expect(dock!.getAttribute('data-visible')).toBeNull()
-    expect((dock as HTMLElement).style.display).toBe('none')
+    // The floating dock is gone: pending changes and history share the single
+    // entry the banner renders, which reads the draft count.
+    expect(env.document.getElementById('nn-review-dock')).toBeNull()
+    const entries = env.document.querySelectorAll('#nn-feedback-open')
+    expect(entries.length).toBe(1)
+    expect(entries[0].textContent).toMatch(/Changes\D*0/)
   })
 
   it('re-render re-decorates idempotently', () => {

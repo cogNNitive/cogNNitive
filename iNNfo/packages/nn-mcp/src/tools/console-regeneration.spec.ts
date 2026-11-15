@@ -115,6 +115,17 @@ describe('regenerateConsole', () => {
       { scope: 'domain', open: false },
     ])
   })
+
+  it('keeps the browser closed unless the caller asks, so applies cannot pile up tabs', async () => {
+    const seen: boolean[] = []
+    const writer: ConsoleWriter = async (options) => {
+      seen.push(options.open)
+      return { path: join(sandbox, 'x.html'), status: 'written', opened: false }
+    }
+    await regenerateConsole(sandbox, { writer, env: {} })
+    await regenerateConsole(sandbox, { writer, env: {}, scope: { model: 'strategy' } })
+    expect(seen).toEqual([false, false])
+  })
 })
 
 const MODEL_FRONTMATTER = '---\ntitle: "Strategy"\nknowledge_version: "V_0-1-0"\nlevel: 3\n---\n\n'

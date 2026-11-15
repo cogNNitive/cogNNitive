@@ -8,11 +8,13 @@ blueprint_version: "V_0-5-5"
 status: applied
 title: "Reviewer: every modification case on the intake model"
 author: reviewer
-applied_at: "2026-10-21T14:30:00.000Z"
+applied_at: 2026-10-21T14:30:00.000Z
 models:
   TestLab_intake_TestLab:
     base_version: V_0-1-0
     result_version: V_0-1-1
+proposal_sha: a0ec6c2c25d4fd857d46a3adc70cf175ee0e33ef47e794f5b740f6b7c75c8b01
+batch: testlab_reviewer_intake_changes
 ---
 
 # NN index
@@ -28,10 +30,6 @@ from:: Modification cases
 name:: Modification cases (reviewed)
 evidence:: decision
 author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
 
 ## NN Change: r-02
 op:: update_field
@@ -40,10 +38,6 @@ from:: Baseline element of the intake model, created by the administrator from t
 to:: Reviewer description: the intake baseline was written up from the CSV dataset during the review pass.
 evidence:: sources/import/dataset.csv@m-001
 author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
 
 ## NN Change: r-03
 op:: update_field
@@ -52,10 +46,6 @@ from:: Initial string value
 to:: Reviewed string value
 evidence:: sources/import/field-notes.md@## Findings
 author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
 
 ## NN Change: r-04
 op:: update_field
@@ -64,34 +54,14 @@ from:: 0
 to:: 42
 evidence:: sources/import/dataset.csv@m-001
 author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
 
 ## NN Change: r-05
-op:: update_field
-target:: TestLab_intake_TestLab@modification-cases&boolean_field
-from:: false
-to:: true
+op:: set_fields
+target:: TestLab_intake_TestLab@modification-cases
+from:: {"boolean_field":"false","select_field":"draft"}
+to:: {"boolean_field":"true","select_field":"reviewed"}
 evidence:: decision
 author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
-
-## NN Change: r-06
-op:: update_field
-target:: TestLab_intake_TestLab@modification-cases&select_field
-from:: draft
-to:: reviewed
-evidence:: decision
-author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
 
 ## NN Change: r-07
 op:: update_field
@@ -100,10 +70,6 @@ from:: @intake-owner
 to:: @intake-backup-owner
 evidence:: sources/import/report.pdf_sidecar_NN.md@## Findings
 author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
 
 ## NN Change: r-08
 op:: update_field
@@ -111,10 +77,6 @@ target:: TestLab_intake_TestLab@modification-cases&image_field
 to:: test/fixtures/testlab/sources/import/photo.png
 evidence:: sources/import/photo.png_sidecar_NN.md@## Caption
 author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
 
 ## NN Change: r-09
 op:: update_field
@@ -123,10 +85,6 @@ from:: test/fixtures/testlab/sources/import/manual.txt
 to:: test/fixtures/testlab/sources/import/report.pdf
 evidence:: decision
 author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
 
 ## NN Change: r-10
 op:: update_field
@@ -134,10 +92,6 @@ target:: TestLab_intake_TestLab@modification-cases&video_field
 to:: test/fixtures/testlab/sources/import/demo.mp4
 evidence:: sources/import/demo.mp4_sidecar_NN.md@## Transcript
 author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
 
 ## NN Change: r-11
 op:: update_field
@@ -145,69 +99,14 @@ target:: TestLab_intake_TestLab@modification-cases&audio_field
 to:: test/fixtures/testlab/sources/import/interview.mp3
 evidence:: sources/import/interview.mp3_sidecar_NN.md@## Transcript
 author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
 
 ## NN Change: r-12
-op:: update_field
-target:: TestLab_intake_TestLab@modification-cases&url_field
-from:: https://example.com/initial
-to:: https://example.com/reviewed
+op:: set_fields
+target:: TestLab_intake_TestLab@modification-cases
+from:: {"url_field":"https://example.com/initial","markdown_inline_field":"Initial **inline** markdown.","markdown_file_field":"test/fixtures/testlab/sources/import/field-notes.md","address_field":"TestLab_intake_TestLab@intake-element"}
+to:: {"url_field":"https://example.com/reviewed","markdown_inline_field":"Reviewed **inline** markdown.","markdown_file_field":"test/fixtures/testlab/sources/import/manual.txt","knowledge_field":"kNNowledge/TestLab_coverage_TestLab_NN.md","address_field":"TestLab_intake_TestLab@intake-owner"}
 evidence:: decision
 author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
-
-## NN Change: r-13
-op:: update_field
-target:: TestLab_intake_TestLab@modification-cases&markdown_inline_field
-from:: Initial **inline** markdown.
-to:: Reviewed **inline** markdown.
-evidence:: decision
-author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
-
-## NN Change: r-14
-op:: update_field
-target:: TestLab_intake_TestLab@modification-cases&markdown_file_field
-from:: test/fixtures/testlab/sources/import/field-notes.md
-to:: test/fixtures/testlab/sources/import/manual.txt
-evidence:: decision
-author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
-
-## NN Change: r-15
-op:: update_field
-target:: TestLab_intake_TestLab@modification-cases&knowledge_field
-to:: kNNowledge/TestLab_coverage_TestLab_NN.md
-evidence:: decision
-author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
-
-## NN Change: r-16
-op:: update_field
-target:: TestLab_intake_TestLab@modification-cases&address_field
-from:: TestLab_intake_TestLab@intake-element
-to:: TestLab_intake_TestLab@intake-owner
-evidence:: decision
-author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
 
 ## NN Change: r-17
 op:: update_field
@@ -215,10 +114,6 @@ target:: TestLab_intake_TestLab@modification-cases&citation_field
 to:: [test/fixtures/testlab/sources/import/report.pdf_sidecar_NN.md@## Findings]
 evidence:: sources/import/report.pdf_sidecar_NN.md@## Findings
 author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully
 
 ## NN Change: r-18
 op:: update_matrix_cell
@@ -227,7 +122,3 @@ from:: relevant
 to:: archived
 evidence:: sources/import/dataset.csv@m-001
 author:: reviewer
-status:: applied
-applied_at:: 2026-10-21T14:30:00.000Z
-batch:: testlab_reviewer_intake_changes_NN
-resolution:: Applied successfully

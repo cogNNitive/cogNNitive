@@ -448,12 +448,19 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
 
       // The Changes tab renders the change history as standard element sheets (one
       // ElementCard per change; the old per-field Citations section is gone).
+      const sheet = tabHistory.querySelector('article[data-nn-component="element-card"]')
+      assert.ok(sheet, 'an element sheet is rendered per history entry')
       assert.match(tabHistory.textContent, /Jane Doe/)
-      assert.match(tabHistory.textContent, /Initial definition/)
-      assert.ok(
-        tabHistory.querySelector('article[data-nn-component="element-card"]'),
-        'an element sheet is rendered per history entry',
+      // A Changes tab can hold hundreds of sheets, so each one mounts collapsed and
+      // builds its body on first expand; nothing is lost, it is built on demand.
+      assert.equal(
+        sheet.querySelector('.nn-card-body'),
+        null,
+        'a collapsed change sheet carries no body until it is expanded',
       )
+      sheet.setOpen(true)
+      assert.match(tabHistory.textContent, /Initial definition/)
+      assert.ok(sheet.querySelector('.nn-card-body'), 'expanding the sheet mounts its body')
     })
   })
 

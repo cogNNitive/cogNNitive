@@ -8,10 +8,12 @@ blueprint_version: "V_0-8-1"
 status: applied
 title: "Create Commercial Clients Stakeholders model and cohort elements"
 author: Egon Spengler
-applied_at: "2026-11-08T16:00:00.000Z"
+applied_at: 2026-11-08T16:00:00.000Z
 models:
   commercial-clients_stakeholders:
     result_version: V_0-1-0
+proposal_sha: d6cd198a1297796de3c64c03ab40147e0b794e2c1000c1c758ad4b5485d953a6
+batch: 001_commercial-clients_stakeholders_changes
 ---
 
 # NN index
@@ -29,10 +31,6 @@ blueprint_url:: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main
 knowledge_version:: V_0-1-0
 evidence:: decision
 author:: Egon Spengler
-status:: applied
-applied_at:: 2026-11-08T16:00:00.000Z
-batch:: 001_commercial-clients_stakeholders_changes_NN
-resolution:: Created model "commercial-clients_stakeholders"
 
 ## NN Change: c-02
 slug:: commercial-clients
@@ -43,10 +41,6 @@ name:: Commercial Clients
 fields:: {"category":"Commercial","influence_level":"High","relationship_model":"Retainer & Emergency On-Demand SLAs","tags":["b2b","primary-revenue","enterprise"]}
 evidence:: decision
 author:: Egon Spengler
-status:: applied
-applied_at:: 2026-11-08T16:00:00.000Z
-batch:: 001_commercial-clients_stakeholders_changes_NN
-resolution:: Applied successfully
 resolved_slug:: commercial-clients
 
 ## NN Change: c-03
@@ -58,10 +52,6 @@ name:: Luxury Hospitality
 fields:: {"stakeholder":"@commercial-clients","priority":"High","market_size":"45 Manhattan landmark hotels","target_range":"4-5 star rating, >200 rooms, historic heritage properties","tags":["b2b","commercial","premium"]}
 evidence:: decision
 author:: Egon Spengler
-status:: applied
-applied_at:: 2026-11-08T16:00:00.000Z
-batch:: 001_commercial-clients_stakeholders_changes_NN
-resolution:: Applied successfully
 resolved_slug:: luxury-hospitality
 
 ## NN Change: c-04
@@ -73,10 +63,6 @@ name:: Hotel General Manager
 fields:: {"segment":"@luxury-hospitality","decision_role":"Economic Buyer","persona":"personas/hotel_general_manager.md","pain_points":"Paranormal disturbances threatening guest discretion and brand prestige.","tags":["executive","decision-maker","confidential"]}
 evidence:: decision
 author:: Egon Spengler
-status:: applied
-applied_at:: 2026-11-08T16:00:00.000Z
-batch:: 001_commercial-clients_stakeholders_changes_NN
-resolution:: Applied successfully
 resolved_slug:: hotel-general-manager
 
 ## NN Change: c-05
@@ -88,10 +74,6 @@ name:: Facilities Director
 fields:: {"segment":"@luxury-hospitality","decision_role":"Technical Evaluator","pain_points":"Structural integrity risks and uncontainable physical ectoplasmic residue in ventilation.","tags":["operations","engineering","physical-plant"]}
 evidence:: decision
 author:: Egon Spengler
-status:: applied
-applied_at:: 2026-11-08T16:00:00.000Z
-batch:: 001_commercial-clients_stakeholders_changes_NN
-resolution:: Applied successfully
 resolved_slug:: facilities-director
 
 ## NN Change: c-06
@@ -103,10 +85,6 @@ name:: Reputational risk
 fields:: {"criterion_type":"Strategic"}
 evidence:: decision
 author:: Egon Spengler
-status:: applied
-applied_at:: 2026-11-08T16:00:00.000Z
-batch:: 001_commercial-clients_stakeholders_changes_NN
-resolution:: Applied successfully
 resolved_slug:: reputational-risk
 
 ## NN Change: c-07
@@ -118,10 +96,6 @@ name:: Budget elasticity
 fields:: {"criterion_type":"Firmographic"}
 evidence:: decision
 author:: Egon Spengler
-status:: applied
-applied_at:: 2026-11-08T16:00:00.000Z
-batch:: 001_commercial-clients_stakeholders_changes_NN
-resolution:: Applied successfully
 resolved_slug:: budget-elasticity
 
 ## NN Change: c-08
@@ -133,8 +107,4 @@ name:: Operational discretion
 fields:: {"criterion_type":"Behavioral"}
 evidence:: decision
 author:: Egon Spengler
-status:: applied
-applied_at:: 2026-11-08T16:00:00.000Z
-batch:: 001_commercial-clients_stakeholders_changes_NN
-resolution:: Applied successfully
 resolved_slug:: operational-discretion

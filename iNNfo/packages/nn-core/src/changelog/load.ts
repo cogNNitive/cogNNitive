@@ -120,16 +120,14 @@ export interface ResolvedChangeFacts {
 /**
  * THE resolution of a change's execution facts (change-provenance): each fact is
  * the change's own value when it carries one, else the value its changeset carries.
- * A changeset written with inherited facts (it carries a frontmatter `batch`) gives
- * an applied change without `resolved_target` its `target`; an older changeset, whose
- * changes carry every fact, resolves exactly as before. Every reader of these facts
- * (the log, the console records) goes through this function.
+ * An applied change without `resolved_target` resolves to its `target`: every applied
+ * changeset, compact or per-change, names the address it wrote. Every reader of these
+ * facts (the log, the console records) goes through this function.
  */
 export function resolveChangeFacts(change: ChangeLike, cs: Omit<ChangesetLike, 'changes' | 'path'>): ResolvedChangeFacts {
   const status = (change.status ?? cs.status ?? 'proposed') as ChangeStatus
-  const inheriting = cs.batch !== undefined
   const resolvedTarget =
-    change.resolved_target ?? (inheriting && status === 'applied' ? change.target : undefined)
+    change.resolved_target ?? (status === 'applied' ? change.target : undefined)
   const evidenceSha256 =
     change.evidence_sha256 ?? (status === 'applied' ? inheritedEvidenceShas(change.evidence, cs.evidenceSha256) : undefined)
   const facts: ResolvedChangeFacts = { status }

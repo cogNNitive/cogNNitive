@@ -82,10 +82,10 @@ describe('the change log resolves inherited execution facts', () => {
     expect(log.all[1]).toMatchObject({ author: 'juan', batch: STEM, evidenceSha256: [SHA] })
   })
 
-  it('keeps a change without resolved_target in an old changeset unresolved', () => {
+  it('resolves a change without resolved_target to its target in an old changeset', () => {
     const old = text('status: applied', '## NN Change: c-01\nop:: add_element\ntarget:: m@Grow\nconcept:: Goal\nname:: Grow\nevidence:: decision')
     const log = buildChangeLog([{ path: 'changes/old_a_20261001T000000Z_changes_NN.md', content: old }])
-    expect(log.all[0]!.resolvedTarget).toBeUndefined()
+    expect(log.all[0]!.resolvedTarget).toBe('m@Grow')
     expect(log.all[0]!.batch).toBeUndefined()
   })
 

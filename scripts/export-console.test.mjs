@@ -951,10 +951,53 @@ notes:: "Please review the tagline"
         ['win32', 'rundll32', ['url.dll,FileProtocolHandler']],
       ]) {
         const calls = []
-        const res = await writeConsole({ rootDir: tempDir, open: true, platform, launcher: (c, a) => calls.push([c, a]) })
+        const res = await writeConsole({
+          rootDir: tempDir,
+          open: true,
+          openCooldownMinutes: 0,
+          platform,
+          launcher: (c, a) => calls.push([c, a]),
+        })
         assert.equal(res.opened, true)
         assert.deepEqual(calls, [[command, [...lead, res.path]]])
       }
+    })
+
+    it('opens one tab per console inside the coalescing window and reports alreadyOpen after that', async () => {
+      const { writeConsole } = await load()
+      const calls = []
+      const launcher = (c, a) => calls.push([c, a])
+      const first = await writeConsole({ rootDir: tempDir, open: true, launcher })
+      assert.equal(first.opened, true)
+      assert.equal(first.alreadyOpen, undefined)
+      const second = await writeConsole({ rootDir: tempDir, open: true, launcher })
+      // The console is rewritten in place, so the tab already showing it only needs a
+      // reload; a second launch would add another heavyweight copy of the same document.
+      assert.equal(second.opened, false)
+      assert.equal(second.alreadyOpen, true)
+      assert.equal(calls.length, 1)
+    })
+
+    it('openCooldownMinutes: 0 disables the coalescing', async () => {
+      const { writeConsole } = await load()
+      const calls = []
+      const launcher = (c, a) => calls.push([c, a])
+      await writeConsole({ rootDir: tempDir, open: true, openCooldownMinutes: 0, launcher })
+      const again = await writeConsole({ rootDir: tempDir, open: true, openCooldownMinutes: 0, launcher })
+      assert.equal(again.opened, true)
+      assert.equal(calls.length, 2)
+    })
+
+    it('a different console path is not suppressed by another console marker', async () => {
+      const { writeConsole } = await load()
+      const calls = []
+      const launcher = (c, a) => calls.push([c, a])
+      await writeConsole({ rootDir: tempDir, open: true, launcher })
+      const other = await mkdtemp(join(tmpdir(), 'nn-console-other-'))
+      await cp(tempDir, other, { recursive: true })
+      const res = await writeConsole({ rootDir: other, open: true, launcher })
+      assert.equal(res.opened, true)
+      assert.equal(calls.length, 2)
     })
 
     it('refuses to open a win32 path containing shell-significant characters', async () => {

@@ -30,6 +30,8 @@ export interface ConsoleWriterResult {
   status: 'written' | 'unchanged'
   knowledgeVersions?: Record<string, { knowledge_version: string | null; sha256: string }>
   opened: boolean
+  /** The console was already open in a tab inside the coalescing window; nothing was launched. */
+  alreadyOpen?: boolean
   openError?: string
 }
 
@@ -40,6 +42,8 @@ export interface ConsoleOutcome {
   status: 'written' | 'unchanged' | 'failed'
   path?: string
   opened?: boolean
+  /** The console was already open in a tab; the browser was not launched again. */
+  alreadyOpen?: boolean
   openError?: string
   error?: string
   code?: string
@@ -57,7 +61,7 @@ export interface NextSteps {
 
 export interface RegenerateOptions {
   scope?: ConsoleScopeArg
-  /** Open the console in a browser tab (default true). */
+  /** Open the console in a browser tab (default false: opening is explicit). */
   open?: boolean
   launcher?: ConsoleWriterOptions['launcher']
   /** Injected writer (tests). Defaults to the shared `writeConsole`. */
@@ -113,7 +117,10 @@ async function loadSharedWriter(
  */
 export async function regenerateConsole(root: string, opts: RegenerateOptions = {}): Promise<ConsoleOutcome> {
   const env = opts.env ?? process.env
-  const open = (opts.open ?? true) && env[NO_OPEN_ENV] !== '1'
+  // Default: do NOT open. Every apply used to launch a browser tab, and each
+  // domain console is heavy enough that the tabs piled up until the machine hit
+  // memory pressure and every renderer burned a core. Opening is now explicit.
+  const open = (opts.open ?? false) && env[NO_OPEN_ENV] !== '1'
   try {
     const writer = opts.writer ?? (await loadSharedWriter({ env, home: opts.home, devRoot: opts.devRoot }))
     const result = await writer({
@@ -126,6 +133,7 @@ export async function regenerateConsole(root: string, opts: RegenerateOptions = 
       status: result.status,
       path: result.path,
       opened: result.opened,
+      ...(result.alreadyOpen ? { alreadyOpen: true } : {}),
       ...(result.openError ? { openError: result.openError } : {}),
       ...(result.knowledgeVersions ? { knowledgeVersions: result.knowledgeVersions } : {}),
     }
@@ -161,6 +169,12 @@ function consoleStep(outcome: ConsoleOutcome, what: string): string[] {
       ? `The domain console was already up to date (${outcome.path}).`
       : `The domain console was regenerated (${outcome.path}).`
   if (outcome.opened) return [regenerated, `It was opened in a browser tab, where you can review ${what}.`]
+  if (outcome.alreadyOpen) {
+    return [
+      regenerated,
+      `It is already open in a browser tab; reload that tab to review ${what}. Opening it again would add a second copy of the same heavy document.`,
+    ]
+  }
   return [regenerated, `Open ${outcome.path} in a browser to review ${what}.`]
 }
 

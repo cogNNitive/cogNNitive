@@ -669,7 +669,7 @@ export async function proposeChangeset(
     title: args.title,
     author: args.author,
   })
-  const outcome = await regenerateConsole(rootDir, { ...regenerate, open: args.open ?? regenerate.open ?? true })
+  const outcome = await regenerateConsole(rootDir, { ...regenerate, open: args.open ?? regenerate.open ?? false })
   return {
     success: true,
     changeset: written.path,

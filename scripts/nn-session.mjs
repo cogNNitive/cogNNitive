@@ -1,7 +1,17 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmdirSync, rmSync, symlinkSync, unlinkSync } from 'node:fs'
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmdirSync,
+  rmSync,
+  symlinkSync,
+  unlinkSync,
+} from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import os from 'node:os'
@@ -10,7 +20,11 @@ const here = dirname(fileURLToPath(import.meta.url))
 const DEFAULT_ROOT = resolve(here, '..')
 
 function git(args, root) {
-  return execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  return execFileSync('git', args, {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  }).trim()
 }
 
 function option(argv, flag) {
@@ -22,9 +36,37 @@ function sessionId(argv) {
   return option(argv, '--id') || process.env.NN_SESSION_ID || `${os.hostname()}-${process.pid}`
 }
 
+/**
+ * The repo's PRIMARY checkout — its main worktree — asked of git instead of assumed.
+ * `git worktree list` always lists the main worktree first, so this answers "which
+ * checkout is the primary one" from inside a session worktree or any subdirectory.
+ * Returns null when the directory is not inside a git repository.
+ */
+function primaryCheckout(startDir) {
+  try {
+    const out = execFileSync('git', ['worktree', 'list', '--porcelain'], {
+      cwd: startDir,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+    const m = out.match(/^worktree (.+)$/m)
+    return m ? resolve(m[1].trim()) : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Root for every subcommand. A session worktree ships its own copy of this script,
+ * so resolving from the script's own location labelled the worktree "primary" and
+ * pointed every subcommand at the wrong checkout. Ask git first, from the caller's
+ * cwd and then from the script; keep the script's parent only as a last resort so a
+ * copy outside git still works. `--root` still wins over all of it.
+ */
 function repoRoot(argv) {
   const r = option(argv, '--root')
-  return r ? resolve(r) : DEFAULT_ROOT
+  if (r) return resolve(r)
+  return primaryCheckout(process.cwd()) ?? primaryCheckout(here) ?? DEFAULT_ROOT
 }
 
 function worktreePath(root, id) {
@@ -61,9 +103,15 @@ function npmCi(dir) {
   }
   console.error(`nn-session: npm ci in ${dir}…`)
   try {
-    execFileSync('npm', ['ci'], { cwd: dir, stdio: ['ignore', 2, 2], shell: process.platform === 'win32' })
+    execFileSync('npm', ['ci'], {
+      cwd: dir,
+      stdio: ['ignore', 2, 2],
+      shell: process.platform === 'win32',
+    })
   } catch {
-    console.error(`WARNING: npm ci failed in ${dir}; fix and re-run it there, or start with --no-install`)
+    console.error(
+      `WARNING: npm ci failed in ${dir}; fix and re-run it there, or start with --no-install`,
+    )
     process.exitCode = 1
   }
 }
@@ -90,7 +138,10 @@ function hydrateDependencies(target, root, fullInstall) {
     const primaryLock = sha256(join(root, rel, 'package-lock.json'))
     const primaryModules = join(root, rel, 'node_modules')
     const reusable =
-      !fullInstall && targetLock !== null && targetLock === primaryLock && existsSync(primaryModules)
+      !fullInstall &&
+      targetLock !== null &&
+      targetLock === primaryLock &&
+      existsSync(primaryModules)
     if (reusable) {
       removeLink(linkPath) // drop a stale junction before re-pointing
       try {
@@ -98,7 +149,9 @@ function hydrateDependencies(target, root, fullInstall) {
         console.error(`nn-session: linked node_modules in ${dir} (lockfile match)`)
         continue
       } catch (err) {
-        console.error(`WARNING: could not link node_modules in ${dir} (${err.message}); falling back to npm ci`)
+        console.error(
+          `WARNING: could not link node_modules in ${dir} (${err.message}); falling back to npm ci`,
+        )
       }
     }
     npmCi(dir)
@@ -111,9 +164,15 @@ function buildCore(target) {
   if (!existsSync(join(coreDir, 'package.json')) || process.env.NN_SESSION_TEST_NPM_STUB) return
   console.error('nn-session: building @cognnitive/nn-core…')
   try {
-    execFileSync('npm', ['run', 'build'], { cwd: coreDir, stdio: ['ignore', 2, 2], shell: process.platform === 'win32' })
+    execFileSync('npm', ['run', 'build'], {
+      cwd: coreDir,
+      stdio: ['ignore', 2, 2],
+      shell: process.platform === 'win32',
+    })
   } catch {
-    console.error('WARNING: building @cognnitive/nn-core failed; build it there before using the worktree')
+    console.error(
+      'WARNING: building @cognnitive/nn-core failed; build it there before using the worktree',
+    )
   }
 }
 
@@ -171,7 +230,9 @@ function removeNodeModulesLinks(dir) {
  */
 function sessionBase(root) {
   tryGit(['fetch', 'origin'], root) // best-effort; offline is fine
-  return tryGit(['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main'], root).ok ? 'origin/main' : 'main'
+  return tryGit(['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main'], root).ok
+    ? 'origin/main'
+    : 'main'
 }
 
 /** Refs a session branch counts as landed in (`main` may be stale locally). */
@@ -232,16 +293,22 @@ function status(argv) {
   const branch = tryGit(['symbolic-ref', '--short', 'HEAD'], root).out || '(detached)'
   const dirty = tryGit(['status', '--porcelain'], root).out
   const dirtyCount = dirty ? dirty.split(/\r?\n/).filter(Boolean).length : 0
-  const main = (tryGit(['rev-list', '--left-right', '--count', 'origin/main...main'], root).out || '? ?').split(/\s+/)
+  const main = (
+    tryGit(['rev-list', '--left-right', '--count', 'origin/main...main'], root).out || '? ?'
+  ).split(/\s+/)
   const worktrees = tryGit(['worktree', 'list'], root).out
   const stash = tryGit(['reflog', 'show', 'refs/stash'], root).out
 
   console.log('🌿 nn-session status')
-  console.log(`- primary: ${branch} @ ${head} · ${dirtyCount === 0 ? 'clean' : `${dirtyCount} dirty`}`)
+  console.log(
+    `- primary: ${branch} @ ${head} · ${dirtyCount === 0 ? 'clean' : `${dirtyCount} dirty`}`,
+  )
   console.log(`- origin/main...main: ${main[0]} behind · ${main[1]} ahead`)
   console.log('- worktrees:')
   for (const line of (worktrees || '').split(/\r?\n/).filter(Boolean)) console.log(`    ${line}`)
-  console.log(`- stash: ${stash ? `${stash.split(/\r?\n/).filter(Boolean).length} entry(ies)` : 'none'}`)
+  console.log(
+    `- stash: ${stash ? `${stash.split(/\r?\n/).filter(Boolean).length} entry(ies)` : 'none'}`,
+  )
 }
 
 function stop(argv) {
@@ -266,7 +333,9 @@ function stopSession(root, id) {
 
   // Refuse to delete a branch with unique work.
   if (branchExists && !INTEGRATION_REFS.some(isIn)) {
-    const bases = INTEGRATION_REFS.filter((ref) => tryGit(['rev-parse', '--verify', '--quiet', ref], root).ok)
+    const bases = INTEGRATION_REFS.filter(
+      (ref) => tryGit(['rev-parse', '--verify', '--quiet', ref], root).ok,
+    )
     const unique = tryGit(['log', '--oneline', branch, '--not', ...bases], root).out
     return `refusing: ${branch} has commits not in main or origin/main:\n${unique}`
   }
@@ -334,7 +403,10 @@ function sweep(argv) {
 
   // 2. Scan remaining local session/* branches that are already merged
   const rawBranches = tryGit(['branch', '--list', 'session/*'], root).out
-  const branches = rawBranches.split(/\r?\n/).map((b) => b.trim().replace(/^\*\s*/, '')).filter(Boolean)
+  const branches = rawBranches
+    .split(/\r?\n/)
+    .map((b) => b.trim().replace(/^\*\s*/, ''))
+    .filter(Boolean)
   for (const branch of branches) {
     if (INTEGRATION_REFS.some((ref) => isAncestor(branch, ref))) {
       console.log(`deleting merged local branch: ${branch}`)
@@ -352,6 +424,8 @@ else if (cmd === 'status') status(process.argv.slice(2))
 else if (cmd === 'stop') stop(process.argv.slice(2))
 else if (cmd === 'sweep') sweep(process.argv.slice(2))
 else {
-  console.error('usage: nn-session.mjs start|list|status|stop|sweep [--id <id>] [--no-install] [--full-install] [--root <path>]')
+  console.error(
+    'usage: nn-session.mjs start|list|status|stop|sweep [--id <id>] [--no-install] [--full-install] [--root <path>]',
+  )
   process.exit(2)
 }

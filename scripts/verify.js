@@ -389,13 +389,15 @@ const OFFLINE_GUARD = path.join(__dirname, 'lib', 'offline-guard.js').split(path
  * Environment for every child process: offline mode is enforced, never optional.
  * `NN_OFFLINE=1` plus a `--require` preload that refuses non-loopback connections
  * at the net/tls/dns/fetch level, so even a suite that bypasses the GitHub client
- * (or stubs the wrong transport) fails closed. Existing NODE_OPTIONS are kept.
+ * (or stubs the wrong transport) fails closed. `INNFO_CONSOLE_NO_OPEN=1` keeps every
+ * suite from opening a browser tab on the maintainer's desktop. Existing NODE_OPTIONS
+ * are kept.
  * @param {NodeJS.ProcessEnv} [base]
  * @returns {NodeJS.ProcessEnv}
  */
 function childEnv(base = process.env) {
   /** @type {NodeJS.ProcessEnv} */
-  const childEnvironment = { ...base, NN_OFFLINE: '1' };
+  const childEnvironment = { ...base, NN_OFFLINE: '1', INNFO_CONSOLE_NO_OPEN: '1' };
   const options = childEnvironment.NODE_OPTIONS || '';
   if (!options.includes(OFFLINE_GUARD)) {
     childEnvironment.NODE_OPTIONS = `${options} --require "${OFFLINE_GUARD}"`.trim();
@@ -608,6 +610,9 @@ function buildSteps(repoRoot, options = {}) {
   steps.push(roFresh('console-payload'));
   // 7b-ter. Single-file console bundle drift guard (offline: reads the UMD sources, no network).
   steps.push(roFresh('console-bundle'));
+  // 7b-quinquies. Committed MCP CDN bundle must announce the package.json version
+  // (the nn-mcp-v0.37.0 release shipped 0.36.0 bytes before this guard existed).
+  steps.push(roFresh('mcp-bundle'));
   // 7b-quater. Offline canonical-registry mirror drift guard (embedded spec copies).
   steps.push(roFresh('canonical-registry'));
   // 7c. Samples SSOT Drift Guard.

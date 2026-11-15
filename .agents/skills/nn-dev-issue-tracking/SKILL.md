@@ -1,7 +1,7 @@
 ---
 name: nn-dev-issue-tracking
 version: "0.1.0"
-description: Internal developer skill for cogNNitive maintainers. Owns the two-repo issue model — cogNNitive (source-of-truth engineering tracker) and cogNNitive-web (public intake surface). Sweeps the public intake, triages every open web issue (fixes-here / web-only / already-fixed), imports engineering issues into cogNNitive with traceability, and guarantees no open web issue is left untriaged. Trigger: issue triage, web issues, intake sweep, import issues, transfer issues, backlog review, cogNNitive-web inbox.
+description: Internal developer skill for cogNNitive maintainers. Owns the two-repo issue model — cogNNitive (source-of-truth engineering tracker) and cogNNitive-web (public intake surface). Sweeps the public intake, triages every open web issue (fixes-here / web-only / already-fixed), imports engineering issues into cogNNitive with traceability, and guarantees no open web issue is left untriaged. Trigger: issue triage, web issues, intake sweep, import issues, transfer issues, cogNNitive-web inbox.
 ---
 
 # nn-dev-issue-tracking Skill (Two-Repo Issue Model & Web Intake)

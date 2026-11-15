@@ -27,6 +27,18 @@ node scripts/nn-session.mjs status                        # primary health + eve
   `git add/commit/stash` there. Work in the worktree. When the tool cwd resets to the
   primary, use `git -C <literal absolute worktree path>`: the hook reads the `-C`
   argument as text, so a shell variable (`git -C "$W"`) is refused.
+  - **Which checkouts those hooks cover.** The hooks are registered in
+    `.claude/settings.json` (Claude Code) and mirrored in `.agents/hooks.json`
+    (Antigravity). Both decide "primary" by one rule: `.git` is a **directory** for the
+    primary and a **file** for a linked worktree.
+  - **OpenCode enforces neither.** It reads neither config file, so under OpenCode the
+    read-only primary and the dangerous-git list are **convention, not enforcement**:
+    nothing blocks a write. Treat them as rules, not as a safety net, and do not assume a
+    delegate is sandboxed because a sibling provider was.
+  - **`nn-session status` asks git which checkout is primary** (`git worktree list` lists
+    the main worktree first), so it reports the truth from any worktree. Do not derive it
+    from where `scripts/nn-session.mjs` itself lives: every session worktree has its own
+    copy, which is exactly how a worktree once got labelled "primary".
 - **Another worktree may be live.** Look at it read-only; never revert, commit or stop a
   worktree you did not create.
 - **`node_modules` is a junction to the primary's.** The workspace link
@@ -38,6 +50,32 @@ node scripts/nn-session.mjs status                        # primary health + eve
 - **Commit early, push early.** `wip:<id>: <reason>` checkpoints are fine on the session
   branch; squash them before landing. Pushing `session/*` skips the heavy local gate:
   the PR's CI is the gate.
+
+## 1a. Claim the area before the first write
+
+A worktree isolates files, not decisions. Two sessions can cut independent worktrees and
+still write the same file or the same generated artifact; the collision then surfaces as
+a merge conflict, or worse, as one PR regenerating a bundle over the other one's change.
+
+Before the first edit, write `openspec/claims/<id>.md` with the paths you are about to
+touch, then check it against every other claim and open PR:
+
+```powershell
+gh pr list --state open --json number,headRefName,files > prs.json
+node scripts/claim-check.mjs --self openspec/claims/<id>.md --prs prs.json `
+  --area scripts/foo.mjs --area "iNNfo/specs/**"
+```
+
+- **Exit 0:** nobody else is writing there.
+- **Exit 1:** a claim or an open PR already covers the path. Do not start as planned. Hand
+  the area over, wait for it, or record the accepted overlap in your claim and say why.
+- A claim whose PR is merged or closed is released; its file gets deleted, not kept as a
+  tombstone.
+
+Declare **literal paths and narrow globs**, never a topic name: `"the console"` claims
+nothing, `iNNfo/specs/bluepriNNts/console/ui-kit.js` claims something. Generated
+artifacts (`*.bundle.js`, `catalog.json`, exported console HTML) belong to whoever owns
+the source and are regenerated after the rebase, never resolved by hand.
 
 ## 2. Pick the lane
 
@@ -85,7 +123,8 @@ Gentle-AI's ODD runs the agent; this repository narrows it:
    end of a unit.
 2. **Merging the PR is the maintainer's call.** Ask, per PR. Merge with `--merge`, not
    `--squash`: a merge commit keeps the branch an ancestor of `main`, so `nn-session
-   stop`/`sweep` can remove it.
+   stop`/`sweep` can remove it. Landing the change also deletes its
+   `openspec/claims/<id>.md`: the area is free again the moment the work is in.
 3. A red `main` is fixed forward. A failure that also reproduces on the previous `main`
    is pre-existing: file an issue, do not fix it as a rider.
 
@@ -132,7 +171,9 @@ halfway and leave a half-deleted folder; `stop` unlinks them first. Remote branc
 ## Git rules
 
 - Blocked by `.claude/hooks/block-dangerous-git.mjs`: `reset --hard`, `clean`, `stash`,
-  `branch -D`, `checkout`/`restore .`, and `checkout <ref> -- <path>`. To restore one
+  `branch -D`, `checkout`/`restore .`, and `checkout <ref> -- <path>`. This applies under
+  Claude Code and Antigravity only; OpenCode reads neither hook config, so there the list
+  is a rule you follow, not a guard that stops you. To restore one
   file: `git show <ref>:<path> > <path>`. To drop a commit and keep the tree:
   `git reset --soft HEAD~1`.
 - PowerShell `>` writes UTF-16. For a byte-exact patch: `cmd /c "git diff -- <path> > out.patch"`.
