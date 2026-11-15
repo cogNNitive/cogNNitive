@@ -64,8 +64,11 @@ async function runTests() {
     await assert.rejects(
       () => collectViewData({ views: [{ id: 'missing', dataPath: missingPath }], rootDir: dir }),
       (err) => {
-        assert.match(err.message, /cannot load the data module for view "missing"/)
-        assert.ok(err.message.includes(missingPath))
+        /* assert.rejects hands the predicate `unknown`, and this suite is
+           typechecked as strictly as the exporter it tests. */
+        const message = err instanceof Error ? err.message : String(err)
+        assert.match(message, /cannot load the data module for view "missing"/)
+        assert.ok(message.includes(missingPath))
         return true
       },
     )
