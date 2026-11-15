@@ -83,6 +83,11 @@ describe('console: set_fields change cards', () => {
   it('shows the same card for inherited and per-change execution facts', async () => {
     const inherited = UI.ChangeHistory({ changes: await recordsOf(INHERITED), byId: {} }, {})
     const perChange = UI.ChangeHistory({ changes: await recordsOf(PER_CHANGE), byId: {} }, {})
+    // A change sheet builds its body on first expand, so both sides are expanded
+    // before comparing: otherwise the comparison would only see the sheet heads.
+    for (const root of [inherited, perChange]) {
+      root.querySelectorAll('[data-nn-component="element-card"]').forEach((card: any) => card.setOpen?.(true))
+    }
     expect(inherited.textContent).toBe(perChange.textContent)
     expect(inherited.textContent).toContain(AT)
   })
