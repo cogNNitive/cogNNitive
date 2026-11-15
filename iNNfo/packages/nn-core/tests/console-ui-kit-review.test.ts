@@ -9,6 +9,19 @@ const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepr
 const UI = req(join(consoleDir, 'ui-kit.js')) as any
 const comp = (root: HTMLElement) => root.getAttribute('data-nn-component')
 
+/**
+ * A change sheet mounts collapsed and builds its body on first expand, because a
+ * Changes tab can hold hundreds of them. A test that asserts on body content (the
+ * from/to columns, the author, the applied time) expands the sheet first, exactly
+ * like a reader does.
+ */
+function openSheets(root: ParentNode): void {
+  root.querySelectorAll('[data-nn-component="element-card"]').forEach((card) => {
+    const open = (card as unknown as { setOpen?: (v: boolean) => void }).setOpen
+    if (typeof open === 'function') open(true)
+  })
+}
+
 describe('nnUI.DraftList', () => {
   const byId = { 'el-a': { id: 'el-a', hash: 'h1' }, 'el-b': { id: 'el-b', hash: 'h2' } }
   const drafts = [
@@ -61,6 +74,7 @@ describe('nnUI.DraftList', () => {
       byId,
     })
     expect(list.querySelector('[data-nn-component="citation-icon"]')).toBeNull()
+    openSheets(list)
     expect(list.textContent).toContain('sources/a.md')
   })
 
@@ -137,6 +151,7 @@ describe('nnUI.ChangeHistory', () => {
 
   it('renders Applied and Not applied sheets, skips other blocks, no StatusBadge', () => {
     const history = UI.ChangeHistory({ changes, byId }, {})
+    openSheets(history)
     const cards = sheets(history)
     expect(cards.length).toBe(2)
     expect(cards[0].getAttribute('data-change-state')).toBe('applied')
@@ -180,6 +195,7 @@ describe('nnUI.ChangeHistory', () => {
       },
     ]
     const history = UI.ChangeHistory({ changes: withSource, byId }, { onCitation })
+    openSheets(history)
     const cite = history.querySelector(
       '[data-nn-component="citation-icon"]',
     ) as HTMLButtonElement
@@ -399,6 +415,7 @@ describe('nnUI.ElementCard applied history', () => {
     expect(changes.style.display).toBe('block')
     // One standard element sheet per recorded change, reusing ElementCard.
     expect(changes.querySelectorAll('article[data-nn-component="element-card"]').length).toBe(1)
+    openSheets(changes)
     expect(changes.textContent).toContain('ana')
     expect(changes.textContent).toContain('Bea')
     expect(changes.textContent).toContain('Ana')
