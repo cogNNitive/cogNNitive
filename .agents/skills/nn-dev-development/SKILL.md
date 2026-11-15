@@ -27,6 +27,18 @@ node scripts/nn-session.mjs status                        # primary health + eve
   `git add/commit/stash` there. Work in the worktree. When the tool cwd resets to the
   primary, use `git -C <literal absolute worktree path>`: the hook reads the `-C`
   argument as text, so a shell variable (`git -C "$W"`) is refused.
+  - **Which checkouts those hooks cover.** The hooks are registered in
+    `.claude/settings.json` (Claude Code) and mirrored in `.agents/hooks.json`
+    (Antigravity). Both decide "primary" by one rule: `.git` is a **directory** for the
+    primary and a **file** for a linked worktree.
+  - **OpenCode enforces neither.** It reads neither config file, so under OpenCode the
+    read-only primary and the dangerous-git list are **convention, not enforcement**:
+    nothing blocks a write. Treat them as rules, not as a safety net, and do not assume a
+    delegate is sandboxed because a sibling provider was.
+  - **`nn-session status` asks git which checkout is primary** (`git worktree list` lists
+    the main worktree first), so it reports the truth from any worktree. Do not derive it
+    from where `scripts/nn-session.mjs` itself lives: every session worktree has its own
+    copy, which is exactly how a worktree once got labelled "primary".
 - **Another worktree may be live.** Look at it read-only; never revert, commit or stop a
   worktree you did not create.
 - **`node_modules` is a junction to the primary's.** The workspace link
@@ -132,7 +144,9 @@ halfway and leave a half-deleted folder; `stop` unlinks them first. Remote branc
 ## Git rules
 
 - Blocked by `.claude/hooks/block-dangerous-git.mjs`: `reset --hard`, `clean`, `stash`,
-  `branch -D`, `checkout`/`restore .`, and `checkout <ref> -- <path>`. To restore one
+  `branch -D`, `checkout`/`restore .`, and `checkout <ref> -- <path>`. This applies under
+  Claude Code and Antigravity only; OpenCode reads neither hook config, so there the list
+  is a rule you follow, not a guard that stops you. To restore one
   file: `git show <ref>:<path> > <path>`. To drop a commit and keep the tree:
   `git reset --soft HEAD~1`.
 - PowerShell `>` writes UTF-16. For a byte-exact patch: `cmd /c "git diff -- <path> > out.patch"`.
