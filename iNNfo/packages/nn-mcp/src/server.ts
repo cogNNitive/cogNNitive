@@ -278,7 +278,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       description:
         'Apply an intent-level change or changeset to knowledge documents and re-validate. Supports two-phase execution (validate, then persist atomically) from changes/ documents or bare intent operations. ' +
         'Every operation that mutates a Level-3 kNNowledge model (including freeze_slugs and bump_version) is synthesized into a sealed, recorded changeset; only generate_index and the Level-2 bluepriNNt authoring operations (add_concept, add_field, bump_version on a bluepriNNt) write directly. ' +
-        'After an applied or partially applied changeset the domain console is regenerated and opened in a browser tab (pass open: false to skip). ' +
+        'After an applied or partially applied changeset the domain console is regenerated (pass open: true to also open it in a browser tab). ' +
         'The result carries console (the regeneration outcome) and next_steps: you MUST relay next_steps.notice to the user.',
       inputSchema: {
         type: 'object',
@@ -332,7 +332,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           open: {
             type: 'boolean',
             description:
-              'Open the regenerated domain console in a browser tab (default true). When false, next_steps.notice gives the file path to open manually.',
+              'Open the regenerated domain console in a browser tab (default false). Opening a new tab on every apply piles up heavyweight instances, so the console is not opened unless asked. When false, next_steps.notice gives the file path to open manually.',
           },
         },
       },
@@ -344,7 +344,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'regenerate_console',
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
       description:
-        'Regenerate the domain console (or one model-scoped console) and open it in a browser tab. Idempotent: an up-to-date console is reported as unchanged. ' +
+        'Regenerate the domain console (or one model-scoped console); pass open: true to also open it in a browser tab. Idempotent: an up-to-date console is reported as unchanged. ' +
         'Also the retry path after an apply whose console regeneration failed. The result carries console and next_steps: you MUST relay next_steps.notice to the user.',
       inputSchema: {
         type: 'object',
@@ -357,7 +357,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           },
           open: {
             type: 'boolean',
-            description: 'Open the regenerated console in a browser tab (default true).',
+            description: 'Open the regenerated console in a browser tab (default false).',
           },
         },
       },
@@ -369,7 +369,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'propose_changeset',
       annotations: { readOnlyHint: false, destructiveHint: false },
       description:
-        'Write a sealed changeset with status proposed under changes/ from a structured list of operations, then regenerate and open the domain console so the user can review it. It never applies the changeset. ' +
+        'Write a sealed changeset with status proposed under changes/ from a structured list of operations, then regenerate the domain console so the user can review it (pass open: true to also open it in a browser tab). It never applies the changeset. ' +
         'You derive the operations (update_field, set_fields, add_element, remove_element, rename_element, rename_concept, update_matrix_cell, update_concept_text, update_element_text, remove_matrix, add_matrix, comment, add_model, move_model, freeze_slugs, bump_version, produce_artifact); the tool does not interpret conversations. ' +
         'Validation runs before any write: an unknown model, an add_model on an existing model, or an operation missing required keys returns errors and writes nothing. ' +
         'The result carries changeset, console and next_steps: you MUST relay next_steps.notice to the user. When the user replies OK, call apply_change with next_steps.approve.changeset.',
@@ -388,7 +388,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           root: { type: 'string', description: 'Optional domain root override (alias for domain).' },
           open: {
             type: 'boolean',
-            description: 'Open the regenerated domain console in a browser tab (default true).',
+            description: 'Open the regenerated domain console in a browser tab (default false).',
           },
         },
         required: ['operations'],
@@ -492,7 +492,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           },
           open: {
             type: 'boolean',
-            description: 'Open the regenerated domain console in a browser tab (default true).',
+            description: 'Open the regenerated domain console in a browser tab (default false).',
           },
           domain: { type: 'string', description: 'Optional domain root directory override' },
           root: { type: 'string', description: 'Optional domain root directory override (alias for domain)' },
@@ -998,7 +998,7 @@ async function handleApplyChange(args: Record<string, unknown>): Promise<CallToo
 
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
 
-  const open = args.open === undefined ? true : Boolean(args.open)
+  const open = args.open === undefined ? false : Boolean(args.open)
   const run = () => (changesetPath ? applyChange(root, changesetPath) : applyChange(root, id!, op!, opArgs))
   const applied = await applyWithConsole(root, run, { open })
   const payload: Record<string, unknown> = { ...applied }
@@ -1021,7 +1021,7 @@ async function handleProposeChangeset(args: Record<string, unknown>): Promise<Ca
     )
   }
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const open = args.open === undefined ? true : Boolean(args.open)
+  const open = args.open === undefined ? false : Boolean(args.open)
   const result = await proposeChangeset(root, {
     operations: args.operations,
     title: typeof args.title === 'string' ? args.title : undefined,
@@ -1045,7 +1045,7 @@ async function handleInitDomain(args: Record<string, unknown>): Promise<CallTool
 async function handleRegenerateConsole(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
   const model = typeof args.model === 'string' && args.model !== '' ? args.model : undefined
-  const open = args.open === undefined ? true : Boolean(args.open)
+  const open = args.open === undefined ? false : Boolean(args.open)
   const outcome = await regenerateConsole(root, { scope: model ? { model } : 'domain', open })
   const payload = {
     success: outcome.status !== 'failed',
@@ -1075,7 +1075,7 @@ async function handleInitKnowledge(args: Record<string, unknown>): Promise<CallT
   if (!id || !blueprintUrl || !blueprintName) {
     return errorResult('Missing required arguments: id, blueprint_url, blueprint_name')
   }
-  const open = args.open === undefined ? true : Boolean(args.open)
+  const open = args.open === undefined ? false : Boolean(args.open)
   const result = await initKnowledge(
     root,
     id,
