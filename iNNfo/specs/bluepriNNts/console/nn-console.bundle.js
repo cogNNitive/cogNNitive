@@ -3577,6 +3577,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         modelId: opts.modelId,
         collapsible: opts.collapsible !== false,
         open: opts.open === true,
+        // A changes tab renders one sheet per applied change: hundreds of them, all
+        // collapsed. The body is display:none until expanded, so building it at mount
+        // buys nothing and costs most of the page's DOM. Build it on first expand.
+        lazy: true,
         onCite: opts.onCite,
         head: head,
       },
