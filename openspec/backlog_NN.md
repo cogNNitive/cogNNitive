@@ -57,6 +57,9 @@ captured:: 2026-11-14
 ## NN Idea: Console builder (console-builder-d24): add a closing-brace-then-slash division row to the findModuleSyntax scanner test table in test/console-views-lib.test.mjs; the scanner itself stays; see openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md decision D24
 captured:: 2026-11-14
 
+## NN Idea: Per-delegate token and cost metering for every phase that launches subagents (general mechanism, not a review feature) - each delegate reports its own input, output and cached tokens on completion, and the orchestrator aggregates them against a dated rate table so an estimate can be replaced by a measured figure. Wanted first by nn-dev-multimodel-review, whose preflight can only estimate, but the same gap exists in every SDD apply, backlog audit and analysis phase that fans out. Needs a decision on how a runtime that does not report usage is represented, and on where the ledger lives (per run, per session or per repo).
+captured:: 2026-11-15
+
 # NN Item
 
 ## NN Item: source-import-guards

@@ -1,7 +1,7 @@
 ---
 name: nn-dev-multimodel-review
 version: "0.1.0"
-description: Internal developer skill for cogNNitive maintainers. Runs an in-depth multi-model review of ONE repo component (about 3,000 lines at most) to find refactors, changes and improvements - three independent analyses, a cross critique, then a consolidated plan. Read-only; never applies changes. Trigger: multi-model review, multimodel analysis, three models, cross review, refactor opportunities, improvement analysis of a component.
+description: Internal developer skill for cogNNitive maintainers. Runs an in-depth multi-model review of ONE repo component (about 3,000 lines at most) to find refactors, changes and improvements - N independent analyses, a cross critique, then a consolidated plan, with a roster and cost estimate confirmed before launch. Read-only; never applies changes. Trigger: multi-model review, multimodel analysis, three models, cross review, refactor opportunities, improvement analysis of a component, cost estimate for a review.
 ---
 
 # nn-dev-multimodel-review
@@ -31,9 +31,9 @@ repo improvement-plan review). Maintainer-only; sibling of `nn-dev-development` 
 
 1. Work in a session worktree (`nn-dev-development` §1). Write everything under
    `temp/analysis/<slug>/` (already gitignored). Never write in the primary checkout.
-2. Ask which three models to use, one question at a time. Defaults: three fast, cheap models
-   from three different providers. The orchestrator is a fourth model and does not analyze
-   until phase 3. Verify real ids with `orchestrator_capabilities` (call it once).
+2. **Build and confirm the roster. Run §2a before launching anything.** The roster is a
+   proposal, not a fixed three: the maintainer unmarks, adds and swaps models, and sees the
+   cost delta of every change.
 3. Ask the maintainer to pre-approve every provider's workspace-trust prompt before
    launching. An untrusted workspace stalled one analyst for 2 hours.
 4. Runtime mode: the least permissive mode that lets a delegate write its own file without
@@ -43,13 +43,89 @@ repo improvement-plan review). Maintainer-only; sibling of `nn-dev-development` 
 6. Copy the two assets into `temp/analysis/<slug>/`: fill `assets/orchestrator-prompt.md`
    (placeholders in braces) and copy `assets/review-panel_spec_NN.md` unchanged.
 
+### 2a. Roster and cost estimate (mandatory, before the first launch)
+
+The three-model default is a proposal that keeps three different providers, so the panel
+never shares one lineage's wrong premise. It is not a fixed list: the maintainer confirms it,
+and may unmark any entry or add one that is not proposed.
+
+**Step 1 — Measure the corpus.** Never estimate a cost from a guess about size.
+
+```bash
+wc -l <each target file>     # corpus_lines
+```
+
+`corpus_tokens ≈ corpus_lines × 40` (rough heuristic for code; say it is a heuristic).
+Add the format contract (`review-panel_spec_NN.md`, about 5,900 tokens).
+
+**Step 2 — Model each phase.** Entry and exit tokens per analyst:
+
+| Phase | Input per analyst | Expected output |
+|---|---|---|
+| 1 Independent analysis | corpus + spec | 5–12 findings, ≈1,200–2,000 tok |
+| 2 Cross critique | corpus + spec + the other reports | ≈2,500 tok |
+| 3 Consolidation | every report + spec | ≈3,200 tok |
+
+With e analysts the run costs `e × phase1 + e × phase2 + phase3`. Cost each candidate at its
+own input/output rates; cache reads only apply when the same prompt prefix repeats, so do not
+claim them without evidence.
+
+**Step 3 — Show the roster and the total.** One table, cost per entry, then the delta of the
+alternatives the maintainer could swap in:
+
+```
+Analysed: <files> (<N> lines ≈ <T> tokens)
+
+Roster proposed — prices at <YYYY-MM-DD>
+
+  #  role           model                 provider    estimate
+  1  analyst        gemini-3.8-flash      Google      $0.36
+  2  analyst        gpt-6-luna            OpenAI      $0.04
+  3  analyst        deepseek-v4.1-flash   DeepSeek    $0.07
+  -  consolidator   claude-sonnet-5-5     Anthropic   $0.11
+  ──────────────────────────────────────────────────────────
+                                    TOTAL ESTIMATE   $0.58
+
+  Also available: <model> $X · <model> $Y · <model> $Z
+
+  ⚠ Orientative prices at <YYYY-MM-DD>. They may be out of date (name the
+    scheduled change you know about, e.g. a model whose price doubles on a
+    published date) and they may contain errors: a misread rate, the wrong
+    tier, or a model that was renamed. This is not a quote. Verify against
+    the provider's page when the figure decides a purchase.
+```
+
+**Step 4 — Apply the maintainer's edits.** Unmarking and adding are both allowed. After each
+edit the total and the delta update. A model with no published rate is listed as
+`unknown price`, announced to the maintainer, and does not block the run: it stays in the
+roster with that label so nobody later reads an estimate that silently omitted it.
+
+**Step 5 — Enforce the floor.** At least one analyst is required. One analyst is allowed, but
+it must be declared: with a single analyst there is no cross-critique, so the report carries
+`no_cross_critique: true`, phase 2 does not run, and the verdict is not multi-model. Say it
+inline before launching:
+
+```
+  ⚠ One analyst only: no cross-critique. The report will declare
+    no_cross_critique: true and the verdict is not multi-model.
+```
+
+**Step 6 — Freeze.** Copy the confirmed roster, the estimate and the price date into the
+brief. An edited roster is the roster the run uses.
+
+Rate table, verification dates and the unknown-price rule: see `## 10. Cost model`.
+
 ## 3. Phases
 
 | # | Who | Output | Rule |
 |---|---|---|---|
-| 1 | 3 analysts, in parallel | `independent-analysis-<key>.md` | Isolated: nobody reads another report |
-| 2 | the same 3, fresh threads | `cross-critique-<key>.md` | One critique per foreign finding; new findings are `N1`.. |
+| 1 | <N> analysts, in parallel | `independent-analysis-<key>.md` | Isolated: nobody reads another report |
+| 2 | the same analysts, fresh threads | `cross-critique-<key>.md` | One critique per foreign finding; new findings are `N1`.. |
 | 3 | orchestrator | `consolidated-plan-and-verdict.md` | Verify only the disagreements in code |
+
+Phase 2 does not run when the confirmed roster has one analyst. Phase 1 runs with however many
+the maintainer confirmed; the phased shape does not change because an entry was unmarked or
+added.
 
 Between phases run the integrity check: `git status --porcelain` equals BASELINE, each
 report exists with level 3 frontmatter, critiques cover every foreign finding. A change outside
@@ -85,11 +161,10 @@ report exists with level 3 frontmatter, critiques cover every foreign finding. A
 ## 7. Output
 
 Report to the maintainer: files produced, verdict in 2 to 3 sentences, the first-batch
-decisions, retries and gaps, and the models actually run. Applying anything is a separate
-decision; register items through `nn-dev-backlog`. Delete `temp/analysis/<slug>/` only when
-the maintainer says so.
-
-Not yet measured in either run: token and money cost. Say so instead of guessing.
+decisions, retries and gaps, the models actually run, and the preflight estimate next to
+`not measured` (the run does not instrument real token spend; see §10). Applying anything is
+a separate decision; register items through `nn-dev-backlog`. Delete
+`temp/analysis/<slug>/` only when the maintainer says so.
 
 ## 8. Hand-off: preserve, audit, register
 
@@ -129,3 +204,64 @@ What the audit found after the consolidator was done (15 corrections to its plan
 
 A walkthrough of the first run in T3 Code (roster, settings, quirks) is in
 [`references/t3-code.md`](references/t3-code.md); it is non-normative.
+
+## 10. Cost model
+
+### Rate table
+
+USD per million tokens at the provider's standard (non-batch) tier. Re-read every row
+against the provider's own pricing page before a run where the figure decides anything; the
+table exists so the preflight has a starting point, not so the run inherits stale numbers.
+
+| Model | Provider | Input | Output | Cached input | Verified | Note |
+|---|---|---|---|---|---|---|
+| Gemini 3.8 Flash | Google | $0.75 | $3.75 | $0.075 | 2026-11-15 | Introductory rate; $1.50 / $7.50 from 2027-01-01 |
+| Gemini 4 Argon | Google | $2.00 | $10.00 | $0.10 | 2026-11-15 | $4.00 / $20.00 from 2026-12-01 |
+| GPT-6 Luna | OpenAI | $0.10 | $0.50 | $0.01 | 2026-11-15 | Over 272K input the whole request doubles |
+| GPT-6.1 Terra | OpenAI | $1.00 | $5.00 | $0.05 | 2026-11-15 | Same long-context rule |
+| GPT-6.1 Sol | OpenAI | $2.00 | $10.00 | $0.10 | 2026-11-15 | Same long-context rule |
+| DeepSeek V4.1 Flash | DeepSeek | $0.15–0.30 | $0.60–1.20 | $0.003–0.006 | 2026-11-15 | Peak doubles; 01–04 and 06–10 UTC, Mon–Fri |
+| Claude Haiku 5.5 | Anthropic | $0.10 | $0.50 | — | 2026-11-15 | |
+| Claude Sonnet 5.5 | Anthropic | $2.00 | $10.00 | $0.10 | 2026-11-15 | |
+| Claude Opus 5.5 | Anthropic | $4.00 | $20.00 | $0.20 | 2026-11-15 | |
+
+When a rate is unknown for a model the maintainer asks for, list it as `unknown price`,
+tell the maintainer, and keep it in the roster. Never invent a rate, never silently drop the
+model, and never let an omission turn into a total that reads complete.
+
+### Two columns, and what each one means
+
+Every estimate states both, and never mixes them:
+
+- **List price.** What the same tokens would cost paid per token at API rates. Absolute and
+  comparable across models; it is what decides whether a plan beats an API key.
+- **Plan consumption.** How much of an existing subscription the run eats. Measured in
+  dollars only where the provider meters in dollars (OpenCode Go bills per model in dollars);
+  everywhere else the plan publishes no token or dollar cap, so it is an imputation, and the
+  report must label it that way rather than present a percentage it cannot know.
+
+### Worked estimate: the 2026-11-14 console builder review
+
+Corpus 3,200 lines ≈ 128,000 input tokens per analyst; format contract ≈ 5,900 tokens;
+three analysts and one consolidator.
+
+| Phase | Input tokens | Output tokens |
+|---|---|---|
+| 1 Independent analysis | 3 × (128,000 + 5,900) = 402,000 | 4,776 |
+| 2 Cross critique | 3 × (128,000 + 12,000 + 5,900) ≈ 438,000 | 7,360 |
+| 3 Consolidation | 31,000 | 4,275 |
+| **Total** | **≈ 871,000** | **≈ 16,400** |
+
+List price: Gemini $0.36, GPT-6 Luna $0.04, DeepSeek $0.07, Sonnet $0.11 — **≈$0.58** at the
+2026-11-15 rates, ≈$0.89 with Gemini and DeepSeek at peak, ≈$0.95 with Opus as consolidator.
+Plan consumption for that same run: OpenCode $0.07 (0.07% of the month); the other three are
+imputations. The number to remember is that a well-scoped review of about 3,000 lines costs
+cents, so roster choice is a quality decision, not a budget one.
+
+### Measuring the real cost is out of scope
+
+The run does not instrument token spend: delegates are not required to report usage, so no
+figure here is measured. Say `not measured` next to the estimate. A general per-delegate
+cost-metering mechanism would serve every phase that launches subagents, not only this skill,
+so it is registered as a backlog Idea rather than bolted onto this skill.
+
