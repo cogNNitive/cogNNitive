@@ -6624,24 +6624,26 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var onStorage = null
     var listenTarget = typeof window !== 'undefined' && window && window.addEventListener ? window : null
     // A foreign write forces a re-read and a re-render, and a domain console is big
-    // enough that this is the most expensive thing the store can trigger. Two
-    // neighbouring events collapse into one render, and a tab nobody is looking at
-    // defers the whole thing until it is visible again.
-    var remotePending = null
+    // enough that this is the most expensive thing the store can trigger. The first
+    // event still notifies synchronously (consumers depend on it); the ones that
+    // follow are dropped until the next frame, so a burst costs one re-render. A tab
+    // nobody is looking at defers the whole thing until it is visible again.
+    var remoteSuppressed = false
     var remoteDeferred = false
 
-    function runRemoteChange() {
-      remotePending = null
-      if (typeof opts.onRemoteChange === 'function') opts.onRemoteChange()
+    function releaseRemote() {
+      remoteSuppressed = false
     }
 
     function scheduleRemoteChange() {
-      if (remoteDeferred || remotePending !== null) return
+      if (typeof opts.onRemoteChange === 'function') opts.onRemoteChange()
+      if (remoteSuppressed) return
+      remoteSuppressed = true
       if (typeof listenTarget.requestAnimationFrame === 'function') {
-        remotePending = listenTarget.requestAnimationFrame(runRemoteChange)
-        return
+        listenTarget.requestAnimationFrame(releaseRemote)
+      } else {
+        listenTarget.setTimeout(releaseRemote, 16)
       }
-      remotePending = listenTarget.setTimeout(runRemoteChange, 16)
     }
 
     function flushRemoteChange() {
@@ -6749,7 +6751,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       },
       destroy: function () {
         if (listenTarget && onStorage) listenTarget.removeEventListener('storage', onStorage)
+        if (listenTarget && persistent) listenTarget.removeEventListener('visibilitychange', flushRemoteChange)
         onStorage = null
+        remoteDeferred = false
       },
     }
   }
