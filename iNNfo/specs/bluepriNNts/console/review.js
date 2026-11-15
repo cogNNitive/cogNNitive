@@ -254,14 +254,47 @@
 
     var onStorage = null
     var listenTarget = typeof window !== 'undefined' && window && window.addEventListener ? window : null
+    // A foreign write forces a re-read and a re-render, and a domain console is big
+    // enough that this is the most expensive thing the store can trigger. Two
+    // neighbouring events collapse into one render, and a tab nobody is looking at
+    // defers the whole thing until it is visible again.
+    var remotePending = null
+    var remoteDeferred = false
+
+    function runRemoteChange() {
+      remotePending = null
+      if (typeof opts.onRemoteChange === 'function') opts.onRemoteChange()
+    }
+
+    function scheduleRemoteChange() {
+      if (remoteDeferred || remotePending !== null) return
+      if (typeof listenTarget.requestAnimationFrame === 'function') {
+        remotePending = listenTarget.requestAnimationFrame(runRemoteChange)
+        return
+      }
+      remotePending = listenTarget.setTimeout(runRemoteChange, 16)
+    }
+
+    function flushRemoteChange() {
+      if (!remoteDeferred) return
+      if (listenTarget.document && listenTarget.document.hidden) return
+      remoteDeferred = false
+      scheduleRemoteChange()
+    }
+
     if (listenTarget && persistent) {
       onStorage = function (event) {
         if (event && event.key !== null && event.key !== undefined && event.key !== key) return
         if (memoryAhead) return
         state = read()
-        if (typeof opts.onRemoteChange === 'function') opts.onRemoteChange()
+        if (listenTarget.document && listenTarget.document.hidden) {
+          remoteDeferred = true
+          return
+        }
+        scheduleRemoteChange()
       }
       listenTarget.addEventListener('storage', onStorage)
+      listenTarget.addEventListener('visibilitychange', flushRemoteChange)
     }
 
     return {

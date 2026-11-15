@@ -6623,14 +6623,47 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var onStorage = null
     var listenTarget = typeof window !== 'undefined' && window && window.addEventListener ? window : null
+    // A foreign write forces a re-read and a re-render, and a domain console is big
+    // enough that this is the most expensive thing the store can trigger. Two
+    // neighbouring events collapse into one render, and a tab nobody is looking at
+    // defers the whole thing until it is visible again.
+    var remotePending = null
+    var remoteDeferred = false
+
+    function runRemoteChange() {
+      remotePending = null
+      if (typeof opts.onRemoteChange === 'function') opts.onRemoteChange()
+    }
+
+    function scheduleRemoteChange() {
+      if (remoteDeferred || remotePending !== null) return
+      if (typeof listenTarget.requestAnimationFrame === 'function') {
+        remotePending = listenTarget.requestAnimationFrame(runRemoteChange)
+        return
+      }
+      remotePending = listenTarget.setTimeout(runRemoteChange, 16)
+    }
+
+    function flushRemoteChange() {
+      if (!remoteDeferred) return
+      if (listenTarget.document && listenTarget.document.hidden) return
+      remoteDeferred = false
+      scheduleRemoteChange()
+    }
+
     if (listenTarget && persistent) {
       onStorage = function (event) {
         if (event && event.key !== null && event.key !== undefined && event.key !== key) return
         if (memoryAhead) return
         state = read()
-        if (typeof opts.onRemoteChange === 'function') opts.onRemoteChange()
+        if (listenTarget.document && listenTarget.document.hidden) {
+          remoteDeferred = true
+          return
+        }
+        scheduleRemoteChange()
       }
       listenTarget.addEventListener('storage', onStorage)
+      listenTarget.addEventListener('visibilitychange', flushRemoteChange)
     }
 
     return {
@@ -13372,11 +13405,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var View = doc.defaultView
       if (!View || typeof View.MutationObserver !== 'function') return
       var observer = new View.MutationObserver(function (records) {
-        records.forEach(function (r) {
-          ;[].slice.call(r.addedNodes).forEach(function (n) {
-            if (n.nodeType === 1 && scope.contains(n)) stripIframes(t, n)
-          })
-        })
+        // One pass per delivery. A mount can add thousands of nodes at once, so each
+        // candidate is visited once, and a leaf that cannot hold a frame is skipped
+        // instead of paying a querySelectorAll over its (empty) subtree.
+        var candidates = []
+        for (var i = 0; i < records.length; i++) {
+          var added = records[i].addedNodes
+          for (var j = 0; j < added.length; j++) {
+            var n = added[j]
+            if (n.nodeType !== 1) continue
+            if (!n.firstChild && FRAME_TAGS.indexOf(n.tagName) < 0) continue
+            if (scope.contains(n)) candidates.push(n)
+          }
+        }
+        if (candidates.length === 0) return
+        for (var k = 0; k < candidates.length; k++) stripIframes(t, candidates[k])
       })
       observer.observe(scope, { childList: true, subtree: true })
       observers.push(observer)
@@ -16795,6 +16838,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         target.removeEventListener(type, fn)
       })
     }
+
+    // A console left open in a background tab must cost nothing. The class is the
+    // single switch the stylesheet hangs `animation-play-state: paused` on, and it
+    // parks every permanent `animation: ... infinite` (dock attention blink, ping,
+    // skeleton, spinners) that would otherwise repaint a huge document forever.
+    var rootEl = active.documentElement
+    var activeWindow = active.defaultView
+    if (rootEl && rootEl.classList && typeof rootEl.classList.toggle === 'function') {
+      var applyPaused = function () {
+        rootEl.classList.toggle('nn-paused', !!active.hidden)
+      }
+      applyPaused()
+      if (activeWindow && activeWindow.addEventListener) listen(activeWindow, 'visibilitychange', applyPaused)
+    }
     var config = parseConfig(slotText(active, 'nn-config'))
     var slots = parseSlots(slotText(active, 'nn-schema'), slotText(active, 'nn-model'))
     var viewData = parseViewData(slotText(active, 'nn-view-data'))
@@ -17885,6 +17942,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var timerSeconds = 0
     var timerInterval = null
     var timerElRef = null
+    var timerHidden = false
     var auditLogView = null
     var logDialog = null
     var refDialog = null
@@ -17902,17 +17960,36 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       startTimer()
     }
 
+    function tick() {
+      timerSeconds++
+      if (timerElRef) {
+        var mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0')
+        var secs = String(timerSeconds % 60).padStart(2, '0')
+        timerElRef.textContent = mins + ':' + secs
+      }
+    }
+
     function startTimer() {
       if (timerInterval) clearInterval(timerInterval)
       timerSeconds = 0
-      timerInterval = setInterval(function () {
-        timerSeconds++
-        if (timerElRef) {
-          var mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0')
-          var secs = String(timerSeconds % 60).padStart(2, '0')
-          timerElRef.textContent = mins + ':' + secs
-        }
-      }, 1000)
+      // Nothing a background tab does with this label is ever seen, so the interval
+      // stays parked until the tab is visible again.
+      if (timerHidden) {
+        timerInterval = null
+        return
+      }
+      timerInterval = setInterval(tick, 1000)
+    }
+
+    // Resuming must not restart the stopwatch: the elapsed time is real work time.
+    function onVisibilityChange() {
+      timerHidden = !!doc.hidden
+      if (timerHidden) {
+        if (timerInterval) clearInterval(timerInterval)
+        timerInterval = null
+        return
+      }
+      if (!timerInterval) timerInterval = setInterval(tick, 1000)
     }
 
     function addLog(text, author, status) {
@@ -18881,6 +18958,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     // ---- Initial render ----
+    timerHidden = !!doc.hidden
+    if (doc && doc.addEventListener) doc.addEventListener('visibilitychange', onVisibilityChange)
     initRuntimeState()
     renderTabs()
     renderProcedures()
@@ -18900,6 +18979,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       unmount: function () {
         if (timerInterval) clearInterval(timerInterval)
         timerInterval = null
+        if (doc && doc.removeEventListener) doc.removeEventListener('visibilitychange', onVisibilityChange)
         if (container) container.innerHTML = ''
       },
     }
