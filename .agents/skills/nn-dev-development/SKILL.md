@@ -51,6 +51,32 @@ node scripts/nn-session.mjs status                        # primary health + eve
   branch; squash them before landing. Pushing `session/*` skips the heavy local gate:
   the PR's CI is the gate.
 
+## 1a. Claim the area before the first write
+
+A worktree isolates files, not decisions. Two sessions can cut independent worktrees and
+still write the same file or the same generated artifact; the collision then surfaces as
+a merge conflict, or worse, as one PR regenerating a bundle over the other one's change.
+
+Before the first edit, write `openspec/claims/<id>.md` with the paths you are about to
+touch, then check it against every other claim and open PR:
+
+```powershell
+gh pr list --state open --json number,headRefName,files > prs.json
+node scripts/claim-check.mjs --self openspec/claims/<id>.md --prs prs.json `
+  --area scripts/foo.mjs --area "iNNfo/specs/**"
+```
+
+- **Exit 0:** nobody else is writing there.
+- **Exit 1:** a claim or an open PR already covers the path. Do not start as planned. Hand
+  the area over, wait for it, or record the accepted overlap in your claim and say why.
+- A claim whose PR is merged or closed is released; its file gets deleted, not kept as a
+  tombstone.
+
+Declare **literal paths and narrow globs**, never a topic name: `"the console"` claims
+nothing, `iNNfo/specs/bluepriNNts/console/ui-kit.js` claims something. Generated
+artifacts (`*.bundle.js`, `catalog.json`, exported console HTML) belong to whoever owns
+the source and are regenerated after the rebase, never resolved by hand.
+
 ## 2. Pick the lane
 
 **Heavy only for these four.** A change is heavy when it:
@@ -97,7 +123,8 @@ Gentle-AI's ODD runs the agent; this repository narrows it:
    end of a unit.
 2. **Merging the PR is the maintainer's call.** Ask, per PR. Merge with `--merge`, not
    `--squash`: a merge commit keeps the branch an ancestor of `main`, so `nn-session
-   stop`/`sweep` can remove it.
+   stop`/`sweep` can remove it. Landing the change also deletes its
+   `openspec/claims/<id>.md`: the area is free again the moment the work is in.
 3. A red `main` is fixed forward. A failure that also reproduces on the previous `main`
    is pre-existing: file an issue, do not fix it as a rider.
 
