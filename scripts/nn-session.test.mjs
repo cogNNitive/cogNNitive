@@ -1,6 +1,15 @@
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, symlinkSync, lstatSync, cpSync } from 'node:fs'
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  rmSync,
+  existsSync,
+  symlinkSync,
+  lstatSync,
+  cpSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { execFileSync, spawnSync } from 'node:child_process'
@@ -10,7 +19,11 @@ const here = dirname(fileURLToPath(import.meta.url))
 const SCRIPT = join(here, 'nn-session.mjs')
 
 function git(args, cwd) {
-  return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  return execFileSync('git', args, {
+    cwd,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  }).trim()
 }
 
 function mergeEnv(env) {
@@ -30,10 +43,28 @@ function run(args, env) {
   }
 }
 
-/** Like run(), but keeps stderr too — for the install progress and warnings. */
+/** Like run(), but keeps stderr too - for the install progress and warnings. */
 function runAll(args, env) {
   const r = spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8', env: mergeEnv(env) })
   return { code: r.status ?? 1, out: `${r.stdout ?? ''}${r.stderr ?? ''}` }
+}
+
+/**
+ * Runs the script with a chosen working directory, the way a maintainer does when
+ * the terminal sits inside a session worktree. Used to prove the DEFAULT_ROOT
+ * resolution does not depend on where the script file lives.
+ */
+function runIn(cwd, args) {
+  try {
+    const out = execFileSync(process.execPath, [SCRIPT, ...args], {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim()
+    return { code: 0, out }
+  } catch (e) {
+    return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` }
+  }
 }
 
 /**
@@ -103,8 +134,14 @@ test('start hydrates dependencies in the worktree (root and skills/nn-sources)',
     const s = runAll(['start', '--id', 's3', '--root', repo], { NN_SESSION_TEST_NPM_STUB: '1' })
     assert.equal(s.code, 0)
     assert.ok(existsSync(join(target, 'node_modules')), 'root install ran in the worktree')
-    assert.ok(existsSync(join(target, 'skills', 'nn-sources', 'node_modules')), 'nn-sources install ran')
-    assert.ok(!lstatSync(join(target, 'node_modules')).isSymbolicLink(), 'a real directory, not a junction')
+    assert.ok(
+      existsSync(join(target, 'skills', 'nn-sources', 'node_modules')),
+      'nn-sources install ran',
+    )
+    assert.ok(
+      !lstatSync(join(target, 'node_modules')).isSymbolicLink(),
+      'a real directory, not a junction',
+    )
   } finally {
     run(['stop', '--id', 's3', '--root', repo])
     rmSync(base, { recursive: true, force: true })
@@ -136,7 +173,10 @@ test('start reuses matching node_modules via a junction without npm ci', () => {
   const target = join(dirname(repo), 'cogNNitive-j1')
   try {
     writeFileSync(join(repo, 'package.json'), JSON.stringify({ name: 'r', version: '1.0.0' }))
-    writeFileSync(join(repo, 'package-lock.json'), JSON.stringify({ name: 'r', version: '1.0.0', lockfileVersion: 3 }))
+    writeFileSync(
+      join(repo, 'package-lock.json'),
+      JSON.stringify({ name: 'r', version: '1.0.0', lockfileVersion: 3 }),
+    )
     writeFileSync(join(repo, '.gitignore'), 'node_modules\n')
     mkdirSync(join(repo, 'node_modules'), { recursive: true })
     writeFileSync(join(repo, 'node_modules', 'marker.txt'), 'primary')
@@ -145,7 +185,10 @@ test('start reuses matching node_modules via a junction without npm ci', () => {
 
     const s = runAll(['start', '--id', 'j1', '--root', repo], { NN_SESSION_TEST_NPM_STUB: '1' })
     assert.equal(s.code, 0)
-    assert.ok(lstatSync(join(target, 'node_modules')).isSymbolicLink(), 'junction created on lockfile match')
+    assert.ok(
+      lstatSync(join(target, 'node_modules')).isSymbolicLink(),
+      'junction created on lockfile match',
+    )
     assert.ok(s.out.includes('linked node_modules'), 'reports the junction reuse')
     assert.ok(!s.out.includes('npm ci'), 'no npm ci ran')
   } finally {
@@ -160,17 +203,26 @@ test('start falls back to npm ci when the lockfiles differ', () => {
   const target = join(dirname(repo), 'cogNNitive-j2')
   try {
     writeFileSync(join(repo, 'package.json'), JSON.stringify({ name: 'r', version: '1.0.0' }))
-    writeFileSync(join(repo, 'package-lock.json'), JSON.stringify({ name: 'r', version: '1.0.0', lockfileVersion: 3 }))
+    writeFileSync(
+      join(repo, 'package-lock.json'),
+      JSON.stringify({ name: 'r', version: '1.0.0', lockfileVersion: 3 }),
+    )
     writeFileSync(join(repo, '.gitignore'), 'node_modules\n')
     git(['add', '-A'], repo)
     git(['commit', '-m', 'deps'], repo)
     // Primary checkout diverges from the committed lockfile (as after a dependency edit).
-    writeFileSync(join(repo, 'package-lock.json'), JSON.stringify({ name: 'r', version: '2.0.0', lockfileVersion: 3 }))
+    writeFileSync(
+      join(repo, 'package-lock.json'),
+      JSON.stringify({ name: 'r', version: '2.0.0', lockfileVersion: 3 }),
+    )
     mkdirSync(join(repo, 'node_modules'), { recursive: true })
 
     const s = runAll(['start', '--id', 'j2', '--root', repo], { NN_SESSION_TEST_NPM_STUB: '1' })
     assert.equal(s.code, 0)
-    assert.ok(!lstatSync(join(target, 'node_modules')).isSymbolicLink(), 'lockfile mismatch -> real install')
+    assert.ok(
+      !lstatSync(join(target, 'node_modules')).isSymbolicLink(),
+      'lockfile mismatch -> real install',
+    )
     assert.ok(s.out.includes('npm ci'), 'npm ci fallback ran')
   } finally {
     run(['stop', '--id', 'j2', '--root', repo])
@@ -184,15 +236,23 @@ test('start --full-install forces a real npm ci even on a lockfile match', () =>
   const target = join(dirname(repo), 'cogNNitive-j3')
   try {
     writeFileSync(join(repo, 'package.json'), JSON.stringify({ name: 'r', version: '1.0.0' }))
-    writeFileSync(join(repo, 'package-lock.json'), JSON.stringify({ name: 'r', version: '1.0.0', lockfileVersion: 3 }))
+    writeFileSync(
+      join(repo, 'package-lock.json'),
+      JSON.stringify({ name: 'r', version: '1.0.0', lockfileVersion: 3 }),
+    )
     writeFileSync(join(repo, '.gitignore'), 'node_modules\n')
     mkdirSync(join(repo, 'node_modules'), { recursive: true })
     git(['add', '-A'], repo)
     git(['commit', '-m', 'deps'], repo)
 
-    const s = runAll(['start', '--id', 'j3', '--root', repo, '--full-install'], { NN_SESSION_TEST_NPM_STUB: '1' })
+    const s = runAll(['start', '--id', 'j3', '--root', repo, '--full-install'], {
+      NN_SESSION_TEST_NPM_STUB: '1',
+    })
     assert.equal(s.code, 0)
-    assert.ok(!lstatSync(join(target, 'node_modules')).isSymbolicLink(), '--full-install -> real install')
+    assert.ok(
+      !lstatSync(join(target, 'node_modules')).isSymbolicLink(),
+      '--full-install -> real install',
+    )
     assert.ok(s.out.includes('npm ci'), 'npm ci ran despite matching lockfiles')
     assert.ok(!s.out.includes('linked node_modules'), 'junction was not used')
   } finally {
@@ -343,6 +403,33 @@ test('status prints a one-block health report and exits 0', () => {
   }
 })
 
+/**
+ * A session worktree ships its own copy of this script, so running it from inside
+ * one used to label that worktree "primary". The primary is the repo's main
+ * worktree, which git lists first — not wherever the script happens to live.
+ */
+test('status names the primary checkout when run from inside a session worktree', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  const target = join(dirname(repo), 'cogNNitive-label')
+  try {
+    assert.equal(run(['start', '--id', 'label', '--root', repo]).code, 0)
+    const s = runIn(target, ['status'])
+    assert.equal(s.code, 0)
+    const line = s.out.split(/\r?\n/).find((l) => l.startsWith('- primary:'))
+    assert.ok(line, 'primary line present')
+    assert.ok(line.includes('main'), `primary line names the primary branch: ${line}`)
+    assert.ok(!line.includes('session/label'), `primary line is not the worktree itself: ${line}`)
+    assert.equal(
+      git(['rev-parse', '--short', 'HEAD'], target).length > 0,
+      true,
+      'worktree is a real checkout',
+    )
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('stop tolerates a deregistered, empty leftover dir without crashing', () => {
   const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
   const repo = makeRepo(base)
@@ -386,7 +473,11 @@ test('start cuts the session branch from origin/main, not a stale local main', (
 
     const s = run(['start', '--id', 'b1', '--root', repo, '--no-install'])
     assert.equal(s.code, 0)
-    assert.equal(git(['rev-parse', 'HEAD'], target), tip, 'session HEAD is the fetched origin/main tip')
+    assert.equal(
+      git(['rev-parse', 'HEAD'], target),
+      tip,
+      'session HEAD is the fetched origin/main tip',
+    )
     assert.ok(existsSync(join(target, 'newer.txt')), 'worktree has the commit local main lacks')
   } finally {
     run(['stop', '--id', 'b1', '--root', repo])
