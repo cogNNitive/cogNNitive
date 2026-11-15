@@ -25,10 +25,13 @@ Baseline commit for every analyst: `{git rev-parse HEAD}`.
 ## Hard rules
 
 1. Nobody edits repository files outside `temp/analysis/{slug}/`. Nobody commits, pushes or installs anything.
-2. **One worktree, shared by the whole panel.** Everyone works in the thread's single checkout.
-   No analyst creates a worktree of its own, loads a skill or follows the session-start ritual
-   of `AGENTS.md`. The review folder is visible to every delegate with no copy step; a report
-   written in another checkout is a defect, not a workaround.
+2. **One worktree, shared by the whole panel; one owner per file.** Everyone works in the
+   thread's single checkout. No analyst creates a worktree of its own, loads a skill or follows
+   the session-start ritual of `AGENTS.md`. Each analyst writes exactly one file per phase, named
+   after its own key, and never writes or edits another analyst's report: with N analysts there
+   are N distinct paths and no file two models can both write, so nothing can be overwritten and
+   no conflict can arise. A report written in another checkout, or a shared file an analyst had
+   to edit, is a defect to stop on, not a workaround.
 3. Analysts never read each other's reports during phase 1.
 4. Do not poll delegates. Follow each delegate's returned `next` and wait for completion events.
 5. This skill needs `delegate_task` with a cross-provider roster (see §1a of the skill). Call

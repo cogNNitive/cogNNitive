@@ -48,12 +48,34 @@ as such (see the fallback below). Never describe such a run as multi-model.
 worktree per thread, never one per provider, per model or per analyst. Analysts are
 `delegate_task` children of the thread, and the run requires them to write into that same
 checkout; the integrity check after each phase proves it rather than assuming it. The review
-folder `temp/analysis/<slug>/` is therefore visible to all of them with no copy step. Two T3
-Code behaviours to keep out of this path:
+folder `temp/analysis/<slug>/` is therefore visible to all of them with no copy step.
 
-- **Shift-clicking models in the model picker is not the panel.** That feature starts "a
-  separate thread and worktree" per model, which is exactly the split this skill must not have.
-  Launch analysts through `delegate_task`, never by fanning the prompt out from the picker.
+**No overwrite, by construction.** A shared worktree is only safe because the writes never
+overlap, and that is a hard rule of this run rather than a hope:
+
+- **One owner per file.** Each analyst writes exactly one file per phase, and the file name
+  carries its own key: `independent-analysis-<key>.md` in phase 1, `cross-critique-<key>.md` in
+  phase 2. Nobody writes a file another analyst owns, and nobody edits another analyst's report.
+- **N analysts, N paths, zero shared editable files.** With a roster of N, phase 1 produces N
+  distinct paths. There is no file two models can both write, so one model cannot overwrite
+  what another wrote and no merge conflict can arise. Confirm the roster has unique keys before
+  launching; two analysts sharing a key would collide on the same path.
+- **Shared, read-only artifacts are written once, by the orchestrator.** The brief, the format
+  contract and the corpus copies are placed in the folder before phase 1 and are read-only for
+  analysts. The orchestrator writes the consolidated plan in phase 3, after the analysts are
+  done. An analyst that believes it must edit a shared file stops and reports it: the fix is to
+  give that file one owner, never to let two delegates write it.
+- **A collision is an integrity failure.** If a report contains content the analyst did not
+  write, or a phase-1 file changed after it was completed, stop the run and report it. Do not
+  merge, reconcile or pick a winner by hand.
+
+Two T3 Code behaviours to keep out of this path:
+
+- **Shift-clicking models in the model picker is not the panel.** That feature starts a separate
+  **thread and worktree** per model. That is wrong here on two counts: it splits the panel across
+  checkouts, so the review folder and the single BASELINE are no longer shared, and it costs the
+  run the disjoint-file guarantee above because there is then no single folder to own. Launch
+  analysts through `delegate_task`, never by fanning the prompt out from the picker.
 - **A subagent that creates its own worktree is a defect, not a workaround.** It happened on
   2026-11-14, recorded in the process deviations of
   `openspec/analysis/2026-11-14-console-builder-review/README.md`: the analyst's report landed
@@ -193,9 +215,10 @@ report exists with level 3 frontmatter, critiques cover every foreign finding. A
 - Evidence: every finding needs a `path:line` the analyst read; `evidence` is `verified`,
   `inferred` or `unverified`. Findings without evidence are dropped.
 - YAGNI: "do not invent problems to fill a quota"; 5 to 12 findings; flag over-engineering.
-- Write only the assigned file, in the thread's one worktree. **No worktree of your own, no
-  skill loading, no `AGENTS.md` session ritual**: one analyst created its own worktree
-  otherwise, and the panel must stay in one checkout (§1a).
+- Write only the assigned file, in the thread's one worktree, and never write or edit another
+  analyst's report: one owner per file is what makes the shared worktree safe (§1a).
+  **No worktree of your own, no skill loading, no `AGENTS.md` session ritual**: one analyst
+  created its own worktree otherwise, and the panel must stay in one checkout (§1a).
 - Write the report section by section. One huge single write timed out twice on a slow model.
 - UTF-8 without BOM, LF endings.
 - Last line of the reply: the relative path, the model actually run and the SHA.
