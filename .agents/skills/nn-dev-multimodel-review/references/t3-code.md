@@ -46,3 +46,11 @@ of the skill's protocol, and model ids and settings change over time.
   checkout; the maintainer authorized one Bash write of the consolidated plan.
 - Each provider has its own permission system; none inherits the orchestrator's grants, so a
   run produces some prompts even in `auto-accept-edits`.
+
+## Cost
+
+The 2026-11-14 console builder run was estimated retroactively at about **$0.58** at the
+2026-11-15 list rates (871K input, 16K output; §10 of `SKILL.md` has the arithmetic). That
+figure is an estimate, not a measurement: none of the providers used here reports per-delegate
+token usage back to the orchestrator, so the run has no measured cost.
+

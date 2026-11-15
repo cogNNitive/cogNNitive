@@ -9,7 +9,8 @@ and execute it completely. It is your full brief; follow its hard rules exactly.
 
 You are the orchestrator of a three-phase, multi-model code review of the
 cogNNitive repository. You coordinate; you do NOT analyze the code yourself
-until phase 3. Everything you write or delegate must be in English.
+until phase 3. Everything you write or delegate must be in English. The roster
+is fixed: do not add, remove or swap a model.
 
 ## Target
 
@@ -38,11 +39,19 @@ Baseline commit for every analyst: `{git rev-parse HEAD}`.
 
 ## Analysts
 
-| Key | Provider | Model | Setting |
-|---|---|---|---|
-| `{key-1}` | {provider} | `{model id}` | `{option}: {value}` |
-| `{key-2}` | {provider} | `{model id}` | `{option}: {value}` |
-| `{key-3}` | {provider} | `{model id}` | `{option}: {value}` |
+This roster is the one the maintainer confirmed in preflight, not a default. It may hold
+fewer than three entries, or more, and an entry may carry `unknown price`.
+
+{confirmed roster table: Key | Provider | Model | Setting | Estimate}
+
+## Confirmed cost estimate
+
+- Price date: `{YYYY-MM-DD}`.
+- Estimate at the rates negotiated in preflight: `{TOTAL}`. It is orientative: prices may be
+  out of date, and may contain errors of reading, of tier, or of renamed model. It is not a
+  quote.
+- Analysts in this run: `{N}`. {When N is 1: `One analyst only: no cross-critique. Phase 2 does not run, the consolidated plan carries no_cross_critique: true, and the verdict is not multi-model.`}
+- Real token spend is not measured in this run. Do not invent a measured figure.
 
 Pass settings through `target.options`. For the runtime mode use the least
 permissive mode that lets the delegate write its own file without waiting for
@@ -52,7 +61,7 @@ because it stalls an unattended run.
 
 ## Phase 1: independent analysis
 
-Launch the three analysts in parallel, each in its own thread with no shared
+Launch every confirmed analyst in parallel, each in its own thread with no shared
 context. Use this prompt, replacing `{KEY}`:
 
 > You are a senior engineer reviewing code for possible refactors, changes and
@@ -71,7 +80,7 @@ context. Use this prompt, replacing `{KEY}`:
 > inside `temp/analysis/{slug}/` except the spec. When done, reply with only the
 > relative path of your report, the model you actually ran and the commit SHA.
 
-After all three finish, run the **integrity check**:
+After every analyst finishes, run the **integrity check**:
 
 - `git status --porcelain` equals BASELINE (nothing changed outside the review folder).
 - Each report file exists, starts with the level 3 frontmatter, and contains at least one `## NN Findings:` element.
@@ -84,7 +93,10 @@ it. Do not revert anything yourself.
 
 ## Phase 2: cross critique
 
-Launch three new threads, one per analyst key, with the same model and
+**Skip this phase when the confirmed roster has a single analyst.** Go straight to phase 3
+and record `no_cross_critique: true`.
+
+Launch one new thread per analyst key, with the same model and
 settings as in phase 1. Use this prompt, replacing `{KEY}` and `{OTHERS}` (the
 other analyst keys):
 
@@ -118,10 +130,11 @@ objections must be recorded. Write
 3. The decisions, one `## NN Decisions:` element per decision following the spec (`covers`, `decision`, `consensus`, `priority`), each with a short rationale. One decision per action; merge duplicates.
 4. Findings rejected or deferred, with the reason. A claim confirmed by no second reviewer is deferred, not adopted; name the trigger that would revive each deferred item.
 5. A suggested execution order, with a first batch of at most 5 decisions.
-6. Open questions, gaps from failed delegates and the models actually run.
+6. Open questions, gaps from failed delegates and the models actually run. Add
+   `no_cross_critique: true` to the frontmatter when the roster had a single analyst.
 
 ## Final report to the user
 
 Reply with a short summary in English: files produced, the verdict in two or
-three sentences, the P1 decisions, the models actually run, and any integrity
-check problem or retry. State that cost was not measured unless you measured it.
+three sentences, the P1 decisions, the models actually run, any integrity
+check problem or retry, and the preflight estimate labelled `not measured`.
