@@ -27,6 +27,82 @@ repo improvement-plan review). Maintainer-only; sibling of `nn-dev-development` 
 - Measure the target (`wc -l`) before anything else. Over the cap: ask the maintainer to cut
   the scope. Exclude generated, vendored and minified files.
 
+### 1a. Execution environment: T3 Code is required
+
+This skill needs a harness that can start a child agent **on a different provider**. In this
+repository that is **T3 Code**, through `delegate_task`, which starts child agents "on any
+provider or model" and returns their results to the parent. Without it, the panel collapses
+into one provider and the skill loses the property it exists for.
+
+**Why one provider is not enough.** Provider independence is not lineage independence. A panel
+whose models all come from one gateway shares the gateway's serving path, its
+policies and potentially its backends, so the members can agree while being wrong for the same
+reason. That is the failure mode §2a's three-provider default is built to avoid.
+
+**What does not satisfy it.** An in-harness `subagent` tool bound to a single provider is not a
+panel. Measured on 2026-11-15: OpenCode alone exposed exactly one provider
+(`opencode-go`, 20 models). A run launched that way is single-provider and must declare itself
+as such (see the fallback below). Never describe such a run as multi-model.
+
+**One worktree, shared.** The whole panel runs in the **one worktree the thread owns**. One
+worktree per thread, never one per provider, per model or per analyst. Analysts are
+`delegate_task` children of the thread, and the run requires them to write into that same
+checkout; the integrity check after each phase proves it rather than assuming it. The review
+folder `temp/analysis/<slug>/` is therefore visible to all of them with no copy step.
+
+**No overwrite, by construction.** A shared worktree is only safe because the writes never
+overlap, and that is a hard rule of this run rather than a hope:
+
+- **One owner per file.** Each analyst writes exactly one file per phase, and the file name
+  carries its own key: `independent-analysis-<key>.md` in phase 1, `cross-critique-<key>.md` in
+  phase 2. Nobody writes a file another analyst owns, and nobody edits another analyst's report.
+- **N analysts, N paths, zero shared editable files.** With a roster of N, phase 1 produces N
+  distinct paths. There is no file two models can both write, so one model cannot overwrite
+  what another wrote and no merge conflict can arise. Confirm the roster has unique keys before
+  launching; two analysts sharing a key would collide on the same path.
+- **Shared, read-only artifacts are written once, by the orchestrator.** The brief, the format
+  contract and the corpus copies are placed in the folder before phase 1 and are read-only for
+  analysts. The orchestrator writes the consolidated plan in phase 3, after the analysts are
+  done. An analyst that believes it must edit a shared file stops and reports it: the fix is to
+  give that file one owner, never to let two delegates write it.
+- **A collision is an integrity failure.** If a report contains content the analyst did not
+  write, or a phase-1 file changed after it was completed, stop the run and report it. Do not
+  merge, reconcile or pick a winner by hand.
+
+Two T3 Code behaviours to keep out of this path:
+
+- **Shift-clicking models in the model picker is not the panel.** That feature starts a separate
+  **thread and worktree** per model. That is wrong here on two counts: it splits the panel across
+  checkouts, so the review folder and the single BASELINE are no longer shared, and it costs the
+  run the disjoint-file guarantee above because there is then no single folder to own. Launch
+  analysts through `delegate_task`, never by fanning the prompt out from the picker.
+- **A subagent that creates its own worktree is a defect, not a workaround.** It happened on
+  2026-11-14, recorded in the process deviations of
+  `openspec/analysis/2026-11-14-console-builder-review/README.md`: the analyst's report landed
+  in a different checkout and had to be copied. Every analyst prompt carries the "no worktree"
+  rule in §4.
+
+**Permissions are configured once, not per approval.** T3 Code applies a permission mode per
+thread, with a default for new threads under **Settings → Threads → New threads →
+Permissions**. The initial default is **Full access**, which already needs no approvals; an
+administrator's managed policy can cap the modes available on a machine. Set the default once
+for the review project and the run proceeds unattended. Do not design a run around answering
+prompts: approvals that still arrive appear in the parent conversation with the subagent's
+name, so they do not require switching threads, but a run that depends on them is not
+reproducible. Provider-specific limits still apply and are listed in the T3 Code permission
+modes documentation (for example Antigravity can send native approvals even in Full access, and
+OpenCode has no AI approval reviewer so its `Auto` behaves like `Supervised`).
+
+**Fallback, declared and never silent.** When only a single-provider harness is available:
+
+- Say it inline before launching: the roster is single-provider and the verdict is not
+  multi-model.
+- Carry `single_provider_panel: true` in the consolidated report frontmatter, next to the
+  roster actually run.
+- Keep the cross-critique phase: it still catches factual errors, it just no longer covers
+  shared-serving bias.
+- Tell the maintainer what was lost, so the decision to accept the weaker panel is theirs.
+
 ## 2. Preflight (each item prevented a real stall)
 
 1. Work in a session worktree (`nn-dev-development` §1). Write everything under
@@ -34,10 +110,12 @@ repo improvement-plan review). Maintainer-only; sibling of `nn-dev-development` 
 2. **Build and confirm the roster. Run §2a before launching anything.** The roster is a
    proposal, not a fixed three: the maintainer unmarks, adds and swaps models, and sees the
    cost delta of every change.
-3. Ask the maintainer to pre-approve every provider's workspace-trust prompt before
-   launching. An untrusted workspace stalled one analyst for 2 hours.
-4. Runtime mode: the least permissive mode that lets a delegate write its own file without
-   asking (prefer `auto-accept-edits`). Never `approval-required`.
+3. Confirm the environment (§1a): T3 Code with `delegate_task` available. On the first run
+   against a provider, pre-approve its workspace-trust prompt; an untrusted workspace stalled
+   one analyst for 2 hours.
+4. Set the thread permission default once (**Settings → Threads → New threads → Permissions**)
+   so an analyst can write its own file without asking. Do not run the panel on a mode that
+   needs per-action approval.
 5. Record BASELINE: `git status --porcelain` and `git rev-parse HEAD`. Every analyst gets the
    same inputs and the same SHA.
 6. Copy the two assets into `temp/analysis/<slug>/`: fill `assets/orchestrator-prompt.md`
@@ -137,8 +215,10 @@ report exists with level 3 frontmatter, critiques cover every foreign finding. A
 - Evidence: every finding needs a `path:line` the analyst read; `evidence` is `verified`,
   `inferred` or `unverified`. Findings without evidence are dropped.
 - YAGNI: "do not invent problems to fill a quota"; 5 to 12 findings; flag over-engineering.
-- Write only the assigned file, in the current checkout. **No worktree, no skill loading, no
-  `AGENTS.md` session ritual**: one analyst created its own worktree otherwise.
+- Write only the assigned file, in the thread's one worktree, and never write or edit another
+  analyst's report: one owner per file is what makes the shared worktree safe (§1a).
+  **No worktree of your own, no skill loading, no `AGENTS.md` session ritual**: one analyst
+  created its own worktree otherwise, and the panel must stay in one checkout (§1a).
 - Write the report section by section. One huge single write timed out twice on a slow model.
 - UTF-8 without BOM, LF endings.
 - Last line of the reply: the relative path, the model actually run and the SHA.
