@@ -37,3 +37,5 @@ area:
 # another session) and this session lands after their merges. This session only retires
 # the five items above: their status and evidence lines, never another item and never a
 # batch-zone line.
+
+pr: 673
