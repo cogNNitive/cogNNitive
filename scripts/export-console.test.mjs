@@ -1550,3 +1550,113 @@ notes:: "note ${n}"
     assert.ok(csp[1].includes(hash), 'the banner script hash is in script-src')
   })
 })
+
+/**
+ * Issue #587: a model written as a raw file and registered through
+ * `sync_domain_manifest` is created outside every changeset, so its elements
+ * carry no history and the console Changes tab opens empty. The export names it
+ * on its warning channel instead of letting it pass for a recorded model.
+ */
+describe('a model created outside a changeset (recordless model guard)', () => {
+  const ORPHAN = `---
+spec_version: "V_0-4-0"
+level: 3
+title: "Handmade"
+parent_spec:
+  name: handmade_V_0-1-0
+  url: "https://example.test/handmade/handmade_V_0-1-0_NN.md"
+---
+
+# NN Goal
+## NN Goal: Grow
+slug:: grow
+owner:: Ana
+`
+  // Exactly what `sync_domain_manifest` (nn-core `reconcileManifest`) appends for a
+  // discovered model: the tool-owned entry block, no changeset behind it.
+  const MANIFEST = `---
+level: 3
+title: "Handmade Domain"
+---
+
+# NN kNNowledge
+
+## NN kNNowledge: Handmade
+<!-- nn:auto -->
+path:: kNNowledge/handmade_handmade_NN.md
+blueprint:: [[handmade_V_0-1-0]]
+status:: active
+`
+  const ORPHAN_REL = 'kNNowledge/handmade_handmade_NN.md'
+
+  let root
+  const domainFile = () => join(root, 'domaiNN_console.html')
+  const exportDomain = async () => {
+    const res = await runExportConsole([root, '--domain', '--no-open'], { open: false })
+    const html = existsSync(domainFile()) ? await readFile(domainFile(), 'utf-8') : ''
+    return { ...res, html }
+  }
+  const seed = async () => {
+    await mkdir(join(root, 'kNNowledge'), { recursive: true })
+    await writeFile(join(root, ORPHAN_REL), ORPHAN, 'utf-8')
+    await writeFile(join(root, 'domaiNN_NN.md'), MANIFEST, 'utf-8')
+  }
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), 'nn-orphan-guard-'))
+  })
+
+  afterEach(async () => {
+    if (root && existsSync(root)) await rm(root, { recursive: true, force: true })
+  })
+
+  it('warns with the model path, keeps exporting and still carries the model', async () => {
+    await seed()
+
+    const res = await exportDomain()
+
+    assert.equal(res.exitCode, 0, res.stderr)
+    assert.match(res.stderr, /MODEL_WITHOUT_RECORD/)
+    assert.match(res.stderr, /handmade_handmade/)
+    assert.ok(res.stderr.includes(ORPHAN_REL), 'the warning names the path of the orphan model')
+    // The guard reports; it never lets the model vanish from the payload.
+    assert.ok(res.html.length > 0, 'the console was written')
+    assert.match(res.html, /handmade_handmade/)
+  })
+
+  it('says nothing once an applied add_model change records the model', async () => {
+    await seed()
+    await mkdir(join(root, 'changes'), { recursive: true })
+    await writeFile(
+      join(root, 'changes', 'handmade_20260101T000000Z_changes_NN.md'),
+      `---
+spec_version: "V_0-4-0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://example.test/changes/spec_NN.md"
+blueprint_version: "V_0-2-0"
+status: applied
+applied_at: 2026-01-01T00:00:00.000Z
+title: "Handmade"
+---
+
+# NN Change
+
+## NN Change: c-01
+op:: add_model
+target:: handmade_handmade
+blueprint_name:: handmade_V_0-1-0
+blueprint_url:: "https://example.test/handmade/handmade_V_0-1-0_NN.md"
+evidence:: decision
+`,
+      'utf-8',
+    )
+
+    const res = await exportDomain()
+
+    assert.equal(res.exitCode, 0, res.stderr)
+    assert.doesNotMatch(res.stderr, /MODEL_WITHOUT_RECORD/)
+    assert.match(res.html, /handmade_handmade/)
+  })
+})
