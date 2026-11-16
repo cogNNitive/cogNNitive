@@ -531,6 +531,11 @@ describe('console-views lib', () => {
         plain("var = ; import('./a.js')")
         plain('function f() { var = ; }\nvar r = /import x from y/')
         plain('var n = (async () => await 1)(); var = ;')
+        // A `}` immediately followed by `/` starts a regex literal, not a division, so the
+        // rest of that line belongs to the literal and the import on it is invisible to the
+        // scanner. The verdict stays "plain": a missed look-alike on code that already failed
+        // to compile costs a less precise message, never a wrong accept.
+        plain('var a = {} / 2; import x from "y"')
       })
 
       it('rejects sloppy-only code because views run under "use strict"', () => {
