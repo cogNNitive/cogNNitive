@@ -560,7 +560,7 @@ export class AssetSynthesizer {
       fail(wrapped);
       throw wrapped;
     }
-    settle('ok'); // only after the clip is safely in the cache
+    settle('ok', undefined, estUsd > 0 ? { chargedUsd: estUsd } : {}); // only after the clip is safely in the cache
     meta.pending?.onResult?.('completed');
     return { assetPath, sha256, fromCache: false, fileSizeBytes: fs.statSync(assetPath).size };
   }
