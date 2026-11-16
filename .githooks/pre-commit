@@ -3,4 +3,10 @@
 # artifacts and stage what changed (scripts/pre-commit-regen.js). A stale mirror is
 # fixed here instead of failing pre-push or CI. The blueprint catalog (~9s) stays
 # with pre-push and CI.
+#
+# The primary checkout is read-only first, so the guard runs before any rewrite:
+# building artifacts in a tree that another live session is reading is how a
+# branch swap under someone's feet used to go unnoticed.
+node scripts/guard-primary-checkout.mjs "commit" || exit 1
+
 exec node scripts/pre-commit-regen.js

@@ -1,0 +1,11 @@
+#!/bin/sh
+# post-checkout: switching branches in the primary checkout silently changes what
+# every live session in that tree is reading. Git cannot refuse a checkout, so this
+# warns instead of blocking, and never changes the exit code.
+#
+# Arguments: <previous-HEAD> <new-HEAD> <flag>, flag 1 means a branch checkout.
+[ "$3" = "1" ] || exit 0
+[ -d .git ] || exit 0
+echo "note: branch switched in the primary checkout (read-only by convention)." >&2
+echo "      Live sessions in this tree now read a different branch." >&2
+exit 0
