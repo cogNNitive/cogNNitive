@@ -140,6 +140,22 @@ describe('committed nn-console.bundle.js', () => {
     assert.equal(banners.length, 1, 'exactly one generated version banner')
     assert.equal(banners[0][1], pkg.version, `banner version matches console/package.json (${pkg.version})`)
   })
+
+  it('reports that same release as its runtime identity, with no second literal to drift', () => {
+    assert.equal(ctx.win.nnConsole.version, pkg.version, 'nnConsole.version is the package release')
+    assert.equal(ctx.win.nnConsole.CONSOLE_VERSION, pkg.version, 'the exported constant agrees')
+
+    // One declaration, injected at compose time from console/package.json: a source
+    // literal elsewhere could only disagree with the banner above.
+    const declared = [...bundle.matchAll(/^\s*var CONSOLE_VERSION = (.+)$/gm)].map((m) => m[1].trim())
+    assert.equal(declared.length, 1, 'the runtime declares its version once')
+    assert.equal(declared[0], `'${pkg.version}'`, 'the composed bundle carries the package version literally')
+    assert.equal(bundle.includes('__NN_CONSOLE_RELEASE_VERSION__'), false, 'the compose-time marker never ships')
+
+    // The exported provenance keeps reading that one constant.
+    assert.ok(bundle.includes('artifact_version: CONSOLE_VERSION'), 'artifact_version is the runtime identity')
+    assert.ok(bundle.includes("viewer: 'nn-console@' + CONSOLE_VERSION"), 'viewer names the same identity')
+  })
 })
 
 // RENDER_PAGE is 100 in nn-runtime.js: a plain boot mounts one page, so a domain this

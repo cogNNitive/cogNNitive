@@ -589,10 +589,10 @@ batch:: b11a-safe-delete
 value:: M
 effort:: S
 risk:: M
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: iNNfo/specs/bluepriNNts/console/nn-runtime.js:17 sets CONSOLE_VERSION to 0.1.0 and :6598,6603 uses it in exported provenance; scripts/lib/console-bundle.js:39,68 already receives the package release version. Not the model-path identity of console-builder-d06. Source unchanged at 8a2958b8df4bd4e20363c37bf2feba7dd0bdffdc.
+evidence:: iNNfo/specs/bluepriNNts/console/nn-runtime.js:17 sets CONSOLE_VERSION to 0.1.0 and :6598,6603 uses it in exported provenance; scripts/lib/console-bundle.js:39,68 already receives the package release version. Not the model-path identity of console-builder-d06. Source unchanged at 8a2958b8df4bd4e20363c37bf2feba7dd0bdffdc. Shipped 2026-11-16 in session/console-runtime-status: the runtime declares the marker `__NN_CONSOLE_RELEASE_VERSION__` instead of a literal, and `composeConsoleBundle` (scripts/lib/console-bundle.js) substitutes the version it already derives from `iNNfo/specs/bluepriNNts/console/package.json` through `getConsoleReleaseInfo` — the same value the banner prints, which is also what `parseConsoleCdnRef` reads for the shell's CDN pin — so `nnConsole.version`, `CONSOLE_VERSION`, `artifact_version` and `viewer: 'nn-console@…'` (nn-runtime.js:6740-6745) share one authority and no second constant exists to drift. A source-module load (tests, `require('nn-runtime.js')`) resolves the marker through `require('./package.json').version`, so both paths report the release while only the bundle carries the literal. The model-version display (`state.modelVersion`, `MODEL_VERSION_PATTERN` `V_<x>-<y>-<z>`) is untouched. Pinned by test/console-bundle-render.test.mjs "reports that same release as its runtime identity, with no second literal to drift", which executes the committed bundle: version and CONSOLE_VERSION equal `package.json`, exactly one `var CONSOLE_VERSION` declaration carries that version, the compose marker never ships, and `artifact_version`/`viewer` still read the constant; the existing banner test pins the banner to the same file.
 merged_from:: improvement-plan P02, QW-E1, DeepSeek-N4
 done_when:: Existing bundle composition derives runtime identity from the same release-info value as the banner; runtime exports and exported changesets match package version, shell release URLs stay correct and the model-version display is unchanged.
 ref:: openspec/analysis/2026-11-14-improvement-plan.md
@@ -602,10 +602,10 @@ batch:: b11b-console-runtime-status
 value:: M
 effort:: S
 risk:: M
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: scripts/export-console.mjs:482 compares embedded and discovered model counts while :1736 adds a synthetic <changes> entry; cross-review-deepseek reproduces perpetual stale after re-export. Distinct from duplicate basename console-builder-d06 and asset freshness console-builder-d05. Source unchanged at 8a2958b8df4bd4e20363c37bf2feba7dd0bdffdc.
+evidence:: scripts/export-console.mjs:482 compares embedded and discovered model counts while :1736 adds a synthetic <changes> entry; cross-review-deepseek reproduces perpetual stale after re-export. Distinct from duplicate basename console-builder-d06 and asset freshness console-builder-d05. Source unchanged at 8a2958b8df4bd4e20363c37bf2feba7dd0bdffdc. Shipped 2026-11-16 in session/console-runtime-status: `domainConsoleStaleness` now filters the synthetic `<changes>` summary out of the embedded `meta.models` before it compares the count and the per-model entries, and the exporter names that sentinel once with `CHANGES_SUMMARY_FILE_PATH`, the same constant it pushes the entry with — the entry still ships in the payload for the console's Changes view. Only that sentinel is skipped: a real model whose path ends `_changes_NN.md` is still compared, and the asset checks (bundle and shell mtime, stylesheet bytes, view sha256) are untouched. Pinned by test/console-export.test.mjs "keeps a console exported with changesets fresh, on export and on re-export" (after `--domain` with a changeset, `--status` reports `[fresh]`; `--stale` reports All models are fresh and exports nothing; `--status` is still fresh) and "still reads a real model edit beside the changesets as stale" (a model edit yields `[stale]` and a re-export).
 merged_from:: improvement-plan P03, QW-E2
 done_when:: An unchanged fixture with changesets is fresh after export and re-export; a real model edit is stale; only synthetic summary entries are excluded and real changes documents and asset checks remain covered.
 ref:: openspec/analysis/2026-11-14-improvement-plan.md
