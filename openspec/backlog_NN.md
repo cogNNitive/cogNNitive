@@ -615,10 +615,10 @@ batch:: b11b-console-runtime-status
 value:: M
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: skills/nn-innfo/SKILL.md:200,408,470 teaches INNFO_MODELS_DIR, :172,860,864 teaches workspace/procedures/, :1042 teaches [[Element Name]] despite current consumers; docs/documentation/content/reference/mcp-tools.md:55 misdescribes read_lineage effects. Source unchanged at 8a2958b8df4bd4e20363c37bf2feba7dd0bdffdc.
+evidence:: Every line the item names now matches its consumer. `skills/nn-innfo/SKILL.md` no longer teaches the retired `INNFO_MODELS_DIR` (was :200,408,470): it names `INNFO_DOMAIN_DIR`, else the nearest domaiNN root above the cwd, else the cwd, which is exactly `resolveRootDir` (`iNNfo/packages/nn-mcp/src/server.ts:59-65`). The procedure discovery sources are the domaiNN root `procedures/` folder (was `workspace/procedures/` at :172,860,864), matching `list_blueprint_procedures` scoped listing and its `procedures-scope.spec.ts` fixture. The reference example at :1042 is an address (`location:: @dining-room`, `<hierarchical-id>@<slug>` across models), the form the validator accepts, instead of the removed `[[Element Name]]` that reports ADDRESS_MALFORMED — consistent with the same file's rules at :636 and :966. `docs/documentation/content/reference/mcp-tools.md` lists `read_lineage` under Read-only, matching its `readOnlyHint: true` handler and its own "Never writes files" description. `node scripts/generate-docs-facts.mjs --check --against HEAD` stays green. No trigger, public contract or procedure document was migrated.
 merged_from:: improvement-plan P05, QW-D2, QW-D3, QW-D4, SOL-N1
 done_when:: Environment-variable, procedure-path and reference examples match current consumers and read_lineage documentation matches its read-only handler; no mass procedure migration, trigger change or public API change.
 ref:: openspec/analysis/2026-11-14-improvement-plan.md
