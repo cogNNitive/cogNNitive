@@ -22,6 +22,8 @@ area:
 # `focusElementCard` can still scroll to a card that was not mounted yet.
 # RENDER_PAGE stays 100; no virtual scroller.
 
+pr: 668
+
 # Accepted overlap: openspec/backlog_NN.md is also listed by the console-batch-plan,
 # console-bundle-test, console-files-inventory, console-view-warnings and
 # console-fixture-assets claims for PRs #658, #662, #659, #660 and #664 (all merged
