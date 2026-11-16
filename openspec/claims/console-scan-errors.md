@@ -1,6 +1,7 @@
 # claim: console-scan-errors
 
 branch: session/console-scan-errors
+pr: 665
 opened: 2026-11-16
 thread: opencode subagent (batch b10d — silent scan read errors)
 
