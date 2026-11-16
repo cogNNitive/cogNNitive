@@ -38,6 +38,16 @@ function linkedWorktree() {
   return root
 }
 
+/** A stderr double: records what the guard wrote, and reports success like a stream. */
+function captureStderr(writes) {
+  return {
+    write: (chunk) => {
+      writes.push(chunk)
+      return true
+    },
+  }
+}
+
 test('findGitDir walks up from a nested path', () => {
   const root = primaryCheckout()
   const nested = path.join(root, 'scripts', 'lib')
@@ -63,10 +73,7 @@ test('a path outside any repository is not the primary checkout', () => {
 
 test('guard blocks the primary checkout and names the refused action', () => {
   const writes = []
-  const code = guard('commit', {
-    cwd: primaryCheckout(),
-    stderr: { write: (chunk) => writes.push(chunk) },
-  })
+  const code = guard('commit', { cwd: primaryCheckout(), stderr: captureStderr(writes) })
 
   assert.strictEqual(code, 1)
   assert.match(writes.join(''), /BLOCKED: commit in the primary checkout/)
@@ -75,10 +82,7 @@ test('guard blocks the primary checkout and names the refused action', () => {
 
 test('guard allows a linked worktree silently', () => {
   const writes = []
-  const code = guard('commit', {
-    cwd: linkedWorktree(),
-    stderr: { write: (chunk) => writes.push(chunk) },
-  })
+  const code = guard('commit', { cwd: linkedWorktree(), stderr: captureStderr(writes) })
 
   assert.strictEqual(code, 0)
   assert.deepStrictEqual(writes, [])

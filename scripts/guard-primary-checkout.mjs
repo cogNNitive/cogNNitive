@@ -50,6 +50,10 @@ export function isPrimaryCheckout(start) {
 /**
  * Throws the standard refusal on stderr and returns the exit code to use.
  * `action` names the refused operation so the message says what was blocked.
+ *
+ * @param {string} action
+ * @param {{ cwd?: string, stderr?: { write: (chunk: string) => unknown } }} [options]
+ * @returns {0 | 1}
  */
 export function guard(action, { cwd = process.cwd(), stderr = process.stderr } = {}) {
   if (!isPrimaryCheckout(cwd)) return 0
