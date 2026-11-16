@@ -209,6 +209,32 @@ function parseConsoleCdnRef(bundleText) {
 /** @type {readonly ['table', 'kpi', 'dashboard', 'blank']} */
 const VIEW_TEMPLATES = ['table', 'kpi', 'dashboard', 'blank']
 
+/**
+ * Every flag the CLI accepts, spelled the way the usage line shows it. The usage line
+ * reads this list, so a flag cannot be accepted without being announced. A bare
+ * positional is never a flag error: it is the workspace root or a model-name substring.
+ */
+const CLI_FLAGS = [
+  '--list',
+  '--status',
+  '--tree',
+  '--all',
+  '--stale',
+  '--domain',
+  '--view <id>',
+  '--new-view <slug>',
+  '--template <table|kpi|dashboard|blank>',
+  '--blueprint <name>',
+  '--title <text>',
+  '--filter <pattern>',
+  '--no-open',
+  '--no-files',
+  '--no-changes',
+]
+const USAGE =
+  `Usage: node scripts/export-console.mjs <workspaceRoot> ` +
+  `${CLI_FLAGS.map((flag) => `[${flag}]`).join(' ')} [<ModelName>]`
+
 function parseArgs(argv) {
   const args = {
     root: null,
@@ -2387,6 +2413,39 @@ export async function writeConsole(opts = {}) {
 }
 
 /**
+ * A `--blueprint` value becomes one folder name under `specs/bluepriNNts`, so it must be a
+ * single path segment: no separator, no `..`, no absolute path.
+ * @returns {Promise<string | null>} the refusal message, or null when the name is usable.
+ */
+async function blueprintNameError(blueprint) {
+  if (blueprint === null || blueprint === undefined) return null
+  const { SPEC_BASE_RE } = await viewsLibOnce()
+  const text = String(blueprint)
+  if (SPEC_BASE_RE.test(text)) return null
+  return `Invalid --blueprint "${text}": expected one blueprint folder name, using letters, digits, "_" and "-" only.`
+}
+
+/**
+ * A scaffolded title is display text, but it is written into source: inside a single-quoted
+ * JS string and inside a block comment. Escape each in place — the template's quote style
+ * is part of the pinned scaffold output, so it is never switched.
+ */
+function jsSingleQuoted(value) {
+  return String(value)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029')
+}
+
+/** A block comment has no escape character: split its terminator so it cannot end early. */
+function inBlockComment(value) {
+  return String(value).replace(/\*\//g, '*\\/')
+}
+
+/**
  * Scaffolds a new console view in a domain (`consoles/views/<slug>.js`)
  * or a blueprint (`<pkg>/assets/console-view-<slug>.js`).
  *
@@ -2418,6 +2477,9 @@ export async function scaffoldConsoleView({
   if (['explorer', 'matrices', 'review'].includes(cleanSlug)) {
     throw new ConsoleExportError(`View slug "${cleanSlug}" is reserved.`, 'VIEWS_INVALID')
   }
+  // Before any path is built: the blueprint name is a path segment, not free text.
+  const blueprintError = await blueprintNameError(blueprint)
+  if (blueprintError) throw new ConsoleExportError(blueprintError, 'VIEWS_INVALID')
 
   const viewTitle =
     title ||
@@ -2448,10 +2510,10 @@ export async function scaffoldConsoleView({
 
   let code
   if (template === 'kpi' || template === 'dashboard') {
-    code = `/* ${blueprint ? `assets/${filename}` : `consoles/views/${filename}`} — ${viewTitle} dashboard
+    code = `/* ${blueprint ? `assets/${filename}` : `consoles/views/${filename}`} — ${inBlockComment(viewTitle)} dashboard
    Declarative dashboard view using nnUI.KpiGrid with canonical KU badges. */
 registerView({
-  title: '${viewTitle}',
+  title: '${jsSingleQuoted(viewTitle)}',
   icon: 'dashboard',
   order: 25,
   kind: 'editable',
@@ -2472,9 +2534,9 @@ registerView({
 })
 `
   } else if (template === 'blank') {
-    code = `/* ${blueprint ? `assets/${filename}` : `consoles/views/${filename}`} — ${viewTitle} view */
+    code = `/* ${blueprint ? `assets/${filename}` : `consoles/views/${filename}`} — ${inBlockComment(viewTitle)} view */
 registerView({
-  title: '${viewTitle}',
+  title: '${jsSingleQuoted(viewTitle)}',
   icon: 'layout',
   order: 50,
   kind: 'editable',
@@ -2482,17 +2544,17 @@ registerView({
     var doc = ctx.container.ownerDocument
     var wrap = doc.createElement('div')
     wrap.className = 'empty-state'
-    wrap.textContent = '${viewTitle} view content.'
+    wrap.textContent = '${jsSingleQuoted(viewTitle)} view content.'
     ctx.container.appendChild(wrap)
   },
 })
 `
   } else {
     // Default: 'table'
-    code = `/* ${blueprint ? `assets/${filename}` : `consoles/views/${filename}`} — ${viewTitle} table view
+    code = `/* ${blueprint ? `assets/${filename}` : `consoles/views/${filename}`} — ${inBlockComment(viewTitle)} table view
    Declarative table view using nnUI.DataTable with canonical KU badges. */
 registerView({
-  title: '${viewTitle}',
+  title: '${jsSingleQuoted(viewTitle)}',
   icon: 'layers',
   order: 20,
   kind: 'editable',
@@ -2539,9 +2601,7 @@ async function runMain(argv, options = {}) {
   if (options.launcher !== undefined) args.launcher = options.launcher
   if (typeof options.open === 'boolean') args.open = options.open
   if (!args.root) {
-    console.error(
-      'Usage: node scripts/export-console.mjs <workspaceRoot> [--status] [--tree] [--list] [--all] [--stale] [--domain] [--view <id>] [--new-view <slug>] [--filter <pattern>] [--no-open] [--no-files] [--no-changes] [<ModelName>]',
-    )
+    console.error(USAGE)
     return { exitCode: 2, writtenFiles: [] }
   }
   const root = resolve(args.root)
@@ -2552,6 +2612,12 @@ async function runMain(argv, options = {}) {
       console.error(
         `Error: unknown --template "${args.template}" (expected ${VIEW_TEMPLATES.join(' | ')}).`,
       )
+      return { exitCode: 2, writtenFiles: [] }
+    }
+    const blueprintError = await blueprintNameError(args.blueprint)
+    if (blueprintError) {
+      console.error(`Error: ${blueprintError}`)
+      console.error(USAGE)
       return { exitCode: 2, writtenFiles: [] }
     }
     const created = await scaffoldConsoleView({
