@@ -30,31 +30,19 @@ captured:: 2026-10-31
 ## NN Idea: OKF trustFor and stale_after fields (deferred, no consumer yet)
 captured:: 2026-10-31
 
-## NN Idea: Regenerate testlab console fixtures that still ship innfo-ui.css
-captured:: 2026-10-31
-
 ## NN Idea: Remember a reuse import-guard decision so a later --scan stops re-flagging the same duplicate
 captured:: 2026-11-12
 
 ## NN Idea: Near-duplicate guard for an incoming binary (needs a converted body before the guard runs; today only exact raw bytes match)
 captured:: 2026-11-12
 
-## NN Idea: Citation table in the console payload (share one resolved citation per source instead of repeating it per element; ~21% on the reported domain, but 30/100 MB thresholds make the payload-format change a poor trade today)
-captured:: 2026-11-12
-
 ## NN Idea: Procedures bluepriNNt guidance - tell the authoring agent not to set output_status a priori (the field is a free string and a shipped model had every step at verificado before any run)
-captured:: 2026-11-14
-
-## NN Idea: Port a domain-local console renderer test into the repo as a fixture-based test of iNNfo/specs/bluepriNNts/console/nn-console.bundle.js (markdown, code, unsafe HTML, clickable references); the local copy depends on the installed bundle under the user home
 captured:: 2026-11-14
 
 ## NN Idea: Console builder (console-builder-d22): avoid repeated full HTML renders in the export size degradation, but only after measuring heap and time on a near-100 MB domain; see openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md decision D22
 captured:: 2026-11-14
 
 ## NN Idea: Console builder (console-builder-d23): add a bounded retry on EPERM, EBUSY and EACCES to the atomic rename in writeConsole, modeled on persistAtomic in iNNfo/packages/nn-mcp/src/apply-change.ts (issue 188), and refuse the copy fallback; see openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md decision D23
-captured:: 2026-11-14
-
-## NN Idea: Console builder (console-builder-d24): add a closing-brace-then-slash division row to the findModuleSyntax scanner test table in test/console-views-lib.test.mjs; the scanner itself stays; see openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md decision D24
 captured:: 2026-11-14
 
 ## NN Idea: Per-delegate token and cost metering for every phase that launches subagents (general mechanism, not a review feature) - each delegate reports its own input, output and cached tokens on completion, and the orchestrator aggregates them against a dated rate table so an estimate can be replaced by a measured figure. Wanted first by nn-dev-multimodel-review, whose preflight can only estimate, but the same gap exists in every SDD apply, backlog audit and analysis phase that fans out. Needs a decision on how a runtime that does not report usage is represented, and on where the ledger lives (per run, per session or per repo).
@@ -363,8 +351,8 @@ risk:: M
 status:: open
 lane:: light
 verdict:: current
-evidence:: scripts/export-console.mjs:1893-1894 sets isDelivery with the literal view === conntent-delivery and the strip of cost, budget, ledger and prompt fields is at :1900-1933; a second literal is at iNNfo/packages/nn-core/src/console/output-path.ts:57. No test mentions image_prompt or negative_prompt outside the pattern at :1906. The only real producer (delivery.mjs:225-235) also passes stagingDir and an outFile under deliveries/v1, so renaming the view would not leak there; it leaks only for callers passing just the view, so the leak is latent. Drive the strip from scope (delivery, stagingDir, outFile): a new delivery true field on registered views would be a public view-contract change and would make the lane heavy. isDelivery also drives the output path (:1955-1968) and the immutability checks. Audited 2026-11-14 at main 551d5a18.
-done_when:: A writeConsole call with a delivery scope, or one named by a view other than conntent-delivery, drops cost, budget, ledger and prompt fields, pinned by a new test.
+evidence:: SCOPE CHANGED 2026-11-16: the behaviour this item asked for already shipped in 14e57b40. `scripts/export-console.mjs:1955-1959` builds isDelivery as a four-clause disjunction (view, scopeObj.delivery, stagingDir, an outFile under deliveries/vN), and `git blame -L 1955,1960` shows all four clauses in that same commit, so the original evidence line (a literal `view === conntent-delivery` at :1893-1894) was already false when the item was written. What is still missing is the pinning test: `git grep -l image_prompt -- test/` matches only the strip pattern itself, and no test asserts that a scope-driven delivery drops cost, budget, ledger and prompt fields. The strip lives at :1962-1995; the second literal at iNNfo/packages/nn-core/src/console/output-path.ts:57 is unchanged and out of this item's scope.
+done_when:: A test drives writeConsole with (a) a delivery scope object and (b) a view other than conntent-delivery plus stagingDir, and asserts both drop cost, budget, ledger and prompt fields; the production code is not changed unless the test exposes a real leak.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D3
 batch:: b10c-console-builder-delivery-guard
 
@@ -498,7 +486,7 @@ verdict:: current
 evidence:: scripts/export-console.mjs:496-498 takes the key prefix from the name of the first selected model and hashes the sorted relative paths, while loadModels sorts by the raw OS-separator path at :781; on Windows that order and the slash-normalized order at :497 can differ, so the CLI does not fully hide the dependence. Audited 2026-11-14 at main 551d5a18.
 done_when:: scopeKeyOf returns the same key for any permutation of selected.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D14
-batch:: b10g-console-builder-hygiene
+batch:: b10g2-console-export-hygiene
 
 ## NN Item: console-builder-d15-spec-name-parser
 value:: L
@@ -522,7 +510,7 @@ verdict:: current
 evidence:: scripts/export-console.mjs:435 sorts meta.generated and :1881 sorts path with localeCompare, and :781 holds a third inline code-unit comparison; compareCodeUnits in scripts/console-views.mjs:65 is not exported, so sharing needs an export. Both strings are fixed-format ASCII, so the impact is theoretical. Audited 2026-11-14 at main 551d5a18.
 done_when:: Both sorts use code-unit comparison and no localeCompare is left in the two files.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D16
-batch:: b10g-console-builder-hygiene
+batch:: b10g2-console-export-hygiene
 
 ## NN Item: console-builder-d17-rendertree-branches
 value:: L
@@ -534,7 +522,7 @@ verdict:: current
 evidence:: scripts/export-console.mjs:526-551 has two near-duplicate loops in renderTree; the dot branch prints no directory line and uses no childIndent, so childIndent must be empty for that case. Tests at test/export-console.test.mjs:360 and :1002 cover --tree. Audited 2026-11-14 at main 551d5a18.
 done_when:: --tree output is byte-identical before and after.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D17
-batch:: b10g-console-builder-hygiene
+batch:: b10g2-console-export-hygiene
 
 ## NN Item: console-builder-d18-view-id-discovery
 value:: L
@@ -558,7 +546,7 @@ verdict:: current
 evidence:: scripts/export-console.mjs:1563-1578 runs a reduce and filter over all changesets inside the per-model loop, and :1575 is the set-like indexOf, so a model whose title and stem lower to the same string is counted once. Aggregate by modelPart into a Map and walk a model's keys through a Set. Audited 2026-11-14 at main 551d5a18.
 done_when:: Per-model changeCount is identical before and after, including a model whose title equals its stem.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D19
-batch:: b10g-console-builder-hygiene
+batch:: b10g2-console-export-hygiene
 
 ## NN Item: console-builder-d20-data-theme-guard
 value:: L
@@ -570,7 +558,7 @@ verdict:: current
 evidence:: scripts/export-console.mjs:2006-2008 guards with html.includes of data-theme=, and the shipped iNNfo/specs/bluepriNNts/console/nn-ui.css contains 12 data-theme dark selectors (counted 2026-11-14) and is inlined before the check, so the block is unreachable with shipped assets. The shell's own html tag carries data-theme light at line 2 but not the literal being replaced. Deleting the block is the simplest option. Audited 2026-11-14 at main 551d5a18.
 done_when:: The block is deleted and buildHtml output is byte-identical for the shipped shell.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D20
-batch:: b10g-console-builder-hygiene
+batch:: b10g2-console-export-hygiene
 
 ## NN Item: console-builder-d21-shell-csp-hash-test
 value:: L
@@ -582,7 +570,7 @@ verdict:: current
 evidence:: iNNfo/specs/bluepriNNts/console/artifact_shell.html has no executable inline script: only four JSON islands (nn-config, nn-schema, nn-model, nn-view-data) and three external scripts (counted 2026-11-14). The four hand-written hashes in its CSP (line 10, added by commit a54a9656) match nothing in the shell or in test/fixtures/testlab/domaiNN_console.html according to the audit, which hashed the shell's inline scripts. The review deferred this as unverified; it is now verified. Deleting the tokens changes a shipped release asset, so add the test first. Audited 2026-11-14 at main 551d5a18.
 done_when:: A test asserts that every sha256 token in the shell CSP matches an inline script in the shell, or the four tokens are removed.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D21
-batch:: b10g-console-builder-hygiene
+batch:: b10a-console-builder-csp-hash
 
 ## NN Item: delete-impact-completeness
 value:: H
@@ -659,17 +647,50 @@ evidence:: The exporter attaches two per-element maps: `element.history` (iNNfo/
 done_when:: The export emits no `element.provenance`, stripConsoleProvenance still drops `element.history` on the fail path with the strategy name and gate message kept accurate for what the step now does, element-history.ts documents no reader that does not exist, a console exported from a domain with applied changes still renders the Changes tab and the per-field value history, and the payload measured on iNNtake_NN shrinks by the provenance share without losing history.
 batch:: b12-console-unread-provenance
 
-## NN Item: console-ku-row-virtualization
+## NN Item: console-focus-mount-budget
 value:: H
-effort:: L
+effort:: M
 risk:: M
 status:: open
 lane:: light
 verdict:: current
-evidence:: Measured on 2026-11-15 (PR #648 body) on `iNNtake_NN`: a 21.46 MB console payload renders to 874,945 DOM nodes and ~1.35 GB working set per tab, the cost being the retained document rather than the JS heap (~50 MB), and two measured domains scale at ~300 KB of retained memory per rendered element. The kNNowledge list mounts every card in one pass: `mountElementCards` (iNNfo/specs/bluepriNNts/console/nn-runtime.js:2663) appends `buildElementCard` for every filtered element at :2842, so 3,922 elements produce 27,317 `.nn-ku` badges, 124,497 `<button>` and 142,670 `.nn-icon` nodes (~301 nodes per element). Measured on a live page: dropping those rows frees ~240 MB per tab while dropping the box-shadow-animated icons frees only ~44 MB, so the rows are the dominant remaining lever. PR #650 already cut boot DOM 874,945 -> 21,097 and load 3,285 -> 636 ms by making change-sheet bodies lazy, paging ChangeHistory at `CHANGE_PAGE = 100` (ui-kit.js:2529) and spriting the icons, but the element list itself is still fully mounted. The icon sprite was measured and reverted in #648 (per-tab memory 1,265 -> 1,593 MB) and later re-landed lazily in #650 without a per-tab memory re-measurement, which is why the row cost is the only lever left with a measured memory effect. Windowing has to keep addressing working: `focusElementCard` (nn-runtime.js:5477), the deep-link path (:5396) and the mount call (:7724) all assume the target card is already in the DOM. Open UX decision: page with a `Show more` button in the ChangeHistory style (lowest risk), fold by concept/scope, or a real virtual window over variably sized cards.
-done_when:: On a domain the size of iNNtake_NN the kNNowledge list mounts a bounded page or window of ElementCards instead of all 3,922, the DOM node count and per-tab memory are measured before and after and recorded with the numbers, a deep link and `focusElementCard` still resolve an element that is not mounted (its page opens first), and filter, sort and search still reach every matching element.
-ref:: pr-648, pr-650
-batch:: b13-console-ku-row-budget
+evidence:: CORRECTED 2026-11-16 after measuring `iNNtake_NN` (22.52 MB payload, 2,901 elements) in headless Chrome. The earlier premise ("the kNNowledge list mounts every ElementCard") is false: `mountElementCards` (iNNfo/specs/bluepriNNts/console/nn-runtime.js:2663) renders through `chunked()` (helpers at :2607-2629) with `RENDER_PAGE = 100`, so boot mounts ~200 cards, not 2,901. Working set of the whole chrome tree minus a 575 MB `about:blank` control: boot 214 MB / 21,111 DOM nodes / 638 ms; all cards expanded (29 Show more clicks) 621 MB / 222,477 nodes / 794 ms. The exception is the argument at :2846: `chunked(content, projectedElements, renderSlice, focusId != null ? projectedElements.length : RENDER_PAGE)` — whenever `focusId` is set (deep link at :5396, `focusElementCard` at :5477, mount call at :7724), the list mounts EVERY card, so one shared deep link costs the fully expanded page. That is the remaining ~400 MB spike, and it lands on the most shared URL shape rather than on ordinary navigation. Fix is narrow: mount the page that contains the focused card first, then page the rest, keeping `focusElementCard` able to scroll into a card that is not yet mounted.
+done_when:: Following a deep link to an element of a 2,900-element domain mounts a bounded page instead of every card, the focused card is visible and focused, `focusElementCard` still scrolls to a card that is not mounted yet (its page opens first), and the DOM node count and per-tab working set are recorded before and after with a blank-page control subtracted.
+ref:: pr-648, pr-650, benchmark 2026-11-16
+batch:: b13-console-focus-mount
+
+## NN Item: console-bundle-render-test
+value:: M
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: Promoted from Idea I-c on 2026-11-16, with the premise corrected. `test/helpers/console-boot.mjs:11` already pins `consoleDir` to the repo copy, and `test/console-markdown.test.mjs:24-127` already covers markdown, fenced code, unsafe HTML and safe/unsafe link handling, so the "port the domain-local renderer test" goal is met. What no test exercises is the COMPOSED artifact: nothing under `test/` loads `iNNfo/specs/bluepriNNts/console/nn-console.bundle.js`, so a build that assembles the 14 sources in the wrong order, drops a module or ships a stale banner reaches `main` with only `scripts/lib/console-bundle.test.js` (source-level) guarding it.
+done_when:: A test boots the committed `nn-console.bundle.js` in a DOM and asserts one icon renders, one markdown body renders and the version banner matches `package.json`; the test fails if the bundle is rebuilt from a different source set.
+batch:: b15-console-bundle-test
+
+## NN Item: console-fixture-stale-assets
+value:: L
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: Promoted from Idea I-a on 2026-11-16. `test/fixtures/testlab/domaiNN_console.html` still contains three `innfo-ui.css` references and two `artifacts/*/innfo-ui.css` paths even after the 0.37.4 repin (82b93bf5), because the fixture domain declares them; the console no longer ships that stylesheet (the shell carries `nn-ui.css`), so the smoke test exercises a dead stylesheet path.
+done_when:: The TestLab fixtures declare no `innfo-ui.css`, the regenerated console loads no 404 stylesheet, and `ui-smoke` stays green.
+batch:: b16-console-fixture-assets
+
+## NN Item: console-builder-d24-scanner-division-row
+value:: L
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: Promoted from Idea I-f on 2026-11-16. `findModuleSyntax` (scripts/console-views.mjs:240) drives a table at `test/console-views-lib.test.mjs:338-374` that pins `esm` and `plain` rows but has no row for a `}` immediately followed by `/`, the division-versus-regex ambiguity the scanner exists to settle. The scanner itself stays unchanged.
+done_when:: The table gains a row that feeds a closing brace followed by a slash and pins the scanner's verdict, and no production code changes.
+batch:: b10g-console-builder-hygiene
 
 # NN Batch
 
@@ -820,62 +841,6 @@ items:: packages-to-root
 risk:: H
 state:: planned
 
-## NN Batch: b10a-console-builder-csp-hash
-order:: 26
-lane:: light
-items:: console-builder-d01-csp-hash
-risk:: M
-state:: planned
-
-## NN Batch: b10b-console-builder-cli-input
-order:: 27
-lane:: light
-items:: console-builder-d02-scaffold-input, console-builder-d09-unknown-flag
-risk:: L
-state:: planned
-
-## NN Batch: b10c-console-builder-delivery-guard
-order:: 28
-lane:: light
-items:: console-builder-d03-delivery-guard-scope, console-builder-d04-staging-immutability-check, console-builder-d12-writeconsole-contract
-risk:: M
-state:: planned
-
-## NN Batch: b10d-console-builder-scan-errors
-order:: 29
-lane:: light
-items:: console-builder-d07-scan-read-errors
-risk:: M
-state:: planned
-
-## NN Batch: b10e-console-builder-files-section
-order:: 30
-lane:: light
-items:: console-builder-d10-preview-utf8, console-builder-d11-citation-basename
-risk:: L
-state:: planned
-
-## NN Batch: b10f-console-builder-identity-freshness
-order:: 31
-lane:: light
-items:: console-builder-d13-asset-candidates, console-builder-d06-model-identity-path, console-builder-d05-stale-asset-fingerprint
-risk:: M
-state:: planned
-
-## NN Batch: b10g-console-builder-hygiene
-order:: 32
-lane:: light
-items:: console-builder-d14-scope-key-order, console-builder-d15-spec-name-parser, console-builder-d16-code-unit-compare, console-builder-d17-rendertree-branches, console-builder-d18-view-id-discovery, console-builder-d19-changeset-counts, console-builder-d20-data-theme-guard, console-builder-d21-shell-csp-hash-test
-risk:: L
-state:: planned
-
-## NN Batch: b10h-console-builder-output-capture
-order:: 33
-lane:: light
-items:: console-builder-d08-output-capture
-risk:: M
-state:: planned
-
 ## NN Batch: b11a-safe-delete
 order:: 1
 lane:: heavy
@@ -883,19 +848,67 @@ items:: delete-impact-completeness
 risk:: H
 state:: planned
 
+## NN Batch: b10e-console-builder-files-section
+order:: 26
+lane:: light
+items:: console-builder-d10-preview-utf8, console-builder-d11-citation-basename
+risk:: L
+state:: planned
+
+## NN Batch: b15-console-bundle-test
+order:: 27
+lane:: light
+items:: console-bundle-render-test
+risk:: L
+state:: planned
+
+## NN Batch: b16-console-fixture-assets
+order:: 28
+lane:: light
+items:: console-fixture-stale-assets
+risk:: L
+state:: planned
+
 ## NN Batch: b11b-console-runtime-status
-order:: 7
+order:: 29
 lane:: light
 items:: console-runtime-release-identity, console-synthetic-changes-freshness
 risk:: M
 state:: planned
 
+## NN Batch: b10d-console-builder-scan-errors
+order:: 30
+lane:: light
+items:: console-builder-d07-scan-read-errors
+risk:: M
+state:: planned
 
 ## NN Batch: b10i-console-builder-view-convention
-order:: 34
+order:: 31
 lane:: light
 items:: console-builder-d26-view-convention-contract
 risk:: L
+state:: planned
+
+## NN Batch: b10b-console-builder-cli-input
+order:: 32
+lane:: light
+items:: console-builder-d02-scaffold-input, console-builder-d09-unknown-flag
+risk:: L
+state:: planned
+
+## NN Batch: b10c-console-builder-delivery-guard
+order:: 33
+lane:: light
+items:: console-builder-d03-delivery-guard-scope, console-builder-d04-staging-immutability-check, console-builder-d12-writeconsole-contract
+risk:: M
+state:: planned
+
+## NN Batch: b10f-console-builder-identity-freshness
+order:: 34
+lane:: light
+items:: console-builder-d13-asset-candidates, console-builder-d06-model-identity-path, console-builder-d05-stale-asset-fingerprint
+risk:: M
 state:: planned
 
 ## NN Batch: b12-console-unread-provenance
@@ -905,9 +918,37 @@ items:: console-unread-provenance-payload
 risk:: L
 state:: planned
 
-## NN Batch: b13-console-ku-row-budget
+## NN Batch: b13-console-focus-mount
 order:: 36
 lane:: light
-items:: console-ku-row-virtualization
+items:: console-focus-mount-budget
+risk:: M
+state:: planned
+
+## NN Batch: b10g-console-builder-hygiene
+order:: 37
+lane:: light
+items:: console-builder-d15-spec-name-parser, console-builder-d18-view-id-discovery, console-builder-d24-scanner-division-row
+risk:: L
+state:: planned
+
+## NN Batch: b10g2-console-export-hygiene
+order:: 38
+lane:: light
+items:: console-builder-d14-scope-key-order, console-builder-d16-code-unit-compare, console-builder-d17-rendertree-branches, console-builder-d19-changeset-counts, console-builder-d20-data-theme-guard
+risk:: L
+state:: planned
+
+## NN Batch: b10a-console-builder-csp-hash
+order:: 39
+lane:: light
+items:: console-builder-d01-csp-hash, console-builder-d21-shell-csp-hash-test
+risk:: M
+state:: planned
+
+## NN Batch: b10h-console-builder-output-capture
+order:: 40
+lane:: light
+items:: console-builder-d08-output-capture
 risk:: M
 state:: planned
