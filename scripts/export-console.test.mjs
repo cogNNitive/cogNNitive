@@ -1385,6 +1385,23 @@ applied_at: "2026-01-01T00:00:00.000Z"
       assert.equal(countOf('models/sales_V_1-0-0_NN.md'), 3, 'one count per change, not one per alias')
       assert.equal(countOf('models/inventory_V_1-0-0_NN.md'), 2, 'the shared title/stem counts once per change')
     })
+
+    it('leaves the page theme to the shell, not to a post-inline patch (d20)', async () => {
+      const res = await runCli([tempDir, '--domain'])
+      assert.equal(res.code, 0, res.stderr)
+      const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
+      const opening = html.match(/<html\b[^>]*>/i)
+      assert.ok(opening, 'the page starts with one html tag')
+      assert.match(opening[0], /\bdata-theme="light"/, 'the shell ships the theme attribute')
+      assert.equal(
+        html.split('<html lang="en" data-theme="light">').length - 1,
+        1,
+        'the attribute is the shell’s, not a second one patched in after inlining',
+      )
+      // The inlined stylesheet always contains the literal, which is why a document-wide
+      // `includes('data-theme=')` guard could never fire with the shipped assets.
+      assert.match(html, /\[data-theme=/, 'the inlined stylesheet carries the dark selectors')
+    })
   })
 })
 

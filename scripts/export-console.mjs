@@ -2210,11 +2210,10 @@ export async function writeConsole(opts = {}) {
     let rendered = renderConsole(resolvedShell, null, config, domainPayload, outDirAbs, root)
     if (omitChanges)
       rendered = injectChangesNotice(rendered, { count: changeCount, bytes: changesBytes })
-    let html = viewsLib.inlineConsoleAssets(rendered, preparedAssets)
-    if (!html.includes('data-theme=')) {
-      html = html.replace('<html lang="en">', '<html lang="en" data-theme="light">')
-    }
-    return html
+    // The page theme is the shell's own `<html lang="en" data-theme="light">`: the inlined
+    // stylesheet always contains the `data-theme=` literal, so patching the document after
+    // inlining could never fire (backlog console-builder-d20).
+    return viewsLib.inlineConsoleAssets(rendered, preparedAssets)
   }
   // Final size gate, before the first write of this run.
   const bytes = (text) => Buffer.byteLength(text, 'utf8')
