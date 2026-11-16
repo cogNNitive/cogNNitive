@@ -492,10 +492,10 @@ batch:: b10g2-console-export-hygiene
 value:: L
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: scripts/console-views.mjs:36-39 parses the spec version suffix with a case-sensitive pattern and no trim, while scripts/export-console.mjs:327-332 uses a case-insensitive pattern with trim and lowercase; coreBlueprintOf feeds only the core-catalog allowlist (:348). Keep each call site's naming and validation rules. Audited 2026-11-14 at main 551d5a18.
+evidence:: Shipped in batch b10g: `parseSpecName` (scripts/console-views.mjs) trims the name and matches the `_V_x-y-z` suffix in any case, and `coreBlueprintOf` (scripts/export-console.mjs) delegates to it, so both call sites resolve one rule while each keeps its own case handling. Pinned by the "one spec-name rule for both call sites" tests in test/console-views-lib.test.mjs: padded, suffix-cased and genuinely different names, the views folder a padded name resolves to, and the allowlist key for every spelling.
 done_when:: One helper serves both call sites, with a case and whitespace test per caller.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D15
 batch:: b10g-console-builder-hygiene
@@ -528,10 +528,10 @@ batch:: b10g2-console-export-hygiene
 value:: L
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: scripts/console-views.mjs:138 scans raw text with a lazy registerView pattern, so a commented-out or quoted registerView with id ghost yields a view and the lazy match can reach a later block's id; the runtime rule is at iNNfo/specs/bluepriNNts/console/nn-runtime.js:3537-3541 and the code is hashed twice (:135 and :147). Keep the extra view entries: the rejected decision D25 depends on them (they serve the cross-file duplicate check, the audit header and --view selection). Audited 2026-11-14 at main 551d5a18.
+evidence:: Shipped in batch b10g: `readViews` hashes a file's code once and adds a second view only for an id the runtime registrar accepts, the file slug or a `slug-` prefixed one and never a reserved id (`registrar` in iNNfo/specs/bluepriNNts/console/nn-runtime.js). An id that is neither, and an id the file only mentions in a comment or a string, now adds no view. Pinned by the "secondary view ids a file registers" table in test/console-views-lib.test.mjs, which asserts the runtime's own verdict for every shape. The raw-text scan is unchanged, so a commented-out `slug-` prefixed id is still counted.
 done_when:: A commented-out or quoted registerView with id ghost and an unrelated object with an id yield no extra view, and ids that are neither the slug nor slug- prefixed are ignored.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D18
 batch:: b10g-console-builder-hygiene
@@ -685,10 +685,10 @@ batch:: b16-console-fixture-assets
 value:: L
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: Promoted from Idea I-f on 2026-11-16. `findModuleSyntax` (scripts/console-views.mjs:240) drives a table at `test/console-views-lib.test.mjs:338-374` that pins `esm` and `plain` rows but has no row for a `}` immediately followed by `/`, the division-versus-regex ambiguity the scanner exists to settle. The scanner itself stays unchanged.
+evidence:: Shipped in batch b10g: the `plain` table of `findModuleSyntax` rows in test/console-views-lib.test.mjs now holds `var a = {} / 2; import x from "y"`, pinning that a closing brace immediately followed by a slash starts a regex literal, so the import on that line is hidden and the verdict is a plain syntax error. Removing the `prev === '}'` branch of the regex test flips that verdict to `import`, which is what the row locks. No production change. Audited 2026-11-14 at main 551d5a18.
 done_when:: The table gains a row that feeds a closing brace followed by a slash and pins the scanner's verdict, and no production code changes.
 batch:: b10g-console-builder-hygiene
 

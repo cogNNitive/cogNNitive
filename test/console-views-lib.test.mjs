@@ -25,6 +25,9 @@ import {
 } from '../scripts/console-views.mjs'
 import { JSDOM } from 'jsdom'
 import { nnConsole, consoleDir } from './helpers/console-boot.mjs'
+// A namespace import, not named bindings: the parity test below must fail inside the
+// test that reads a missing helper, never at link time for the whole file.
+import * as exportConsole from '../scripts/export-console.mjs'
 
 const GOOD = "registerView({ title: 'T', icon: 'x', order: 1, kind: 'readonly', mount() {} })\n"
 
@@ -116,6 +119,50 @@ describe('console-views lib', () => {
     it('splits a parent_spec name into base and version', () => {
       assert.deepEqual(parseSpecName('metrics_V_0-4-1'), { base: 'metrics', version: 'V_0-4-1' })
       assert.deepEqual(parseSpecName('metrics'), { base: 'metrics', version: null })
+    })
+  })
+
+  describe('one spec-name rule for both call sites', () => {
+    // View discovery resolves a folder per base, so it keeps the base's case (blueprint
+    // folders are not lowercase: coNNtent, domaiNN). The core-catalog allowlist in
+    // export-console.mjs lowercases the same base. One rule serves both: trim, match the
+    // version suffix in any case, take the rest verbatim.
+    it('ignores surrounding whitespace and the case of the version suffix', () => {
+      assert.deepEqual(parseSpecName(' metrics_V_0-4-1 '), { base: 'metrics', version: 'V_0-4-1' })
+      assert.deepEqual(parseSpecName('metrics_v_0-4-1'), { base: 'metrics', version: 'v_0-4-1' })
+      assert.deepEqual(parseSpecName('\tmetrics_V_0-4-1\n'), { base: 'metrics', version: 'V_0-4-1' })
+      assert.deepEqual(parseSpecName('coNNtent_V_0-2-0'), { base: 'coNNtent', version: 'V_0-2-0' })
+    })
+
+    it('keeps a genuinely different name different, and a non-version suffix in the base', () => {
+      assert.equal(parseSpecName('meterics_V_0-4-1').base, 'meterics')
+      assert.deepEqual(parseSpecName('metrics_V_0-4'), { base: 'metrics_V_0-4', version: null })
+      assert.deepEqual(parseSpecName('metrics2_V_0-4-1'), { base: 'metrics2', version: 'V_0-4-1' })
+    })
+
+    it('resolves a padded or suffix-cased parent_spec to the same views folder as the canonical name', async () => {
+      await put(join(pkgs, 'metrics', 'assets', 'console-view-timeline.js'))
+      assert.deepEqual((await discover(['metrics_V_0-4-1'])).map((v) => v.id), ['timeline'])
+      assert.deepEqual((await discover([' metrics_V_0-4-1 '])).map((v) => v.id), ['timeline'])
+      assert.deepEqual((await discover(['metrics_v_0-4-1'])).map((v) => v.id), ['timeline'])
+      assert.deepEqual(await discover(['meterics_V_0-4-1']), [])
+    })
+
+    it('the exporter allowlist key is the view-folder base, lowercased, for every spelling', () => {
+      for (const name of [
+        'sources_V_0-1-0',
+        ' Sources_V_0-1-0 ',
+        'SOURCES_V_0-1-0',
+        'sources_v_0-1-0',
+        'sources',
+        'artefacts_V_0-1-0',
+        'procedures_V_0-2-0',
+        'coNNtent_V_0-2-0',
+      ]) {
+        assert.equal(exportConsole.coreBlueprintOf(name), parseSpecName(name).base.toLowerCase(), JSON.stringify(name))
+      }
+      assert.equal(exportConsole.coreBlueprintOf(' Sources_V_0-1-0 '), 'sources')
+      assert.equal(exportConsole.coreBlueprintOf('artefacts_V_0-1-0'), 'artefacts')
     })
   })
 
@@ -250,6 +297,61 @@ describe('console-views lib', () => {
       await mkdir(join(dir, 'folder.js'), { recursive: true })
       await put(join(dir, 'ok.js'))
       assert.deepEqual((await discover()).map((v) => v.id), ['ok'])
+    })
+  })
+
+  describe('secondary view ids a file registers', () => {
+    // One file may register several views. The runtime registrar binds the file slug and
+    // accepts a declared id only when it is that slug or starts with `slug-` (nn-runtime.js
+    // `registrar`), so discovery must add no view for any other id: the console would fail
+    // at boot on it. The table below is the parity proof, shape by shape.
+    const declares = (id) =>
+      `registerView({ title: 'T', id: ${JSON.stringify(id)}, icon: 'x', order: 1, kind: 'readonly', mount() {} })\n`
+    const runtimeAccepts = (slug, declared) => {
+      try {
+        nnConsole
+          .createViewRegistry()
+          .registrar(slug, 'probe.js')({ id: declared, title: 't', icon: 'x', order: 1, kind: 'readonly', mount() {} })
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    const cases = [
+      ['timeline', 'the file slug itself', false],
+      ['timeline-overview', 'a slug-prefixed id', true],
+      ['timeline-2', 'a numeric slug prefix', true],
+      ['ghost', 'an id that is neither the slug nor slug-prefixed', false],
+      ['timelines', 'a longer id without the hyphen', false],
+      ['review', 'a reserved id', false],
+    ]
+
+    for (const [declared, label, isExtra] of cases) {
+      it(`gives ${isExtra ? 'a second view' : 'no second view'} for ${label}`, async () => {
+        await put(join(domain, 'consoles', 'views', 'timeline.js'), declares(declared))
+        const views = await discover()
+        const extras = views.map((v) => v.id).filter((id) => id !== 'timeline')
+        assert.deepEqual(extras, isExtra ? [declared] : [])
+        // Parity in the direction that matters: no discovered view id is one the runtime
+        // refuses at boot for a declared id on this file.
+        for (const extraId of extras) assert.ok(runtimeAccepts('timeline', extraId), `the registrar accepts "${extraId}"`)
+        assert.equal(runtimeAccepts('timeline', declared), isExtra || declared === 'timeline', 'the registrar verdict on the declared id')
+        if (isExtra) {
+          const extra = views.find((v) => v.id === declared)
+          assert.equal(extra.sha256, views[0].sha256)
+          assert.equal(extra.code, views[0].code)
+          assert.equal(extra.source, 'domaiNN:consoles/views/timeline.js')
+        }
+      })
+    }
+
+    it('ignores an id the file only mentions in a comment or a string', async () => {
+      await put(
+        join(domain, 'consoles', 'views', 'timeline.js'),
+        `// registerView({ id: 'ghost' })\nvar quoted = "registerView({ id: 'ghost-two' })"\nvar cfg = { id: 'untitled' }\n${GOOD}`,
+      )
+      assert.deepEqual((await discover()).map((v) => v.id), ['timeline'])
     })
   })
 
@@ -429,6 +531,11 @@ describe('console-views lib', () => {
         plain("var = ; import('./a.js')")
         plain('function f() { var = ; }\nvar r = /import x from y/')
         plain('var n = (async () => await 1)(); var = ;')
+        // A `}` immediately followed by `/` starts a regex literal, not a division, so the
+        // rest of that line belongs to the literal and the import on it is invisible to the
+        // scanner. The verdict stays "plain": a missed look-alike on code that already failed
+        // to compile costs a less precise message, never a wrong accept.
+        plain('var a = {} / 2; import x from "y"')
       })
 
       it('rejects sloppy-only code because views run under "use strict"', () => {
