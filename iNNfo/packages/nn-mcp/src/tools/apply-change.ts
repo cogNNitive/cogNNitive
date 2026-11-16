@@ -1683,18 +1683,39 @@ export async function executeChangesetApply(
     }
     if (csDoc.changes.some((c) => c.op === 'remove_element')) {
       const allFiles = await findAllWorkspaceModelFiles(rootDir, DEFAULT_WORKSPACE_IGNORE, rootDir)
+      // A discovered candidate that cannot be read is named, never dropped: the
+      // delete impact of a removal is only complete over the peers that were actually
+      // scanned, so an unreadable candidate blocks the batch's removals instead of
+      // letting them apply against the peers that happened to load (cross-review-sol C3).
+      const unreadableCandidates: Array<{ path: string; detail: string }> = []
       for (const f of allFiles) {
         const fStem = displayStem(basename(f)).toLowerCase()
-        if (!workspaceModels.has(fStem)) {
-          try {
-            const m = await loadKnowledge(f)
-            workspaceModels.set(fStem, m)
-            if (m.frontmatter.knowledge_slug) {
-              workspaceModels.set(m.frontmatter.knowledge_slug.toLowerCase(), m)
-            }
-          } catch {
-            // ignore unparseable
+        if (workspaceModels.has(fStem)) continue
+        try {
+          const m = await loadKnowledge(f)
+          workspaceModels.set(fStem, m)
+          if (m.frontmatter.knowledge_slug) {
+            workspaceModels.set(m.frontmatter.knowledge_slug.toLowerCase(), m)
           }
+        } catch (err) {
+          unreadableCandidates.push({
+            path: relative(rootDir, f).split('\\').join('/'),
+            detail: err instanceof Error ? err.message : String(err),
+          })
+        }
+      }
+      if (unreadableCandidates.length > 0) {
+        const named = unreadableCandidates.map((c) => `"${c.path}" (${c.detail})`).join(', ')
+        const candidate =
+          unreadableCandidates.length === 1 ? 'a discovered candidate' : 'discovered candidates'
+        for (const change of csDoc.changes) {
+          if (change.op !== 'remove_element' || blockedChanges.has(change.id)) continue
+          blockedChanges.set(change.id, {
+            code: 'DELETE_IMPACT_INCOMPLETE',
+            message:
+              `DELETE_IMPACT_INCOMPLETE: the incoming references to "${change.target}" could not be ` +
+              `scanned because ${candidate} could not be read: ${named}. The remove_element was not applied`,
+          })
         }
       }
     }
