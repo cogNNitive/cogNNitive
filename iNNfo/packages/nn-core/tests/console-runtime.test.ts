@@ -209,4 +209,70 @@ describe('buildTree / chainOf (generic tree + sequence helpers)', () => {
     expect(tree.nodes['work-step-1'].parentId).toBe('work-root-a')
     expect(tree.nodes['artifact-x'].parentId).toBe(null)
   })
+
+  /**
+   * procedure-reference-form: a procedure document writes `parent::`, `next::`
+   * and `output::` as addresses (`@<slug>`), the one form the validator accepts.
+   * The stepper must resolve that form, or a valid document renders no tree.
+   */
+  describe('references written as addresses (`@<slug>`)', () => {
+    const addressElements: TreeElement[] = [
+      {
+        id: 'set-up-the-domain',
+        concept: 'Work',
+        name: 'Set up the Domain',
+        fields: { output: '@domain-setup-changeset' },
+      },
+      {
+        id: 'confirm-the-root',
+        concept: 'Work',
+        name: 'Confirm the root',
+        fields: { parent: '@set-up-the-domain', next: '@adopt-the-defaults' },
+      },
+      {
+        id: 'adopt-the-defaults',
+        concept: 'Work',
+        name: 'Adopt the defaults',
+        fields: { parent: '@set-up-the-domain', next: '@approve-the-setup' },
+      },
+      {
+        id: 'approve-the-setup',
+        concept: 'Work',
+        name: 'Approve the setup',
+        fields: { parent: '@set-up-the-domain' },
+      },
+      { id: 'domain-setup-changeset', concept: 'Artifact', name: 'Domain Setup Changeset' },
+    ]
+
+    it('resolves a parent:: address to the element it names, not to a title', () => {
+      const core = loadCore()
+      const tree = core.buildTree(addressElements as never)
+      expect(tree.nodes['confirm-the-root'].parentId).toBe('set-up-the-domain')
+      expect(tree.nodes['approve-the-setup'].parentId).toBe('set-up-the-domain')
+      expect(tree.nodes['domain-setup-changeset'].parentId).toBe(null)
+    })
+
+    it('chains the steps in next:: address order', () => {
+      const core = loadCore()
+      const tree = core.buildTree(addressElements as never)
+      const chain = core.chainOf(tree.nodes['set-up-the-domain'], tree.nodes)
+      expect(chain.map((node: { el: TreeElement }) => node.el.id)).toEqual([
+        'set-up-the-domain',
+        'confirm-the-root',
+        'adopt-the-defaults',
+        'approve-the-setup',
+      ])
+    })
+
+    it('still reads a payload whose parent was written in the removed wikilink form', () => {
+      // Not an accepted authoring form — the validator rejects it. A payload
+      // already on disk keeps rendering until the document is migrated.
+      const core = loadCore()
+      const tree = core.buildTree([
+        { id: 'root', concept: 'Work', name: 'Root', fields: {} },
+        { id: 'step', concept: 'Work', name: 'Step', fields: { parent: '[[Root]]' } },
+      ] as never)
+      expect(tree.nodes['step'].parentId).toBe('root')
+    })
+  })
 })
