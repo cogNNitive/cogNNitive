@@ -300,6 +300,61 @@ describe('console-views lib', () => {
     })
   })
 
+  describe('secondary view ids a file registers', () => {
+    // One file may register several views. The runtime registrar binds the file slug and
+    // accepts a declared id only when it is that slug or starts with `slug-` (nn-runtime.js
+    // `registrar`), so discovery must add no view for any other id: the console would fail
+    // at boot on it. The table below is the parity proof, shape by shape.
+    const declares = (id) =>
+      `registerView({ title: 'T', id: ${JSON.stringify(id)}, icon: 'x', order: 1, kind: 'readonly', mount() {} })\n`
+    const runtimeAccepts = (slug, declared) => {
+      try {
+        nnConsole
+          .createViewRegistry()
+          .registrar(slug, 'probe.js')({ id: declared, title: 't', icon: 'x', order: 1, kind: 'readonly', mount() {} })
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    const cases = [
+      ['timeline', 'the file slug itself', false],
+      ['timeline-overview', 'a slug-prefixed id', true],
+      ['timeline-2', 'a numeric slug prefix', true],
+      ['ghost', 'an id that is neither the slug nor slug-prefixed', false],
+      ['timelines', 'a longer id without the hyphen', false],
+      ['review', 'a reserved id', false],
+    ]
+
+    for (const [declared, label, isExtra] of cases) {
+      it(`gives ${isExtra ? 'a second view' : 'no second view'} for ${label}`, async () => {
+        await put(join(domain, 'consoles', 'views', 'timeline.js'), declares(declared))
+        const views = await discover()
+        const extras = views.map((v) => v.id).filter((id) => id !== 'timeline')
+        assert.deepEqual(extras, isExtra ? [declared] : [])
+        // Parity in the direction that matters: no discovered view id is one the runtime
+        // refuses at boot for a declared id on this file.
+        for (const extraId of extras) assert.ok(runtimeAccepts('timeline', extraId), `the registrar accepts "${extraId}"`)
+        assert.equal(runtimeAccepts('timeline', declared), isExtra || declared === 'timeline', 'the registrar verdict on the declared id')
+        if (isExtra) {
+          const extra = views.find((v) => v.id === declared)
+          assert.equal(extra.sha256, views[0].sha256)
+          assert.equal(extra.code, views[0].code)
+          assert.equal(extra.source, 'domaiNN:consoles/views/timeline.js')
+        }
+      })
+    }
+
+    it('ignores an id the file only mentions in a comment or a string', async () => {
+      await put(
+        join(domain, 'consoles', 'views', 'timeline.js'),
+        `// registerView({ id: 'ghost' })\nvar quoted = "registerView({ id: 'ghost-two' })"\nvar cfg = { id: 'untitled' }\n${GOOD}`,
+      )
+      assert.deepEqual((await discover()).map((v) => v.id), ['timeline'])
+    })
+  })
+
   describe('view convention warnings', () => {
     // The three mistakes below are silent otherwise: the export succeeds and the views are
     // simply absent or misnamed. Each warning must name the offending path and the one the
