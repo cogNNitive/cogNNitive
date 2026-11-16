@@ -243,12 +243,20 @@ because the tree was dirty, and the same session committed three commits minutes
 One clean instant earlier and that work was gone, with no branch ahead of `main` and no PR
 to recover it from.
 
-**Run this gate before you run `sweep`, and before you even propose it to the maintainer.
-Report the verdict per worktree, never a bare "ok".**
+**The script now refuses that case itself.** `stop` and `sweep` read the branch's reflog;
+when no entry is a commit (only its creation, or fast-forwards from `main`), the session
+has never committed: `sweep` skips it (`skipped session/<id>: refusing: ... has no commits
+yet`) and `stop` refuses it unless you pass `--force`. Pass `--force` only to abandon a
+session you know is empty and unused. Do not test this with `rev-list --count main..HEAD`:
+a session that landed is also `0` ahead of `main`, so that count cannot tell "landed" from
+"not started".
+
+**The script cannot see the rest, so run this gate before you run `sweep`, and before you
+even propose it to the maintainer. Report the verdict per worktree, never a bare "ok".**
 
 | Signal | How | Reads as active |
 |---|---|---|
-| No commits yet | `git -C <abs> rev-list --count main..HEAD` | `0` |
+| No commits yet | `git reflog show --format=%gs refs/heads/session/<id>` | no `commit` entry |
 | Uncommitted work | `git -C <abs> status --porcelain` | anything |
 | Recent writes | newest mtime among the worktree's **modified** files, next to the current time | within ~15 minutes |
 | A running command | `Get-CimInstance Win32_Process -Filter "Name='node.exe'"`, matching `verify.js`, `--test`, a test filename or `npm` | present |
@@ -263,7 +271,7 @@ are about to delete.
 Whole-tree fresh mtimes are noise: a checkout or an install touches every file. Look at the
 files that worktree has actually *modified* against its base.
 
-**Stop** — do not sweep, do not propose it — while any worktree shows a zero commit count,
+**Stop** — do not sweep, do not propose it — while any worktree has no commit yet,
 a dirty tree, a modified file from the last ~15 minutes, a running verify/test/node
 process, or a claim without an open PR. Name the worktree, name the signal, and hand the
 decision back. Never "save what matters and revert the rest" on work you did not write:
