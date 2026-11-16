@@ -8,6 +8,12 @@ on:
     branches: [ main, dev ]
   # No base filter: every PR runs the gate, whatever branch it targets.
   pull_request:
+  # Required for the merge queue: the queue validates `main` plus every PR ahead of
+  # this one on a temporary `gh-readonly-queue/<base>/...` ref, and GitHub only
+  # waits for checks reported against that ref. Without this trigger a protected
+  # branch with a queue blocks forever. The queue runs the full gate (`verify`),
+  # never the `refs/heads/session/**` fast tier.
+  merge_group:
   workflow_dispatch:
 
 permissions:
