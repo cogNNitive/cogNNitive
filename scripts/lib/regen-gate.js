@@ -55,20 +55,21 @@ function parseRegenMode(argv) {
 }
 
 /**
- * Runs one git command in `root` and returns its stdout.
+ * Runs one git command in `root`.
  * @param {string} root
  * @param {string[]} args
- * @returns {{ ok: true, stdout: string } | { ok: false, error: string }}
+ * @returns {{ ok: boolean, stdout: string, error: string }} `error` is empty on success.
  */
 function git(root, args) {
   try {
     return {
       ok: true,
       stdout: execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }),
+      error: '',
     };
   } catch (err) {
     const output = `${(err.stdout || '') + (err.stderr || '')}`.trim() || err.message || String(err);
-    return { ok: false, error: output };
+    return { ok: false, stdout: '', error: output };
   }
 }
 
@@ -78,13 +79,14 @@ function git(root, args) {
  * content, so a scratch file somebody left in the tree is not drift.
  *
  * @param {{ root: string, excluded?: typeof REGEN_EXCLUDED_PATHS }} options
- * @returns {{ ok: true, paths: string[] } | { ok: false, error: string }}
+ * @returns {{ ok: boolean, paths: string[], error: string }} `error` is empty on success.
  */
 function listChangedPaths({ root, excluded = REGEN_EXCLUDED_PATHS }) {
   const res = git(root, ['diff', '--name-only', 'HEAD']);
   if (!res.ok) {
     return {
       ok: false,
+      paths: [],
       error: `could not diff the working tree against HEAD (${root}): ${res.error}`,
     };
   }
@@ -94,7 +96,7 @@ function listChangedPaths({ root, excluded = REGEN_EXCLUDED_PATHS }) {
     .map((line) => line.trim())
     .filter(Boolean)
     .filter((line) => !ignored.has(line));
-  return { ok: true, paths: [...new Set(paths)].sort() };
+  return { ok: true, paths: [...new Set(paths)].sort(), error: '' };
 }
 
 /**
@@ -137,7 +139,10 @@ function checkRegen({ root, runPass = null, listChanged = listChangedPaths }) {
   const alreadyDirty = new Set(before.paths);
 
   let pass = { status: 0, output: '' };
-  if (runPass) pass = runPass();
+  if (runPass) {
+    const res = runPass();
+    pass = { status: res.status, output: res.output || '' };
+  }
   if (pass.status !== 0) {
     return {
       ok: false,

@@ -72,7 +72,9 @@ test('parseRegenMode reads --check as the gate and anything else as a write pass
 test('listChangedPaths reports tracked changes and ignores an untracked file', () => {
   const root = makeRepo({ 'src.ts': 'one\n', 'art.js': 'generated one\n' });
   try {
-    assert.deepEqual(listChangedPaths({ root }), { ok: true, paths: [] }, 'a clean tree has no drift');
+    const clean = listChangedPaths({ root });
+    assert.equal(clean.ok, true, 'a clean tree is readable');
+    assert.deepEqual(clean.paths, [], 'a clean tree has no drift');
 
     writeFiles(root, { 'art.js': 'generated two\n' });
     assert.deepEqual(listChangedPaths({ root }).paths, ['art.js'], 'a rewritten artifact is drift');
