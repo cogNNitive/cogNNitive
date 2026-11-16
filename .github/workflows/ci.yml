@@ -184,15 +184,18 @@ jobs:
       - name: Check spec URLs resolve
         run: npm run check:spec-urls
 
-  # ── Claim audit: a claim is a live lock and must be deleted when its PR lands,
-  #    but GitHub deletes the branch and never the file, so every landed session
-  #    leaves a tombstone. Only this audit can tell a live lock from a tombstone,
-  #    because only it compares each claim against the state of its PR.
+  # ── Claims: a claim is a live lock, released by the pull request that lands the work.
+  #    GitHub deletes the branch and never the file, and `main` accepts merges only
+  #    through the merge queue, so no workflow can delete the claim after the merge
+  #    either: a direct push to `main` is rejected with "Changes must be made through
+  #    the merge queue". The release therefore happens where the author still controls
+  #    it, in the pull request, and this job enforces it at the last moment before
+  #    landing.
   #
-  #    Advisory on purpose. A tombstone is pre-existing debt on the base branch,
-  #    so failing here would blame an author for somebody else's merge and force
-  #    a rider fix. The enforcing command is `npm run check:claims`, run by
-  #    whoever lands the change; this job only keeps the debt visible.
+  #    On a pull request the audit stays ADVISORY: a tombstone is pre-existing debt on
+  #    the base branch, so failing there would blame an author for somebody else's
+  #    merge and force a rider fix. On `merge_group` the check is blocking but scoped
+  #    to the landing PR's own claim, the only one that PR can release.
   claims:
     runs-on: ubuntu-latest
     permissions:
@@ -206,13 +209,22 @@ jobs:
         with:
           node-version: 22.23.4
 
-      # claim-audit uses only node: built-ins, so no npm ci.
+      # release-claim reads claims with the same parser as claim-check and uses only
+      # node: built-ins, so neither step needs npm ci.
+      - name: The landing pull request released its own claim
+        if: github.event_name == 'merge_group'
+        env:
+          HEAD_REF: ${{ github.event.merge_group.head_ref }}
+        run: node scripts/release-claim.mjs --branch "$HEAD_REF" --check
+
       - name: Collect open PRs
+        if: github.event_name != 'merge_group'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh pr list --state open --limit 1000 --json number > "$RUNNER_TEMP/prs.json"
 
       - name: Audit claims
+        if: github.event_name != 'merge_group'
         continue-on-error: true
         run: |
           set -o pipefail

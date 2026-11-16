@@ -99,3 +99,31 @@ test('a missing --branch is a usage error', () => {
   assert.strictEqual(code, 2)
   assert.match(out, /--branch is required/)
 })
+
+test('--check fails while the branch still owns a claim, and deletes nothing', () => {
+  const { root, dir } = fixture({
+    'console-cli-input.md': CLAIM('console-cli-input', 'session/console-cli-input'),
+  })
+  const { code, out } = run(['--root', root, '--branch', 'session/console-cli-input', '--check'])
+  assert.strictEqual(code, 1)
+  assert.match(out, /still claims session\/console-cli-input/)
+  assert.match(out, /Delete it in this pull request/)
+  assert.strictEqual(fs.existsSync(path.join(dir, 'console-cli-input.md')), true)
+})
+
+test('--check passes once the pull request released its claim', () => {
+  const { root } = fixture({
+    'console-runtime-status.md': CLAIM('console-runtime-status', 'session/console-runtime-status'),
+  })
+  const { code, out } = run(['--root', root, '--branch', 'session/console-cli-input', '--check'])
+  assert.strictEqual(code, 0)
+  assert.match(out, /released its claim/)
+})
+
+test('--check sees the fallback slug too, so a bare claim still blocks the landing', () => {
+  const { root } = fixture({
+    'console-bare.md': '# claim: console-bare\n\narea:\n  - scripts/export-console.mjs\n',
+  })
+  const { code } = run(['--root', root, '--branch', 'session/console-bare', '--check'])
+  assert.strictEqual(code, 1)
+})

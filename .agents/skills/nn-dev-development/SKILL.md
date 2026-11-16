@@ -159,25 +159,27 @@ base, and a single merge needed 16 conflict resolutions.
 - **A conflicted generated artifact means rebase + `npm run regen`**, never a hand-resolved
   bundle.
 
-The ruleset (`main: single integration lane`, repo ruleset 27391067) is `merge_queue`
-(`MERGE`, `ALLGREEN`, one entry at a time) plus `non_fast_forward` and `deletion`. It
-deliberately requires **no** status checks and **no** pull request: `claim-release.yml`
-pushes the claim deletion straight to `main`, and the Actions integration cannot be given
-a bypass through the API (`Actor GitHub Actions integration must be part of the ruleset
-source or owner organization` — the bypass is UI-only). Turning the gate into a required
-check on `main` therefore means moving `claim-release` off a direct push first, or every
-landing reddens a workflow. Until then the PR gate stays social: CI runs on the PR, and
-the queue only serializes.
+The ruleset (`main: single integration lane`, repo ruleset 27391067) requires a pull request,
+the status checks `verify`, `quality`, `site` and `spec-integrity`, a merge queue (`MERGE`,
+`ALLGREEN`, one entry at a time), and forbids force-push and deletion. A pushed commit that
+does not come through the queue is rejected with "Changes must be made through the merge
+queue" — that includes automation, because the Actions integration cannot be given a bypass
+through the API (`Actor GitHub Actions integration must be part of the ruleset source or owner
+organization`; the bypass is UI-only). If a new workflow ever needs to write to `main`, give
+it a PR and the queue, not a push.
+
+Because the queue is the only door, **the claim is released by the pull request itself**: the
+commit before queueing deletes `openspec/claims/<id>.md`. CI checks that on `merge_group`
+(`scripts/release-claim.mjs --check`), so a PR that forgets it is ejected from the queue.
 
 1. Push the session branch and open a PR to `main` without asking. That is the normal
    end of a unit.
-2. **Merging the PR is the maintainer's call.** Ask, per PR. Merge with `--merge`, not
-   `--squash`: a merge commit keeps the branch an ancestor of `main`, so `nn-session
-   stop`/`sweep` can remove it. Landing the change also deletes its
-   `openspec/claims/<id>.md`: the area is free again the moment the work is in. The
-   `claim-release` workflow does that for you on merge, committing the deletion to `main`.
-   If that run failed, or the claim predates the workflow, `npm run check:claims -- --prs
-   <open PRs>` (see `openspec/claims/README.md`) names what is left.
+2. **Merging the PR is the maintainer's call.** Ask, per PR. `gh pr merge` **enqueues**; the
+   queue owns the merge method (`merge`), which keeps the session branch an ancestor of
+   `main` so `nn-session stop`/`sweep` can remove it. The last commit before queueing deletes
+   `openspec/claims/<id>.md` — the area is free again the moment the work is in, and nothing
+   can delete the claim after the merge. `npm run check:claims -- --prs <open PRs>` (see
+   `openspec/claims/README.md`) names whatever older sessions left behind.
 3. **A chained PR must be retargeted before its parent merges.** The repo has
    `deleteBranchOnMerge: true`, so merging a PR deletes its head branch. If another open PR
    had that branch as its **base**, GitHub does not retarget the child: it **closes** it, and
