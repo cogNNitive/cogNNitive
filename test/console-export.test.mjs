@@ -1446,3 +1446,82 @@ level: 3
     assert.deepEqual([...observed].sort(), [...new Set(documented)].sort())
   })
 })
+
+/**
+ * The export prints through one writer. `runExportConsole` gets a buffered one, so a
+ * programmatic caller collects exactly the lines the export produces while the module
+ * never swaps `console` or `process.stdout`/`process.stderr` out from under its host
+ * (backlog console-builder-d08-output-capture).
+ */
+describe('programmatic export output capture (D8)', () => {
+  let root
+
+  const MODEL = `---
+title: "Output Capture Model"
+model_version: "V_1-0-0"
+level: 3
+---
+
+# NN Stakeholder
+## NN Stakeholder: Enterprise
+  slug:: enterprise
+`
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), 'nn-out-capture-test-'))
+    await mkdir(join(root, 'models'), { recursive: true })
+    await writeFile(join(root, 'models', 'business_V_1-0-0_NN.md'), MODEL, 'utf-8')
+  })
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true })
+  })
+
+  /** What every global the capture used to swap is bound to right now. */
+  const writers = () => ({
+    'console.log': console.log,
+    'console.error': console.error,
+    'console.warn': console.warn,
+    'process.stdout.write': process.stdout.write,
+    'process.stderr.write': process.stderr.write,
+  })
+
+  it('captures the export through a writer and never swaps the process globals', async () => {
+    const original = writers()
+    let during = null
+    const res = await runExportConsole([root, '--domain'], {
+      open: true,
+      launcher: async () => {
+        // Runs inside the export, right after the console was written: the moment a
+        // global swap would be observable.
+        during = writers()
+      },
+    })
+
+    assert.equal(res.exitCode, 0, res.stderr)
+    assert.ok(during, 'the injection point ran during the export')
+    assert.deepEqual(during, original, 'no console or process writer is replaced while the export runs')
+    assert.deepEqual(writers(), original, 'and none outlives it')
+    assert.match(res.stdout, /✔ domaiNN_console\.html/)
+    assert.match(
+      res.stdout.trimEnd(),
+      /Exported 1 console artifact\(s\)\.$/,
+      'the trailing summary line is captured last',
+    )
+  })
+
+  it('keeps the export WARNING lines in the captured stderr', async () => {
+    await writeFile(join(root, 'nn-console.bundle.js'), '// leftover', 'utf-8')
+    await writeFile(join(root, 'nn-ui.css'), '/* leftover */', 'utf-8')
+    const original = writers()
+    const res = await runExportConsole([root, '--domain', '--no-open'], { open: false })
+
+    assert.equal(res.exitCode, 0, res.stderr)
+    assert.match(
+      res.stderr,
+      /^WARNING: \[export-console\] nn-console\.bundle\.js and nn-ui\.css .*leftover/m,
+    )
+    assert.doesNotMatch(res.stdout, /WARNING: \[export-console\]/, 'warnings never reach the stdout half')
+    assert.deepEqual(writers(), original)
+  })
+})
