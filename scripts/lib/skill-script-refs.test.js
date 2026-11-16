@@ -115,13 +115,13 @@ function runTests() {
     console.log('✔ the real repo satisfies the gate');
   }
 
-  // Test 5: verify.js wires both the bundle drift guard and this gate
+  // Test 5: verify.js wires both the derived-artifact gate and this gate
   {
     const { buildSteps } = require('../verify.js');
     const ids = buildSteps(path.resolve(__dirname, '..', '..')).map((s) => s.id);
-    assert.ok(ids.includes('skills-manager-bundle'), 'bundle drift step wired');
+    assert.ok(ids.includes('regen-gate'), 'derived-artifact gate wired');
     assert.ok(ids.includes('skill-script-refs'), 'script-refs step wired');
-    console.log('✔ verify.js wires the bundle drift guard and the script-refs gate');
+    console.log('✔ verify.js wires the derived-artifact gate and the script-refs gate');
   }
 
   console.log('All skill-script-refs tests passed successfully!\n');
