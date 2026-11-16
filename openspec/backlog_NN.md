@@ -729,10 +729,10 @@ batch:: b18-console-fixture-integrity
 value:: M
 effort:: M
 risk:: M
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: Found on 2026-11-16 in batch b16. `test/ui/testlab_smoke.py` opens the frozen `artifacts/TestLab_coverage_TestLab_console/..._20261013T045336Z.html` snapshot, not `test/fixtures/testlab/domaiNN_console.html` that the exporter produces. CI's `ui-smoke` therefore validates a month-old artifact, which is how the dead `innfo-ui.css` survived (#664). The repointing is NI-2 in openspec/analysis/2026-11-14-independent-sonnet.md and needs a test/ui change.
+evidence:: Shipped in batch b18. test/ui/testlab_smoke.py now opens `test/fixtures/testlab/domaiNN_console.html` — the console the exporter writes today, and the artifact the `Check Console Fixture Fresh` verify step keeps reproducible — instead of the frozen `artifacts/TestLab_coverage_TestLab_console/TestLab_coverage_TestLab_console_20261013T045336Z.html` snapshot, so CI's ui-smoke exercises the current shell and bundle. The repoint needed the shell's current ids: the smoke queries `#nn-content`, `#nn-matrices`, `#nn-rail` and `#nn-search` (the frozen snapshot predates the `innfo-` -> `nn-` migration), and a missing console exits naming `node scripts/export-console.mjs test/fixtures/testlab --domain --no-open`. RED observed first: with only the artifact path repointed, the smoke timed out waiting for `#innfo-content`. GREEN: all 11 checks pass against today's export — the six domain needles (Element 1A-2A, both description probes), the matrix crossing, non-zero rail entries, the search input, no JS page error and no non-CDN failed request, ending in `ALL UI CHECKS PASSED`. The frozen snapshot stays in the fixture as historical data and is opened by nothing now: it had no second purpose.
 done_when:: The UI smoke opens the console the exporter writes today, asserts no non-CDN failed request and no JS page error against it, and still passes on a fixture with zero views.
 batch:: b18-console-fixture-integrity
 
