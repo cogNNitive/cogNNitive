@@ -1,6 +1,7 @@
 # claim: lineage-orphan-guard
 
 branch: session/lineage-orphan-guard
+pr: 693
 opened: 2026-11-16
 thread: backlog batch b3g-orphan-model-guard, item orphan-model-lineage-guard (issue #587)
 
