@@ -211,8 +211,9 @@ const VIEW_TEMPLATES = ['table', 'kpi', 'dashboard', 'blank']
 
 /**
  * Every flag the CLI accepts, spelled the way the usage line shows it. The usage line
- * reads this list, so a flag cannot be accepted without being announced. A bare
- * positional is never a flag error: it is the workspace root or a model-name substring.
+ * and the unknown-flag error both read this list, so a flag cannot be accepted without
+ * being announced. A bare positional is never a flag error: it is the workspace root or
+ * a model-name substring.
  */
 const CLI_FLAGS = [
   '--list',
@@ -231,9 +232,13 @@ const CLI_FLAGS = [
   '--no-files',
   '--no-changes',
 ]
+const KNOWN_FLAG_NAMES = CLI_FLAGS.map((flag) => flag.split(' ')[0])
 const USAGE =
   `Usage: node scripts/export-console.mjs <workspaceRoot> ` +
   `${CLI_FLAGS.map((flag) => `[${flag}]`).join(' ')} [<ModelName>]`
+
+/** Flags that take the next token as their value. */
+const VALUE_FLAGS = new Set(['--view', '--new-view', '--template', '--blueprint', '--title', '--filter'])
 
 function parseArgs(argv) {
   const args = {
@@ -245,7 +250,6 @@ function parseArgs(argv) {
     stale: false,
     domain: false,
     view: null,
-    viewMissing: false,
     newView: null,
     template: 'table',
     blueprint: null,
@@ -255,11 +259,27 @@ function parseArgs(argv) {
     open: true,
     files: true,
     changes: true,
+    errors: [],
   }
   const slice = argv.slice(2)
   for (let i = 0; i < slice.length; i++) {
     const a = slice[i]
-    if (a === '--list') {
+    if (VALUE_FLAGS.has(a)) {
+      const value = slice[i + 1]
+      // A value never starts with "-": a flag there means this one lost its value, and
+      // swallowing it would run the command with a default instead of refusing.
+      if (value === undefined || value.startsWith('-')) {
+        args.errors.push(a === '--view' ? '--view needs a view id.' : `${a} needs a value.`)
+        continue
+      }
+      i += 1
+      if (a === '--view') args.view = value
+      else if (a === '--new-view') args.newView = value
+      else if (a === '--template') args.template = value
+      else if (a === '--blueprint') args.blueprint = value
+      else if (a === '--title') args.title = value
+      else args.filter = value
+    } else if (a === '--list') {
       args.list = true
     } else if (a === '--status') {
       args.status = true
@@ -277,30 +297,11 @@ function parseArgs(argv) {
       args.files = false
     } else if (a === '--no-changes') {
       args.changes = false
-    } else if (a === '--new-view') {
-      i++
-      if (i < slice.length && !slice[i].startsWith('--')) args.newView = slice[i]
-    } else if (a === '--template') {
-      i++
-      if (i < slice.length && !slice[i].startsWith('--')) args.template = slice[i]
-    } else if (a === '--blueprint') {
-      i++
-      if (i < slice.length && !slice[i].startsWith('--')) args.blueprint = slice[i]
-    } else if (a === '--title') {
-      i++
-      if (i < slice.length && !slice[i].startsWith('--')) args.title = slice[i]
-    } else if (a === '--view') {
-      i++
-      if (i < slice.length && !slice[i].startsWith('--')) args.view = slice[i]
-      else {
-        args.viewMissing = true
-        if (i < slice.length) i--
-      }
-    } else if (a === '--filter') {
-      i++
-      if (i < slice.length) {
-        args.filter = slice[i]
-      }
+    } else if (a.startsWith('-')) {
+      // Only flag-shaped tokens are refused: a bare word is still the root or a model.
+      args.errors.push(
+        `unknown option "${a}". Accepted flags: ${KNOWN_FLAG_NAMES.join(', ')}.`,
+      )
     } else if (args.root === null) {
       args.root = a
     } else {
@@ -2600,6 +2601,11 @@ async function runMain(argv, options = {}) {
   const args = parseArgs(['node', 'export-console.mjs', ...argv])
   if (options.launcher !== undefined) args.launcher = options.launcher
   if (typeof options.open === 'boolean') args.open = options.open
+  if (args.errors.length > 0) {
+    for (const message of args.errors) console.error(`Error: ${message}`)
+    console.error(USAGE)
+    return { exitCode: 2, writtenFiles: [] }
+  }
   if (!args.root) {
     console.error(USAGE)
     return { exitCode: 2, writtenFiles: [] }
@@ -2634,10 +2640,6 @@ async function runMain(argv, options = {}) {
       `To compile the console with this view, run:\n  node scripts/export-console.mjs ${relative(process.cwd(), root) || '.'} --domain`,
     )
     return { exitCode: 0, writtenFiles: [created.targetPath] }
-  }
-  if (args.viewMissing) {
-    console.error('Error: --view needs a view id.')
-    return { exitCode: 2, writtenFiles: [] }
   }
   if (args.view && args.domain) {
     console.error('Error: --view and --domain are mutually exclusive.')

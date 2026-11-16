@@ -1137,3 +1137,80 @@ parent_spec:
     assert.equal(procs.length, 3)
   })
 })
+
+describe('CLI argument surface (d09)', () => {
+  let root
+
+  before(async () => {
+    root = await mkdtemp(join(tmpdir(), 'nn-cli-args-'))
+    await mkdir(join(root, 'models'), { recursive: true })
+    await writeFile(
+      join(root, 'models', 'business_V_1-0-0_NN.md'),
+      `---
+title: "Business"
+model_version: "V_1-0-0"
+level: 3
+---
+
+# NN Stakeholder
+## NN Stakeholder: Enterprise
+  slug:: enterprise
+`,
+      'utf-8',
+    )
+  })
+
+  after(async () => {
+    await rm(root, { recursive: true, force: true })
+  })
+
+  const nothingWritten = () => {
+    assert.equal(existsSync(join(root, 'domaiNN_console.html')), false)
+    assert.equal(existsSync(join(root, 'artifacts')), false)
+  }
+
+  it('refuses an unrecognised flag, names it and lists the flags the CLI accepts', async () => {
+    for (const argv of [[root, '--no-opne'], ['--no-opne']]) {
+      const res = await runCli(argv, { subprocess: true })
+      assert.equal(res.code, 2, res.stdout + res.stderr)
+      assert.match(res.stderr, /--no-opne/, 'the message names the flag')
+      for (const flag of [
+        '--domain',
+        '--view',
+        '--new-view',
+        '--filter',
+        '--all',
+        '--stale',
+        '--status',
+        '--list',
+        '--tree',
+        '--no-open',
+      ]) {
+        assert.ok(res.stderr.includes(flag), `the message lists ${flag}`)
+      }
+      assert.equal(res.stdout, '')
+      nothingWritten()
+    }
+  })
+
+  it('refuses a flag whose value is missing, naming the flag', async () => {
+    for (const flag of ['--filter', '--template', '--blueprint', '--title', '--new-view', '--view']) {
+      const res = await runCli([root, flag], { subprocess: true })
+      assert.equal(res.code, 2, `${flag}: ${res.stdout}${res.stderr}`)
+      assert.ok(res.stderr.includes(flag), `${flag}: the message names the flag`)
+      assert.equal(res.stdout, '')
+      nothingWritten()
+    }
+  })
+
+  it('still reads a bare positional as a model name and a known flag as a flag', async () => {
+    const listed = await runCli([root, '--list'], { subprocess: true })
+    assert.equal(listed.code, 0, listed.stderr)
+    assert.match(listed.stdout, /business_V_1-0-0_NN\.md/)
+
+    const scoped = await runCli([root, 'business'], { subprocess: true })
+    assert.equal(scoped.code, 0, scoped.stderr)
+    assert.match(scoped.stdout, /Exported 1 console artifact\(s\)/)
+    assert.equal(existsSync(join(root, 'domaiNN_console.html')), false, 'a model scope writes no domain file')
+  })
+})
