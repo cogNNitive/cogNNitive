@@ -240,10 +240,10 @@ batch:: b3e-console-payload-size
 value:: H
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: iNNfo/packages/nn-core/src/mutate.ts:935 removes fields and rawFields for empty string; iNNfo/packages/nn-mcp/test/apply-change.test.ts:402,429 covers clear and wrong-from conflict. Cross-review-sol C2 repairs a banned sources field through sealed apply. The missing-operation premise is obsolete; remaining work is precise guidance and a banned-field regression. Verified against 8a2958b8df4bd4e20363c37bf2feba7dd0bdffdc; private issue-560 recovery remains unverified.
+evidence:: The ban itself was already enforced (`iNNfo/packages/nn-core/src/validator/knowledge-checks.ts:404` reports SOURCES_FIELD_BANNED, called from `validator/knowledge.ts:168`), so the open work was the repair path's regression and its guidance. Shipped 2026-11-16 in session/banned-l3-field: `iNNfo/packages/nn-core/tests/changeset/banned-sources-clear.test.ts` pins both directions of a sealed serialized round-trip — `update_field` on `strategy@vision&sources` with `to:: ""` (serializeChangeset -> parseChangeset -> verifyProposalSha) removes the banned field, keeps `statement` and `target_year` byte-identical, and the re-parsed document validates with zero SOURCES_FIELD_BANNED; marking the change applied puts the unit in `cleared` and the `from`/`to: ''` pair in `history` (a cleared unit has no `origin`, by design); a wrong `from` partitions as PRECONDITION_FAILED with the model unchanged and still invalid. Guidance now names the repair: `skills/nn-innfo/SKILL.md` (Provenance Protocol rule 1) and `docs/documentation/content/concepts/sources-citations-lineage.md` say the field is cleared with an empty `to`, never `null`/`undefined`. No remove_field op added and issue-560 left open.
 done_when:: Document update_field with to empty string (not null/undefined); a sealed serialized round-trip removes banned sources, preserves unrelated fields, validates and records the applied change; wrong from conflicts without writes. Add only a banned-field regression missing from existing generic clear tests; do not add remove_field or close issue-560 without checking its remaining incident.
 ref:: issue-560
 batch:: b6-remove-banned-l3-field
