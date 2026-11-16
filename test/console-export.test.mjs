@@ -943,6 +943,11 @@ scenarioMonths:: 12
       assert.ok(Array.isArray(el.history) && el.history.length >= 1, 'history is embedded on the element')
       assert.equal(el.history[0].op, 'comment')
       assert.equal(el.history[0].notes, 'a note')
+      assert.equal(
+        Object.prototype.hasOwnProperty.call(el, 'provenance'),
+        false,
+        'no per-element provenance map ships: the console has no reader for it',
+      )
     })
 
     it('embeds the per-element source index and the model file-level source', async () => {
