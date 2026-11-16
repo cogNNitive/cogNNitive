@@ -9,9 +9,9 @@
  *   UNVERIFIED against WaveSpeed's published schema; it comes from the earlier
  *   asset-synthesizer code. If it turns out to be different (uploaded media URLs instead
  *   of data URIs, other field names), only this function changes.
- * - `resolution` IS OBSERVED TO BE ADVISORY. Measured A/B on
- *   `wavespeed-ai/infinitetalk-fast`, both requesting `avatar_resolution: 720p`: a
- *   1920x1920 still came back 480x480, and a 2848x1600 still came back 640x352. The
+ * - `resolution` IS OBSERVED TO BE ADVISORY. Measured A/B on the default InfiniTalk
+ *   model, both requesting `avatar_resolution: 720p`: a 1920x1920 still came back
+ *   480x480, and a 2848x1600 still came back 640x352. The
  *   provider preserves the input aspect ratio and holds the pixel budget near 0.23 Mpx,
  *   so the label does not decide the output size. The field is still sent (it is part of
  *   the request and may matter to other models), but nothing downstream should treat it

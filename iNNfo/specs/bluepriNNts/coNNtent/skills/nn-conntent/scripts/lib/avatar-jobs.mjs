@@ -52,8 +52,8 @@ export const AVATAR_SQUARE_TOLERANCE = 0.02;
 /**
  * Compares the clip's measured size against the resolution that was requested.
  *
- * The WaveSpeed avatar provider does not enforce `resolution`: measured A/B on
- * `wavespeed-ai/infinitetalk-fast` with `avatar_resolution: 720p` returned 480x480 for a
+ * The WaveSpeed avatar provider does not enforce `resolution`: measured A/B on the
+ * default InfiniTalk model with `avatar_resolution: 720p` returned 480x480 for a
  * 1920x1920 input and 640x352 for a 2848x1600 input. It preserves the input aspect ratio
  * and holds the pixel budget near 0.23 Mpx, so the declared label is advisory and the
  * short side is the dimension that collapses. Nothing here changes the request or the
