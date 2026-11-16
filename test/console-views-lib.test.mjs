@@ -253,6 +253,64 @@ describe('console-views lib', () => {
     })
   })
 
+  describe('view convention warnings', () => {
+    // The three mistakes below are silent otherwise: the export succeeds and the views are
+    // simply absent or misnamed. Each warning must name the offending path and the one the
+    // convention expects, and leave an otherwise valid discovery succeeding.
+    const collect = async (specNames = []) => {
+      const warnings = []
+      const views = await discoverViews({
+        domainRoot: domain,
+        specNames,
+        packagesDir: pkgs,
+        onWarning: (w) => warnings.push(w),
+      })
+      return { views, warnings }
+    }
+
+    it('warns, naming the file and the console-view name it needs, when a bluepriNNt assets folder holds only non-view .js', async () => {
+      const assets = join(domain, 'specs', 'bluepriNNts', 'metrics', 'assets')
+      await put(join(assets, 'timeline.js'))
+      await mkdir(join(pkgs, 'metrics'), { recursive: true })
+      const { views, warnings } = await collect(['metrics'])
+      assert.deepEqual(views.map((v) => v.id), [])
+      assert.equal(warnings.length, 1)
+      assert.ok(warnings[0].includes(join(assets, 'timeline.js')), 'names the offending file')
+      assert.ok(warnings[0].includes(join(assets, 'console-view-timeline.js')), 'names the expected file')
+    })
+
+    it('warns, naming the file and the plain slug it should use, when a domaiNN view keeps the bluepriNNt prefix', async () => {
+      const dir = join(domain, 'consoles', 'views')
+      await put(join(dir, 'console-view-foo.js'))
+      const { views, warnings } = await collect()
+      assert.deepEqual(views.map((v) => v.id), ['console-view-foo'], 'the export still succeeds with the id it derives')
+      assert.equal(warnings.length, 1)
+      assert.ok(warnings[0].includes(join(dir, 'console-view-foo.js')), 'names the offending file')
+      assert.ok(warnings[0].includes(join(dir, 'foo.js')), 'names the expected file')
+    })
+
+    it('warns, naming the empty folder and the one that supplied the views, when a tier falls through', async () => {
+      const empty = join(domain, 'specs', 'bluepriNNts', 'metrics', 'assets')
+      await mkdir(empty, { recursive: true })
+      const used = join(pkgs, 'metrics', 'assets')
+      await put(join(used, 'console-view-timeline.js'))
+      const { views, warnings } = await collect(['metrics'])
+      assert.deepEqual(views.map((v) => v.id), ['timeline'], 'the later tier still supplies the views')
+      assert.equal(warnings.length, 1)
+      assert.ok(warnings[0].includes(empty), 'names the folder that yielded nothing')
+      assert.ok(warnings[0].includes(used), 'names the folder that was used instead')
+    })
+
+    it('stays silent when the conventions are followed and the first non-empty tier wins', async () => {
+      await put(join(pkgs, 'metrics', 'assets', 'console-view-timeline.js'))
+      await put(join(domain, 'specs', 'bluepriNNts', 'metrics', 'assets', 'console-view-domain.js'))
+      await put(join(domain, 'consoles', 'views', 'pipeline.js'))
+      const { views, warnings } = await collect(['metrics'])
+      assert.deepEqual(views.map((v) => v.id), ['domain', 'pipeline'])
+      assert.deepEqual(warnings, [])
+    })
+  })
+
   describe('nothing is skipped silently', () => {
     // A file symlink needs a privilege on Windows; a junction to a folder does not, and both
     // show up as symbolic links in a directory listing.
