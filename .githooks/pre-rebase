@@ -1,0 +1,5 @@
+#!/bin/sh
+# pre-rebase: an interactive or scripted rebase in the primary checkout moves the
+# branch every live session is reading, and stops half-way with conflict markers in
+# the tree when it fails. Rebase inside the session worktree instead.
+node scripts/guard-primary-checkout.mjs "rebase" || exit 1

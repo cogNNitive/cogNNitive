@@ -23,6 +23,13 @@ node scripts/nn-session.mjs start --id <short-kebab-id>   # worktree ../cogNNiti
 node scripts/nn-session.mjs status                        # primary health + every worktree
 ```
 
+- **The worktree is the thread's, not the script's.** Under T3 Code open the thread with
+  **New worktree** (or launch it with `workspaceStrategy`), so the thread's own working
+  directory *is* the worktree; `nn-session start` is for a harness with no worktree entry
+  point. Two live threads in one checkout share files, the git index and the current
+  branch: on 2026-11-16 five console threads read `main` while that tree was checked out
+  on `fix/conntent-avatar-narration` and being rebased under them. One writer per
+  worktree.
 - **The primary checkout is read-only.** A `PreToolUse` hook denies edits and
   `git add/commit/stash` there. Work in the worktree. When the tool cwd resets to the
   primary, use `git -C <literal absolute worktree path>`: the hook reads the `-C`
@@ -31,10 +38,12 @@ node scripts/nn-session.mjs status                        # primary health + eve
     `.claude/settings.json` (Claude Code) and mirrored in `.agents/hooks.json`
     (Antigravity). Both decide "primary" by one rule: `.git` is a **directory** for the
     primary and a **file** for a linked worktree.
-  - **OpenCode enforces neither.** It reads neither config file, so under OpenCode the
-    read-only primary and the dangerous-git list are **convention, not enforcement**:
-    nothing blocks a write. Treat them as rules, not as a safety net, and do not assume a
-    delegate is sandboxed because a sibling provider was.
+  - **OpenCode reads neither config file**, so the dangerous-git list stays **convention,
+    not enforcement** there: nothing blocks it. Treat it as a rule, not a safety net, and
+    do not assume a delegate is sandboxed because a sibling provider was. The read-only
+    primary is enforced anyway, one layer lower: `.githooks/pre-commit`,
+    `pre-merge-commit` and `pre-rebase` call `scripts/guard-primary-checkout.mjs`, and a
+    git hook sits below every harness — `core.hooksPath` is already `.githooks`.
   - **`nn-session status` asks git which checkout is primary** (`git worktree list` lists
     the main worktree first), so it reports the truth from any worktree. Do not derive it
     from where `scripts/nn-session.mjs` itself lives: every session worktree has its own
@@ -77,6 +86,11 @@ nothing, `iNNfo/specs/bluepriNNts/console/ui-kit.js` claims something. Generated
 artifacts (`*.bundle.js`, `catalog.json`, exported console HTML) belong to whoever owns
 the source and are regenerated after the rebase, never resolved by hand.
 
+A claim reserves **paths, not time**. It says who else is writing today; it does not stop
+the same hot file from being rewritten again the moment the first session lands, which is
+what 23 PRs touching `openspec/backlog_NN.md` in one day looked like. Who lands first is
+decided by the integration lane (§4), never by the lock.
+
 ## 2. Pick the lane
 
 **Heavy only for these four.** A change is heavy when it:
@@ -113,11 +127,47 @@ Gentle-AI's ODD runs the agent; this repository narrows it:
   (`gentle-ai review mode status`). Verification is the focused test plus CI.
 - **Inner loop:** `node --test <file>` for what you touched, or `npm run verify:fast`.
   The full `node scripts/verify.js` is CI's job.
+- **One thread, one area, 3–5 items.** A backlog batch of 3–5 items is one session and one
+  PR. Fifteen threads for one work area is not parallelism: it is fifteen rebases queued
+  in advance, because every merge moves the base under the other fourteen. When two sides
+  of the work must agree on a contract, land the contract first and start both from that
+  commit.
 - **Derived artifacts regenerate themselves.** The pre-commit hook reruns the fast
   generators when code or samples are staged and stages what changed. If a push or CI
   still reports a stale artifact, run `npm run regen` and commit.
 
 ## 4. Land on `main`
+
+### One integration lane
+
+`main` is protected and landings go through GitHub's merge queue, so exactly one PR merges
+at a time and each is validated on `main` plus every PR queued ahead of it (`merge_group`
+in `ci.yml`). That serialization is the point: 28 PRs in one day invalidated each other's
+base, and a single merge needed 16 conflict resolutions.
+
+- **Never merge, rebase or amend in the primary checkout.** The git hooks refuse it, under
+  every harness (`scripts/guard-primary-checkout.mjs`). A branch that fell behind rebases
+  inside its own worktree.
+- **`gh pr merge` enqueues; it does not merge.** The queue owns the merge method, so the
+  `--merge`/`--squash` choice belongs to the queue rule. Keep it `merge`: the session
+  branch must stay an ancestor of `main` so `nn-session sweep` can remove it.
+- **Do not open one PR per backlog item.** Five PRs of five items beat twenty-five PRs of
+  one. Every landing PR moves the base under every other open branch.
+- **The backlog is a single-writer surface.** Only the PR that lands a batch edits its row,
+  and it edits it last, immediately before queueing, so a conflict is one line and not a
+  rebase of the whole file.
+- **A conflicted generated artifact means rebase + `npm run regen`**, never a hand-resolved
+  bundle.
+
+The ruleset (`main: single integration lane`, repo ruleset 27391067) is `merge_queue`
+(`MERGE`, `ALLGREEN`, one entry at a time) plus `non_fast_forward` and `deletion`. It
+deliberately requires **no** status checks and **no** pull request: `claim-release.yml`
+pushes the claim deletion straight to `main`, and the Actions integration cannot be given
+a bypass through the API (`Actor GitHub Actions integration must be part of the ruleset
+source or owner organization` — the bypass is UI-only). Turning the gate into a required
+check on `main` therefore means moving `claim-release` off a direct push first, or every
+landing reddens a workflow. Until then the PR gate stays social: CI runs on the PR, and
+the queue only serializes.
 
 1. Push the session branch and open a PR to `main` without asking. That is the normal
    end of a unit.

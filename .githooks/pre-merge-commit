@@ -1,0 +1,5 @@
+#!/bin/sh
+# pre-merge-commit: a merge commit rewrites the shared checkout's index and tree in
+# the middle of somebody else's read. Merges belong in the integration lane (the
+# merge queue on the PR), never in the primary checkout.
+node scripts/guard-primary-checkout.mjs "merge commit" || exit 1
