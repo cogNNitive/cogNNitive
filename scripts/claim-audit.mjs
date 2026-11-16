@@ -5,10 +5,10 @@
  *
  * Answers one question about the repository as a whole: "which claims are still
  * live, and which ones are tombstones left behind by a land?" A claim is a live
- * lock. GitHub deletes the branch on merge and never the file, so the
- * `claim-release` workflow removes the claim at that moment; this audit is the
- * safety net for a run that failed, and it also catches a claim whose PR is
- * still open but whose file was removed by hand.
+ * lock. GitHub deletes the branch on merge and never the file, so the landing pull
+ * request removes the claim in its last commit (CI enforces it on `merge_group`);
+ * this audit is the safety net for the PRs that landed before that rule, and it
+ * also catches a claim whose PR is still open but whose file was removed by hand.
  *
  * `claim-check` answers "is my area taken right now?". This answers "is the
  * claims folder honest right now?" The two never overlap: this one takes no
