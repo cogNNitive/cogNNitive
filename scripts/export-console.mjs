@@ -611,11 +611,20 @@ function viewSpecNamesFor(models, html) {
   return names
 }
 
-/** Scope family key: one model `<stem>`; several `<firstStem>-plus<N-1>-<hash6>`. */
+/**
+ * Scope family key: one model `<stem>`; several `<firstStem>-plus<N-1>-<hash6>`.
+ * The multi-model key is order-independent: both the prefix and the hashed list come from
+ * the models sorted by their slash-normalized repository path, so any permutation of
+ * `selected` names the same family (the raw OS-separator path order the caller may have
+ * used never reaches the key).
+ */
 function scopeKeyOf(selected, rootDir) {
   if (selected.length === 1) return selected[0].name
-  const rels = selected.map((m) => relative(rootDir, m.filePath).replace(/\\/g, '/')).sort()
-  return `${selected[0].name}-plus${selected.length - 1}-${hashSlice(rels.join('\n'), 6)}`
+  const ordered = selected
+    .map((m) => ({ name: m.name, rel: relative(rootDir, m.filePath).replace(/\\/g, '/') }))
+    .sort((a, b) => (a.rel < b.rel ? -1 : a.rel > b.rel ? 1 : 0))
+  const rels = ordered.map((entry) => entry.rel)
+  return `${ordered[0].name}-plus${selected.length - 1}-${hashSlice(rels.join('\n'), 6)}`
 }
 
 /** Human-readable scope label: `A, B` for a couple, `<first> + N more` beyond. */

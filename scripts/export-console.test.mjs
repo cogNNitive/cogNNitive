@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { consoleHtml, consoleBundle, consoleMembers } from '../test/helpers/console-artifacts.mjs'
-import { runExportConsole } from './export-console.mjs'
+import { runExportConsole, writeConsole } from './export-console.mjs'
 import { createHash } from 'node:crypto'
 
 const execFileAsync = promisify(execFile)
@@ -1202,6 +1202,51 @@ health:: critical
       assert.ok(alpha, 'element Alpha found in model')
       assert.deepEqual(alpha.fields.tags, ['ai'], 'own tags in fields.tags')
       assert.equal(alpha.fields.health, 'critical', 'own health in fields.health')
+    })
+  })
+
+  describe('batch b10g2: export-console hygiene', () => {
+    /** The fixture models as `writeConsole` sees them, in the order given. */
+    const modelsIn = async (rels) => {
+      const models = []
+      for (const rel of rels) {
+        const filePath = join(tempDir, ...rel.split('/'))
+        const content = await readFile(filePath, 'utf-8')
+        const title = content.match(/^title:\s*"([^"]*)"/m)?.[1] ?? ''
+        const version = content.match(/^knowledge_version:\s*"([^"]*)"/m)?.[1] ?? ''
+        models.push({
+          filePath,
+          name: basename(filePath).replace(/\.md$/, '').replace(/_NN$/, ''),
+          content,
+          fm: { title, knowledge_version: version },
+        })
+      }
+      return models
+    }
+    const SORTED = [
+      'models/business_V_0-2-5_NN.md',
+      'models/procedures_V_0-1-0_NN.md',
+      'subdomains/metrics_V_0-1-0_NN.md',
+    ]
+    const exportSelection = (models) =>
+      writeConsole({
+        rootDir: tempDir,
+        // The same three models named by stem, whatever order they arrive in.
+        scope: { models: ['business_V_0-2-5', 'procedures_V_0-1-0', 'metrics_V_0-1-0'] },
+        models,
+        open: false,
+      })
+
+    it('keeps the scope key stable when the model list is reordered (d14)', async () => {
+      const first = await exportSelection(await modelsIn(SORTED))
+      const reversed = await exportSelection(await modelsIn([...SORTED].reverse()))
+
+      assert.equal(
+        reversed.relativePath,
+        first.relativePath,
+        'the same models must land in one scope family whatever order they are listed in',
+      )
+      assert.match(first.relativePath, /^artifacts\/business_V_0-2-5-plus2-[0-9a-f]{6}_console\//)
     })
   })
 })
