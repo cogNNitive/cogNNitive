@@ -1,6 +1,7 @@
 # claim: mcp-bundle-repro
 
 branch: session/mcp-bundle-repro
+pr: 687
 opened: 2026-11-16
 thread: maintainer session, heavy lane (release artifact + delta spec)
 
