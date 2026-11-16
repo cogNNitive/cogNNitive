@@ -8,11 +8,12 @@ on:
     branches: [ main, dev ]
   # No base filter: every PR runs the gate, whatever branch it targets.
   pull_request:
-  # Required for the merge queue: the queue validates `main` plus every PR ahead of
-  # this one on a temporary `gh-readonly-queue/<base>/...` ref, and GitHub only
-  # waits for checks reported against that ref. Without this trigger a protected
-  # branch with a queue blocks forever. The queue runs the full gate (`verify`),
-  # never the `refs/heads/session/**` fast tier.
+  # Dormant: there is no merge queue today, so GitHub never creates a `merge_group`
+  # event. The trigger stays because a queue is enabled by a ruleset change and not by a
+  # PR, and it needs this: the queue validates `main` plus every PR ahead of it on a
+  # temporary `gh-readonly-queue/<base>/...` ref, and GitHub only waits for checks
+  # reported against that ref. Enabling a queue without this trigger blocks every merge
+  # forever. On a merge group the full gate runs, never the `refs/heads/session/**` tier.
   merge_group:
   workflow_dispatch:
 
@@ -185,17 +186,13 @@ jobs:
         run: npm run check:spec-urls
 
   # ── Claims: a claim is a live lock, released by the pull request that lands the work.
-  #    GitHub deletes the branch and never the file, and `main` accepts merges only
-  #    through the merge queue, so no workflow can delete the claim after the merge
-  #    either: a direct push to `main` is rejected with "Changes must be made through
-  #    the merge queue". The release therefore happens where the author still controls
-  #    it, in the pull request, and this job enforces it at the last moment before
-  #    landing.
+  #    GitHub deletes the branch and never the file, so the release is a commit in the PR.
+  #    That is a convention: `main` only forbids force-push and deletion, so nothing rejects
+  #    a PR that forgets it, and `claim-audit` is the net.
   #
-  #    On a pull request the audit stays ADVISORY: a tombstone is pre-existing debt on
-  #    the base branch, so failing there would blame an author for somebody else's
-  #    merge and force a rider fix. On `merge_group` the check is blocking but scoped
-  #    to the landing PR's own claim, the only one that PR can release.
+  #    The `merge_group` step is the blocking version and stays dormant until a merge queue
+  #    exists. On a pull request the audit stays ADVISORY: a tombstone is pre-existing debt on
+  #    the base branch, so failing there would blame an author for somebody else's merge.
   claims:
     runs-on: ubuntu-latest
     permissions:
