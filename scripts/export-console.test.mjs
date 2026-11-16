@@ -46,6 +46,12 @@ async function runCli(args, opts = {}) {
 describe('export-console CLI test suite', () => {
   let tempDir
 
+  it('ignores *_NN.md notes with no frontmatter instead of crashing the domain export', async () => {
+    await writeFile(join(tempDir, 'models', 'handoff_NN.md'), '# Handoff\n\nPlain notes without a model header.\n')
+    const result = await runCli([tempDir, '--domain'])
+    assert.equal(result.code, 0, result.stderr)
+  })
+
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), 'nn-export-test-'))
     // Create models directory with fixtures

@@ -659,6 +659,18 @@ evidence:: The exporter attaches two per-element maps: `element.history` (iNNfo/
 done_when:: The export emits no `element.provenance`, stripConsoleProvenance still drops `element.history` on the fail path with the strategy name and gate message kept accurate for what the step now does, element-history.ts documents no reader that does not exist, a console exported from a domain with applied changes still renders the Changes tab and the per-field value history, and the payload measured on iNNtake_NN shrinks by the provenance share without losing history.
 batch:: b12-console-unread-provenance
 
+## NN Item: console-ku-row-virtualization
+value:: H
+effort:: L
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: Measured on 2026-11-15 (PR #648 body) on `iNNtake_NN`: a 21.46 MB console payload renders to 874,945 DOM nodes and ~1.35 GB working set per tab, the cost being the retained document rather than the JS heap (~50 MB), and two measured domains scale at ~300 KB of retained memory per rendered element. The kNNowledge list mounts every card in one pass: `mountElementCards` (iNNfo/specs/bluepriNNts/console/nn-runtime.js:2663) appends `buildElementCard` for every filtered element at :2842, so 3,922 elements produce 27,317 `.nn-ku` badges, 124,497 `<button>` and 142,670 `.nn-icon` nodes (~301 nodes per element). Measured on a live page: dropping those rows frees ~240 MB per tab while dropping the box-shadow-animated icons frees only ~44 MB, so the rows are the dominant remaining lever. PR #650 already cut boot DOM 874,945 -> 21,097 and load 3,285 -> 636 ms by making change-sheet bodies lazy, paging ChangeHistory at `CHANGE_PAGE = 100` (ui-kit.js:2529) and spriting the icons, but the element list itself is still fully mounted. The icon sprite was measured and reverted in #648 (per-tab memory 1,265 -> 1,593 MB) and later re-landed lazily in #650 without a per-tab memory re-measurement, which is why the row cost is the only lever left with a measured memory effect. Windowing has to keep addressing working: `focusElementCard` (nn-runtime.js:5477), the deep-link path (:5396) and the mount call (:7724) all assume the target card is already in the DOM. Open UX decision: page with a `Show more` button in the ChangeHistory style (lowest risk), fold by concept/scope, or a real virtual window over variably sized cards.
+done_when:: On a domain the size of iNNtake_NN the kNNowledge list mounts a bounded page or window of ElementCards instead of all 3,922, the DOM node count and per-tab memory are measured before and after and recorded with the numbers, a deep link and `focusElementCard` still resolve an element that is not mounted (its page opens first), and filter, sort and search still reach every matching element.
+ref:: pr-648, pr-650
+batch:: b13-console-ku-row-budget
+
 # NN Batch
 
 ## NN Batch: b3a-source-import-guards
@@ -891,4 +903,11 @@ order:: 35
 lane:: light
 items:: console-unread-provenance-payload
 risk:: L
+state:: planned
+
+## NN Batch: b13-console-ku-row-budget
+order:: 36
+lane:: light
+items:: console-ku-row-virtualization
+risk:: M
 state:: planned
