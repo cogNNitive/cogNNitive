@@ -226,6 +226,53 @@ halfway and leave a half-deleted folder; `stop` unlinks them first. Remote branc
 `deleteBranchOnMerge: true` GitHub already deletes every head branch on merge — do not hand
 out a list of `git push --delete` commands for branches that landed.
 
+### 7a. Sweep gate: "nothing committed yet" reads as "already merged"
+
+`sweep` decides a session is finished with `git merge-base --is-ancestor session/<id> main`
+(or `origin/main`). A session that has **not committed yet** points at the same commit as
+the base, so it is trivially an ancestor, and `sweep` classifies a live session as a merged
+worktree worth removing — while its agent is still writing files in it. The only guard
+between that session and deletion is `git status --porcelain` inside the worktree, and it
+stops protecting the moment the tree is momentarily clean: a commit in flight, a stash, a
+rebase that already applied its edits, a generated artifact not yet staged.
+
+Observed 2026-11-16: `session/episode-layout` sat exactly on `main`'s tip with 12
+uncommitted files while its agent ran `node scripts/verify.js --fast` in that worktree.
+`sweep` printed `sweeping merged session worktree: session/episode-layout`, refused only
+because the tree was dirty, and the same session committed three commits minutes later.
+One clean instant earlier and that work was gone, with no branch ahead of `main` and no PR
+to recover it from.
+
+**Run this gate before you run `sweep`, and before you even propose it to the maintainer.
+Report the verdict per worktree, never a bare "ok".**
+
+| Signal | How | Reads as active |
+|---|---|---|
+| No commits yet | `git -C <abs> rev-list --count main..HEAD` | `0` |
+| Uncommitted work | `git -C <abs> status --porcelain` | anything |
+| Recent writes | newest mtime among the worktree's **modified** files, next to the current time | within ~15 minutes |
+| A running command | `Get-CimInstance Win32_Process -Filter "Name='node.exe'"`, matching `verify.js`, `--test`, a test filename or `npm` | present |
+| A live claim | `openspec/claims/*.md` in the worktree with no open PR on its branch | present |
+
+`nn-session status` is the starting point, not the answer: it reports the **primary**
+checkout's dirtiness and lists the worktrees, and says nothing about whether a session
+worktree is in use. Windows does not expose a process's working directory cheaply, so do
+not stop at a command line — correlate it with the modified-file mtimes of the worktree you
+are about to delete.
+
+Whole-tree fresh mtimes are noise: a checkout or an install touches every file. Look at the
+files that worktree has actually *modified* against its base.
+
+**Stop** — do not sweep, do not propose it — while any worktree shows a zero commit count,
+a dirty tree, a modified file from the last ~15 minutes, a running verify/test/node
+process, or a claim without an open PR. Name the worktree, name the signal, and hand the
+decision back. Never "save what matters and revert the rest" on work you did not write:
+recovering another session's edits is its owner's call, and a worktree you did not create
+is not yours to clean up.
+
+Sweeping a genuinely finished set stays a one-liner. The rule is only that git saying
+"merged" is not evidence that nobody is using the worktree.
+
 ## Git rules
 
 - Blocked by `.claude/hooks/block-dangerous-git.mjs`: `reset --hard`, `clean`, `stash`,
