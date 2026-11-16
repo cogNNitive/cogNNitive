@@ -2,13 +2,14 @@ import { readFile, writeFile, readdir, stat } from 'node:fs/promises'
 import { join, relative, basename as pathBasename } from 'node:path'
 import {
   ENTRYPOINT_FILENAME,
+  catalogKindOf,
   reconcileManifest,
   isReconcilableModel,
   parseFrontmatter,
   parentSpecNameOf,
   displayStem,
 } from '@cognnitive/nn-core'
-import type { DiscoveredModel, ManifestChange, CandidateFile } from '@cognnitive/nn-core'
+import type { DiscoveredCatalog, DiscoveredModel, ManifestChange, CandidateFile } from '@cognnitive/nn-core'
 import { buildNodeDomainIndex, duplicateIdCollisions, type ModelIdCollisionDiagnostic } from './domain-index.js'
 
 /**
@@ -75,12 +76,13 @@ async function hasEntrypoint(dir: string): Promise<boolean> {
   }
 }
 
-async function discoverCandidates(
+async function discoverManifestInput(
   root: string,
   manifestRelPath: string,
-): Promise<DiscoveredModel[]> {
+): Promise<{ models: DiscoveredModel[]; catalogs: DiscoveredCatalog[] }> {
   const files = await walkMarkdownFiles(root)
-  const discovered: DiscoveredModel[] = []
+  const models: DiscoveredModel[] = []
+  const catalogs: DiscoveredCatalog[] = []
 
   for (const filePath of files) {
     const relPath = toRelative(root, filePath)
@@ -97,18 +99,23 @@ async function discoverCandidates(
 
     const frontmatter = (parseFrontmatter(content) ?? {}) as Record<string, unknown>
     const candidate: CandidateFile = { path: relPath, frontmatter }
-    if (!isReconcilableModel(candidate, manifestRelPath)) continue
-
     const title =
       typeof frontmatter['title'] === 'string' ? (frontmatter['title'] as string).trim() : ''
-    discovered.push({
-      path: relPath,
-      name: title !== '' ? title : displayStem(pathBasename(relPath)),
-      template: parentSpecNameOf(frontmatter),
-    })
+    const name = title !== '' ? title : displayStem(pathBasename(relPath))
+
+    // The catalog sections link a catalog document; the kNNowledge section owns
+    // the discovered models. A catalog is never a model entry and vice versa.
+    const catalogKind = catalogKindOf(candidate)
+    if (catalogKind) {
+      catalogs.push({ kind: catalogKind, path: relPath, name })
+      continue
+    }
+    if (!isReconcilableModel(candidate, manifestRelPath)) continue
+
+    models.push({ path: relPath, name, template: parentSpecNameOf(frontmatter) })
   }
 
-  return discovered
+  return { models, catalogs }
 }
 
 /**
@@ -151,8 +158,11 @@ export function buildUnifiedDiff(oldContent: string, newContent: string, path: s
 }
 
 /**
- * Reconciles the workspace manifest against discovered Level-3 model files.
- * `dry_run` (default `true`) reports `changes`/`diff` without writing.
+ * Reconciles the domain manifest against the documents the workspace is
+ * actually made of: every `# NN kNNowledge` entry against the discovered
+ * Level-3 models, and the `# NN Sources`, `# NN Procedures` and `# NN
+ * Artifacts` pointers against the discovered catalog documents. `dry_run`
+ * (default `true`) reports `changes`/`diff` without writing.
  */
 export async function syncWorkspaceManifest(
   root: string,
@@ -167,10 +177,12 @@ export async function syncWorkspaceManifest(
 
   const manifestRelPath = toRelative(root, manifestPath)
   const manifestContent = await readFile(manifestPath, 'utf-8')
-  const discovered = await discoverCandidates(root, manifestRelPath)
-  const { content, changes } = reconcileManifest(manifestContent, discovered)
+  const { models, catalogs } = await discoverManifestInput(root, manifestRelPath)
+  const { content, changes } = reconcileManifest(manifestContent, models, catalogs)
 
-  const mutating = changes.some((c) => c.kind !== 'skipped-not-owned')
+  // A report-only change (skipped-not-owned, missing-target) never writes: the
+  // write follows the CONTENT, so a record that mutates nothing is not a write.
+  const mutating = content !== manifestContent
   let written = false
   let diff: string | undefined
 

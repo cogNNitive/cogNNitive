@@ -1,4 +1,5 @@
 import { normalizePathKey } from '../recursiveParser/paths.js'
+import { CATALOG_KINDS, type CatalogKind } from './discoverModels.js'
 
 /** Marks an entry as tool-owned. Ownership is EXPLICIT, never inferred. */
 export const OWNERSHIP_MARKER = '<!-- nn:auto -->'
@@ -12,8 +13,21 @@ export interface DiscoveredModel {
   template?: string
 }
 
+/**
+ * A catalog document a `# NN Sources`, `# NN Procedures` or `# NN Artifacts`
+ * section links. Unlike a model, a catalog carries no `status::` lifecycle:
+ * the section is a pointer, not an inventory.
+ */
+export interface DiscoveredCatalog {
+  kind: CatalogKind
+  /** Workspace-relative path, written into `path::`. */
+  path: string
+  /** Element name for `## NN Sources: <name>`, from frontmatter `title`, else the filename. */
+  name: string
+}
+
 export interface ManifestChange {
-  kind: 'added' | 'archived' | 'reactivated' | 'skipped-not-owned'
+  kind: 'added' | 'archived' | 'reactivated' | 'skipped-not-owned' | 'missing-target'
   path: string
   name: string
   reason?: string
@@ -21,15 +35,43 @@ export interface ManifestChange {
 
 /** `# NN kNNowledge` or legacy `# NN Models` — the section header, exactly one `#`. */
 const SECTION_HEADER_RE = /^#\s+NN\s+(?:kNNowledge|Models)\s*$/
-/** Any level-1 heading (single `#`, not `##`) — terminates the Models/kNNowledge section. */
+/** Any level-1 heading (single `#`, not `##`) — terminates a section. */
 const TOP_HEADER_RE = /^#(?!#)\s/
 /** `## NN kNNowledge: <name>` or legacy `## NN Models: <name>` — one entry heading. */
 const ENTRY_HEADER_RE = /^##\s+NN\s+(?:kNNowledge|Models):\s*(.+?)\s*$/
+
+/**
+ * Section header and entry heading of each catalog section. The label is the
+ * one the `workspace` bluepriNNt spells (`## NN Sources: Sources Catalog`).
+ */
+const CATALOG_SECTIONS: Record<CatalogKind, { header: RegExp; entry: RegExp; label: string }> = {
+  sources: {
+    header: /^#\s+NN\s+Sources\s*$/,
+    entry: /^##\s+NN\s+Sources:\s*(.+?)\s*$/,
+    label: 'Sources',
+  },
+  procedures: {
+    header: /^#\s+NN\s+Procedures\s*$/,
+    entry: /^##\s+NN\s+Procedures:\s*(.+?)\s*$/,
+    label: 'Procedures',
+  },
+  artifacts: {
+    header: /^#\s+NN\s+Artifacts\s*$/,
+    entry: /^##\s+NN\s+Artifacts:\s*(.+?)\s*$/,
+    label: 'Artifacts',
+  },
+}
 
 interface SectionInfo {
   headerIdx: number
   endIdx: number
   kind: 'kNNowledge' | 'Models'
+}
+
+/** A located section: its header line and the line where the next top heading starts. */
+interface SectionRange {
+  headerIdx: number
+  endIdx: number
 }
 
 interface LocatedEntry {
@@ -67,33 +109,42 @@ function isFieldLine(line: string): boolean {
   return /^\s*[A-Za-z_][A-Za-z0-9_-]*::/.test(stripCR(line))
 }
 
+/** First top-level heading after `headerIdx`, or EOF — the end of that section. */
+function sectionEnd(lines: string[], headerIdx: number): number {
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    if (TOP_HEADER_RE.test(stripCR(lines[i]))) return i
+  }
+  return lines.length
+}
+
 function findModelsSection(lines: string[]): SectionInfo | null {
   const headerIdx = lines.findIndex((l) => SECTION_HEADER_RE.test(stripCR(l)))
   if (headerIdx === -1) return null
   const headerText = stripCR(lines[headerIdx])
   const kind: 'kNNowledge' | 'Models' = /Models/i.test(headerText) ? 'Models' : 'kNNowledge'
-  let endIdx = lines.length
-  for (let i = headerIdx + 1; i < lines.length; i++) {
-    if (TOP_HEADER_RE.test(stripCR(lines[i]))) {
-      endIdx = i
-      break
-    }
-  }
-  return { headerIdx, endIdx, kind }
+  return { headerIdx, endIdx: sectionEnd(lines, headerIdx), kind }
+}
+
+function findCatalogSection(lines: string[], kind: CatalogKind): SectionRange | null {
+  const { header } = CATALOG_SECTIONS[kind]
+  const headerIdx = lines.findIndex((l) => header.test(stripCR(l)))
+  if (headerIdx === -1) return null
+  return { headerIdx, endIdx: sectionEnd(lines, headerIdx) }
 }
 
 function locateEntries(
   lines: string[],
-  section: SectionInfo,
+  section: SectionRange,
+  entryHeaderRe: RegExp,
 ): LocatedEntry[] {
   const headerIdxs: number[] = []
   for (let i = section.headerIdx + 1; i < section.endIdx; i++) {
-    if (ENTRY_HEADER_RE.test(stripCR(lines[i]))) headerIdxs.push(i)
+    if (entryHeaderRe.test(stripCR(lines[i]))) headerIdxs.push(i)
   }
 
   return headerIdxs.map((headerIdx, i) => {
     const blockEnd = headerIdxs[i + 1] ?? section.endIdx
-    const match = stripCR(lines[headerIdx]).match(ENTRY_HEADER_RE)!
+    const match = stripCR(lines[headerIdx]).match(entryHeaderRe)!
     const name = match[1].trim()
 
     let firstNonBlank = headerIdx + 1
@@ -126,7 +177,10 @@ function locateEntries(
   })
 }
 
-function buildEntryBlockLines(model: DiscoveredModel, kind: 'kNNowledge' | 'Models' = 'kNNowledge'): string[] {
+function buildEntryBlockLines(
+  model: DiscoveredModel,
+  kind: 'kNNowledge' | 'Models' = 'kNNowledge',
+): string[] {
   if (kind === 'Models') {
     const block = [`## NN Models: ${model.name}`, OWNERSHIP_MARKER, `path:: ${model.path}`]
     if (model.template) block.push(`template:: [[${model.template}]]`)
@@ -140,21 +194,61 @@ function buildEntryBlockLines(model: DiscoveredModel, kind: 'kNNowledge' | 'Mode
 }
 
 /**
- * Pure, additive reconciliation of `## NN Models` entries against discovered
- * Level-3 model files. Never reorders, never regroups, never deletes.
+ * A catalog entry is a pointer, not an inventory: `path::` only. The
+ * `workspace` bluepriNNt gives the catalog sections no `status::` field, so
+ * there is nothing to archive or reactivate.
+ */
+function buildCatalogBlockLines(catalog: DiscoveredCatalog): string[] {
+  return [
+    `## NN ${CATALOG_SECTIONS[catalog.kind].label}: ${catalog.name}`,
+    OWNERSHIP_MARKER,
+    `path:: ${catalog.path}`,
+  ]
+}
+
+/**
+ * Splices entry blocks in at `insertIdx`, keeping exactly one blank line
+ * between the block and whatever the author already wrote around it.
+ */
+function insertEntryBlocks(lines: string[], insertIdx: number, blockLines: string[]): void {
+  const block = [...blockLines]
+  if (block.length === 0) return
+  if (insertIdx > 0 && stripCR(lines[insertIdx - 1]).trim() === '' && block[0] === '') {
+    block.shift()
+  }
+  if (
+    insertIdx < lines.length &&
+    stripCR(lines[insertIdx]).trim() !== '' &&
+    block[block.length - 1] !== ''
+  ) {
+    block.push('')
+  }
+  lines.splice(insertIdx, 0, ...block)
+}
+
+/**
+ * Pure, additive reconciliation of the manifest's sections against discovered
+ * documents. Never reorders, never regroups, never deletes.
+ *
+ * The `workspace` bluepriNNt declares four sections and all four are owned:
+ * `# NN kNNowledge` (legacy `# NN Models`) is an inventory of discovered models
+ * with a `status::` lifecycle, and `# NN Sources`, `# NN Procedures`,
+ * `# NN Artifacts` are single pointers to the catalog document of their kind,
+ * with no lifecycle and never created when absent.
  *
  * ROUND-TRIP GUARANTEE: `changes.length === 0` implies `content === manifestContent`
- * — the exact same string reference. Achieved by surgical splicing of the
- * original string, NOT by re-serializing (AD-08) — `rawSections` never
- * contains element-bearing sections like `# NN Models`.
+ * — the exact same string reference. Also holds when the only changes are
+ * report-only records (`skipped-not-owned`, `missing-target`). Achieved by
+ * surgical splicing of the original string, NOT by re-serializing (AD-08).
  */
 export function reconcileManifest(
   manifestContent: string,
   discovered: DiscoveredModel[],
+  catalogs: readonly DiscoveredCatalog[] = [],
 ): { content: string; changes: ManifestChange[] } {
   const lines = manifestContent.split('\n')
   const section = findModelsSection(lines)
-  const entries = section ? locateEntries(lines, section) : []
+  const entries = section ? locateEntries(lines, section, ENTRY_HEADER_RE) : []
 
   const discoveredByKey = new Map<string, DiscoveredModel>()
   for (const d of discovered) {
@@ -203,10 +297,45 @@ export function reconcileManifest(
     changes.push({ kind: 'added', path: d.path, name: d.name })
   }
 
+  // Catalog sections: pointers to the catalog document of their kind. A section
+  // the manifest does not declare stays out of reach — the `domaiNN` template
+  // declares none of them, so declaring one is the author's choice.
+  const catalogAdds: Array<{ kind: CatalogKind; missing: DiscoveredCatalog[] }> = []
+  for (const kind of CATALOG_KINDS) {
+    const range = findCatalogSection(lines, kind)
+    if (!range) continue
+    const catalogEntries = locateEntries(lines, range, CATALOG_SECTIONS[kind].entry)
+    const linkedKeys = new Set(
+      catalogEntries.filter((e) => e.path).map((e) => normalizePathKey(e.path!)),
+    )
+    const ofKind = catalogs.filter((c) => c.kind === kind)
+    const discoveredKeys = new Set(ofKind.map((c) => normalizePathKey(c.path)))
+
+    for (const entry of catalogEntries) {
+      if (!entry.path) continue
+      if (discoveredKeys.has(normalizePathKey(entry.path))) continue
+      // No lifecycle to flip here, so an unresolvable pointer is reported and
+      // left exactly as the author (or an earlier run) wrote it.
+      changes.push({
+        kind: 'missing-target',
+        path: entry.path,
+        name: entry.name,
+        reason: entry.isOwned
+          ? 'no catalog document discovered, entry tool-owned'
+          : 'no catalog document discovered, entry not tool-owned',
+      })
+    }
+
+    const missing = ofKind.filter((c) => !linkedKeys.has(normalizePathKey(c.path)))
+    for (const c of missing) {
+      changes.push({ kind: 'added', path: c.path, name: c.name })
+    }
+    if (missing.length > 0) catalogAdds.push({ kind, missing })
+  }
+
   // Nothing mutates the string — return the ORIGINAL reference (headline
-  // guarantee), even when non-mutating changes (e.g. skipped-not-owned) were
-  // reported.
-  if (statusEdits.length === 0 && toAdd.length === 0) {
+  // guarantee), even when only non-mutating changes were reported.
+  if (statusEdits.length === 0 && toAdd.length === 0 && catalogAdds.length === 0) {
     return { content: manifestContent, changes }
   }
 
@@ -228,26 +357,28 @@ export function reconcileManifest(
 
   let content = nextLines.join('\n')
 
+  // Each insertion re-locates its own section: a status edit above it may have
+  // shifted the section end by one or more lines.
+  for (const { kind, missing } of catalogAdds) {
+    const rescanLines = content.split('\n')
+    const rescanRange = findCatalogSection(rescanLines, kind)
+    if (!rescanRange) continue
+    const blockLines: string[] = []
+    for (const c of missing) blockLines.push('', ...buildCatalogBlockLines(c))
+    insertEntryBlocks(rescanLines, rescanRange.endIdx, blockLines)
+    content = rescanLines.join('\n')
+  }
+
   if (toAdd.length > 0) {
-    // Re-scan the (possibly status-edited) content: an insert-missing-status
-    // edit may have shifted the section end by one or more lines.
     const rescanLines = content.split('\n')
     const rescanSection = findModelsSection(rescanLines)
 
     if (rescanSection) {
-      const insertIdx = rescanSection.endIdx
       const blockLines: string[] = []
       for (const d of toAdd) {
         blockLines.push('', ...buildEntryBlockLines(d, rescanSection.kind))
       }
-      if (
-        blockLines[0] === '' &&
-        insertIdx > 0 &&
-        stripCR(rescanLines[insertIdx - 1]).trim() === ''
-      ) {
-        blockLines.shift()
-      }
-      rescanLines.splice(insertIdx, 0, ...blockLines)
+      insertEntryBlocks(rescanLines, rescanSection.endIdx, blockLines)
       content = rescanLines.join('\n')
     } else {
       // No `# NN kNNowledge` or `# NN Models` section at all: append the canonical

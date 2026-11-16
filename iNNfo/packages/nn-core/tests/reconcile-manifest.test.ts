@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { isReconcilableModel } from '../src/workspace/discoverModels'
+import { catalogKindOf, isReconcilableModel } from '../src/workspace/discoverModels'
 import type { CandidateFile } from '../src/workspace/discoverModels'
 import {
   OWNERSHIP_MARKER,
   reconcileManifest,
+  type DiscoveredCatalog,
   type DiscoveredModel,
 } from '../src/workspace/reconcileManifest'
 import { parseKnowledge } from '../src/parser'
@@ -393,7 +394,14 @@ describe('reconcileManifest', () => {
       .map((c) => ({ path: c.path, name: c.path }))
     expect(discovered).toEqual([])
 
-    const result = reconcileManifest(manifestContent, discovered)
+    // The catalogs surface in their own sections, never as models: the
+    // procedures catalog the manifest already links is in sync.
+    const catalogs: DiscoveredCatalog[] = candidates.flatMap((c) => {
+      const kind = catalogKindOf(c)
+      return kind ? [{ kind, path: c.path, name: c.path }] : []
+    })
+
+    const result = reconcileManifest(manifestContent, discovered, catalogs)
     expect(result.changes).toEqual([])
     expect(result.content).toBe(manifestContent)
     expect(result.content).not.toContain('## NN Models:')
@@ -448,5 +456,259 @@ describe('reconcileManifest', () => {
     expect(beta?.fields.path).toBe('beta_NN.md')
     expect(beta?.fields.status).toBe('active')
     expect(beta?.fields.template).toBe('[[business_V_0-2-0]]')
+  })
+})
+
+describe('discoverModels: catalogKindOf', () => {
+  it('recognises the catalog document of each section, at the root or in its own folder', () => {
+    expect(
+      catalogKindOf(candidate('sources_NN.md', { level: 3, parent_spec: { name: 'sources' } })),
+    ).toBe('sources')
+    expect(
+      catalogKindOf(
+        candidate('sources/sources_NN.md', { level: 3, parent_spec: { name: 'sources_V_0-2-1' } }),
+      ),
+    ).toBe('sources')
+    expect(
+      catalogKindOf(
+        candidate('procedures_NN.md', { level: 3, parent_spec: { name: 'procedures' } }),
+      ),
+    ).toBe('procedures')
+    expect(
+      catalogKindOf(
+        candidate('artifacts/artifacts_NN.md', { level: 3, parent_spec: { name: 'artifacts' } }),
+      ),
+    ).toBe('artifacts')
+  })
+
+  it('never mistakes a model, a procedure, the manifest, a raw source or an excluded tree for a catalog', () => {
+    const notCatalogs: CandidateFile[] = [
+      candidate('acme_business_NN.md', { level: 3, parent_spec: { name: 'business_V_0-2-0' } }),
+      candidate('procedures/report_procedures_NN.md', {
+        level: 3,
+        parent_spec: { name: 'procedures' },
+      }),
+      candidate('sources/Report_sources_NN.md', { level: 3, parent_spec: { name: 'sources' } }),
+      candidate('domaiNN_NN.md', { level: 3, parent_spec: { name: 'workspace' } }),
+      candidate('sources/import/old-domain/sources_NN.md', {
+        level: 3,
+        parent_spec: { name: 'sources' },
+      }),
+      candidate('sources/sync/sources_NN.md', { level: 3, parent_spec: { name: 'sources' } }),
+      candidate('archive/sources_NN.md', { level: 3, parent_spec: { name: 'sources' } }),
+    ]
+    for (const file of notCatalogs) {
+      expect(catalogKindOf(file)).toBeNull()
+    }
+  })
+})
+
+describe('reconcileManifest: catalog sections', () => {
+  const THREE_CATALOGS: DiscoveredCatalog[] = [
+    { kind: 'sources', path: 'sources/sources_NN.md', name: 'Sources Catalog' },
+    { kind: 'procedures', path: 'procedures_NN.md', name: 'Procedures Catalog' },
+    { kind: 'artifacts', path: 'artifacts_NN.md', name: 'Artifacts Catalog' },
+  ]
+
+  function fourSectionManifest(): string {
+    return [
+      '# NN kNNowledge',
+      '',
+      '## NN kNNowledge: Existing',
+      OWNERSHIP_MARKER,
+      'path:: existing_NN.md',
+      'blueprint:: [[business]]',
+      'status:: active',
+      '',
+      '# NN Sources',
+      '',
+      '## NN Sources: Sources Catalog',
+      'path:: sources/sources_NN.md',
+      '',
+      '# NN Procedures',
+      '',
+      '## NN Procedures: Procedures Catalog',
+      'path:: procedures_NN.md',
+      '',
+      '# NN Artifacts',
+      '',
+      '## NN Artifacts: Artifacts Catalog',
+      'path:: artifacts_NN.md',
+      '',
+    ].join('\n')
+  }
+
+  it('a kNNowledge sync leaves the three catalog sections byte-identical', () => {
+    const manifestContent = fourSectionManifest()
+    const catalogTail = manifestContent.slice(manifestContent.indexOf('# NN Sources'))
+
+    const result = reconcileManifest(
+      manifestContent,
+      [
+        { path: 'existing_NN.md', name: 'Existing' },
+        { path: 'new_NN.md', name: 'New Model' },
+      ],
+      THREE_CATALOGS,
+    )
+
+    expect(result.changes).toEqual([{ kind: 'added', path: 'new_NN.md', name: 'New Model' }])
+    expect(result.content).toContain(
+      `## NN kNNowledge: New Model\n${OWNERSHIP_MARKER}\npath:: new_NN.md`,
+    )
+    expect(result.content.endsWith(catalogTail)).toBe(true)
+  })
+
+  it('adds a missing pointer to an existing catalog section with path only, no status and no blueprint', () => {
+    const manifestContent = [
+      '# NN kNNowledge',
+      '',
+      '# NN Sources',
+      '',
+      '# NN Artifacts',
+      '',
+      '## NN Artifacts: Artifacts Catalog',
+      'path:: artifacts_NN.md',
+      '',
+    ].join('\n')
+
+    const result = reconcileManifest(
+      manifestContent,
+      [],
+      [
+        { kind: 'sources', path: 'sources/sources_NN.md', name: 'Sources Catalog' },
+        { kind: 'artifacts', path: 'artifacts_NN.md', name: 'Artifacts Catalog' },
+      ],
+    )
+
+    expect(result.changes).toEqual([
+      { kind: 'added', path: 'sources/sources_NN.md', name: 'Sources Catalog' },
+    ])
+    expect(result.content).toContain(
+      `# NN Sources\n\n## NN Sources: Sources Catalog\n${OWNERSHIP_MARKER}\npath:: sources/sources_NN.md\n\n# NN Artifacts`,
+    )
+    const sourcesBlock = result.content.slice(
+      result.content.indexOf('# NN Sources'),
+      result.content.indexOf('# NN Artifacts'),
+    )
+    expect(sourcesBlock).not.toContain('status::')
+    expect(sourcesBlock).not.toContain('blueprint::')
+  })
+
+  it('never creates a catalog section the manifest does not declare', () => {
+    const manifestContent = ['# NN kNNowledge', '', ''].join('\n')
+
+    const result = reconcileManifest(
+      manifestContent,
+      [],
+      [{ kind: 'procedures', path: 'procedures/procedures_NN.md', name: 'Procedures Catalog' }],
+    )
+
+    expect(result.changes).toEqual([])
+    expect(Object.is(result.content, manifestContent)).toBe(true)
+    expect(result.content).not.toContain('# NN Procedures')
+  })
+
+  it('reports an unresolvable hand-authored catalog entry as missing-target and leaves it in place', () => {
+    const manifestContent = [
+      '# NN kNNowledge',
+      '',
+      '# NN Artifacts',
+      '',
+      '## NN Artifacts: Old',
+      'path:: artifacts/old_artifacts_NN.md',
+      '',
+    ].join('\n')
+
+    const result = reconcileManifest(manifestContent, [], [])
+
+    expect(result.changes).toEqual([
+      {
+        kind: 'missing-target',
+        path: 'artifacts/old_artifacts_NN.md',
+        name: 'Old',
+        reason: 'no catalog document discovered, entry not tool-owned',
+      },
+    ])
+    expect(Object.is(result.content, manifestContent)).toBe(true)
+  })
+
+  it('reports an unresolvable tool-owned catalog entry without rewriting or archiving it', () => {
+    const manifestContent = [
+      '# NN kNNowledge',
+      '',
+      '# NN Sources',
+      '',
+      '## NN Sources: Moved Catalog',
+      OWNERSHIP_MARKER,
+      'path:: sources/moved_NN.md',
+      '',
+    ].join('\n')
+
+    const result = reconcileManifest(
+      manifestContent,
+      [],
+      [{ kind: 'sources', path: 'sources/sources_NN.md', name: 'Sources Catalog' }],
+    )
+
+    expect(result.changes).toEqual([
+      {
+        kind: 'missing-target',
+        path: 'sources/moved_NN.md',
+        name: 'Moved Catalog',
+        reason: 'no catalog document discovered, entry tool-owned',
+      },
+      { kind: 'added', path: 'sources/sources_NN.md', name: 'Sources Catalog' },
+    ])
+    expect(result.content).toContain('path:: sources/moved_NN.md')
+    expect(result.content).not.toContain('status:: archived')
+    expect(result.content).toContain(
+      `## NN Sources: Sources Catalog\n${OWNERSHIP_MARKER}\npath:: sources/sources_NN.md`,
+    )
+  })
+
+  it('is idempotent: a second run over the four-section manifest reports no changes', () => {
+    const first = reconcileManifest(
+      fourSectionManifest(),
+      [{ path: 'new_NN.md', name: 'New Model' }],
+      THREE_CATALOGS,
+    )
+
+    const second = reconcileManifest(
+      first.content,
+      [{ path: 'new_NN.md', name: 'New Model' }],
+      THREE_CATALOGS,
+    )
+
+    expect(second.changes).toEqual([])
+    expect(Object.is(second.content, first.content)).toBe(true)
+  })
+
+  it('keeps one blank line between an inserted block and the next section header', () => {
+    const manifestContent = [
+      '# NN kNNowledge',
+      '',
+      '## NN kNNowledge: Alpha',
+      OWNERSHIP_MARKER,
+      'path:: alpha_NN.md',
+      'status:: active',
+      '',
+      '# NN Templates',
+      '',
+      '## NN Templates: Business',
+      'path:: templates/business/spec_NN.md',
+      '',
+    ].join('\n')
+
+    const result = reconcileManifest(manifestContent, [
+      { path: 'alpha_NN.md', name: 'Alpha' },
+      { path: 'beta_NN.md', name: 'Beta' },
+    ])
+
+    expect(result.content).toContain(
+      `## NN kNNowledge: Beta\n${OWNERSHIP_MARKER}\npath:: beta_NN.md\nstatus:: active\n\n# NN Templates`,
+    )
+    expect(
+      result.content.endsWith(manifestContent.slice(manifestContent.indexOf('# NN Templates'))),
+    ).toBe(true)
   })
 })
