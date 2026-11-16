@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { consoleHtml, consoleBundle, consoleMembers } from '../test/helpers/console-artifacts.mjs'
-import { runExportConsole } from './export-console.mjs'
+import { runExportConsole, writeConsole } from './export-console.mjs'
 import { createHash } from 'node:crypto'
 
 const execFileAsync = promisify(execFile)
@@ -1202,6 +1202,205 @@ health:: critical
       assert.ok(alpha, 'element Alpha found in model')
       assert.deepEqual(alpha.fields.tags, ['ai'], 'own tags in fields.tags')
       assert.equal(alpha.fields.health, 'critical', 'own health in fields.health')
+    })
+  })
+
+  describe('batch b10g2: export-console hygiene', () => {
+    /** The fixture models as `writeConsole` sees them, in the order given. */
+    const modelsIn = async (rels) => {
+      const models = []
+      for (const rel of rels) {
+        const filePath = join(tempDir, ...rel.split('/'))
+        const content = await readFile(filePath, 'utf-8')
+        const title = content.match(/^title:\s*"([^"]*)"/m)?.[1] ?? ''
+        const version = content.match(/^knowledge_version:\s*"([^"]*)"/m)?.[1] ?? ''
+        models.push({
+          filePath,
+          name: basename(filePath).replace(/\.md$/, '').replace(/_NN$/, ''),
+          content,
+          fm: { title, knowledge_version: version },
+        })
+      }
+      return models
+    }
+    const SORTED = [
+      'models/business_V_0-2-5_NN.md',
+      'models/procedures_V_0-1-0_NN.md',
+      'subdomains/metrics_V_0-1-0_NN.md',
+    ]
+    const exportSelection = (models) =>
+      writeConsole({
+        rootDir: tempDir,
+        // The same three models named by stem, whatever order they arrive in.
+        scope: { models: ['business_V_0-2-5', 'procedures_V_0-1-0', 'metrics_V_0-1-0'] },
+        models,
+        open: false,
+      })
+
+    it('keeps the scope key stable when the model list is reordered (d14)', async () => {
+      const first = await exportSelection(await modelsIn(SORTED))
+      const reversed = await exportSelection(await modelsIn([...SORTED].reverse()))
+
+      assert.equal(
+        reversed.relativePath,
+        first.relativePath,
+        'the same models must land in one scope family whatever order they are listed in',
+      )
+      assert.match(first.relativePath, /^artifacts\/business_V_0-2-5-plus2-[0-9a-f]{6}_console\//)
+    })
+
+    const CHANGESET_FRONTMATTER = `---
+spec_version: "V_0-4-0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://example.test/changes/spec_NN.md"
+blueprint_version: "V_0-1-0"
+status: applied
+title: "Review"
+author: "reviewer"
+applied_at: "2026-01-01T00:00:00.000Z"
+---
+
+# NN Change
+`
+    const changeBlock = (id, target) =>
+      `\n## NN Change: ${id}\nop:: comment\ntarget:: ${target}\nnotes:: "n"\n`
+    const CHANGESET = (id, target) => CHANGESET_FRONTMATTER + changeBlock(id, target)
+    const writeChangeset = async (name, body) => {
+      await mkdir(join(tempDir, 'changes'), { recursive: true })
+      await writeFile(join(tempDir, 'changes', name), body, 'utf-8')
+    }
+    const exportDomainSlot = async () => {
+      const res = await runCli([tempDir, '--domain'])
+      assert.equal(res.code, 0, res.stderr)
+      const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
+      return JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
+    }
+
+    it('orders changesets by code unit, exactly like the views lib (d16)', async () => {
+      const paths = [
+        'changes/Business_reviewer_20260101T000000Z_changes_NN.md',
+        'changes/audit_reviewer_20260101T000000Z_changes_NN.md',
+      ]
+      const change = 'business_V_0-2-5@Enterprise Customer'
+      await writeChangeset('Business_reviewer_20260101T000000Z_changes_NN.md', CHANGESET('c-b', change))
+      await writeChangeset('audit_reviewer_20260101T000000Z_changes_NN.md', CHANGESET('c-a', change))
+
+      const slot = await exportDomainSlot()
+      const { compareCodeUnits } = await import('./console-views.mjs')
+      assert.equal(typeof compareCodeUnits, 'function', 'the views lib owns the one comparator')
+      // Code unit, newest first: 'a' (0x61) sorts after 'B' (0x42), so `audit…` leads.
+      assert.deepEqual(slot.changes.map((c) => c.path), ['changes/audit_reviewer_20260101T000000Z_changes_NN.md', 'changes/Business_reviewer_20260101T000000Z_changes_NN.md'])
+      assert.deepEqual(
+        slot.changes.map((c) => c.path),
+        paths.slice().sort((a, b) => compareCodeUnits(b, a)),
+      )
+    })
+
+    it('lists model paths by code unit, not by locale (d16)', async () => {
+      const model = (title) =>
+        `---\ntitle: "${title}"\nknowledge_version: "V_1-0-0"\nlevel: 3\n---\n\n# NN Item\n## NN Item: A\n  slug:: a\n`
+      await writeFile(join(tempDir, 'models', 'Zeta_V_1-0-0_NN.md'), model('Zeta'), 'utf-8')
+      await writeFile(join(tempDir, 'models', 'alpha_V_1-0-0_NN.md'), model('alpha'), 'utf-8')
+
+      const res = await runCli([tempDir, '--list'])
+      assert.equal(res.code, 0, res.stderr)
+      const listed = res.stdout
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.endsWith('_NN.md'))
+      // 'Z' (0x5A) sorts before 'a' (0x61) by code unit; a locale collator would flip them.
+      assert.deepEqual(listed.slice(0, 2), ['models/Zeta_V_1-0-0_NN.md', 'models/alpha_V_1-0-0_NN.md'])
+    })
+
+    it('leaves no localeCompare in the exporter or the views lib (d16)', async () => {
+      for (const name of ['export-console.mjs', 'console-views.mjs']) {
+        const source = readFileSync(join(here, name), 'utf-8')
+        assert.doesNotMatch(source, /\.localeCompare\(/, `${name} must order by code unit, not by locale`)
+      }
+    })
+
+    it('renders one tree shape for a root model and a nested model (d17)', async () => {
+      const treeRoot = join(tempDir, 'tree')
+      await mkdir(join(treeRoot, 'sub'), { recursive: true })
+      const model = (title) =>
+        `---\ntitle: "${title}"\nknowledge_version: "V_1-0-0"\nlevel: 3\n---\n\n# NN Item\n## NN Item: A\n  slug:: a\n`
+      await writeFile(join(treeRoot, 'alpha_V_1-0-0_NN.md'), model('Alpha'), 'utf-8')
+      await writeFile(join(treeRoot, 'zeta_V_1-0-0_NN.md'), model('Zeta'), 'utf-8')
+      await writeFile(join(treeRoot, 'sub', 'inner_V_1-0-0_NN.md'), model('Inner'), 'utf-8')
+
+      const res = await runCli([treeRoot, '--tree'])
+      assert.equal(res.code, 0, res.stderr)
+      // Byte-exact: the root group prints no directory line and no indent, and every
+      // other group prints its own line and indents its children — one shape, no branch.
+      assert.equal(
+        res.stdout,
+        [
+          'Workspace: . (3 Level-3 models)',
+          '├── alpha_V_1-0-0_NN.md [uncompiled]',
+          '│   └── domaiNN_console.html',
+          '└── zeta_V_1-0-0_NN.md [uncompiled]',
+          '    └── domaiNN_console.html',
+          '└── sub/',
+          '    └── inner_V_1-0-0_NN.md [uncompiled]',
+          '        └── domaiNN_console.html',
+          '',
+        ].join('\n'),
+      )
+    })
+
+    it('counts a model once per change, whichever spelling names it (d19)', async () => {
+      const model = (title) =>
+        `---\ntitle: "${title}"\nknowledge_version: "V_1-0-0"\nlevel: 3\n---\n\n# NN Item\n## NN Item: A\n  slug:: a\n`
+      await writeFile(join(tempDir, 'models', 'sales_V_1-0-0_NN.md'), model('Sales'), 'utf-8')
+      // A title that is also the stem: the same model under one spelling twice.
+      await writeFile(join(tempDir, 'models', 'inventory_V_1-0-0_NN.md'), model('inventory_V_1-0-0'), 'utf-8')
+
+      // The id the payload reports for the model is the third spelling a change may use.
+      const before = await exportDomainSlot()
+      const id = before.meta.models.find((m) => m.filePath === 'models/sales_V_1-0-0_NN.md')?.id
+      assert.ok(id, 'the payload reports a model id')
+
+      // One changeset naming the model by its stem, its title and its id: three changes.
+      await writeChangeset(
+        'sales_reviewer_20260101T000000Z_changes_NN.md',
+        CHANGESET_FRONTMATTER +
+          ['sales_V_1-0-0@A', 'Sales@A', `${id}@A`]
+            .map((target, i) => changeBlock(`s-${i}`, target))
+            .join(''),
+      )
+      // A model whose title equals its stem, named twice by that one spelling.
+      await writeChangeset(
+        'inventory_reviewer_20260101T000000Z_changes_NN.md',
+        CHANGESET_FRONTMATTER +
+          ['inventory_V_1-0-0@A', 'inventory_V_1-0-0@A']
+            .map((target, i) => changeBlock(`i-${i}`, target))
+            .join(''),
+      )
+
+      const slot = await exportDomainSlot()
+      const countOf = (filePath) =>
+        slot.meta.models.find((m) => m.filePath === filePath)?.changeCount
+      assert.equal(countOf('models/sales_V_1-0-0_NN.md'), 3, 'one count per change, not one per alias')
+      assert.equal(countOf('models/inventory_V_1-0-0_NN.md'), 2, 'the shared title/stem counts once per change')
+    })
+
+    it('leaves the page theme to the shell, not to a post-inline patch (d20)', async () => {
+      const res = await runCli([tempDir, '--domain'])
+      assert.equal(res.code, 0, res.stderr)
+      const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
+      const opening = html.match(/<html\b[^>]*>/i)
+      assert.ok(opening, 'the page starts with one html tag')
+      assert.match(opening[0], /\bdata-theme="light"/, 'the shell ships the theme attribute')
+      assert.equal(
+        html.split('<html lang="en" data-theme="light">').length - 1,
+        1,
+        'the attribute is the shell’s, not a second one patched in after inlining',
+      )
+      // The inlined stylesheet always contains the literal, which is why a document-wide
+      // `includes('data-theme=')` guard could never fire with the shipped assets.
+      assert.match(html, /\[data-theme=/, 'the inlined stylesheet carries the dark selectors')
     })
   })
 })

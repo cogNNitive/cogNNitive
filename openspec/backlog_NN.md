@@ -480,10 +480,10 @@ batch:: b10f-console-builder-identity-freshness
 value:: L
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: scripts/export-console.mjs:496-498 takes the key prefix from the name of the first selected model and hashes the sorted relative paths, while loadModels sorts by the raw OS-separator path at :781; on Windows that order and the slash-normalized order at :497 can differ, so the CLI does not fully hide the dependence. Audited 2026-11-14 at main 551d5a18.
+evidence:: scripts/export-console.mjs:496-498 takes the key prefix from the name of the first selected model and hashes the sorted relative paths, while loadModels sorts by the raw OS-separator path at :781; on Windows that order and the slash-normalized order at :497 can differ, so the CLI does not fully hide the dependence. Audited 2026-11-14 at main 551d5a18. Shipped 2026-11-16 in session/console-export-hygiene: `scopeKeyOf` now orders the selected models by their slash-normalized repository path and takes both the prefix and the hashed list from that canonical order, so any permutation of `selected` names the same family and the raw-path sort in `loadModels` no longer reaches the key (single-model keys are untouched). Pinned by "keeps the scope key stable when the model list is reordered (d14)" in scripts/export-console.test.mjs, which exports the same three models in two orders and requires one `relativePath` under `artifacts/business_V_0-2-5-plus2-<hash6>_console/`.
 done_when:: scopeKeyOf returns the same key for any permutation of selected.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D14
 batch:: b10g2-console-export-hygiene
@@ -504,10 +504,10 @@ batch:: b10g-console-builder-hygiene
 value:: L
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: scripts/export-console.mjs:435 sorts meta.generated and :1881 sorts path with localeCompare, and :781 holds a third inline code-unit comparison; compareCodeUnits in scripts/console-views.mjs:65 is not exported, so sharing needs an export. Both strings are fixed-format ASCII, so the impact is theoretical. Audited 2026-11-14 at main 551d5a18.
+evidence:: scripts/export-console.mjs:435 sorts meta.generated and :1881 sorts path with localeCompare, and :781 holds a third inline code-unit comparison; compareCodeUnits in scripts/console-views.mjs:65 is not exported, so sharing needs an export. Both strings are fixed-format ASCII, so the impact is theoretical. Audited 2026-11-14 at main 551d5a18. Shipped 2026-11-16 in session/console-export-hygiene: `compareCodeUnits` is exported by scripts/console-views.mjs and the exporter now orders every list with it — the console list in `inspectModelStatus`, the model list in `loadModels`, the selected models in `scopeKeyOf` (now async) and the changesets in `writeConsole` — through one cached `viewsLibOnce()` load, so no `localeCompare` call is left in either file and the two modules cannot drift on locale behaviour. Pinned by three tests in scripts/export-console.test.mjs: "orders changesets by code unit, exactly like the views lib (d16)" (a `Business…`/`audit…` changeset pair, which a locale collator reverses), "lists model paths by code unit, not by locale (d16)" (`Zeta` before `alpha`) and "leaves no localeCompare in the exporter or the views lib (d16)".
 done_when:: Both sorts use code-unit comparison and no localeCompare is left in the two files.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D16
 batch:: b10g2-console-export-hygiene
@@ -516,10 +516,10 @@ batch:: b10g2-console-export-hygiene
 value:: L
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: scripts/export-console.mjs:526-551 has two near-duplicate loops in renderTree; the dot branch prints no directory line and uses no childIndent, so childIndent must be empty for that case. Tests at test/export-console.test.mjs:360 and :1002 cover --tree. Audited 2026-11-14 at main 551d5a18.
+evidence:: scripts/export-console.mjs:526-551 has two near-duplicate loops in renderTree; the dot branch prints no directory line and uses no childIndent, so childIndent must be empty for that case. Tests at test/export-console.test.mjs:360 and :1002 cover --tree. Audited 2026-11-14 at main 551d5a18. Shipped 2026-11-16 in session/console-export-hygiene: `renderTree` prints one loop for both group kinds — the root group adds no directory line (the `Workspace: .` header names it) and no indent, and every other group prints its line and indents its children — so the two branches can no longer drift. `--tree` output is byte-identical: the existing "renders hierarchical directory tree with --tree in read-only mode" and "--status and --tree read the stable per-model console" tests are unchanged and pass, and a base-vs-change differential run of `--tree` printed the same stdout. Pinned by "renders one tree shape for a root model and a nested model (d17)" in scripts/export-console.test.mjs, which asserts the exact tree bytes for two root models and one nested model.
 done_when:: --tree output is byte-identical before and after.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D17
 batch:: b10g2-console-export-hygiene
@@ -540,10 +540,10 @@ batch:: b10g-console-builder-hygiene
 value:: L
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: scripts/export-console.mjs:1563-1578 runs a reduce and filter over all changesets inside the per-model loop, and :1575 is the set-like indexOf, so a model whose title and stem lower to the same string is counted once. Aggregate by modelPart into a Map and walk a model's keys through a Set. Audited 2026-11-14 at main 551d5a18.
+evidence:: scripts/export-console.mjs:1563-1578 runs a reduce and filter over all changesets inside the per-model loop, and :1575 is the set-like indexOf, so a model whose title and stem lower to the same string is counted once. Aggregate by modelPart into a Map and walk a model's keys through a Set. Audited 2026-11-14 at main 551d5a18. Shipped 2026-11-16 in session/console-export-hygiene: the counts are aggregated once into a Map keyed by lowercased model part before the per-model loop, and each model walks a Set of its title/id/stem keys, so the loop no longer rescans every changeset. The counts themselves were already right — the old `modelKeys.indexOf` membership test counted each change once, so the item did not reproduce as a miscount, only as a per-model rescan — and a base-vs-change differential export with a changeset produced byte-identical console HTML. Pinned by "counts a model once per change, whichever spelling names it (d19)" in scripts/export-console.test.mjs: a changeset naming the model by stem, title and the payload's own id counts 3 (not one per alias), and a model whose title equals its stem counts 2 for two changes.
 done_when:: Per-model changeCount is identical before and after, including a model whose title equals its stem.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D19
 batch:: b10g2-console-export-hygiene
@@ -552,10 +552,10 @@ batch:: b10g2-console-export-hygiene
 value:: L
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: scripts/export-console.mjs:2006-2008 guards with html.includes of data-theme=, and the shipped iNNfo/specs/bluepriNNts/console/nn-ui.css contains 12 data-theme dark selectors (counted 2026-11-14) and is inlined before the check, so the block is unreachable with shipped assets. The shell's own html tag carries data-theme light at line 2 but not the literal being replaced. Deleting the block is the simplest option. Audited 2026-11-14 at main 551d5a18.
+evidence:: scripts/export-console.mjs:2006-2008 guards with html.includes of data-theme=, and the shipped iNNfo/specs/bluepriNNts/console/nn-ui.css contains 12 data-theme dark selectors (counted 2026-11-14) and is inlined before the check, so the block is unreachable with shipped assets. The shell's own html tag carries data-theme light at line 2 but not the literal being replaced. Deleting the block is the simplest option. Audited 2026-11-14 at main 551d5a18. Shipped 2026-11-16 in session/console-export-hygiene: the block is deleted (the guarded code is unreachable — the inlined stylesheet always carries `:root, [data-theme]` and the `[data-theme="dark"]` selectors, and the shell already ships `<html lang="en" data-theme="light">`, so the document-wide `includes('data-theme=')` was always true), with a comment in `buildHtml` recording why the page theme is the shell's job. `buildHtml` output is byte-identical for the shipped shell: a base(75daf23f)-vs-change differential export of the domain, one-model, --all and --filter consoles produced identical files. Pinned by "leaves the page theme to the shell, not to a post-inline patch (d20)" in scripts/export-console.test.mjs (the opening html tag carries the theme attribute exactly once and the inlined stylesheet carries the dark selectors).
 done_when:: The block is deleted and buildHtml output is byte-identical for the shipped shell.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D20
 batch:: b10g2-console-export-hygiene
