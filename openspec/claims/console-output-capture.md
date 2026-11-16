@@ -1,6 +1,7 @@
 # claim: console-output-capture
 
 branch: session/console-output-capture
+pr: 681
 opened: 2026-11-16
 
 area:
