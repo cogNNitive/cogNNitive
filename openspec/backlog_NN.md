@@ -9,6 +9,15 @@ title: "Backlog"
 
 # NN Idea
 
+## NN Idea: Product site generated from an iNNfo blueprint (deferred until the first real external user exists; building a marketing site for zero readers is maintenance without payoff)
+captured:: 2026-11-16
+
+## NN Idea: Changeset approval (approved_by, approve and request-changes artifacts) (deferred until a second person writes changesets; today the approver and the author are the same person, and an unread field would be a dead map)
+captured:: 2026-11-16
+
+## NN Idea: Archive and GC rules for writeOnce (only planGc has no archive rule at nn-core/src/writeOnce/plan.ts:27; the rest of the old item was never verified, so it was demoted rather than briefed)
+captured:: 2026-11-16
+
 ## NN Idea: Merkle style incremental invalidation when a source sha256 changes
 captured:: 2026-10-31
 
@@ -49,7 +58,6 @@ captured:: 2026-11-14
 captured:: 2026-11-15
 
 # NN Item
-
 ## NN Item: source-import-guards
 value:: M
 effort:: M
@@ -92,16 +100,17 @@ lane:: heavy
 verdict:: current
 evidence:: scripts/regen.js and scripts/lib/freshness-guards.js already give one regen entry, but committed derived files remain (console/nn-console.bundle.js, console-payload.generated.cjs, nn-address.generated.js, nn-slug.generated.js, iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js, five skills/*/scripts/lib/*.generated.cjs) with twelve roFresh steps at scripts/verify.js; a fifth generated skill file now lives inside the blueprint skill (iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/lib/nn-core.generated.cjs). Re-check the pays-a-ripple premise before starting.
 merged_from:: derived-artifact-consolidation, console-bundle-derived-on-release
+done_when:: `npm run regen` regenerates every committed derived artifact (console bundle, console payload mirror, nn-mcp bundle, the generated skill libs, the exported console fixtures) and `npm run check:regen` fails when that run leaves a non-empty `git diff`; the twelve bespoke freshness steps in `scripts/verify.js` are replaced by that single gate; the committed files stay in the tree because the CDN tag serves the console bundle. Rescoped 2026-11-16 after three drift incidents in one session (#683, #684, #687).
 batch:: b4a-derived-artifacts
 
 ## NN Item: query-language-unification
 value:: M
-effort:: L
-risk:: H
+effort:: S
+risk:: L
 status:: open
-lane:: heavy
+lane:: light
 verdict:: current
-evidence:: iNNfo/packages/nn-core/src/queryUnits.ts:49 still says @ and ? are mutually exclusive; the console substring match at nn-runtime.js:504 and local parseFilterQuery diverge from the nn-core address query; the 2026-10-26 prefix-dialect design on the issue has not shipped.
+evidence:: Two grammars answer two different questions and nobody declared the boundary: the console filter (`nn-runtime.js:286` parseFilterQuery, ~150 lines, key:value plus text tokens plus parenthesised OR/AND, 5 call sites) searches what to render, while `nn-core/src/queryUnits.ts:53` parseKnowledgeQuery resolves `path?field=value&projection` to `@` addresses inside one file. Decision taken 2026-11-16: do NOT merge the grammars (a third language would have to serve both, change the public `query_units` syntax and cost 2-3 sessions); declare the boundary instead. Substring search stays confined to the UI search box; the nn-core address grammar governs references, MCP and payloads.
 ref:: issue-329
 batch:: b4b-query-unification
 
@@ -126,69 +135,38 @@ evidence:: No export-okf script, procedure or skill exists; iNNfo/packages/nn-co
 merged_from:: okf-type-frontmatter, okf-index-md, okf-version
 batch:: b4e-okf-export
 
-## NN Item: product-site-projection
-value:: M
-effort:: L
-risk:: M
-status:: open
-lane:: heavy
-verdict:: current
-evidence:: No product-site blueprint exists under iNNfo/specs/bluepriNNts/ and no scripts/build-commercial-web.mjs; docs/index.html and docs/use-cases.html are hand written, docs/use-cases.html:1004-1058 still lists sources/nn paths.
-ref:: issue-279
-batch:: b4g-product-site
-
-## NN Item: packages-to-root
-value:: L
-effort:: M
-risk:: H
-status:: open
-lane:: heavy
-verdict:: current
-evidence:: iNNfo/packages/nn-core and nn-mcp are still nested under iNNfo/ and no top-level packages/ exists; git grep -lF iNNfo/packages returned 116 files across code, docs and openspec on 2026-10-31 and 118 on 2026-11-01.
-done_when:: Packages live at packages/, workspaces and every path reference are updated, and CI is green after a clean npm ci. Preconditions - no open session worktrees and re-measure git grep -lF iNNfo/packages first. Scope is bounded by openspec/decisions/keep-published-paths-frozen.md (iNNfo/specs, skills, manifest and docs do not move).
-batch:: b9-packages-to-root
-
-## NN Item: kb-change-governance
-value:: M
-effort:: L
-risk:: M
-status:: open
-lane:: heavy
-verdict:: current
-evidence:: No RACI scope exists in iNNfo/packages/nn-core/src outside canonical-registry.ts; changesets carry author (changeset/hasher.ts:19) and only applied, partially_applied and conflict statuses, with no approve or request-changes artifact. The editor-on-save option is dead. Verified 2026-11-12.
-done_when:: A changeset records who approved it or who requested changes, an approve and a request-changes artifact exist with their author, and a test covers both paths. Provisional criteria, confirm before briefing.
-batch:: b5-kb-change-governance
-
 ## NN Item: contextual-docs-links
 value:: L
-effort:: M
+effort:: S
 risk:: L
 status:: open
 lane:: light
 verdict:: current
 evidence:: No docs:: or canonical-doc field appears in skills/*/SKILL.md or manifest; the open decision between a public site link and a bundled page is unresolved, so the item cannot be briefed until it is decided. Verified 2026-11-12.
+done_when:: A skill declares its documentation as a URL pinned to its own release tag (the same `@skills-vX.Y.Z` shape the manifest already publishes), a check validates that the tag exists, and no page is bundled inside the skill. Decision taken 2026-11-16: pinned link, not a bundled page.
+batch:: b21-contextual-docs-links
 ref:: issue-355
 
 ## NN Item: video-vector-actor-catalog
 value:: M
-effort:: L
+effort:: S
 risk:: M
 status:: open
-lane:: heavy
+lane:: light
 verdict:: current
 evidence:: The coNNtent blueprint's Layer type options are avatar, media, text and animation (coNNtent/spec_NN.md:282-285), so an actor layer type exists; what is missing is the actor catalog and rig (no assets/characters in the tree), and defaults/video-defaults_NN.md:21-23 still points at WaveSpeed (wavespeed-ai/z-image/turbo, wavespeed-ai/infinitetalk-fast). Re-checked 2026-11-07.
-done_when:: The blueprint ships an actor catalog and rig under assets/characters, and defaults/video-defaults_NN.md stops pinning a vendor model id for the actor layer. Provisional criteria, confirm before briefing.
+done_when:: The coNNtent blueprint's avatar layer names a source instead of a vendor model id, `defaults/video-defaults_NN.md` stops pinning `wavespeed-ai/z-image/turbo` and `wavespeed-ai/infinitetalk-fast` for that layer, the vendor id lives in the domain's own defaults with its plug point documented, and no binary actor assets are added to the repository. Rescoped 2026-11-16: neutrality only, no catalog.
 batch:: b5b-video-vector-actor-catalog
 
 ## NN Item: docs-skills-retirement
 value:: L
-effort:: M
+effort:: S
 risk:: M
 status:: open
-lane:: heavy
+lane:: light
 verdict:: current
 evidence:: docs/skills/ still tracks 17 files (templates/workflow, samples, js, setup) and iNNfo/validation-baseline.json:11 and scripts/verify.js:138,182 still reference it; no open Item covers the audit. Confirmed 2026-11-01.
-done_when:: Every file under docs/skills/ is either migrated to its living home or retired with a recorded reason, the references in iNNfo/validation-baseline.json and scripts/verify.js are updated, and verify.js is green.
+done_when:: The 14 orphaned files under `docs/skills/` (favicons, .nojekyll, robots.txt, js/analytics.js, setup/index.html, the three sample folders) are deleted after the site dropped its Skills section on 2026-10-24; only `docs/skills/templates/workflow/V_0-1-0/` is read first and either migrated to the workflows capability or retired with a recorded reason; the references at `iNNfo/validation-baseline.json:11` and `scripts/verify.js:138,182` are updated and verify is green. Rescoped 2026-11-16.
 ref:: issue-430
 batch:: b5c-docs-skills-retirement
 
@@ -202,15 +180,6 @@ verdict:: current
 evidence:: The coNNtent blueprint ships a procedures/ folder containing only usage_procedures_NN.md (checked 2026-11-04): neither draft-scene-visuals nor produce-video exists, and openspec/specs/video-template/spec.md:75 requires generate_video_script_procedures_NN.md to reference the skill tools. The real draft-scene-visuals procedure lives only in the external workspace video_NN and as a test fixture under iNNfo/packages/nn-core/tests/fixtures/video-golden/procedures/, which has no media-collection gate.
 done_when:: The coNNtent blueprint declares and ships a procedures/ folder with two generic procedures promoted from video_NN: draft-scene-visuals (cleaned of series, language, vendor and machine specifics, and carrying the pre-draft gate that clean screenshots and rendered HyperFrames clips must exist under assets/<slug>/media/ before the draft JSON or build-draft-html.mjs) and produce-video (a router that lists series through their scope documents and hands off to the procedure each series declares). select-news is not shipped here: it moves to the iNNbox_NN domain, which specializes in acquiring sources. A test asserts the folder is declared and every shipped procedure resolves, and the blueprint version is bumped and repinned. Open decisions before the change: procedure language, file naming against the video-template requirement, and whether the gate also becomes a hard check in build-draft-html.mjs.
 batch:: b5d-conntent-procedures
-
-## NN Item: cognitivize-archive-and-gc-decisions
-value:: L
-effort:: M
-risk:: M
-status:: open
-lane:: light
-verdict:: unverifiable
-evidence:: planGc at iNNfo/packages/nn-core/src/writeOnce/plan.ts:27 has no archive rule; scripts/export-console.mjs:216 findModelFiles and skills/nn-sources/SKILL.md:43 conversations naming remain from the cognitivize-in-place follow-ups. Some smaller bullets were not individually verified, so the item is unverifiable as a whole and needs refinement before it can be briefed. Verified 2026-11-12.
 
 ## NN Item: console-shell-actions
 value:: M
@@ -758,6 +727,17 @@ evidence:: Shipped in batch b19. The cause is not the bundler: two consecutive b
 done_when:: Two consecutive builds of the nn-mcp bundle from the same tree produce byte-identical output, the committed artifact equals a clean build in CI, and a check fails when they diverge; the restore-and-no-verify workaround stops being necessary.
 batch:: b19-nn-mcp-bundle-reproducibility
 
+## NN Item: changeset-real-author
+value:: M
+effort:: S
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: `iNNfo/packages/nn-mcp/src/tools/apply-change.ts:2520` and `propose-changeset.ts:95` both fall back to the literal `agent` when the caller omits the author, so every changeset written by any agent, any session and any human reads `author:: agent` and the trace is worthless (observed 2026-11-16 while splitting kb-change-governance). The change is a default, not a schema change: `author` already round-trips through the serializer (`changeset/serializer.ts:100`) and the proposal hash (`changeset/hasher.ts:47`).
+done_when:: A changeset written without an explicit author records an identity that distinguishes the actor (derived from the environment, the git config, or a required caller argument), never the literal `agent`; an explicitly supplied author is preserved verbatim; a test pins both paths; and no approval or review flow is added.
+batch:: b20-changeset-real-author
+
 # NN Batch
 
 ## NN Batch: b3a-source-import-guards
@@ -796,42 +776,35 @@ risk:: M
 state:: done
 
 ## NN Batch: b4a-derived-artifacts
-order:: 9
+order:: 51
 lane:: heavy
 items:: derived-artifacts-consolidation
 risk:: H
 state:: planned
 
 ## NN Batch: b4b-query-unification
-order:: 10
-lane:: heavy
+order:: 57
+lane:: light
 items:: query-language-unification
 risk:: H
 state:: planned
 
 ## NN Batch: b4d-manifest-section-ownership
-order:: 12
+order:: 52
 lane:: heavy
 items:: workspace-manifest-section-ownership
 risk:: M
 state:: planned
 
 ## NN Batch: b4e-okf-export
-order:: 13
+order:: 55
 lane:: heavy
 items:: okf-export-projector
 risk:: M
 state:: planned
 
-## NN Batch: b4g-product-site
-order:: 14
-lane:: heavy
-items:: product-site-projection
-risk:: M
-state:: planned
-
 ## NN Batch: b4h-cross-domain-export
-order:: 15
+order:: 56
 lane:: heavy
 items:: cross-domain-export
 risk:: M
@@ -845,7 +818,7 @@ risk:: M
 state:: planned
 
 ## NN Batch: b4j-episode-layout-drift
-order:: 17
+order:: 53
 lane:: heavy
 items:: episode-layout-drift
 risk:: M
@@ -865,29 +838,22 @@ items:: orphan-model-lineage-guard
 risk:: M
 state:: planned
 
-## NN Batch: b5-kb-change-governance
-order:: 20
-lane:: heavy
-items:: kb-change-governance
-risk:: M
-state:: planned
-
 ## NN Batch: b5b-video-vector-actor-catalog
-order:: 21
-lane:: heavy
+order:: 58
+lane:: light
 items:: video-vector-actor-catalog
 risk:: M
 state:: planned
 
 ## NN Batch: b5c-docs-skills-retirement
-order:: 22
-lane:: heavy
+order:: 59
+lane:: light
 items:: docs-skills-retirement
 risk:: M
 state:: planned
 
 ## NN Batch: b5d-conntent-procedures
-order:: 23
+order:: 54
 lane:: heavy
 items:: coNNtent-procedures
 risk:: M
@@ -900,15 +866,8 @@ items:: remove-banned-l3-field, authoring-guidance-consistency
 risk:: L
 state:: planned
 
-## NN Batch: b9-packages-to-root
-order:: 25
-lane:: heavy
-items:: packages-to-root
-risk:: H
-state:: planned
-
 ## NN Batch: b11a-safe-delete
-order:: 1
+order:: 50
 lane:: heavy
 items:: delete-impact-completeness
 risk:: H
@@ -1039,3 +998,17 @@ lane:: heavy
 items:: nn-mcp-bundle-reproducibility
 risk:: M
 state:: done
+
+## NN Batch: b20-changeset-real-author
+order:: 60
+lane:: light
+items:: changeset-real-author
+risk:: M
+state:: planned
+
+## NN Batch: b21-contextual-docs-links
+order:: 61
+lane:: light
+items:: contextual-docs-links
+risk:: L
+state:: planned
