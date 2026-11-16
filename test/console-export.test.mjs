@@ -1214,3 +1214,235 @@ level: 3
     assert.equal(existsSync(join(root, 'domaiNN_console.html')), false, 'a model scope writes no domain file')
   })
 })
+
+/**
+ * `writeConsole` shares one delivery rule and one return contract with the MCP, so
+ * these tests drive the writer directly: what a delivery export drops, when a frozen
+ * delivery is refused, and which fields a return may carry.
+ */
+describe('writeConsole: delivery guard and return contract', () => {
+  let root
+  const MODEL_ID = 'business_V_1-0-0'
+
+  // The operating data a delivery page must never show: one element of a cost concept,
+  // and budget, cost, ledger and prompt fields on an element that stays.
+  const MODEL = `---
+title: "Delivery Business Model"
+model_version: "V_1-0-0"
+level: 3
+---
+
+# NN Stakeholders
+## NN Stakeholders: Enterprise
+  slug:: enterprise
+  name:: "Enterprise"
+  budget:: "$100k"
+  cost:: "42 USD"
+  image_prompt:: "a lighthouse at dusk"
+  ledger:: "L-77"
+
+  Leading enterprise tier.
+
+# NN Cost
+## NN Cost: Vendor Spend
+  slug:: vendor-spend
+  name:: "Vendor Spend"
+
+# NN RevenueStream
+## NN RevenueStream: Subscription
+  slug:: subscription
+  name:: "Subscription"
+  pricing:: "$50k/yr"
+`
+
+  // A domain view, so a lone-view export has a view to select, plus a data module whose
+  // facts exercise the recursive `viewData` half of the strip.
+  const PROBE_VIEW = `registerView({ title: 'Probe', icon: 'layout', order: 1, mount(ctx) { ctx.container.textContent = 'probe' } })\n`
+  const PROBE_VIEW_DATA = `export function collect() {
+  return {
+    keep: 'kept',
+    cost: 'SENTINEL-COST',
+    nested: { budget: 'SENTINEL-BUDGET', ledger: 'SENTINEL-LEDGER', image_prompt: 'SENTINEL-PROMPT' },
+  }
+}
+`
+
+  const LEAK_FIELD = /^(cost|costs|budget|budgets|spend|ledger|prompt|image_prompt|prompts|negative_prompt)$/i
+  const LEAK_VALUE = ['$100k', '42 USD', 'a lighthouse at dusk', 'L-77']
+  const VIEW_DATA_LEAK = ['SENTINEL-COST', 'SENTINEL-BUDGET', 'SENTINEL-LEDGER', 'SENTINEL-PROMPT']
+  const slot = (html, id) =>
+    JSON.parse(html.match(new RegExp(`id="${id}">([\\s\\S]*?)<\\/script>`))[1])
+  const leakyFieldNames = (model) =>
+    model.elements.flatMap((el) => Object.keys(el.fields || {})).filter((k) => LEAK_FIELD.test(k))
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), 'nn-writeconsole-'))
+    await mkdir(join(root, 'models'), { recursive: true })
+    await writeFile(join(root, 'models', `${MODEL_ID}_NN.md`), MODEL, 'utf-8')
+    await mkdir(join(root, 'consoles', 'views'), { recursive: true })
+    await writeFile(join(root, 'consoles', 'views', 'probe.js'), PROBE_VIEW, 'utf-8')
+    await writeFile(join(root, 'consoles', 'views', 'probe.data.mjs'), PROBE_VIEW_DATA, 'utf-8')
+  })
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true })
+  })
+
+  /** Cost, budget, ledger and prompt are gone from the page and from its payload. */
+  const assertOperatingDataDropped = (html) => {
+    const model = slot(html, 'nn-model')
+    assert.deepEqual(leakyFieldNames(model), [], 'no cost, budget, ledger or prompt field survives')
+    assert.deepEqual(
+      model.elements.map((el) => el.concept).filter((c) => /cost|budget|ledger|spend/i.test(c)),
+      [],
+      'the cost concept element is dropped',
+    )
+    const { probe } = slot(html, 'nn-view-data')
+    assert.deepEqual(Object.keys(probe).sort(), ['keep', 'nested'], 'the facts that are not operating data stay')
+    assert.deepEqual(probe.nested, {}, 'the nested operating data is dropped')
+    for (const value of [...LEAK_VALUE, ...VIEW_DATA_LEAK]) {
+      assert.equal(html.includes(value), false, `${value} is not in the page`)
+    }
+  }
+
+  it('drops cost, budget, ledger and prompt for a delivery scope object', async () => {
+    const { writeConsole } = await import('../scripts/export-console.mjs')
+    const plain = await writeConsole({ rootDir: root, scope: { models: [MODEL_ID] }, open: false })
+    const plainHtml = await readFile(plain.path, 'utf-8')
+    // The fixture really carries the data: the same export without a delivery scope keeps it.
+    assert.deepEqual(leakyFieldNames(slot(plainHtml, 'nn-model')).sort(), [
+      'budget',
+      'cost',
+      'image_prompt',
+      'ledger',
+    ])
+    for (const value of [...LEAK_VALUE, ...VIEW_DATA_LEAK]) {
+      assert.equal(plainHtml.includes(value), true, `${value} is exported when nothing marks the page a delivery`)
+    }
+
+    const delivery = await writeConsole({
+      rootDir: root,
+      scope: { delivery: { series: 's', episode: 'e', version: 1 }, models: [MODEL_ID] },
+      open: false,
+    })
+    assert.equal(delivery.relativePath, 'series/s/episodes/e/deliveries/v1/e_delivery.html')
+    assert.equal(delivery.status, 'written')
+    assertOperatingDataDropped(await readFile(delivery.path, 'utf-8'))
+  })
+
+  it('drops the same data for another view whose write is staged', async () => {
+    const { writeConsole } = await import('../scripts/export-console.mjs')
+    const staging = join(root, 'staging_tmp')
+    await mkdir(staging, { recursive: true })
+
+    const res = await writeConsole({
+      rootDir: root,
+      stagingDir: staging,
+      scope: { view: 'probe', model: MODEL_ID },
+      open: false,
+    })
+    assert.equal(res.status, 'written')
+    assert.equal(res.path, join(staging, `${MODEL_ID}_console.html`), 'the staged copy is the file that was written')
+    assertOperatingDataDropped(await readFile(res.path, 'utf-8'))
+  })
+
+  // A delivery is immutable. Both write shapes — staged and straight to the final path —
+  // apply that one rule, and a refused write renders nothing, so it logs nothing.
+  const frozenDelivery = async () => {
+    const finalDir = join(root, 'deliveries', 'v1')
+    await mkdir(finalDir, { recursive: true })
+    const finalPath = join(finalDir, 'probe_delivery.html')
+    await writeFile(finalPath, 'existing', 'utf8')
+    return finalPath
+  }
+
+  it('refuses a staged delivery over an existing final file before rendering it', async () => {
+    const { writeConsole } = await import('../scripts/export-console.mjs')
+    const finalPath = await frozenDelivery()
+    const staging = join(root, 'staging_tmp')
+    await mkdir(staging, { recursive: true })
+    const logged = []
+
+    const res = await writeConsole({
+      rootDir: root,
+      stagingDir: staging,
+      scope: { models: [MODEL_ID], readOnly: true, outFile: 'deliveries/v1/probe_delivery.html' },
+      open: false,
+      log: (line) => logged.push(line),
+    })
+
+    assert.equal(res.status, 'error')
+    assert.match(res.error, /already exists/i)
+    assert.deepEqual(logged, [], 'a refused write does not render the page first')
+    assert.equal(await readFile(finalPath, 'utf8'), 'existing', 'the frozen page is untouched')
+    assert.deepEqual(await readdir(staging), [], 'nothing is staged')
+  })
+
+  it('applies the same rule to a delivery written straight to its final path', async () => {
+    const { writeConsole } = await import('../scripts/export-console.mjs')
+    const finalPath = await frozenDelivery()
+    const logged = []
+
+    const res = await writeConsole({
+      rootDir: root,
+      scope: { models: [MODEL_ID], readOnly: true, outFile: 'deliveries/v1/probe_delivery.html' },
+      open: false,
+      log: (line) => logged.push(line),
+    })
+
+    assert.equal(res.status, 'error')
+    assert.match(res.error, /already exists/i)
+    assert.deepEqual(logged, [], 'a refused write does not render the page first')
+    assert.equal(await readFile(finalPath, 'utf8'), 'existing', 'the frozen page is untouched')
+  })
+
+  // The JSDoc is the writer's contract with every caller, so this test reads it: a field
+  // a return carries has to be documented there, and a field documented there has to be
+  // reachable from some return.
+  it('returns exactly the fields its JSDoc documents, on every path', async () => {
+    const { writeConsole } = await import('../scripts/export-console.mjs')
+    const source = await readFile(scriptPath, 'utf-8')
+    const promise = source.indexOf('The single console writer')
+    const doc = source.slice(
+      source.lastIndexOf('/**', promise),
+      source.indexOf('export async function writeConsole'),
+    )
+    const documentedText = doc.match(/Resolves to \{([\s\S]*?)\}/)
+    assert.ok(documentedText, 'the JSDoc still says what a return carries')
+    const documented = documentedText[1]
+      .split(',')
+      .map((part) => part.trim().replace(/^\*+/, '').trim().split(/[\s(]/)[0].replace(/\?$/, ''))
+      .filter((name) => /^[a-zA-Z]\w*$/.test(name))
+
+    const kept = {
+      written: await writeConsole({ rootDir: root, scope: { models: [MODEL_ID] }, open: false }),
+      unchanged: await writeConsole({ rootDir: root, scope: { models: [MODEL_ID] }, open: false }),
+      opened: await writeConsole({ rootDir: root, open: true, openCooldownMinutes: 10, launcher: async () => {} }),
+      alreadyOpen: await writeConsole({ rootDir: root, open: true, openCooldownMinutes: 10, launcher: async () => {} }),
+      openError: await writeConsole({
+        rootDir: root,
+        scope: { models: [MODEL_ID], outFile: 'probe-open.html' },
+        open: true,
+        platform: 'sunos',
+      }),
+    }
+    await frozenDelivery()
+    kept.error = await writeConsole({
+      rootDir: root,
+      scope: { models: [MODEL_ID], readOnly: true, outFile: 'deliveries/v1/probe_delivery.html' },
+      open: false,
+    })
+
+    // Every path returned what it claims to have done.
+    assert.deepEqual(
+      Object.fromEntries(Object.entries(kept).map(([path, res]) => [path, res.status])),
+      { written: 'written', unchanged: 'unchanged', opened: 'written', alreadyOpen: 'unchanged', openError: 'written', error: 'error' },
+    )
+    assert.equal(kept.opened.opened, true)
+    assert.equal(kept.alreadyOpen.alreadyOpen, true)
+    assert.match(kept.openError.openError, /not supported/)
+
+    const observed = new Set(Object.values(kept).flatMap((res) => Object.keys(res)))
+    assert.deepEqual([...observed].sort(), [...new Set(documented)].sort())
+  })
+})
