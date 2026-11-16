@@ -19,7 +19,8 @@ const pkg = JSON.parse(readFileSync(join(consoleDir, 'package.json'), 'utf8'))
 
 // The minimal shell the runtime boots against: the slots it parses plus the three
 // containers it mounts into. No entries, so the boot stays a wiring check.
-const SHELL = `<!doctype html><html><head></head><body>
+function shellHtml(model = { meta: { title: 'T', modelId: 't', modelVersion: 'V_1-0-0' }, elements: [], matrices: [] }) {
+  return `<!doctype html><html><head></head><body>
   <div id="nn-layout">
     <nav id="nn-rail"></nav>
     <header id="nn-feedback-banner"></header>
@@ -36,16 +37,21 @@ const SHELL = `<!doctype html><html><head></head><body>
   </div>
   <script type="application/json" id="nn-config">{"needs":["feedback-export"]}</script>
   <script type="application/json" id="nn-schema">{"concepts":[{"name":"Fleet"}]}</script>
-  <script type="application/json" id="nn-model">{"meta":{"title":"T","modelId":"t","modelVersion":"V_1-0-0"},"elements":[],"matrices":[]}</script>
+  <script type="application/json" id="nn-model">${JSON.stringify(model)}</script>
 </body></html>`
+}
+
+const SHELL = shellHtml()
 
 // Executes the committed bundle as one classic script inside the DOM, exactly the way
 // the exported console loads it. `__innfoNoAutoBoot` keeps the runtime from booting
-// itself before the test is ready to read the result.
-function bootBundle() {
-  const dom = new JSDOM(SHELL, { url: 'http://localhost/', runScripts: 'dangerously', pretendToBeVisual: true })
+// itself before the test is ready to read the result. `before` patches the window
+// before the bundle runs, and `hash` sets the deep link the boot reads.
+function bootBundle(html = SHELL, { hash = '', before } = {}) {
+  const dom = new JSDOM(html, { url: 'http://localhost/' + hash, runScripts: 'dangerously', pretendToBeVisual: true })
   const win = dom.window
   win.__innfoNoAutoBoot = true
+  if (before) before(win)
   // jsdom ships neither; the bundled vendor code probes both at load time.
   win.matchMedia = () => ({
     matches: false,
@@ -133,5 +139,107 @@ describe('committed nn-console.bundle.js', () => {
     const banners = [...bundle.matchAll(/^ \* Version ([\d.]+)\. Regenerate on every console release\.$/gm)]
     assert.equal(banners.length, 1, 'exactly one generated version banner')
     assert.equal(banners[0][1], pkg.version, `banner version matches console/package.json (${pkg.version})`)
+  })
+})
+
+// RENDER_PAGE is 100 in nn-runtime.js: a plain boot mounts one page, so a domain this
+// wide makes "one page" and "every card" impossible to confuse. The focused element is
+// deliberately off the first page, where the old code mounted every card before it.
+const PAGE = 100
+const WIDE_TOTAL = 450
+const FOCUS_INDEX = 430
+const FOCUS_ID = 'e' + FOCUS_INDEX
+
+function wideModel() {
+  return {
+    meta: { title: 'Wide', modelId: 'wide', modelVersion: 'V_1-0-0' },
+    elements: Array.from({ length: WIDE_TOTAL }, (_, i) => ({
+      id: 'e' + i,
+      concept: 'Fleet',
+      name: 'Element ' + i,
+      description: 'Element number ' + i,
+      fields: { role: 'role ' + i },
+    })),
+    matrices: [],
+  }
+}
+
+const cards = (document) => document.querySelectorAll('[data-nn-component="element-card"]')
+
+// Boots the committed bundle over the wide domain. `scrolls` records every
+// scrollIntoView call the boot makes, so "the focused card is scrolled into view" is
+// observable without a real layout engine.
+function bootWide(hash = '') {
+  const scrolls = []
+  const ctx = bootBundle(shellHtml(wideModel()), {
+    hash,
+    before: (win) => {
+      win.Element.prototype.scrollIntoView = function () {
+        scrolls.push(this.id || '')
+      }
+    },
+  })
+  ctx.win.nnConsole.boot(ctx.document)
+  return { ...ctx, scrolls }
+}
+
+describe('a deep link does not mount the whole list', () => {
+  it('mounts a bounded window around the focused card, and lands on it', () => {
+    const ctx = bootWide('#el-' + FOCUS_ID)
+    const mounted = cards(ctx.document)
+
+    assert.ok(
+      mounted.length <= 2 * PAGE,
+      `a focused boot mounted ${mounted.length} of ${WIDE_TOTAL} cards; two pages is the budget`,
+    )
+    assert.ok(mounted.length > PAGE, 'the page holding the focused card is mounted too')
+
+    const focused = ctx.document.getElementById('el-' + FOCUS_ID)
+    assert.ok(focused, 'the focused card is mounted')
+    assert.equal(focused.getAttribute('data-open'), 'true', 'the focused card is expanded')
+    assert.ok(ctx.scrolls.includes('el-' + FOCUS_ID), 'the focused card is scrolled into view')
+    assert.ok(ctx.document.getElementById('el-e0'), 'the first page is still mounted')
+    assert.equal(
+      ctx.document.getElementById('el-e200'),
+      null,
+      'the cards between the first page and the focused page stay unmounted',
+    )
+  })
+
+  it('mounts the page of a card that focusElementCard is asked to reveal', () => {
+    const ctx = bootWide('')
+    assert.equal(cards(ctx.document).length, PAGE, 'a plain boot mounts exactly one page')
+    assert.equal(ctx.document.getElementById('el-' + FOCUS_ID), null, 'the card starts unmounted')
+
+    ctx.win.nnConsole.focusElementCard(ctx.document, FOCUS_ID)
+
+    const focused = ctx.document.getElementById('el-' + FOCUS_ID)
+    assert.ok(focused, 'the page holding the card was mounted on demand')
+    assert.equal(ctx.document.querySelectorAll('#el-' + FOCUS_ID).length, 1, 'mounted exactly once')
+    assert.ok(cards(ctx.document).length <= 2 * PAGE, 'the reveal stays inside the page budget')
+    assert.equal(focused.getAttribute('data-open'), 'true', 'the revealed card is expanded')
+    assert.ok(ctx.scrolls.includes('el-' + FOCUS_ID), 'the revealed card is scrolled into view')
+    assert.ok(focused.classList.contains('nn-highlight'), 'the revealed card is highlighted')
+  })
+
+  it('leaves the DOM untouched for a card the view does not carry', () => {
+    const ctx = bootWide('#el-does-not-exist')
+    assert.equal(cards(ctx.document).length, PAGE, 'a stale deep link still mounts one page')
+    assert.equal(ctx.document.getElementById('el-does-not-exist'), null)
+
+    ctx.win.nnConsole.focusElementCard(ctx.document, 'does-not-exist')
+    assert.equal(cards(ctx.document).length, PAGE, 'an unknown id mounts nothing and does not crash')
+  })
+
+  it('a search still reaches an element the window has not mounted', () => {
+    const ctx = bootWide('#el-' + FOCUS_ID)
+    assert.equal(ctx.document.getElementById('el-e200'), null, 'the match starts outside the window')
+
+    const search = ctx.document.getElementById('nn-search')
+    search.value = 'Element 200'
+    search.dispatchEvent(new ctx.win.Event('input', { bubbles: true }))
+
+    const ids = [...cards(ctx.document)].map((c) => c.getAttribute('data-element-id'))
+    assert.deepEqual(ids, ['e200'], 'the filtered set is mounted whole, wherever the match lives')
   })
 })
