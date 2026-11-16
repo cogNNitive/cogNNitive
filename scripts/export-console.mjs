@@ -191,6 +191,16 @@ async function loadViewsLib() {
   }
 }
 
+/**
+ * The views lib, loaded once per process. It also owns `compareCodeUnits`, the single
+ * code-unit comparator every list in the exporter and the views lib is ordered with, so
+ * the two modules can never drift apart on locale behaviour.
+ */
+let viewsLibModule = null
+function viewsLibOnce() {
+  return (viewsLibModule ??= loadViewsLib())
+}
+
 function parseConsoleCdnRef(bundleText) {
   const m = bundleText && bundleText.match(/\bVersion (\d+\.\d+\.\d+)\./)
   return m ? `nn-console-v${m[1]}` : null
@@ -493,6 +503,7 @@ async function statusConsoles(rootDir) {
  * `filePath`), comparing the recorded `sha256` and `version`.
  */
 async function inspectModelStatus(model, rootDir, consoles) {
+  const { compareCodeUnits } = await viewsLibOnce()
   const relPath = relative(rootDir, model.filePath).replace(/\\/g, '/')
   const fileName = basename(relPath)
   const lists = (c) =>
@@ -500,7 +511,9 @@ async function inspectModelStatus(model, rootDir, consoles) {
     c.meta.models.some((mm) => mm && (mm.filePath === fileName || mm.filePath === relPath))
   const listing = (consoles || [])
     .filter(lists)
-    .sort((a, b) => String(b.meta.generated || '').localeCompare(String(a.meta.generated || '')))
+    .sort((a, b) =>
+      compareCodeUnits(String(b.meta.generated || ''), String(a.meta.generated || '')),
+    )
 
   if (listing.length === 0) {
     return { status: 'uncompiled', targetHtmlPath: join(rootDir, 'domaiNN_console.html') }
@@ -618,11 +631,12 @@ function viewSpecNamesFor(models, html) {
  * `selected` names the same family (the raw OS-separator path order the caller may have
  * used never reaches the key).
  */
-function scopeKeyOf(selected, rootDir) {
+async function scopeKeyOf(selected, rootDir) {
   if (selected.length === 1) return selected[0].name
+  const { compareCodeUnits } = await viewsLibOnce()
   const ordered = selected
     .map((m) => ({ name: m.name, rel: relative(rootDir, m.filePath).replace(/\\/g, '/') }))
-    .sort((a, b) => (a.rel < b.rel ? -1 : a.rel > b.rel ? 1 : 0))
+    .sort((a, b) => compareCodeUnits(a.rel, b.rel))
   const rels = ordered.map((entry) => entry.rel)
   return `${ordered[0].name}-plus${selected.length - 1}-${hashSlice(rels.join('\n'), 6)}`
 }
@@ -955,6 +969,7 @@ async function openConsole(file, { open, launcher, platform, cooldownMs, now = D
 /* ── Model discovery ───────────────────────────────────────────── */
 
 async function loadModels(root, onWarning = writeExportWarning) {
+  const { compareCodeUnits } = await viewsLibOnce()
   const models = []
   for (const f of await findModelFiles(root, onWarning)) {
     const content = await readFile(f, 'utf-8')
@@ -968,7 +983,7 @@ async function loadModels(root, onWarning = writeExportWarning) {
       })
     }
   }
-  models.sort((a, b) => (a.filePath < b.filePath ? -1 : a.filePath > b.filePath ? 1 : 0))
+  models.sort((a, b) => compareCodeUnits(a.filePath, b.filePath))
   return models
 }
 
@@ -2073,7 +2088,7 @@ export async function writeConsole(opts = {}) {
       // D2: the domain's changesets, newest first by file stamp. Read-only, never
       // written into a model.
       changes: (Array.isArray(payloadChangesets) ? payloadChangesets.slice() : []).sort((a, b) =>
-        String(b.path).localeCompare(String(a.path)),
+        viewsLib.compareCodeUnits(String(b.path), String(a.path)),
       ),
       ...(filesData ? { files: filesData } : {}),
     },
@@ -2143,7 +2158,7 @@ export async function writeConsole(opts = {}) {
   // Output location. A console (whole-domaiNN or model-scoped) owns ONE stable file
   // from the shared path builder; only a lone view export keeps a write-once family
   // (<view>_view/, <view>-<key>_view/).
-  const scopeKey = scoped ? scopeKeyOf(selected, root) : null
+  const scopeKey = scoped ? await scopeKeyOf(selected, root) : null
   let familyDir = null
   let familyKey = null
   let relativePath = null

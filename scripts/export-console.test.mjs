@@ -1248,6 +1248,80 @@ health:: critical
       )
       assert.match(first.relativePath, /^artifacts\/business_V_0-2-5-plus2-[0-9a-f]{6}_console\//)
     })
+
+    const CHANGESET = (id, target) => `---
+spec_version: "V_0-4-0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://example.test/changes/spec_NN.md"
+blueprint_version: "V_0-1-0"
+status: applied
+title: "Review"
+author: "reviewer"
+applied_at: "2026-01-01T00:00:00.000Z"
+---
+
+# NN Change
+
+## NN Change: ${id}
+op:: comment
+target:: ${target}
+notes:: "n"
+`
+    const writeChangeset = async (name, body) => {
+      await mkdir(join(tempDir, 'changes'), { recursive: true })
+      await writeFile(join(tempDir, 'changes', name), body, 'utf-8')
+    }
+    const exportDomainSlot = async () => {
+      const res = await runCli([tempDir, '--domain'])
+      assert.equal(res.code, 0, res.stderr)
+      const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
+      return JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
+    }
+
+    it('orders changesets by code unit, exactly like the views lib (d16)', async () => {
+      const paths = [
+        'changes/Business_reviewer_20260101T000000Z_changes_NN.md',
+        'changes/audit_reviewer_20260101T000000Z_changes_NN.md',
+      ]
+      const change = 'business_V_0-2-5@Enterprise Customer'
+      await writeChangeset('Business_reviewer_20260101T000000Z_changes_NN.md', CHANGESET('c-b', change))
+      await writeChangeset('audit_reviewer_20260101T000000Z_changes_NN.md', CHANGESET('c-a', change))
+
+      const slot = await exportDomainSlot()
+      const { compareCodeUnits } = await import('./console-views.mjs')
+      assert.equal(typeof compareCodeUnits, 'function', 'the views lib owns the one comparator')
+      // Code unit, newest first: 'a' (0x61) sorts after 'B' (0x42), so `audit…` leads.
+      assert.deepEqual(slot.changes.map((c) => c.path), ['changes/audit_reviewer_20260101T000000Z_changes_NN.md', 'changes/Business_reviewer_20260101T000000Z_changes_NN.md'])
+      assert.deepEqual(
+        slot.changes.map((c) => c.path),
+        paths.slice().sort((a, b) => compareCodeUnits(b, a)),
+      )
+    })
+
+    it('lists model paths by code unit, not by locale (d16)', async () => {
+      const model = (title) =>
+        `---\ntitle: "${title}"\nknowledge_version: "V_1-0-0"\nlevel: 3\n---\n\n# NN Item\n## NN Item: A\n  slug:: a\n`
+      await writeFile(join(tempDir, 'models', 'Zeta_V_1-0-0_NN.md'), model('Zeta'), 'utf-8')
+      await writeFile(join(tempDir, 'models', 'alpha_V_1-0-0_NN.md'), model('alpha'), 'utf-8')
+
+      const res = await runCli([tempDir, '--list'])
+      assert.equal(res.code, 0, res.stderr)
+      const listed = res.stdout
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.endsWith('_NN.md'))
+      // 'Z' (0x5A) sorts before 'a' (0x61) by code unit; a locale collator would flip them.
+      assert.deepEqual(listed.slice(0, 2), ['models/Zeta_V_1-0-0_NN.md', 'models/alpha_V_1-0-0_NN.md'])
+    })
+
+    it('leaves no localeCompare in the exporter or the views lib (d16)', async () => {
+      for (const name of ['export-console.mjs', 'console-views.mjs']) {
+        const source = readFileSync(join(here, name), 'utf-8')
+        assert.doesNotMatch(source, /\.localeCompare\(/, `${name} must order by code unit, not by locale`)
+      }
+    })
   })
 })
 
