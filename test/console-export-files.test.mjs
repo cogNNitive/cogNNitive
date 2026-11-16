@@ -105,6 +105,15 @@ blueprint_version: "1.0.0"
     }
   })
 
+  // Two same-named sources in different folders, plus the existing spec.md at
+  // sources/import/spec.md: the bare name 'spec.md' is ambiguous, 'orphan.txt' is not.
+  async function seedSameNamedSources() {
+    await mkdir(join(tempDir, 'sources', 'import', 'alpha'), { recursive: true })
+    await mkdir(join(tempDir, 'sources', 'import', 'beta'), { recursive: true })
+    await writeFile(join(tempDir, 'sources', 'import', 'alpha', 'spec.md'), '# Alpha spec\n', 'utf8')
+    await writeFile(join(tempDir, 'sources', 'import', 'beta', 'spec.md'), '# Beta spec\n', 'utf8')
+  }
+
   it('writes model.files in the #nn-model slot of domaiNN_console.html on --domain export', async () => {
     const res = await runExportConsole([tempDir, '--domain', '--no-open'], { open: false })
     assert.equal(res.exitCode, 0, `export failed: ${res.stderr}`)
@@ -265,6 +274,55 @@ blueprint_version: "1.0.0"
     assert.equal(entry.snippet, 'a'.repeat(500), 'a cut on a code-point boundary keeps the whole prefix')
     assert.equal(entry.snippet.includes('\uFFFD'), false)
     assert.equal(entry.snippetTruncated, true)
+  })
+
+  it('counts a citation only for the path it names, not for same-named siblings', async () => {
+    await seedSameNamedSources()
+    const files = await collectWorkspaceFiles(tempDir, {
+      elements: [{ id: 'u1', citations: { sources: [{ path: 'sources/import/alpha/spec.md' }] } }],
+      changesets: [],
+    })
+    const alpha = files.inventory.find((e) => e.path === 'sources/import/alpha/spec.md')
+    const beta = files.inventory.find((e) => e.path === 'sources/import/beta/spec.md')
+    assert.equal(alpha.citationsCount, 1, 'the cited path keeps its count')
+    assert.equal(beta.citationsCount, 0, 'a same-named sibling must not inherit the citation')
+  })
+
+  it('counts change evidence only for the path it names, not for same-named siblings', async () => {
+    await seedSameNamedSources()
+    const files = await collectWorkspaceFiles(tempDir, {
+      elements: [],
+      changesets: [{ id: 'c1', evidence: 'sources/import/alpha/spec.md' }],
+    })
+    const alpha = files.inventory.find((e) => e.path === 'sources/import/alpha/spec.md')
+    const beta = files.inventory.find((e) => e.path === 'sources/import/beta/spec.md')
+    assert.equal(alpha.changesCount, 1, 'the named path keeps its change count')
+    assert.equal(beta.changesCount, 0, 'a same-named sibling must not inherit the change count')
+  })
+
+  it('counts a bare-basename reference when that name is unique, in both loops', async () => {
+    await seedSameNamedSources()
+    const files = await collectWorkspaceFiles(tempDir, {
+      elements: [{ id: 'u1', citations: { sources: [{ path: 'orphan.txt' }] } }],
+      changesets: [{ id: 'c1', evidence: 'orphan.txt' }],
+    })
+    const orphan = files.inventory.find((e) => e.path === 'sources/import/orphan.txt')
+    assert.equal(orphan.citationsCount, 1, 'an unambiguous bare citation still counts')
+    assert.equal(orphan.changesCount, 1, 'an unambiguous bare change evidence still counts')
+    assert.equal(orphan.uncited, false)
+  })
+
+  it('does not count an ambiguous bare-basename reference for any same-named file', async () => {
+    await seedSameNamedSources()
+    const files = await collectWorkspaceFiles(tempDir, {
+      elements: [{ id: 'u1', citations: { sources: [{ path: 'spec.md' }] } }],
+      changesets: [{ id: 'c1', evidence: 'spec.md' }],
+    })
+    for (const p of ['sources/import/alpha/spec.md', 'sources/import/beta/spec.md']) {
+      const entry = files.inventory.find((e) => e.path === p)
+      assert.equal(entry.citationsCount, 0, `${p} must not receive an ambiguous citation`)
+      assert.equal(entry.changesCount, 0, `${p} must not receive an ambiguous change count`)
+    }
   })
 
   it('supports --no-files flag to omit files precomputation', async () => {
