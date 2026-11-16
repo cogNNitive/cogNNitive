@@ -240,10 +240,10 @@ batch:: b3e-console-payload-size
 value:: H
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: iNNfo/packages/nn-core/src/mutate.ts:935 removes fields and rawFields for empty string; iNNfo/packages/nn-mcp/test/apply-change.test.ts:402,429 covers clear and wrong-from conflict. Cross-review-sol C2 repairs a banned sources field through sealed apply. The missing-operation premise is obsolete; remaining work is precise guidance and a banned-field regression. Verified against 8a2958b8df4bd4e20363c37bf2feba7dd0bdffdc; private issue-560 recovery remains unverified.
+evidence:: The ban itself was already enforced (`iNNfo/packages/nn-core/src/validator/knowledge-checks.ts:404` reports SOURCES_FIELD_BANNED, called from `validator/knowledge.ts:168`), so the open work was the repair path's regression and its guidance. Shipped 2026-11-16 in session/banned-l3-field: `iNNfo/packages/nn-core/tests/changeset/banned-sources-clear.test.ts` pins both directions of a sealed serialized round-trip — `update_field` on `strategy@vision&sources` with `to:: ""` (serializeChangeset -> parseChangeset -> verifyProposalSha) removes the banned field, keeps `statement` and `target_year` byte-identical, and the re-parsed document validates with zero SOURCES_FIELD_BANNED; marking the change applied puts the unit in `cleared` and the `from`/`to: ''` pair in `history` (a cleared unit has no `origin`, by design); a wrong `from` partitions as PRECONDITION_FAILED with the model unchanged and still invalid. Guidance now names the repair: `skills/nn-innfo/SKILL.md` (Provenance Protocol rule 1) and `docs/documentation/content/concepts/sources-citations-lineage.md` say the field is cleared with an empty `to`, never `null`/`undefined`. No remove_field op added and issue-560 left open.
 done_when:: Document update_field with to empty string (not null/undefined); a sealed serialized round-trip removes banned sources, preserves unrelated fields, validates and records the applied change; wrong from conflicts without writes. Add only a banned-field regression missing from existing generic clear tests; do not add remove_field or close issue-560 without checking its remaining incident.
 ref:: issue-560
 batch:: b6-remove-banned-l3-field
@@ -615,10 +615,10 @@ batch:: b11b-console-runtime-status
 value:: M
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: skills/nn-innfo/SKILL.md:200,408,470 teaches INNFO_MODELS_DIR, :172,860,864 teaches workspace/procedures/, :1042 teaches [[Element Name]] despite current consumers; docs/documentation/content/reference/mcp-tools.md:55 misdescribes read_lineage effects. Source unchanged at 8a2958b8df4bd4e20363c37bf2feba7dd0bdffdc.
+evidence:: Every line the item names now matches its consumer. `skills/nn-innfo/SKILL.md` no longer teaches the retired `INNFO_MODELS_DIR` (was :200,408,470): it names `INNFO_DOMAIN_DIR`, else the nearest domaiNN root above the cwd, else the cwd, which is exactly `resolveRootDir` (`iNNfo/packages/nn-mcp/src/server.ts:59-65`). The procedure discovery sources are the domaiNN root `procedures/` folder (was `workspace/procedures/` at :172,860,864), matching `list_blueprint_procedures` scoped listing and its `procedures-scope.spec.ts` fixture. The reference example at :1042 is an address (`location:: @dining-room`, `<hierarchical-id>@<slug>` across models), the form the validator accepts, instead of the removed `[[Element Name]]` that reports ADDRESS_MALFORMED — consistent with the same file's rules at :636 and :966. `docs/documentation/content/reference/mcp-tools.md` lists `read_lineage` under Read-only, matching its `readOnlyHint: true` handler and its own "Never writes files" description. `node scripts/generate-docs-facts.mjs --check --against HEAD` stays green. No trigger, public contract or procedure document was migrated.
 merged_from:: improvement-plan P05, QW-D2, QW-D3, QW-D4, SOL-N1
 done_when:: Environment-variable, procedure-path and reference examples match current consumers and read_lineage documentation matches its read-only handler; no mass procedure migration, trigger change or public API change.
 ref:: openspec/analysis/2026-11-14-improvement-plan.md
