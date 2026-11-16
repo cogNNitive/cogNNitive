@@ -128,7 +128,14 @@ Gentle-AI's ODD runs the agent; this repository narrows it:
    does that for you — the merge deletes the branch, never the file — so after landing run
    `npm run check:claims -- --prs <open PRs>` (see `openspec/claims/README.md`) and delete
    whatever it reports as released.
-3. A red `main` is fixed forward. A failure that also reproduces on the previous `main`
+3. **A chained PR must be retargeted before its parent merges.** The repo has
+   `deleteBranchOnMerge: true`, so merging a PR deletes its head branch. If another open PR
+   had that branch as its **base**, GitHub does not retarget the child: it **closes** it, and
+   a closed PR cannot be reopened or have its base changed while its base ref is missing.
+   Before merging the parent run `gh pr edit <child> --base main`. If it closed anyway:
+   recreate the base ref at its merged tip (`git push origin <tip-sha>:refs/heads/<base>`),
+   `gh pr reopen <child>`, then `gh pr edit <child> --base main`.
+4. A red `main` is fixed forward. A failure that also reproduces on the previous `main`
    is pre-existing: file an issue, do not fix it as a rider.
 
 ## 5. Release = merge to `main`
@@ -169,7 +176,9 @@ tag shapes are a contract. Nobody tags by hand.
 already merged into `main`, skipping (and naming) any with uncommitted changes.
 `stop --id <id>` removes one; it refuses unmerged or dirty worktrees. Never remove a
 worktree with a bare `git worktree remove`: its `node_modules` junctions stop git
-halfway and leave a half-deleted folder; `stop` unlinks them first. Remote branch deletion is the maintainer's.
+halfway and leave a half-deleted folder; `stop` unlinks them first. Remote branch deletion is the maintainer's, and with
+`deleteBranchOnMerge: true` GitHub already deletes every head branch on merge — do not hand
+out a list of `git push --delete` commands for branches that landed.
 
 ## Git rules
 
@@ -180,5 +189,13 @@ halfway and leave a half-deleted folder; `stop` unlinks them first. Remote branc
   file: `git show <ref>:<path> > <path>`. To drop a commit and keep the tree:
   `git reset --soft HEAD~1`.
 - PowerShell `>` writes UTF-16. For a byte-exact patch: `cmd /c "git diff -- <path> > out.patch"`.
+- In PowerShell, quote any `@{...}` ref: `git stash show "stash@{0}"`, `git stash drop "stash@{2}"`.
+  Bare `stash@{0}` is parsed as a hashtable literal and reaches git mangled
+  (`Too many revisions specified: 'stash@' 'MAA=' ...`). Drop stashes from the highest index
+  down, because each drop renumbers the rest.
+- Paste one command per line. A block pasted at once that contains an unclosed construct
+  keeps swallowing the following lines as continuations, so a `git push --delete` you never
+  meant to run executes anyway. Never delete a branch that is the base or the head of an open
+  PR — see step 4.3.
 - Never guess git state: run `git status -sb` / `git fetch` right before reporting.
 - Disposable scratch goes in `temp/` (gitignored) and is deleted after use.
