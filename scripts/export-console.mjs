@@ -45,7 +45,6 @@ import { StringDecoder } from 'node:string_decoder'
 import { homedir } from 'node:os'
 import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'
-import { parseSpecName } from './console-views.mjs'
 
 const req = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -327,7 +326,14 @@ const CONSOLE_CORE_BLUEPRINTS = new Set(['sources', 'artifacts', 'procedures'])
 
 /** Blueprint name of a `parent_spec` name: trimmed, without a trailing `_V_x-y-z`, lowercased. */
 export function coreBlueprintOf(parentSpecName) {
-  return parseSpecName(parentSpecName).base.toLowerCase()
+  // Deliberately a local copy of `parseSpecName`'s rule, not an import: the exporter
+  // must keep loading when `console-views.mjs` is not next to it, which is the
+  // distributed-asset-set case the CLI test pins. The parity with `parseSpecName` is
+  // asserted by "one spec-name rule for both call sites" in test/console-views-lib.
+  return String(parentSpecName || '')
+    .trim()
+    .replace(/_V_\d+-\d+-\d+$/i, '')
+    .toLowerCase()
 }
 
 /**
