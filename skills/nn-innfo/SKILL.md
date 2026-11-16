@@ -418,9 +418,10 @@ the change log (`read_lineage`, `resolve_sources`, `check_domain.provenance`).
 
 1. **The reserved source field is banned on Level 3.** That property is rejected
    (`SOURCES_FIELD_BANNED`), and so is a `type:: citation` field
-   (`CITATION_FIELD_BANNED`). The ONE allowed citation is `changes.evidence`; older
-   documents pinned to an earlier L1 stay valid under that L1. A document that still
-   carries the banned field is repaired through the change log, not by hand:
+   (`CITATION_FIELD_BANNED`). The ONE allowed citation is `changes.evidence`, and
+   the ban holds whatever L1 the document's bluepriNNt pins (A14: it is
+   version-independent). A document that still carries the banned field is repaired
+   through the change log, not by hand:
    `update_field` on `model@element&sources` with `to:: ""` (an empty `to` clears the
    field line; `null` or `undefined` are not values and are refused).
 2. **Every change that derives from something carries `evidence::`.** One citation per
