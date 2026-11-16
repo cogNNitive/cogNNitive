@@ -257,6 +257,119 @@ describe('syncWorkspaceManifest', () => {
     expect(updated).toContain('blueprint:: [[business_V_0-2-0]]')
     expect(updated).not.toContain('# NN Models')
   })
+
+  const FOUR_SECTION_MANIFEST = [
+    '# NN kNNowledge',
+    '',
+    '## NN kNNowledge: Existing',
+    '<!-- nn:auto -->',
+    'path:: existing_business_NN.md',
+    'blueprint:: [[business_V_0-2-0]]',
+    'status:: active',
+    '',
+    '# NN Sources',
+    '',
+    '## NN Sources: Sources Catalog',
+    'path:: sources/sources_NN.md',
+    '',
+    '# NN Procedures',
+    '',
+    '## NN Procedures: Procedures Catalog',
+    'path:: procedures_NN.md',
+    '',
+    '# NN Artifacts',
+    '',
+    '## NN Artifacts: Artifacts Catalog',
+    'path:: artifacts/artifacts_NN.md',
+    '',
+  ].join('\n')
+
+  async function writeCatalog(relPath: string, parentSpecName: string, title: string): Promise<void> {
+    const slash = relPath.lastIndexOf('/')
+    await mkdir(join(rootDir, slash < 0 ? '' : relPath.slice(0, slash)), { recursive: true })
+    await writeFile(
+      join(rootDir, relPath),
+      ['---', 'level: 3', 'parent_spec:', `  name: "${parentSpecName}"`, `title: "${title}"`, '---'].join('\n'),
+      'utf-8',
+    )
+  }
+
+  async function writeCatalogDomain(): Promise<void> {
+    await writeCatalog('sources/sources_NN.md', 'sources', 'Sources Catalog')
+    await writeCatalog('procedures_NN.md', 'procedures', 'Procedures Catalog')
+    await writeCatalog('artifacts/artifacts_NN.md', 'artifacts', 'Artifacts Catalog')
+    await writeFile(join(rootDir, 'existing_business_NN.md'), modelFrontmatter(), 'utf-8')
+  }
+
+  it('owns all four sections: a kNNowledge sync keeps the three catalog sections byte-identical', async () => {
+    await writeFile(join(rootDir, 'domaiNN_NN.md'), FOUR_SECTION_MANIFEST, 'utf-8')
+    await writeCatalogDomain()
+    await writeFile(join(rootDir, 'acme_business_NN.md'), modelFrontmatter(), 'utf-8')
+
+    const result = await syncWorkspaceManifest(rootDir, { dry_run: false })
+
+    expect(result.changes).toEqual([
+      { kind: 'added', path: 'acme_business_NN.md', name: 'Acme Business Model' },
+    ])
+    expect(result.written).toBe(true)
+    const updated = await readFile(join(rootDir, 'domaiNN_NN.md'), 'utf-8')
+    expect(updated).toContain('## NN kNNowledge: Acme Business Model')
+    expect(updated.endsWith(FOUR_SECTION_MANIFEST.slice(FOUR_SECTION_MANIFEST.indexOf('# NN Sources')))).toBe(true)
+  })
+
+  it('adds the missing catalog pointer inside the section the manifest already declares', async () => {
+    await writeFile(
+      join(rootDir, 'domaiNN_NN.md'),
+      ['# NN kNNowledge', '', '# NN Sources', '', '# NN Artifacts', '', '## NN Artifacts: Old', 'path:: artifacts/old_artifacts_NN.md', ''].join('\n'),
+      'utf-8',
+    )
+    await writeCatalog('sources/sources_NN.md', 'sources', 'Sources Catalog')
+
+    const result = await syncWorkspaceManifest(rootDir, { dry_run: false })
+
+    expect(result.changes).toEqual([
+      { kind: 'added', path: 'sources/sources_NN.md', name: 'Sources Catalog' },
+      {
+        kind: 'missing-target',
+        path: 'artifacts/old_artifacts_NN.md',
+        name: 'Old',
+        reason: 'no catalog document discovered, entry not tool-owned',
+      },
+    ])
+    const updated = await readFile(join(rootDir, 'domaiNN_NN.md'), 'utf-8')
+    expect(updated).toContain(
+      '# NN Sources\n\n## NN Sources: Sources Catalog\n<!-- nn:auto -->\npath:: sources/sources_NN.md\n\n# NN Artifacts',
+    )
+    expect(updated).not.toContain('# NN Procedures')
+    expect(updated).toContain('path:: artifacts/old_artifacts_NN.md')
+  })
+
+  it('reports a catalog pointer with no document and does not write when nothing else changes', async () => {
+    const manifest = [
+      '# NN kNNowledge',
+      '',
+      '# NN Artifacts',
+      '',
+      '## NN Artifacts: Old',
+      'path:: artifacts/old_artifacts_NN.md',
+      '',
+    ].join('\n')
+    await writeFile(join(rootDir, 'domaiNN_NN.md'), manifest, 'utf-8')
+
+    const result = await syncWorkspaceManifest(rootDir, { dry_run: false })
+
+    expect(result.changes).toEqual([
+      {
+        kind: 'missing-target',
+        path: 'artifacts/old_artifacts_NN.md',
+        name: 'Old',
+        reason: 'no catalog document discovered, entry not tool-owned',
+      },
+    ])
+    expect(result.written).toBe(false)
+    expect(result.diff).toBeUndefined()
+    expect(await readFile(join(rootDir, 'domaiNN_NN.md'), 'utf-8')).toBe(manifest)
+  })
 })
 
 describe('buildUnifiedDiff', () => {

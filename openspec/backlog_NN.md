@@ -118,10 +118,10 @@ batch:: b4b-query-unification
 value:: M
 effort:: M
 risk:: M
-status:: open
+status:: shipped
 lane:: heavy
 verdict:: current
-evidence:: iNNfo/packages/nn-core/src/workspace/reconcileManifest.ts:23-27,70-83 only locates the NN kNNowledge section; no code handles NN Sources, NN Procedures or NN Artifacts although iNNfo/specs/bluepriNNts/workspace/spec_NN.md:446-458 defines them. The tool is now sync_domain_manifest.
+evidence:: Shipped on branch session/manifest-sections (PR number recorded in openspec/claims/manifest-sections.md when opened): `reconcileManifest` now locates and owns all four sections `iNNfo/specs/bluepriNNts/workspace/spec_NN.md:446-458` declares. `# NN kNNowledge` keeps its inventory + `status::` lifecycle unchanged; `# NN Sources`, `# NN Procedures` and `# NN Artifacts` are single pointers — a discovered catalog document (the `_NN.md` named after its `parent_spec` bluepriNNt, new `catalogKindOf` in `workspace/discoverModels.ts`) gets one tool-owned `path::` entry with no `status::` and no `blueprint::`, a section the manifest does not declare is never created, and an entry whose catalog document is missing is reported through the new report-only `missing-target` change kind instead of being archived or removed. `sync_domain_manifest` now writes only when the content moved (it compared change kinds before, which the report-only kind would have turned into a write of identical bytes). Tests: `nn-core/tests/reconcile-manifest.test.ts` (30, incl. the four-section manifest that survives a kNNowledge sync byte-identically and `catalogKindOf` rejecting imported/raw/excluded trees) and `nn-mcp/src/tools/workspace-sync.spec.ts` (19, the tool driven over a four-section domain on disk); suites 2652 nn-core + 789 nn-mcp green. One deliberate side effect, found by a base-vs-new differential over 9 manifest shapes: an entry inserted into a mid-document kNNowledge section now gets a blank line before the next `# ` header (the splice used to glue `status:: active` straight onto it); pinned in a test, every other shape byte-identical. Delta: `openspec/changes/manifest-section-ownership/specs/workspace/spec.md`.
 batch:: b4d-manifest-section-ownership
 
 ## NN Item: okf-export-projector

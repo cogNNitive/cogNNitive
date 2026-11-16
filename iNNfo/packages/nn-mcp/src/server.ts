@@ -548,7 +548,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'sync_domain_manifest',
       annotations: { readOnlyHint: false, idempotentHint: true },
       description:
-        'Reconcile the domain manifest ## NN Knowledge entries against discovered Level-3 knowledge files: additively appends new entries, archives entries whose file disappeared, and reactivates tool-owned entries whose file returned. Never touches hand-authored entries lacking the <!-- nn:auto --> ownership marker. Defaults to a dry run.',
+        'Reconcile the domain manifest against the documents the domain is made of. The ## NN kNNowledge section (legacy ## NN Models) is an inventory: additively appends new entries, archives entries whose file disappeared, and reactivates tool-owned entries whose file returned. The # NN Sources, # NN Procedures and # NN Artifacts sections are single pointers: appends a tool-owned path:: entry for a discovered catalog document, never adds a status:: field, never creates a section the manifest does not declare, and reports a pointer whose catalog document is missing as missing-target without editing it. Never touches hand-authored entries lacking the <!-- nn:auto --> ownership marker. Defaults to a dry run.',
       inputSchema: {
         type: 'object',
         properties: {

@@ -135,9 +135,9 @@ export * from './metamodel.js'
 export * from './recursiveParser/index.js'
 export * from './fs-types.js'
 export { OWNERSHIP_MARKER, reconcileManifest } from './workspace/reconcileManifest.js'
-export type { DiscoveredModel, ManifestChange } from './workspace/reconcileManifest.js'
-export { isReconcilableModel } from './workspace/discoverModels.js'
-export type { CandidateFile } from './workspace/discoverModels.js'
+export type { DiscoveredCatalog, DiscoveredModel, ManifestChange } from './workspace/reconcileManifest.js'
+export { CATALOG_KINDS, catalogKindOf, isReconcilableModel } from './workspace/discoverModels.js'
+export type { CandidateFile, CatalogKind } from './workspace/discoverModels.js'
 export {
   parseSemVer,
   compareVersions,
