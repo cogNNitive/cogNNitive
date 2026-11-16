@@ -325,6 +325,8 @@ function collectTestSuites(dir, found = []) {
  * just stays in the full tier only.
  */
 const SLOW_SUITES = new Set([
+  // 8s: five real tsup builds, two of them in checkouts at different paths.
+  'scripts/build-mcp-bundle.test.mjs',
   'scripts/check-licenses.test.mjs',
   'scripts/export-console.test.mjs',
   'scripts/generate-docs-facts.test.mjs',
