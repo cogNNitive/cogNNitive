@@ -26,10 +26,8 @@ import type { ConsoleSchemaSlot, ConsoleProcedureSlot } from './slot.js'
 import { inheritConceptValues } from '../schema/field-values.js'
 import { resolveBlueprintSchema } from '../schema/compose.js'
 import { attachChangesetHistory } from './element-history.js'
-import { deriveFieldOrigin, deriveValueHistory } from './element-history.js'
 import { buildChangeLogFromChangesets, type ChangesetLike } from '../changelog/load.js'
 import type { ChangesetRecord, ElementHistoryItem } from './element-history.js'
-import type { UnitProvenance } from './element-history.js'
 import type {
   FileCategory,
   FileSidecarStatus,
@@ -119,8 +117,6 @@ export interface ConsolePayloadMatrix {
   }
   values?: string[]
   cells: Record<string, Record<string, unknown>>
-  /** Per row label -> column label -> the cell unit's applied history and origin. */
-  provenance?: Record<string, Record<string, UnitProvenance>>
   widget?: string
   description?: string
 }
@@ -237,8 +233,8 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
   const modelVersion = fm.knowledge_version || fm.version || 'V_0-1-0'
   const modelId = options.modelId || standaloneModelId(modelPath, title)
 
-  // One log for the whole payload: element history, per-field origin and cell
-  // origin all read it (built once, never per element).
+  // One log for the whole payload: the element history reads it (built once, never
+  // per element).
   const changeLog =
     Array.isArray(changesets) && changesets.length > 0
       ? buildChangeLogFromChangesets(changesets as unknown as ChangesetLike[])
@@ -409,26 +405,11 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
           slug: elementsByName.get(c.toLowerCase())?.slug || slugify(c),
         }
       }
-      // Cell units are `<model-id>@<matrix-slug>&<row-slug>&<col-slug>`. The key is
-      // exact: a console aggregates models, and two models can hold a matrix with
-      // the same name and the same axis slugs, so a suffix match would read the
-      // other model's history (F5).
-      let cellProvenance: Record<string, Record<string, UnitProvenance>> | undefined
-      if (changeLog) {
-        const matrixSlug = slugify(mat.name)
-        for (const cell of mat.cells ?? []) {
-          if (String(cell.value ?? '').trim() === '') continue
-          const unitKey = `${modelId}@${matrixSlug}&${headRows[cell.row]?.slug}&${headCols[cell.col]?.slug}`
-          const origin = changeLog.origin(unitKey)
-          if (!origin) continue
-          cellProvenance ??= {}
-          cellProvenance[cell.row] ??= {}
-          cellProvenance[cell.row][cell.col] = {
-            history: deriveValueHistory(changeLog, unitKey),
-            origin: deriveFieldOrigin(changeLog, unitKey),
-          }
-        }
-      }
+      // A matrix ships its definition and its cells. It carries no per-cell
+      // `{history, origin}` map: the export used to derive one per non-empty cell
+      // (`<model-id>@<matrix-slug>&<row-slug>&<col-slug>`) and no browser-side
+      // console source read it — every view renders the cell VALUE. The element
+      // `history` map the Changes tab does read is attached below, on elements.
       matrices.push({
         name: mat.name,
         slug: slugify(mat.name),
@@ -438,7 +419,6 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
         cols,
         head: { rows: headRows, cols: headCols },
         cells: cellsObj,
-        ...(cellProvenance ? { provenance: cellProvenance } : {}),
       })
     }
   }

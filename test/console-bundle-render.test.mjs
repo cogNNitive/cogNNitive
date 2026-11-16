@@ -259,3 +259,42 @@ describe('a deep link does not mount the whole list', () => {
     assert.deepEqual(ids, ['e200'], 'the filtered set is mounted whole, wherever the match lives')
   })
 })
+
+// The element id the address bar names, if any: `#el-<id>` is the only hash form
+// that claims a card.
+function urlClaims(win) {
+  const raw = String(win.location.hash || '').replace(/^#/, '')
+  if (raw.indexOf('el-') !== 0) return null
+  try {
+    return decodeURIComponent(raw.slice(3))
+  } catch {
+    return raw.slice(3)
+  }
+}
+
+describe('a refresh after a deep-link boot never loses the element the URL names', () => {
+  it('clears the consumed focus from the address bar instead of naming an unmounted card', () => {
+    const ctx = bootWide('#el-' + FOCUS_ID)
+    assert.ok(ctx.document.getElementById('el-' + FOCUS_ID), 'the deep link still lands on its card')
+    assert.equal(
+      urlClaims(ctx.win),
+      null,
+      'the focus id is consumed once by contract, so the address bar stops naming it',
+    )
+
+    // The repaint a draft change or another tab's store update triggers: it re-mounts
+    // the first page only, because the focus id was consumed.
+    ctx.document.__nnConsoleState.refreshUi()
+    assert.equal(cards(ctx.document).length, PAGE, 'the refresh mounts the first page')
+    assert.equal(ctx.document.getElementById('el-' + FOCUS_ID), null, 'and the focused card is gone again')
+    assert.equal(urlClaims(ctx.win), null, 'while the address bar names nothing: URL and cards agree')
+  })
+
+  it('reloads from that address bar onto the first page with nothing claimed', () => {
+    const first = bootWide('#el-' + FOCUS_ID)
+    const reloaded = bootWide(first.win.location.hash)
+    assert.equal(urlClaims(reloaded.win), null, 'the reloaded page names no element')
+    assert.equal(reloaded.document.getElementById('el-' + FOCUS_ID), null, 'so it mounts no card the URL could claim')
+    assert.equal(cards(reloaded.document).length, PAGE, 'one page, as a plain boot')
+  })
+})
