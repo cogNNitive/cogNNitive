@@ -1,6 +1,7 @@
 # claim: console-views-hygiene
 
 branch: session/console-views-hygiene
+pr: 666
 opened: 2026-11-16
 thread: opencode subagent (batch b10g — console-views hygiene)
 
