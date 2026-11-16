@@ -34,14 +34,12 @@ excludes:
 Written before the first edit, checked with `claim-check.mjs`, and **deleted by the pull
 request that lands the work**: a claim is a live lock, not a tombstone.
 
-Nothing can delete it after the merge. `main` accepts merges only through the merge queue,
-so `git push origin HEAD:main` is rejected with "Changes must be made through the merge
-queue" — the retired `claim-release` workflow died on exactly that. The release moved into
-the pull request: its last commit before queueing removes `openspec/claims/<id>.md`, and CI
-enforces it on `merge_group` (`scripts/release-claim.mjs --check`), so a PR that forgets the
-deletion is ejected from the queue instead of leaving a tombstone behind.
-
-`claim-audit.mjs` still names what is left lying around:
+A claim is a **convention with a tool**, not something the server enforces. `main` forbids only
+force-push and deletion, so the release is the last commit of the pull request and nothing
+rejects a PR that forgets it. CI carries the `merge_group` gate (`scripts/release-claim.mjs
+--check`) so the rule would become blocking the day a merge queue is enabled; today no queue
+exists, so that gate never runs. The net is `claim-audit.mjs`, which names every claim whose PR
+is no longer open:
 
 ```powershell
 gh pr list --state open --limit 1000 --json number > temp/prs.json

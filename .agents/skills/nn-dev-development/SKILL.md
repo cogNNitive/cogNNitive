@@ -127,59 +127,53 @@ Gentle-AI's ODD runs the agent; this repository narrows it:
   (`gentle-ai review mode status`). Verification is the focused test plus CI.
 - **Inner loop:** `node --test <file>` for what you touched, or `npm run verify:fast`.
   The full `node scripts/verify.js` is CI's job.
-- **One thread, one area, 3–5 items.** A backlog batch of 3–5 items is one session and one
-  PR. Fifteen threads for one work area is not parallelism: it is fifteen rebases queued
-  in advance, because every merge moves the base under the other fourteen. When two sides
-  of the work must agree on a contract, land the contract first and start both from that
-  commit.
+- **One thread, one area, 3–5 items.** Fifteen threads for one work area is not parallelism,
+  it is fifteen rebases queued in advance. When two sides of the work must agree on a
+  contract, land the contract first and start both from that commit.
 - **Derived artifacts regenerate themselves.** The pre-commit hook reruns the fast
   generators when code or samples are staged and stages what changed. If a push or CI
   still reports a stale artifact, run `npm run regen` and commit.
 
 ## 4. Land on `main`
 
-### One integration lane
+### One developer, so land in batches
 
-`main` is protected and landings go through GitHub's merge queue, so exactly one PR merges
-at a time and each is validated on `main` plus every PR queued ahead of it (`merge_group`
-in `ci.yml`). That serialization is the point: 28 PRs in one day invalidated each other's
-base, and a single merge needed 16 conflict resolutions.
+The cost of concurrency is paid per landing, and it is quadratic: every merge moves the base
+under every open branch. That is why 28 PRs in one day invalidated each other, and why a merge
+queue looked like the answer. It is not, for one person: it buys "`main` is never red on a
+combination of concurrent landings" — a team invariant — and charges ~3.5 minutes of serialized
+gate on every PR to provide it. The cheap fix is arithmetic, not machinery.
 
-- **Never merge, rebase or amend in the primary checkout.** The git hooks refuse it, under
-  every harness (`scripts/guard-primary-checkout.mjs`). A branch that fell behind rebases
-  inside its own worktree.
-- **`gh pr merge` enqueues; it does not merge.** The queue owns the merge method, so the
-  `--merge`/`--squash` choice belongs to the queue rule. Keep it `merge`: the session
-  branch must stay an ancestor of `main` so `nn-session sweep` can remove it.
-- **Do not open one PR per backlog item.** Five PRs of five items beat twenty-five PRs of
-  one. Every landing PR moves the base under every other open branch.
-- **The backlog is a single-writer surface.** Only the PR that lands a batch edits its row,
-  and it edits it last, immediately before queueing, so a conflict is one line and not a
-  rebase of the whole file.
+- **One thread, one area, 3-5 items, one PR.** Twenty-eight landings became five, and the pairs
+  that can collide fall from 378 to 10, with no waiting added anywhere.
+- **A hot area is serial by construction.** Console sources, `nn-console.bundle.js`,
+  `catalog.json` and the TestLab fixture: one session at a time. Two threads on a hot file is a
+  rebase you scheduled yourself.
+- **Never merge, rebase or amend in the primary checkout.** The git hooks refuse it, under every
+  harness (`scripts/guard-primary-checkout.mjs`). A branch that fell behind rebases inside its
+  own worktree.
+- **Merge with `gh pr merge --merge ...`** once CI is green. Not `--squash`: the merge commit
+  keeps the session branch an ancestor of `main`, so `nn-session stop`/`sweep` can remove it.
+- **The backlog is a single-writer surface.** Only the PR that lands a batch edits its row, and
+  it edits it last, so a conflict is one line and not a rebase of the whole file.
 - **A conflicted generated artifact means rebase + `npm run regen`**, never a hand-resolved
   bundle.
 
-The ruleset (`main: single integration lane`, repo ruleset 27391067) requires a pull request,
-the status checks `verify`, `quality`, `site` and `spec-integrity`, a merge queue (`MERGE`,
-`ALLGREEN`, one entry at a time), and forbids force-push and deletion. A pushed commit that
-does not come through the queue is rejected with "Changes must be made through the merge
-queue" — that includes automation, because the Actions integration cannot be given a bypass
-through the API (`Actor GitHub Actions integration must be part of the ruleset source or owner
-organization`; the bypass is UI-only). If a new workflow ever needs to write to `main`, give
-it a PR and the queue, not a push.
+**The ruleset is two rules.** `main` (repo ruleset 27391067) forbids force-push and deletion and
+nothing else: no required checks, no pull request rule, no merge queue. `ci.yml` still carries
+the `merge_group` trigger and the `claims` gate (`release-claim.mjs --check`) so re-enabling a
+queue is a ruleset change and not a PR; today they never fire because nothing creates a
+`merge_group` event.
 
-Because the queue is the only door, **the claim is released by the pull request itself**: the
-commit before queueing deletes `openspec/claims/<id>.md`. CI checks that on `merge_group`
-(`scripts/release-claim.mjs --check`), so a PR that forgets it is ejected from the queue.
+**Claims are a convention again.** The PR that lands the work deletes `openspec/claims/<id>.md`
+in its last commit. Nothing enforces that without a queue, so `npm run check:claims -- --prs
+<open PRs>` is the net: it names every claim whose PR is no longer open.
 
 1. Push the session branch and open a PR to `main` without asking. That is the normal
    end of a unit.
-2. **Merging the PR is the maintainer's call.** Ask, per PR. `gh pr merge` **enqueues**; the
-   queue owns the merge method (`merge`), which keeps the session branch an ancestor of
-   `main` so `nn-session stop`/`sweep` can remove it. The last commit before queueing deletes
-   `openspec/claims/<id>.md` — the area is free again the moment the work is in, and nothing
-   can delete the claim after the merge. `npm run check:claims -- --prs <open PRs>` (see
-   `openspec/claims/README.md`) names whatever older sessions left behind.
+2. **Merging the PR is the maintainer's call.** Ask, per PR. The last commit before merging
+   deletes `openspec/claims/<id>.md` — a claim is a live lock, not a tombstone, and merging
+   deletes the branch but never the file.
 3. **A chained PR must be retargeted before its parent merges.** The repo has
    `deleteBranchOnMerge: true`, so merging a PR deletes its head branch. If another open PR
    had that branch as its **base**, GitHub does not retarget the child: it **closes** it, and

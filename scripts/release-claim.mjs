@@ -4,10 +4,11 @@
  * scripts/release-claim.mjs
  *
  * Finds the claim of a branch. A claim is a live lock, not a tombstone, and merging a
- * pull request never removed it: GitHub deletes the branch, never a file. Since `main`
- * only accepts merges through the merge queue, no workflow can push the deletion after
- * the merge, so the pull request releases its own claim and CI enforces it on
- * `merge_group` (`--check`).
+ * pull request never removed it: GitHub deletes the branch, never a file. The release is
+ * therefore a commit in the pull request that lands the work. `--check` is the blocking
+ * half of that rule, wired to `merge_group` in CI, so it enforces the release only when a
+ * merge queue exists; today `main` forbids force-push and deletion and nothing else, and
+ * the release stays a convention with `claim-audit` as the net.
  *
  * Usage:
  *   node scripts/release-claim.mjs --branch session/console-cli-input [--root <dir>] [--dry-run]
