@@ -46,13 +46,26 @@ assert.deepStrictEqual(
   steps.map((s) => s.id),
 );
 
-// 4b. --fast drops only SLOW_SUITES suites; every guard and drift check stays.
+// 4b. --fast drops the SLOW_SUITES suites plus exactly one named non-suite step: the
+//     derived-artifact gate, whose pass runs the nn-core and nn-mcp builds (~15.5s
+//     measured). Everything else --fast must keep, and a second non-suite exception
+//     appearing here has to be argued for in this list, not slipped in.
+const FAST_EXCEPTIONS = new Set(['regen-gate']);
 {
   const fastIds = new Set(buildSteps(repoRoot, { fast: true }).map((s) => s.id));
   const dropped = steps.filter((s) => !fastIds.has(s.id));
   assert.ok(dropped.length > 0, '--fast skips something');
-  assert.ok(dropped.every((s) => s.id.startsWith('test-')), '--fast skips only test suites');
-  assert.ok(steps.filter((s) => !s.id.startsWith('test-')).every((s) => fastIds.has(s.id)), '--fast keeps every guard');
+  assert.deepStrictEqual(
+    dropped.filter((s) => !s.id.startsWith('test-')).map((s) => s.id).sort(),
+    [...FAST_EXCEPTIONS].sort(),
+    '--fast skips only test suites, except the documented non-suite exceptions',
+  );
+  assert.ok(
+    steps
+      .filter((s) => !s.id.startsWith('test-'))
+      .every((s) => fastIds.has(s.id) || FAST_EXCEPTIONS.has(s.id)),
+    '--fast keeps every other guard',
+  );
 }
 
 // 5-5g. Runner semantics (async: the pool). Serial and pooled runs must agree.
