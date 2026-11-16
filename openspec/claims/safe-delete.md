@@ -1,6 +1,7 @@
 # claim: safe-delete
 
 branch: session/safe-delete
+pr: 701
 opened: 2026-11-16
 thread: backlog b11a-safe-delete (delete-impact-completeness), subagent session
 
