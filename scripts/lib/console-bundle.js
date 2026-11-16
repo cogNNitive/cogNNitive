@@ -30,6 +30,16 @@ const SOURCES = [
  * @typedef {{ file: string, globalName: string, src: string }} BundlePart
  */
 
+// A source states its release identity with this marker; composition replaces it with
+// the version it derives from console/package.json (the one the banner prints), so the
+// runtime never carries a second literal that could drift from the release.
+const RELEASE_VERSION_MARKER = '__NN_CONSOLE_RELEASE_VERSION__';
+
+/** Replaces the release-version marker in one source body. */
+function injectReleaseVersion(src, version) {
+  return String(src).split(RELEASE_VERSION_MARKER).join(version);
+}
+
 /**
  * Compose console bundle string from parts and version.
  * @param {Array<BundlePart | [string, string, string]>} parts
@@ -37,6 +47,9 @@ const SOURCES = [
  * @returns {string}
  */
 function composeConsoleBundle(parts, version) {
+  if (!version) {
+    throw new Error('composeConsoleBundle: the release version is required to inject the runtime identity');
+  }
   const files = parts.map(p => (Array.isArray(p) ? p[0] : p.file));
   const header = `/*!
  * nn-console.bundle.js — single-file console runtime + renderers.
@@ -51,7 +64,7 @@ function composeConsoleBundle(parts, version) {
     const file = Array.isArray(part) ? part[0] : part.file;
     const globalName = Array.isArray(part) ? part[1] : part.globalName;
     const src = Array.isArray(part) ? part[2] : part.src;
-    outParts.push(`/* ===== ${file} (defines ${globalName}) ===== */\n` + src.trim() + '\n');
+    outParts.push(`/* ===== ${file} (defines ${globalName}) ===== */\n` + injectReleaseVersion(src.trim(), version) + '\n');
   }
 
   return outParts.join('\n');
