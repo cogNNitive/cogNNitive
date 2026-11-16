@@ -1,10 +1,11 @@
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
+import fsp, { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises'
+import fs, { existsSync } from 'node:fs'
+import { syncBuiltinESMExports } from 'node:module'
 import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve as resolvePath } from 'node:path'
 import { JSDOM } from 'jsdom'
 import { runExportConsole, collectWorkspaceFiles } from '../scripts/export-console.mjs'
 
@@ -348,5 +349,176 @@ blueprint_version: "1.0.0"
     const payload = JSON.parse(modelScript.textContent)
     assert.ok(payload.files, 'scoped console must contain model.files')
     assert.ok(payload.files.inventory.length >= 5)
+  })
+
+  /**
+   * A scan must never shrink the domain in silence. Every filesystem failure that
+   * is not "the path does not exist" is reported on the export's one warning
+   * channel, naming the path and the operation; the export itself keeps going.
+   */
+  describe('scan read failures', () => {
+    /** Fail `fn` for exactly one path, leaving every other call to the real API. */
+    function failOnly(t, target, failure) {
+      const absolute = resolvePath(target)
+      const real = fsp.readdir
+      t.mock.method(fsp, 'readdir', async (path, ...rest) => {
+        if (resolvePath(String(path)) === absolute) throw failure
+        return real(path, ...rest)
+      })
+      syncBuiltinESMExports()
+    }
+
+    const unreadable = (code) =>
+      Object.assign(new Error(`${code}: no access, scandir 'blocked'`), { code })
+
+    it('warns with the unreadable directory instead of silently dropping its models', async (t) => {
+      const blocked = join(tempDir, 'kNNowledge', 'closed')
+      await mkdir(blocked, { recursive: true })
+      await writeFile(
+        join(blocked, 'ghost_NN.md'),
+        '---\nlevel: 3\ntitle: "Ghost"\n---\n\n# NN Ghost\n',
+        'utf8',
+      )
+
+      failOnly(t, blocked, unreadable('EACCES'))
+      let res
+      try {
+        res = await runExportConsole([tempDir, '--list'], { open: false })
+      } finally {
+        t.mock.restoreAll()
+        syncBuiltinESMExports()
+      }
+
+      assert.equal(res.exitCode, 0, `the export must still succeed: ${res.stderr}`)
+      assert.match(
+        res.stderr,
+        new RegExp(`WARNING: \\[export-console\\] cannot read directory .*kNNowledge[\\\\/]closed: EACCES`),
+        'the warning must name the directory and the failed operation',
+      )
+      assert.doesNotMatch(res.stdout, /ghost_NN\.md/, 'the unreadable model is still not listed')
+      assert.match(res.stdout, /system_NN\.md/, 'the readable models are still listed')
+    })
+
+    it('warns with an unreadable scan directory and keeps the rest of the inventory', async (t) => {
+      const blocked = join(tempDir, 'sources', 'import', 'closed')
+      await mkdir(blocked, { recursive: true })
+      await writeFile(join(blocked, 'secret.md'), '# Secret\n', 'utf8')
+
+      const healthy = await collectWorkspaceFiles(tempDir, { elements: [], changesets: [] })
+      const warnings = []
+      failOnly(t, blocked, unreadable('EACCES'))
+      let broken
+      try {
+        broken = await collectWorkspaceFiles(tempDir, {
+          elements: [],
+          changesets: [],
+          onWarning: (message) => warnings.push(message),
+        })
+      } finally {
+        t.mock.restoreAll()
+        syncBuiltinESMExports()
+      }
+
+      assert.deepEqual(warnings, [`cannot read directory ${blocked}: EACCES`])
+      assert.deepEqual(
+        broken.inventory.map((e) => e.path),
+        healthy.inventory.map((e) => e.path).filter((p) => !p.startsWith('sources/import/closed/')),
+        'only the unreadable subtree is missing; every other entry is unchanged',
+      )
+      assert.equal(broken.stats.totalFiles, broken.inventory.length)
+    })
+
+    it('warns with a file it cannot stat and omits only that file', async (t) => {
+      const target = join(tempDir, 'sources', 'import', 'orphan.txt')
+      const real = fsp.stat
+      t.mock.method(fsp, 'stat', async (path, ...rest) => {
+        if (resolvePath(String(path)) === resolvePath(target)) throw unreadable('EACCES')
+        return real(path, ...rest)
+      })
+      syncBuiltinESMExports()
+
+      const warnings = []
+      let files
+      try {
+        files = await collectWorkspaceFiles(tempDir, {
+          elements: [],
+          changesets: [],
+          onWarning: (message) => warnings.push(message),
+        })
+      } finally {
+        t.mock.restoreAll()
+        syncBuiltinESMExports()
+      }
+
+      assert.deepEqual(warnings, [`cannot stat ${target}: EACCES`])
+      assert.equal(
+        files.inventory.some((e) => e.path === 'sources/import/orphan.txt'),
+        false,
+      )
+      assert.ok(files.inventory.some((e) => e.path === 'sources/import/spec.md'))
+    })
+
+    it('warns with a file it cannot read for hashing and omits only that file', async (t) => {
+      const target = join(tempDir, 'sources', 'assets', 'arch.png')
+      const real = fs.createReadStream
+      t.mock.method(fs, 'createReadStream', (path, ...rest) => {
+        if (resolvePath(String(path)) === resolvePath(target)) throw unreadable('EACCES')
+        return real(path, ...rest)
+      })
+      syncBuiltinESMExports()
+
+      const warnings = []
+      let files
+      try {
+        files = await collectWorkspaceFiles(tempDir, {
+          elements: [],
+          changesets: [],
+          onWarning: (message) => warnings.push(message),
+        })
+      } finally {
+        t.mock.restoreAll()
+        syncBuiltinESMExports()
+      }
+
+      assert.deepEqual(warnings, [`cannot read file ${target}: EACCES`])
+      assert.equal(
+        files.inventory.some((e) => e.path === 'sources/assets/arch.png'),
+        false,
+      )
+      assert.ok(files.inventory.some((e) => e.path === 'sources/import/spec.md'))
+    })
+
+    it('stays silent for an absent path and for ENOENT or ENOTDIR from a scan', async (t) => {
+      // A workspace without the optional evidence/ folder is normal, not a failure.
+      await rm(join(tempDir, 'evidence'), { recursive: true, force: true })
+      const healthyWarnings = []
+      await collectWorkspaceFiles(tempDir, {
+        elements: [],
+        changesets: [],
+        onWarning: (message) => healthyWarnings.push(message),
+      })
+      assert.deepEqual(healthyWarnings, [], 'a complete scan of a healthy workspace warns about nothing')
+
+      const blocked = join(tempDir, 'sources', 'import')
+      for (const code of ['ENOENT', 'ENOTDIR']) {
+        const warnings = []
+        failOnly(t, blocked, unreadable(code))
+        try {
+          const files = await collectWorkspaceFiles(tempDir, {
+            elements: [],
+            changesets: [],
+            onWarning: (message) => warnings.push(message),
+          })
+          assert.deepEqual(warnings, [], `${code} is an absent path, never a read failure`)
+          assert.equal(
+            files.inventory.some((e) => e.path.startsWith('sources/import/')),
+            false,
+          )
+        } finally {
+          t.mock.restoreAll()
+          syncBuiltinESMExports()
+        }
+      }
+    })
   })
 })
