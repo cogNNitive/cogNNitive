@@ -1322,6 +1322,35 @@ notes:: "n"
         assert.doesNotMatch(source, /\.localeCompare\(/, `${name} must order by code unit, not by locale`)
       }
     })
+
+    it('renders one tree shape for a root model and a nested model (d17)', async () => {
+      const treeRoot = join(tempDir, 'tree')
+      await mkdir(join(treeRoot, 'sub'), { recursive: true })
+      const model = (title) =>
+        `---\ntitle: "${title}"\nknowledge_version: "V_1-0-0"\nlevel: 3\n---\n\n# NN Item\n## NN Item: A\n  slug:: a\n`
+      await writeFile(join(treeRoot, 'alpha_V_1-0-0_NN.md'), model('Alpha'), 'utf-8')
+      await writeFile(join(treeRoot, 'zeta_V_1-0-0_NN.md'), model('Zeta'), 'utf-8')
+      await writeFile(join(treeRoot, 'sub', 'inner_V_1-0-0_NN.md'), model('Inner'), 'utf-8')
+
+      const res = await runCli([treeRoot, '--tree'])
+      assert.equal(res.code, 0, res.stderr)
+      // Byte-exact: the root group prints no directory line and no indent, and every
+      // other group prints its own line and indents its children — one shape, no branch.
+      assert.equal(
+        res.stdout,
+        [
+          'Workspace: . (3 Level-3 models)',
+          '├── alpha_V_1-0-0_NN.md [uncompiled]',
+          '│   └── domaiNN_console.html',
+          '└── zeta_V_1-0-0_NN.md [uncompiled]',
+          '    └── domaiNN_console.html',
+          '└── sub/',
+          '    └── inner_V_1-0-0_NN.md [uncompiled]',
+          '        └── domaiNN_console.html',
+          '',
+        ].join('\n'),
+      )
+    })
   })
 })
 

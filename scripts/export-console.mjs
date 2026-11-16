@@ -664,33 +664,23 @@ async function renderTree(models, root, consoles) {
     const dirKey = dirKeys[i]
     const isLastDir = i === dirKeys.length - 1
     const dirPrefix = isLastDir ? '└── ' : '├── '
-    const childIndent = isLastDir ? '    ' : '│   '
+    // The root group needs no directory line (the header already names `.`) and no
+    // indent; every other group prints its line and indents its children.
+    const atRoot = dirKey === '.'
+    const childIndent = atRoot ? '' : isLastDir ? '    ' : '│   '
+    if (!atRoot) console.log(`${dirPrefix}${dirKey}`)
 
-    if (dirKey === '.') {
-      const items = groups.get(dirKey)
-      for (let j = 0; j < items.length; j++) {
-        const item = items[j]
-        const isLastItem = j === items.length - 1
-        const itemPrefix = isLastItem ? '└── ' : '├── '
-        const fileIndent = isLastItem ? '    ' : '│   '
-        console.log(`${itemPrefix}${basename(item.model.filePath)} [${item.statusInfo.status}]`)
-        const targetRel = relative(root, item.statusInfo.targetHtmlPath).replace(/\\/g, '/')
-        console.log(`${fileIndent}└── ${targetRel}`)
-      }
-    } else {
-      console.log(`${dirPrefix}${dirKey}`)
-      const items = groups.get(dirKey)
-      for (let j = 0; j < items.length; j++) {
-        const item = items[j]
-        const isLastItem = j === items.length - 1
-        const itemPrefix = isLastItem ? '└── ' : '├── '
-        const fileIndent = isLastItem ? '    ' : '│   '
-        console.log(
-          `${childIndent}${itemPrefix}${basename(item.model.filePath)} [${item.statusInfo.status}]`,
-        )
-        const targetRel = relative(root, item.statusInfo.targetHtmlPath).replace(/\\/g, '/')
-        console.log(`${childIndent}${fileIndent}└── ${targetRel}`)
-      }
+    const items = groups.get(dirKey)
+    for (let j = 0; j < items.length; j++) {
+      const item = items[j]
+      const isLastItem = j === items.length - 1
+      const itemPrefix = isLastItem ? '└── ' : '├── '
+      const fileIndent = isLastItem ? '    ' : '│   '
+      console.log(
+        `${childIndent}${itemPrefix}${basename(item.model.filePath)} [${item.statusInfo.status}]`,
+      )
+      const targetRel = relative(root, item.statusInfo.targetHtmlPath).replace(/\\/g, '/')
+      console.log(`${childIndent}${fileIndent}└── ${targetRel}`)
     }
   }
 }
