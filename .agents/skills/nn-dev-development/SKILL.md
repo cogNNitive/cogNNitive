@@ -159,6 +159,16 @@ base, and a single merge needed 16 conflict resolutions.
 - **A conflicted generated artifact means rebase + `npm run regen`**, never a hand-resolved
   bundle.
 
+The ruleset (`main: single integration lane`, repo ruleset 27391067) is `merge_queue`
+(`MERGE`, `ALLGREEN`, one entry at a time) plus `non_fast_forward` and `deletion`. It
+deliberately requires **no** status checks and **no** pull request: `claim-release.yml`
+pushes the claim deletion straight to `main`, and the Actions integration cannot be given
+a bypass through the API (`Actor GitHub Actions integration must be part of the ruleset
+source or owner organization` — the bypass is UI-only). Turning the gate into a required
+check on `main` therefore means moving `claim-release` off a direct push first, or every
+landing reddens a workflow. Until then the PR gate stays social: CI runs on the PR, and
+the queue only serializes.
+
 1. Push the session branch and open a PR to `main` without asking. That is the normal
    end of a unit.
 2. **Merging the PR is the maintainer's call.** Ask, per PR. Merge with `--merge`, not
