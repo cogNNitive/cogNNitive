@@ -45,6 +45,7 @@ import { StringDecoder } from 'node:string_decoder'
 import { homedir } from 'node:os'
 import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'
+import { parseSpecName } from './console-views.mjs'
 
 const req = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -324,12 +325,9 @@ function frontmatterOf(content) {
  */
 const CONSOLE_CORE_BLUEPRINTS = new Set(['sources', 'artifacts', 'procedures'])
 
-/** Blueprint name of a `parent_spec` name: trimmed, without a trailing `_V_x-y-z`. */
-function coreBlueprintOf(parentSpecName) {
-  return String(parentSpecName || '')
-    .trim()
-    .replace(/_V_\d+-\d+-\d+$/i, '')
-    .toLowerCase()
+/** Blueprint name of a `parent_spec` name: trimmed, without a trailing `_V_x-y-z`, lowercased. */
+export function coreBlueprintOf(parentSpecName) {
+  return parseSpecName(parentSpecName).base.toLowerCase()
 }
 
 /**

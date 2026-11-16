@@ -31,11 +31,19 @@ const BLUEPRINT_VIEW_PREFIX = 'console-view-'
 const HASH_DISPLAY_LENGTH = 12
 
 const SPEC_BASE_RE = /^[A-Za-z0-9_-]+$/
+// One rule for every spec-name caller: the `_V_x-y-z` suffix is matched in any case, and
+// surrounding whitespace is never part of a name.
+const SPEC_VERSION_RE = /^(.+?)_(V_\d+-\d+-\d+)$/i
 
-/** `metrics_V_0-4-1` -> `{ base: 'metrics', version: 'V_0-4-1' }`. */
+/**
+ * `metrics_V_0-4-1` -> `{ base: 'metrics', version: 'V_0-4-1' }`. The base keeps its case
+ * (blueprint folders such as `coNNtent` and `domaiNN` are not lowercase); a caller that
+ * compares against lowercase keys lowercases it itself.
+ */
 export function parseSpecName(name) {
-  const m = /^(.+?)_(V_\d+-\d+-\d+)$/.exec(name)
-  return m ? { base: m[1], version: m[2] } : { base: name, version: null }
+  const text = String(name ?? '').trim()
+  const m = SPEC_VERSION_RE.exec(text)
+  return m ? { base: m[1], version: m[2] } : { base: text, version: null }
 }
 
 /** View directories for one parent_spec, in priority order; the first that holds views wins. */

@@ -25,6 +25,9 @@ import {
 } from '../scripts/console-views.mjs'
 import { JSDOM } from 'jsdom'
 import { nnConsole, consoleDir } from './helpers/console-boot.mjs'
+// A namespace import, not named bindings: the parity test below must fail inside the
+// test that reads a missing helper, never at link time for the whole file.
+import * as exportConsole from '../scripts/export-console.mjs'
 
 const GOOD = "registerView({ title: 'T', icon: 'x', order: 1, kind: 'readonly', mount() {} })\n"
 
@@ -116,6 +119,50 @@ describe('console-views lib', () => {
     it('splits a parent_spec name into base and version', () => {
       assert.deepEqual(parseSpecName('metrics_V_0-4-1'), { base: 'metrics', version: 'V_0-4-1' })
       assert.deepEqual(parseSpecName('metrics'), { base: 'metrics', version: null })
+    })
+  })
+
+  describe('one spec-name rule for both call sites', () => {
+    // View discovery resolves a folder per base, so it keeps the base's case (blueprint
+    // folders are not lowercase: coNNtent, domaiNN). The core-catalog allowlist in
+    // export-console.mjs lowercases the same base. One rule serves both: trim, match the
+    // version suffix in any case, take the rest verbatim.
+    it('ignores surrounding whitespace and the case of the version suffix', () => {
+      assert.deepEqual(parseSpecName(' metrics_V_0-4-1 '), { base: 'metrics', version: 'V_0-4-1' })
+      assert.deepEqual(parseSpecName('metrics_v_0-4-1'), { base: 'metrics', version: 'v_0-4-1' })
+      assert.deepEqual(parseSpecName('\tmetrics_V_0-4-1\n'), { base: 'metrics', version: 'V_0-4-1' })
+      assert.deepEqual(parseSpecName('coNNtent_V_0-2-0'), { base: 'coNNtent', version: 'V_0-2-0' })
+    })
+
+    it('keeps a genuinely different name different, and a non-version suffix in the base', () => {
+      assert.equal(parseSpecName('meterics_V_0-4-1').base, 'meterics')
+      assert.deepEqual(parseSpecName('metrics_V_0-4'), { base: 'metrics_V_0-4', version: null })
+      assert.deepEqual(parseSpecName('metrics2_V_0-4-1'), { base: 'metrics2', version: 'V_0-4-1' })
+    })
+
+    it('resolves a padded or suffix-cased parent_spec to the same views folder as the canonical name', async () => {
+      await put(join(pkgs, 'metrics', 'assets', 'console-view-timeline.js'))
+      assert.deepEqual((await discover(['metrics_V_0-4-1'])).map((v) => v.id), ['timeline'])
+      assert.deepEqual((await discover([' metrics_V_0-4-1 '])).map((v) => v.id), ['timeline'])
+      assert.deepEqual((await discover(['metrics_v_0-4-1'])).map((v) => v.id), ['timeline'])
+      assert.deepEqual(await discover(['meterics_V_0-4-1']), [])
+    })
+
+    it('the exporter allowlist key is the view-folder base, lowercased, for every spelling', () => {
+      for (const name of [
+        'sources_V_0-1-0',
+        ' Sources_V_0-1-0 ',
+        'SOURCES_V_0-1-0',
+        'sources_v_0-1-0',
+        'sources',
+        'artefacts_V_0-1-0',
+        'procedures_V_0-2-0',
+        'coNNtent_V_0-2-0',
+      ]) {
+        assert.equal(exportConsole.coreBlueprintOf(name), parseSpecName(name).base.toLowerCase(), JSON.stringify(name))
+      }
+      assert.equal(exportConsole.coreBlueprintOf(' Sources_V_0-1-0 '), 'sources')
+      assert.equal(exportConsole.coreBlueprintOf('artefacts_V_0-1-0'), 'artefacts')
     })
   })
 
