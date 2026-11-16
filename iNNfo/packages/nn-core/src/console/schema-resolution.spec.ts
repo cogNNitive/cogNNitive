@@ -228,6 +228,10 @@ type:: list
     })
     expect(stale.schemaSource).toBe('blueprint')
     expect(stale.warnings.some((w) => w.includes('procedures_V_0-3-2') && w.includes('V_0-3-3'))).toBe(true)
+    // #694: the warning names the ONE parent_spec.name that also satisfies produce,
+    // so the console and the produce gate never ask for two different values.
+    expect(stale.warnings.some((w) => w.includes("parent_spec.name to 'procedures_V_0-3-3'"))).toBe(true)
+    expect(stale.warnings.some((w) => w.includes("blueprint_version: 'V_0-3-3'"))).toBe(true)
 
     const current = await resolveConsoleSchema({
       rootDir,
