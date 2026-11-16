@@ -663,6 +663,59 @@ scenarioMonths:: 12
     })
   })
 
+  describe('console asset resolution (d13)', () => {
+    const consoleSrc = resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
+    const ASSETS = ['artifact_shell.html', 'nn-console.bundle.js', 'console-payload.generated.cjs', 'nn-ui.css']
+    /** A console asset folder holding the repo files, with the shell names assembled on request. */
+    const assetDir = async (name, { shell = true, legacy = null } = {}) => {
+      const dir = join(tempDir, name)
+      await mkdir(dir, { recursive: true })
+      for (const file of ASSETS) {
+        const text = await readFile(join(consoleSrc, file), 'utf-8')
+        if (file === 'artifact_shell.html') {
+          if (shell) await writeFile(join(dir, file), text, 'utf-8')
+        } else {
+          await writeFile(join(dir, file), text, 'utf-8')
+        }
+      }
+      if (legacy) await writeFile(join(dir, 'artifact_blueprint.html'), legacy, 'utf-8')
+      return { INNFO_CONSOLE_DIR: dir }
+    }
+    const marked = async () =>
+      (await readFile(join(consoleSrc, 'artifact_shell.html'), 'utf-8')).replace(
+        '<title>',
+        '<title>LEGACY-SHELL ',
+      )
+
+    it('prefers artifact_shell.html over the legacy artifact_blueprint.html copy', async () => {
+      const env = await assetDir('both-shell-names', { legacy: await marked() })
+      const res = await runCli([tempDir, '--domain'], { env })
+      assert.equal(res.code, 0, res.stderr)
+      const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
+      assert.doesNotMatch(html, /LEGACY-SHELL/, 'the current shell name wins')
+    })
+
+    it('falls back to artifact_blueprint.html when the current shell name is absent', async () => {
+      const env = await assetDir('legacy-shell-only', { shell: false, legacy: await marked() })
+      const res = await runCli([tempDir, '--domain'], { env })
+      assert.equal(res.code, 0, res.stderr)
+      const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
+      assert.match(html, /LEGACY-SHELL/, 'the legacy name is the fallback')
+    })
+
+    it('still reads a console whose model island uses the legacy innfo-model id', async () => {
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const file = join(tempDir, 'domaiNN_console.html')
+      const html = await readFile(file, 'utf-8')
+      assert.match(html, /id="nn-model"/)
+      await writeFile(file, html.replace('id="nn-model"', 'id="innfo-model"'), 'utf-8')
+
+      const res = await runCli([tempDir, '--status'])
+      assert.equal(res.code, 0)
+      assert.match(res.stdout, /Domain console: .* \[fresh\]/, 'the legacy island id is still read')
+    })
+  })
+
   describe('Changes collection in the domain payload', () => {
     const domainFile = () => join(tempDir, 'domaiNN_console.html')
     const modelSlot = async () =>

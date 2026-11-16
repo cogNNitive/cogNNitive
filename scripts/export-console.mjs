@@ -71,7 +71,12 @@ function isCoNNtentDoc(name) {
 }
 
 const SHELL_FILENAME = 'artifact_shell.html'
+/** Consoles installed before the shell rename still carry this file name: read, never written. */
 const LEGACY_SHELL_FILENAME = 'artifact_blueprint.html'
+/** Shell file names in resolution order: the current name first, the legacy one as the fallback. */
+const SHELL_FILENAMES = [SHELL_FILENAME, LEGACY_SHELL_FILENAME]
+const BUNDLE_FILENAME = 'nn-console.bundle.js'
+const CSS_FILENAME = 'nn-ui.css'
 
 /** A failure the caller can report: `code` is stable, `message` is human-readable. */
 export class ConsoleExportError extends Error {
@@ -83,9 +88,12 @@ export class ConsoleExportError extends Error {
 }
 
 function findShell(dir) {
-  return [SHELL_FILENAME, LEGACY_SHELL_FILENAME]
-    .map((name) => join(dir, name))
-    .find((p) => existsSync(p))
+  return SHELL_FILENAMES.map((name) => join(dir, name)).find((p) => existsSync(p))
+}
+
+/** The console stylesheet every export inlines (the caller reports it when it is absent). */
+function uiCssPathFor(consoleDir) {
+  return join(consoleDir, CSS_FILENAME)
 }
 
 /** Console asset folder: `$INNFO_CONSOLE_DIR`, the repo checkout, this script's own folder, then `~/.agents/console`. */
@@ -134,10 +142,7 @@ function loadPayloadHelper(consoleDir) {
 async function ensureAssets() {
   const consoleDir = resolveConsoleDir()
   const shellPath = findShell(consoleDir) || join(consoleDir, SHELL_FILENAME)
-  const bundlePath =
-    ['nn-console.bundle.js', 'nn-console.bundle.js']
-      .map((name) => join(consoleDir, name))
-      .find((p) => existsSync(p)) || join(consoleDir, 'nn-console.bundle.js')
+  const bundlePath = join(consoleDir, BUNDLE_FILENAME)
   if (!existsSync(shellPath)) {
     throw new ConsoleExportError(
       `Console assets not found: ${shellPath}\n` +
@@ -1434,9 +1439,7 @@ export async function writeConsole(opts = {}) {
     (consoleDir === repoConsoleDir
       ? dirname(consoleDir)
       : join(homedir(), '.agents', 'bluepriNNts'))
-  const uiCssPath =
-    ['nn-ui.css', 'nn-ui.css'].map((name) => join(consoleDir, name)).find((p) => existsSync(p)) ||
-    join(consoleDir, 'nn-ui.css')
+  const uiCssPath = uiCssPathFor(consoleDir)
   if (!existsSync(uiCssPath)) {
     throw new ConsoleExportError(
       `${uiCssPath} not found; the console inlines its CSS.`,
@@ -2232,7 +2235,7 @@ export async function writeConsole(opts = {}) {
     }
     if (wholeDomain) {
       // Earlier exports wrote these beside the page; it inlines both now. Nothing is deleted.
-      const leftovers = ['nn-console.bundle.js', 'nn-ui.css'].filter((name) =>
+      const leftovers = [BUNDLE_FILENAME, CSS_FILENAME].filter((name) =>
         existsSync(join(root, name)),
       )
       if (leftovers.length > 0) {

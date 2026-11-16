@@ -468,10 +468,10 @@ batch:: b10c-console-builder-delivery-guard
 value:: L
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: scripts/export-console.mjs:137 lists nn-console.bundle.js twice and :1323 lists nn-ui.css twice, both left by the breaking nn- rename (commit e68fb7d6); verified again 2026-11-14. Related remnants the review did not name: artifact_blueprint.html (:52) and the nn-or-innfo prefix pattern at :1296. Do not restore the legacy innfo- names. Audited 2026-11-14 at main 551d5a18.
+evidence:: scripts/export-console.mjs:137 lists nn-console.bundle.js twice and :1323 lists nn-ui.css twice, both left by the breaking nn- rename (commit e68fb7d6); verified again 2026-11-14. Related remnants the review did not name: artifact_blueprint.html (:52) and the nn-or-innfo prefix pattern at :1296. Do not restore the legacy innfo- names. Audited 2026-11-14 at main 551d5a18. Shipped 2026-11-16 in session/console-identity-freshness: each asset name now exists once — `BUNDLE_FILENAME`, `CSS_FILENAME` and one `SHELL_FILENAMES` list holding the current name first and `artifact_blueprint.html` second — and the bundle lookup, the stylesheet lookup (`uiCssPathFor`), the shell lookup and the root-leftover warning all read those constants, so no list repeats an entry and no legacy `innfo-` name came back. Behaviour is unchanged: the legacy shell is still the fallback, and the `(?:innfo|nn)-model` island read is untouched. Covered by test/console-export.test.mjs "prefers artifact_shell.html over the legacy artifact_blueprint.html copy", "falls back to artifact_blueprint.html when the current shell name is absent" and "still reads a console whose model island uses the legacy innfo-model id".
 done_when:: The candidate lists are single paths and the existing asset tests pass.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D13
 batch:: b10f-console-builder-identity-freshness
