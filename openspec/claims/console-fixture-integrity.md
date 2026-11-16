@@ -1,6 +1,7 @@
 # claim: console-fixture-integrity
 
 branch: session/console-fixture-integrity
+pr: 684
 opened: 2026-11-16
 
 area:
