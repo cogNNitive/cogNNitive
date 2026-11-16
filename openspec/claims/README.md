@@ -34,9 +34,10 @@ excludes:
 Written before the first edit, checked with `claim-check.mjs`, and **deleted when the work
 is merged**: a claim is a live lock, not a tombstone.
 
-Nothing deletes it for you. GitHub removes the branch on merge and never a file, so every
-landed session has to take its own claim out with the change that landed it. `claim-audit.mjs`
-names the ones still lying around:
+The `claim-release` workflow now deletes it: on `pull_request: closed` with the PR merged, it
+checks out `main`, removes the claim whose `branch:` matches the merged head branch, and
+commits that deletion. If the run failed, or the claim predates the workflow, `claim-audit.mjs`
+names what is left lying around:
 
 ```powershell
 gh pr list --state open --limit 1000 --json number > temp/prs.json

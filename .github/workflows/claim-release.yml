@@ -1,0 +1,74 @@
+name: Release claim
+
+# A claim under `openspec/claims/` is a live write-area lock: written before a
+# session's first edit, released when its PR lands. Merging a pull request
+# deletes the branch and never the file, so before this workflow every landed
+# session left a tombstone behind and somebody had to sweep them by hand.
+#
+# This is the sweep, at the moment the lock stops being true. The commit it
+# pushes does not retrigger any workflow (pushes made with GITHUB_TOKEN never
+# do), so it costs no extra CI run and no release tag.
+#
+# `npm run check:claims` stays: it is the safety net for a run that failed, and
+# it also catches a claim whose PR is still open but whose file was deleted.
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+# Two merges closing at once must not build their commits on the same parent.
+concurrency:
+  group: claim-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # A PR closed without merging keeps its claim: the work is not in.
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      # The base branch, never the pull request head: the deletion has to land
+      # on top of `main`, and the script must be the committed one.
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.23.4
+
+      - name: Delete the claim of the merged branch
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: node scripts/release-claim.mjs --branch "$HEAD_REF"
+
+      - name: Commit and push
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if git diff --quiet -- openspec/claims; then
+            echo "No claim to release: the branch carried none, or the PR already deleted it."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- openspec/claims
+          git commit -m "chore(claims): release the claim of #${PR_NUMBER} (${HEAD_REF})"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              echo "Pushed the claim release on attempt ${attempt}."
+              exit 0
+            fi
+            git fetch --depth=1 origin main
+            git rebase FETCH_HEAD || { git rebase --abort; exit 1; }
+          done
+          echo "Could not push the claim release after 3 attempts." >&2
+          exit 1

@@ -124,10 +124,10 @@ Gentle-AI's ODD runs the agent; this repository narrows it:
 2. **Merging the PR is the maintainer's call.** Ask, per PR. Merge with `--merge`, not
    `--squash`: a merge commit keeps the branch an ancestor of `main`, so `nn-session
    stop`/`sweep` can remove it. Landing the change also deletes its
-   `openspec/claims/<id>.md`: the area is free again the moment the work is in. No tool
-   does that for you — the merge deletes the branch, never the file — so after landing run
-   `npm run check:claims -- --prs <open PRs>` (see `openspec/claims/README.md`) and delete
-   whatever it reports as released.
+   `openspec/claims/<id>.md`: the area is free again the moment the work is in. The
+   `claim-release` workflow does that for you on merge, committing the deletion to `main`.
+   If that run failed, or the claim predates the workflow, `npm run check:claims -- --prs
+   <open PRs>` (see `openspec/claims/README.md`) names what is left.
 3. **A chained PR must be retargeted before its parent merges.** The repo has
    `deleteBranchOnMerge: true`, so merging a PR deletes its head branch. If another open PR
    had that branch as its **base**, GitHub does not retarget the child: it **closes** it, and
