@@ -7,6 +7,7 @@ import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { runInNewContext } from 'node:vm'
 
 const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -99,5 +100,66 @@ describe('scaffoldConsoleView (--new-view)', () => {
 
     const { stdout } = await execFileAsync(process.execPath, [scriptPath, tmp, '--status'])
     assert.match(stdout, /Domain console: .* \[stale\]/)
+  })
+
+  it('refuses a --blueprint that is not one folder name, before any path is built', async () => {
+    // `blueprint` becomes a path segment under specs/bluepriNNts: no escape, no separator.
+    const cases = [
+      ['../escape', join(tmp, 'specs', 'escape')],
+      ['..', join(tmp, 'specs', 'assets')],
+      ['a/b', join(tmp, 'specs', 'bluepriNNts', 'a')],
+      ['a\\b', join(tmp, 'specs', 'bluepriNNts', 'a')],
+      ['C:\\absolute', join(tmp, 'specs', 'bluepriNNts', 'C:')],
+      ['', join(tmp, 'consoles', 'views', 'blueprint-name.js')],
+    ]
+    for (const [blueprint, outside] of cases) {
+      await assert.rejects(
+        async () => {
+          await execFileAsync(process.execPath, [
+            scriptPath,
+            tmp,
+            '--new-view',
+            'blueprint-name',
+            '--blueprint',
+            blueprint,
+          ])
+        },
+        (err) => {
+          assert.equal(err.code, 2, `--blueprint ${JSON.stringify(blueprint)} is a usage error`)
+          assert.match(err.stderr, /--blueprint/, 'the message names the flag')
+          assert.match(err.stderr, /letters, digits/)
+          return true
+        },
+      )
+      assert.equal(existsSync(outside), false, `nothing was created for ${JSON.stringify(blueprint)}`)
+      assert.equal(
+        existsSync(join(tmp, 'consoles', 'views', 'blueprint-name.js')),
+        false,
+        'no view file was written',
+      )
+    }
+  })
+
+  it('keeps a title with the template quote and a comment terminator inside the generated view', async () => {
+    const title = "O'Brien */"
+    for (const template of ['table', 'kpi', 'blank']) {
+      const slug = `quoted-${template}`
+      const { stdout } = await execFileAsync(process.execPath, [
+        scriptPath,
+        tmp,
+        '--new-view',
+        slug,
+        '--template',
+        template,
+        '--title',
+        title,
+      ])
+      assert.match(stdout, /Created console view/)
+      const code = await readFile(join(tmp, 'consoles', 'views', `${slug}.js`), 'utf8')
+      const registered = []
+      runInNewContext(code, { registerView: (view) => registered.push(view) })
+      assert.equal(registered.length, 1, `${template}: the generated source compiles and registers one view`)
+      assert.equal(registered[0].title, title, `${template}: the title is the literal text`)
+    }
   })
 })
