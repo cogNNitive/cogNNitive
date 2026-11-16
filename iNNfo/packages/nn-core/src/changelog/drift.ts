@@ -137,6 +137,27 @@ function modelOfUnit(unit: string): string {
   return splitUnitKey(unit).model
 }
 
+/**
+ * The model ids the log names: model id -> the first applied change that touches
+ * it. A rekey moves units (and element origins) under a model id no change ever
+ * targeted directly: an extracted instance and a moved model are both touched by
+ * the change that carried the rekey (design A10, A11). The keys are the raw model
+ * part of the unit address, exactly as the log spells it.
+ */
+export function touchedModels(log: ChangeLog): Map<string, LoggedChange> {
+  const touched = new Map<string, LoggedChange>()
+  for (const change of log.all) {
+    if (!change.applied) continue
+    const model = modelOfUnit(change.resolvedTarget ?? change.target)
+    if (model && !touched.has(model)) touched.set(model, change)
+  }
+  for (const rekey of log.rekeys) {
+    if (touched.has(rekey.to)) continue
+    if (rekey.change) touched.set(rekey.to, rekey.change)
+  }
+  return touched
+}
+
 function evidenceDiagnostics(
   log: ChangeLog,
   options: ProvenanceOptions,
@@ -197,20 +218,7 @@ export function checkProvenance(
   const severity: 'warning' | 'error' = strict ? 'error' : 'warning'
   const diagnostics: ProvenanceDiagnostic[] = []
   /** Touched model id -> the first applied change that touched it. */
-  const touched = new Map<string, LoggedChange>()
-  for (const change of log.all) {
-    if (!change.applied) continue
-    const model = modelOfUnit(change.resolvedTarget ?? change.target)
-    if (model && !touched.has(model)) touched.set(model, change)
-  }
-  // A rekey moves units (and element origins) under a model id no change ever
-  // targeted directly: an extracted instance and a moved model are both touched
-  // by the change that carried the rekey, so their files are still checked
-  // (design A10, A11).
-  for (const rekey of log.rekeys) {
-    if (touched.has(rekey.to)) continue
-    if (rekey.change) touched.set(rekey.to, rekey.change)
-  }
+  const touched = touchedModels(log)
 
   diagnostics.push(...evidenceDiagnostics(log, options, severity))
 
