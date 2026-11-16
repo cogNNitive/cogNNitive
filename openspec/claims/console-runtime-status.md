@@ -1,6 +1,7 @@
 # claim: console-runtime-status
 
 branch: session/console-runtime-status
+pr: 682
 opened: 2026-11-16
 
 area:
