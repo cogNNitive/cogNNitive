@@ -795,6 +795,90 @@ describe('allowInlineScripts', () => {
     assert.equal(allowInlineScripts(none), none)
   })
 
+  // A page whose only variable is the policy, to exercise the directive the hashes land in.
+  const withPolicy = (policy, body) =>
+    `<html><head><meta\n http-equiv="Content-Security-Policy"\n content="${policy}"\n/></head><body>${body}</body></html>`
+  const directivesOf = (policy) =>
+    Object.fromEntries(
+      policy
+        .split(';')
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .map((part) => {
+          const [name, ...tokens] = part.split(/\s+/)
+          return [name, tokens]
+        }),
+    )
+
+  it('creates script-src from the default-src sources when the policy declares none', () => {
+    const html = withPolicy("default-src 'self' https://cdn.jsdelivr.net; object-src 'none'", '<script>run()</script>')
+    const out = directivesOf(policyOf(allowInlineScripts(html)))
+    assert.deepEqual(
+      out['script-src'],
+      ["'self'", 'https://cdn.jsdelivr.net', sha('run()')],
+      'a new script-src must keep every default-src source, or it narrows the policy',
+    )
+    assert.deepEqual(out['default-src'], ["'self'", 'https://cdn.jsdelivr.net'], 'default-src is untouched')
+
+    // default-src 'none' is only meaningful alone, so it is not carried into the new directive.
+    const locked = withPolicy("default-src 'none'; object-src 'none'", '<script>run()</script>')
+    assert.deepEqual(directivesOf(policyOf(allowInlineScripts(locked)))['script-src'], [sha('run()')])
+  })
+
+  it('adds the hashes to script-src-elem, the directive that governs inline script elements', () => {
+    const hash = sha('run()')
+    const elemFirst = withPolicy(
+      "default-src 'none'; script-src-elem 'self'; script-src 'self' https://cdn.jsdelivr.net",
+      '<script>run()</script>',
+    )
+    const elemFirstOut = directivesOf(policyOf(allowInlineScripts(elemFirst)))
+    assert.deepEqual(elemFirstOut['script-src-elem'], ["'self'", hash])
+    assert.deepEqual(elemFirstOut['script-src'], ["'self'", 'https://cdn.jsdelivr.net'])
+
+    // script-src first is the order the old unanchored pattern got wrong: it appended to
+    // the script-src prefix of the element directive only when script-src-elem came first.
+    const scriptFirst = withPolicy(
+      "default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; script-src-elem 'self'",
+      '<script>run()</script>',
+    )
+    const scriptFirstOut = directivesOf(policyOf(allowInlineScripts(scriptFirst)))
+    assert.deepEqual(scriptFirstOut['script-src-elem'], ["'self'", hash], 'the effective directive takes the hashes')
+    assert.deepEqual(scriptFirstOut['script-src'], ["'self'", 'https://cdn.jsdelivr.net'])
+  })
+
+  it('finds the CSP meta whatever the attribute order or the quotes', () => {
+    const forms = [
+      `<meta content="default-src 'none'; script-src 'self'" http-equiv="Content-Security-Policy" />`,
+      `<meta http-equiv='Content-Security-Policy' content="default-src 'none'; script-src 'self'" />`,
+      `<meta\n  content="default-src 'none'; script-src 'self'"\n  http-equiv='content-security-policy'\n/>`,
+    ]
+    for (const form of forms) {
+      const html = `<html><head>${form}</head><body><script>run()</script></body></html>`
+      const out = allowInlineScripts(html)
+      assert.notEqual(out, html, `the hashes are added for: ${form}`)
+      assert.deepEqual(
+        directivesOf(/content="([^"]*)"/.exec(out)[1])['script-src'],
+        ["'self'", sha('run()')],
+        `the policy keeps its content attribute for: ${form}`,
+      )
+    }
+  })
+
+  it('throws instead of narrowing a policy with no script-src and no default-src', () => {
+    const html = withPolicy("object-src 'none'; base-uri 'none'", '<script>run()</script>')
+    assert.throws(() => allowInlineScripts(html), /Content-Security-Policy[\s\S]*no script-src/)
+    // Without hashes to add there is nothing to report: the page stays exactly as it is.
+    const inlineFree = withPolicy("object-src 'none'; base-uri 'none'", '<script type="application/json">{}</script>')
+    assert.equal(allowInlineScripts(inlineFree), inlineFree)
+  })
+
+  it('still appends the inlined bundle hash to the shipped shell CSP, changing nothing else', () => {
+    const shell = readFileSync(join(consoleDir, 'artifact_shell.html'), 'utf8')
+    const before = policyOf(shell)
+    const after = policyOf(inlineConsoleAssets(shell, { bundle: 'b()', css: 'a{}', views: [] }))
+    assert.equal(after, before.replace(/(script-src[^;]*)/, (directive) => `${directive} ${sha('\nb()\n')}`))
+  })
+
   it('inlineConsoleAssets authorizes the inlined bundle and views', () => {
     const shell = readFileSync(join(consoleDir, 'artifact_shell.html'), 'utf8')
     const out = inlineConsoleAssets(shell, { bundle: 'window.nnConsole = {}', css: 'a{}', views: [] })
