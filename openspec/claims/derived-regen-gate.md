@@ -1,6 +1,7 @@
 # claim: derived-regen-gate
 
 branch: session/derived-regen-gate
+pr: 702
 opened: 2026-11-16
 thread: backlog batch b4a-derived-artifacts (derived-artifacts-consolidation)
 
