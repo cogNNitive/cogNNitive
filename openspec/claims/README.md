@@ -33,3 +33,17 @@ excludes:
 
 Written before the first edit, checked with `claim-check.mjs`, and **deleted when the work
 is merged**: a claim is a live lock, not a tombstone.
+
+Nothing deletes it for you. GitHub removes the branch on merge and never a file, so every
+landed session has to take its own claim out with the change that landed it. `claim-audit.mjs`
+names the ones still lying around:
+
+```powershell
+gh pr list --state open --limit 1000 --json number > temp/prs.json
+npm run check:claims -- --prs temp/prs.json
+```
+
+It exits 1 for every claim whose PR is no longer open, and lists the claims without a PR
+separately, because those cannot be judged yet. CI runs the same audit in advisory mode on
+every push and pull request: a tombstone is pre-existing debt on the base branch, so it warns
+instead of failing somebody else's PR.

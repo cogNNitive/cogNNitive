@@ -124,7 +124,10 @@ Gentle-AI's ODD runs the agent; this repository narrows it:
 2. **Merging the PR is the maintainer's call.** Ask, per PR. Merge with `--merge`, not
    `--squash`: a merge commit keeps the branch an ancestor of `main`, so `nn-session
    stop`/`sweep` can remove it. Landing the change also deletes its
-   `openspec/claims/<id>.md`: the area is free again the moment the work is in.
+   `openspec/claims/<id>.md`: the area is free again the moment the work is in. No tool
+   does that for you — the merge deletes the branch, never the file — so after landing run
+   `npm run check:claims -- --prs <open PRs>` (see `openspec/claims/README.md`) and delete
+   whatever it reports as released.
 3. A red `main` is fixed forward. A failure that also reproduces on the previous `main`
    is pre-existing: file an issue, do not fix it as a rider.
 
