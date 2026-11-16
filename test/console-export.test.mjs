@@ -1,6 +1,6 @@
 import { describe, it, before, after, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
+import { mkdtemp, rm, mkdir, writeFile, readFile, readdir, cp } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname, basename } from 'node:path'
@@ -1562,3 +1562,107 @@ level: 3
     assert.deepEqual(writers(), original)
   })
 })
+
+describe('domain console identity is checkout-independent (b18 console-domain-id-path-hash)', () => {
+  let root
+
+  /** The committed TestLab fixture: the domain every export here reproduces. */
+  const fixtureDomain = resolve(here, '..', 'test', 'fixtures', 'testlab')
+
+  /**
+   * The two fields that move on every export: the export wall clock and the citation
+   * resolution stamp. Everything else in the artifact must be reproducible.
+   */
+  const STAMP_RE = /("(?:generated|citationsResolvedAt)":")[^"]*"/g
+  const withoutStamps = (html) => html.replace(STAMP_RE, '$1<stamp>"')
+
+  /** `meta.domainId` of an exported console. */
+  const domainIdOf = (html) => {
+    const island = html.match(/<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/)
+    assert.ok(island, 'the page carries the model island')
+    return JSON.parse(island[1]).meta.domainId
+  }
+
+  /**
+   * A copy of the fixture domain at `test/fixtures/testlab` inside `projectDir`. The
+   * `.git` entry is what makes the copy a project root: without one the folder is not
+   * inside any project, which is a different (last-resort) identity branch.
+   */
+  const seedProject = async (projectDir) => {
+    await mkdir(join(projectDir, '.git'), { recursive: true })
+    const domain = join(projectDir, 'test', 'fixtures', 'testlab')
+    await cp(fixtureDomain, domain, {
+      recursive: true,
+      // A build output: the export writes it and never reads it as domain content.
+      filter: (src) => basename(src) !== 'domaiNN_console.html',
+    })
+    return domain
+  }
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), 'nn-domain-id-test-'))
+  })
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true })
+  })
+
+  it('exports byte-identical consoles from two differently named checkouts', async () => {
+    const domains = []
+    for (const name of ['checkout-a', 'checkout-b']) {
+      domains.push(await seedProject(join(root, name)))
+    }
+
+    for (const domain of domains) {
+      const res = await runCli([domain, '--domain'])
+      assert.equal(res.code, 0, res.stderr)
+    }
+
+    const [a, b] = await Promise.all(
+      domains.map((domain) => readFile(join(domain, 'domaiNN_console.html'), 'utf-8')),
+    )
+    const idA = domainIdOf(a)
+    assert.equal(idA, domainIdOf(b), 'the draft-store key follows the project-relative path')
+    assert.match(idA, /^testlab-[0-9a-f]{8}$/, 'the id keeps its `<name>-<short hash>` shape')
+    assert.equal(
+      withoutStamps(a),
+      withoutStamps(b),
+      'nothing but the two wall-clock stamps depends on the checkout directory name',
+    )
+  })
+
+  it('keeps two same-named domains of one project apart by their relative path', async () => {
+    const model = `---
+title: "Relative Path Model"
+knowledge_version: "V_0-1-0"
+level: 3
+---
+
+# NN Stakeholders
+## NN Stakeholders: Enterprise
+slug:: enterprise
+`
+    const domains = []
+    for (const [project, domainRel] of [
+      ['project-one', 'kNNowledge/testlab'],
+      ['project-two', 'test/fixtures/testlab'],
+    ]) {
+      const domain = join(root, project, domainRel)
+      await mkdir(join(root, project, '.git'), { recursive: true })
+      await mkdir(domain, { recursive: true })
+      await writeFile(join(domain, 'model_V_0-1-0_NN.md'), model, 'utf-8')
+      domains.push(domain)
+    }
+
+    const ids = []
+    for (const domain of domains) {
+      const res = await runCli([domain, '--domain'])
+      assert.equal(res.code, 0, res.stderr)
+      ids.push(domainIdOf(await readFile(join(domain, 'domaiNN_console.html'), 'utf-8')))
+    }
+    assert.match(ids[0], /^testlab-[0-9a-f]{8}$/)
+    assert.match(ids[1], /^testlab-[0-9a-f]{8}$/)
+    assert.notEqual(ids[0], ids[1], 'same name, different project-relative path: two draft stores')
+  })
+})
+
