@@ -1,6 +1,7 @@
 # claim: console-cli-input
 
 branch: session/console-cli-input
+pr: 679
 opened: 2026-11-16
 
 area:
