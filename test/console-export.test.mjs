@@ -821,6 +821,43 @@ scenarioMonths:: 12
       assert.match(res.stdout, /All models are fresh/)
       assert.doesNotMatch(res.stdout, /Exported 1 console artifact/)
     })
+
+    // A changeset document is a `changeset`, never a model. The exporter still adds one
+    // synthetic `<changes>` summary entry to `meta.models` for the console's Changes view,
+    // and the freshness comparison counts models: that entry must not read as an extra
+    // model, or a domain with changesets is stale forever.
+    const CHANGESET = `---\nspec_version: "V_0-4-0"\nlevel: 3\nparent_spec:\n  name: changes\n  url: "https://example.test/changes/spec_NN.md"\nblueprint_version: "V_0-2-0"\nstatus: applied\ntitle: "C"\n---\n\n# NN Change\n\n## NN Change: c-01\nop:: comment\ntarget:: Business Model@enterprise&tagline\nnotes:: "note"\n`
+    const addChangeset = async (body = CHANGESET) => {
+      await mkdir(join(tempDir, 'changes'), { recursive: true })
+      await writeFile(join(tempDir, 'changes', 'c1_changes_NN.md'), body, 'utf-8')
+    }
+
+    it('keeps a console exported with changesets fresh, on export and on re-export', async () => {
+      await addChangeset()
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      assert.match((await runCli([tempDir, '--status'])).stdout, /Domain console: .* \[fresh\]/)
+
+      const again = await runCli([tempDir, '--stale'])
+      assert.equal(again.code, 0, again.stderr)
+      assert.match(again.stdout, /All models are fresh/, 'a re-export has nothing left to do')
+      assert.doesNotMatch(again.stdout, /Exported 1 console artifact/)
+      assert.match((await runCli([tempDir, '--status'])).stdout, /Domain console: .* \[fresh\]/)
+    })
+
+    it('still reads a real model edit beside the changesets as stale', async () => {
+      await addChangeset()
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const modelPath = join(tempDir, 'models', 'business_V_1-0-0_NN.md')
+      await writeFile(modelPath, `${await readFile(modelPath, 'utf-8')}\n  extra:: value\n`, 'utf-8')
+
+      assert.match(
+        (await runCli([tempDir, '--status'])).stdout,
+        /models\/business_V_1-0-0_NN\.md \[stale\]/,
+        'a changed model document is still compared',
+      )
+      const res = await runCli([tempDir, '--stale'])
+      assert.match(res.stdout, /Exported 1 console artifact\(s\)/)
+    })
   })
 
   describe('Changes collection in the domain payload', () => {
