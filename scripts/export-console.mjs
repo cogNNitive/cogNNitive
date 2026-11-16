@@ -1678,6 +1678,21 @@ export async function writeConsole(opts = {}) {
   for (const m of payloadModels) schemaResolutions.set(m, await resolveModelSchema(m.content))
   const domainIndex = await buildExportDomainIndex(root, payloadModels, schemaResolutions)
 
+  // Change counts per model part, aggregated once: the per-model loop must not rescan
+  // every changeset. A model named by its stem, its id and its title in different
+  // changes is counted once per change, never once per alias.
+  const changeCountByModelPart = new Map()
+  for (const cs of Array.isArray(changesets) ? changesets : []) {
+    for (const c of Array.isArray(cs?.changes) ? cs.changes : []) {
+      if (!c || !c.target) continue
+      const target = String(c.target)
+      const at = target.indexOf('@')
+      const modelPart = (at === -1 ? target : target.slice(0, at)).trim().toLowerCase()
+      if (modelPart === '') continue
+      changeCountByModelPart.set(modelPart, (changeCountByModelPart.get(modelPart) || 0) + 1)
+    }
+  }
+
   for (const m of payloadModels) {
     const relPath = relative(root, m.filePath).replace(/\\/g, '/')
     const fileName = basename(relPath)
@@ -1759,22 +1774,15 @@ export async function writeConsole(opts = {}) {
               .replace(/[^a-z0-9]+/g, '-')
           : null
       // Per-model change count comes from the domain's changesets (the only change
-      // record), matched by the model part of each change's D5 target.
-      const modelKeys = [mTitle, mId, modelStem].map(function (v) {
-        return String(v || '').toLowerCase()
-      })
-      const changeCount = (Array.isArray(changesets) ? changesets : []).reduce(function (n, cs) {
-        const items = cs && Array.isArray(cs.changes) ? cs.changes : []
-        return (
-          n +
-          items.filter(function (c) {
-            if (!c || !c.target) return false
-            const t = String(c.target)
-            const at = t.indexOf('@')
-            const modelPart = (at === -1 ? t : t.slice(0, at)).trim().toLowerCase()
-            return modelPart !== '' && modelKeys.indexOf(modelPart) !== -1
-          }).length
-        )
+      // record), matched by the model part of each change's D5 target. A repeated
+      // spelling (title equal to stem) is one key, so it is not counted twice.
+      const modelKeys = new Set(
+        [mTitle, mId, modelStem].map(function (v) {
+          return String(v || '').toLowerCase()
+        }),
+      )
+      const changeCount = Array.from(modelKeys).reduce(function (n, key) {
+        return n + (changeCountByModelPart.get(key) || 0)
       }, 0)
       modelSummaries.push({
         id: mId,

@@ -1249,7 +1249,7 @@ health:: critical
       assert.match(first.relativePath, /^artifacts\/business_V_0-2-5-plus2-[0-9a-f]{6}_console\//)
     })
 
-    const CHANGESET = (id, target) => `---
+    const CHANGESET_FRONTMATTER = `---
 spec_version: "V_0-4-0"
 level: 3
 parent_spec:
@@ -1263,12 +1263,10 @@ applied_at: "2026-01-01T00:00:00.000Z"
 ---
 
 # NN Change
-
-## NN Change: ${id}
-op:: comment
-target:: ${target}
-notes:: "n"
 `
+    const changeBlock = (id, target) =>
+      `\n## NN Change: ${id}\nop:: comment\ntarget:: ${target}\nnotes:: "n"\n`
+    const CHANGESET = (id, target) => CHANGESET_FRONTMATTER + changeBlock(id, target)
     const writeChangeset = async (name, body) => {
       await mkdir(join(tempDir, 'changes'), { recursive: true })
       await writeFile(join(tempDir, 'changes', name), body, 'utf-8')
@@ -1350,6 +1348,42 @@ notes:: "n"
           '',
         ].join('\n'),
       )
+    })
+
+    it('counts a model once per change, whichever spelling names it (d19)', async () => {
+      const model = (title) =>
+        `---\ntitle: "${title}"\nknowledge_version: "V_1-0-0"\nlevel: 3\n---\n\n# NN Item\n## NN Item: A\n  slug:: a\n`
+      await writeFile(join(tempDir, 'models', 'sales_V_1-0-0_NN.md'), model('Sales'), 'utf-8')
+      // A title that is also the stem: the same model under one spelling twice.
+      await writeFile(join(tempDir, 'models', 'inventory_V_1-0-0_NN.md'), model('inventory_V_1-0-0'), 'utf-8')
+
+      // The id the payload reports for the model is the third spelling a change may use.
+      const before = await exportDomainSlot()
+      const id = before.meta.models.find((m) => m.filePath === 'models/sales_V_1-0-0_NN.md')?.id
+      assert.ok(id, 'the payload reports a model id')
+
+      // One changeset naming the model by its stem, its title and its id: three changes.
+      await writeChangeset(
+        'sales_reviewer_20260101T000000Z_changes_NN.md',
+        CHANGESET_FRONTMATTER +
+          ['sales_V_1-0-0@A', 'Sales@A', `${id}@A`]
+            .map((target, i) => changeBlock(`s-${i}`, target))
+            .join(''),
+      )
+      // A model whose title equals its stem, named twice by that one spelling.
+      await writeChangeset(
+        'inventory_reviewer_20260101T000000Z_changes_NN.md',
+        CHANGESET_FRONTMATTER +
+          ['inventory_V_1-0-0@A', 'inventory_V_1-0-0@A']
+            .map((target, i) => changeBlock(`i-${i}`, target))
+            .join(''),
+      )
+
+      const slot = await exportDomainSlot()
+      const countOf = (filePath) =>
+        slot.meta.models.find((m) => m.filePath === filePath)?.changeCount
+      assert.equal(countOf('models/sales_V_1-0-0_NN.md'), 3, 'one count per change, not one per alias')
+      assert.equal(countOf('models/inventory_V_1-0-0_NN.md'), 2, 'the shared title/stem counts once per change')
     })
   })
 })
