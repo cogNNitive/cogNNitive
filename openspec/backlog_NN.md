@@ -674,10 +674,10 @@ batch:: b15-console-bundle-test
 value:: L
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: Promoted from Idea I-a on 2026-11-16. `test/fixtures/testlab/domaiNN_console.html` still contains three `innfo-ui.css` references and two `artifacts/*/innfo-ui.css` paths even after the 0.37.4 repin (82b93bf5), because the fixture domain declares them; the console no longer ships that stylesheet (the shell carries `nn-ui.css`), so the smoke test exercises a dead stylesheet path.
+evidence:: Shipped (promoted from Idea I-a on 2026-11-16). The declaration was not a spec or a view: the payload indexes whatever sits under `artifacts/`, so the two frozen `innfo-ui.css` copies under `test/fixtures/testlab/artifacts/*_console/` were the source, and the two stamped 2026-10-13 console snapshots loaded them through `<link rel="stylesheet" href="./innfo-ui.css" />`. Both copies are deleted and both `<link>` lines are gone, so `git grep -c "innfo-ui" test/fixtures/testlab/` returns no hits. `domaiNN_console.html` is regenerated, never hand-edited: `node scripts/export-console.mjs test/fixtures/testlab --domain --no-open` reports `✔ domaiNN_console.html (3 models, 58 elements, 1 views)` and the payload's file inventory and lineage drop exactly those two entries (14 → 12 files) while elements/matrices/changes stay 58/2/6. No exporter, shell or bundle source changed. `test/ui/testlab_smoke.py` still opens the coverage snapshot over `file://` and passes every check, including `console has no non-CDN failed requests`; `node --test test/console-export.test.mjs test/console-export-files.test.mjs` passes 50 tests and `node scripts/verify.js --fast` passes all 301 steps.
 done_when:: The TestLab fixtures declare no `innfo-ui.css`, the regenerated console loads no 404 stylesheet, and `ui-smoke` stays green.
 batch:: b16-console-fixture-assets
 
