@@ -77,6 +77,23 @@ level: 3
     }
   })
 
+  const consoleSrc = resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
+  const ASSETS = ['artifact_shell.html', 'nn-console.bundle.js', 'console-payload.generated.cjs', 'nn-ui.css']
+  /**
+   * A console asset folder holding the repo files (so a test can edit a copy of the
+   * stylesheet), optionally dropping the current shell name or adding the legacy one.
+   */
+  const assetDir = async (name, { shell = true, legacy = null } = {}) => {
+    const dir = join(tempDir, name)
+    await mkdir(dir, { recursive: true })
+    for (const file of ASSETS) {
+      if (file === 'artifact_shell.html' && !shell) continue
+      await writeFile(join(dir, file), await readFile(join(consoleSrc, file), 'utf-8'), 'utf-8')
+    }
+    if (legacy) await writeFile(join(dir, 'artifact_blueprint.html'), legacy, 'utf-8')
+    return { INNFO_CONSOLE_DIR: dir }
+  }
+
   it('exports a standalone single-file console with the bundle, CSS, slots and views inlined', async () => {
     const res = await runCli([tempDir, '--all'])
     assert.equal(res.code, 0)
@@ -665,22 +682,6 @@ scenarioMonths:: 12
 
   describe('console asset resolution (d13)', () => {
     const consoleSrc = resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
-    const ASSETS = ['artifact_shell.html', 'nn-console.bundle.js', 'console-payload.generated.cjs', 'nn-ui.css']
-    /** A console asset folder holding the repo files, with the shell names assembled on request. */
-    const assetDir = async (name, { shell = true, legacy = null } = {}) => {
-      const dir = join(tempDir, name)
-      await mkdir(dir, { recursive: true })
-      for (const file of ASSETS) {
-        const text = await readFile(join(consoleSrc, file), 'utf-8')
-        if (file === 'artifact_shell.html') {
-          if (shell) await writeFile(join(dir, file), text, 'utf-8')
-        } else {
-          await writeFile(join(dir, file), text, 'utf-8')
-        }
-      }
-      if (legacy) await writeFile(join(dir, 'artifact_blueprint.html'), legacy, 'utf-8')
-      return { INNFO_CONSOLE_DIR: dir }
-    }
     const marked = async () =>
       (await readFile(join(consoleSrc, 'artifact_shell.html'), 'utf-8')).replace(
         '<title>',
@@ -713,6 +714,55 @@ scenarioMonths:: 12
       const res = await runCli([tempDir, '--status'])
       assert.equal(res.code, 0)
       assert.match(res.stdout, /Domain console: .* \[fresh\]/, 'the legacy island id is still read')
+    })
+  })
+
+  describe('domain console freshness (d05)', () => {
+    const PIPELINE = (marker) => `registerView({
+  title: 'Pipeline', icon: 'layout', order: 1, kind: 'readonly',
+  mount(ctx) { ctx.container.textContent = '${marker}' },
+})
+`
+    const domainFile = () => join(tempDir, 'domaiNN_console.html')
+    const addView = async (code) => {
+      await mkdir(join(tempDir, 'consoles', 'views'), { recursive: true })
+      await writeFile(join(tempDir, 'consoles', 'views', 'pipeline.js'), code, 'utf-8')
+    }
+
+    it('re-exports the console with --stale when only a view script changed', async () => {
+      await addView(PIPELINE('pipeline v1'))
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      assert.match((await runCli([tempDir, '--status'])).stdout, /Domain console: .* \[fresh\]/)
+
+      await addView(PIPELINE('pipeline v2'))
+      const res = await runCli([tempDir, '--stale'])
+      assert.equal(res.code, 0, res.stderr)
+      assert.doesNotMatch(res.stdout, /All models are fresh/)
+      assert.match(res.stdout, /Exported 1 console artifact\(s\)/)
+      assert.match(await readFile(domainFile(), 'utf-8'), /pipeline v2/, 'the console was rewritten')
+    })
+
+    it('re-exports the console with --stale when only the stylesheet changed', async () => {
+      const env = await assetDir('stale-css')
+      assert.equal((await runCli([tempDir, '--domain'], { env })).code, 0)
+      assert.match((await runCli([tempDir, '--status'], { env })).stdout, /Domain console: .* \[fresh\]/)
+
+      const cssPath = join(tempDir, 'stale-css', 'nn-ui.css')
+      await writeFile(cssPath, `${await readFile(cssPath, 'utf-8')}\n.nn-mark-43 { color: #123456; }\n`, 'utf-8')
+      const res = await runCli([tempDir, '--stale'], { env })
+      assert.equal(res.code, 0, res.stderr)
+      assert.doesNotMatch(res.stdout, /All models are fresh/)
+      assert.match(res.stdout, /Exported 1 console artifact\(s\)/)
+      assert.match(await readFile(domainFile(), 'utf-8'), /nn-mark-43/, 'the new CSS is inlined')
+    })
+
+    it('keeps an unchanged console fresh and exports nothing with --stale', async () => {
+      await addView(PIPELINE('pipeline v1'))
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const res = await runCli([tempDir, '--stale'])
+      assert.equal(res.code, 0, res.stderr)
+      assert.match(res.stdout, /All models are fresh/)
+      assert.doesNotMatch(res.stdout, /Exported 1 console artifact/)
     })
   })
 
