@@ -224,7 +224,7 @@ fields:: {"owner":"ana"}
     expect(await loadChangesetRecords(dir)).toEqual([])
   })
 
-  it('derives applied-only per-field provenance while the element history lists every status', () => {
+  it('lists every status in the element history and attaches no per-field provenance map', () => {
     const payload = buildConsolePayload({
       content: MODEL,
       path: 'kNNowledge/TestLab_NN.md',
@@ -245,8 +245,11 @@ fields:: {"owner":"ana"}
     const el = payload.model.elements.find((e) => e.name === 'Element 1A')!
     expect(el.history?.map((h) => h.id)).toEqual(['c-01', 'c-02', 'c-03'])
     expect(el.history?.map((h) => h.status)).toEqual(['applied', 'conflict', 'applied'])
-    expect(el.provenance?.summary.history.map((h) => h.changeId)).toEqual(['c-01', 'c-03'])
-    expect(el.provenance?.summary.origin?.evidence).toBe('sources/c.md')
+    // The applied-only per-field map (`element.provenance`) had no reader in the
+    // console: it is gone from the payload instead of paying deriveValueHistory
+    // on every export (console-unread-provenance-payload).
+    expect(Object.prototype.hasOwnProperty.call(el, 'provenance')).toBe(false)
+    expect(JSON.stringify(payload.model)).not.toContain('"provenance"')
   })
 
   it('matches the element part exactly, so a-b and ab never collide', () => {
@@ -264,7 +267,9 @@ fields:: {"owner":"ana"}
         ],
       } as any,
     ])
-    expect(elements[0].provenance.owner.origin.to).toBe('Ana')
-    expect(elements[1].provenance.owner.origin.to).toBe('Bea')
+    expect(elements[0].history).toHaveLength(1)
+    expect(elements[0].history?.[0].id).toBe('c-01')
+    expect(elements[1].history).toHaveLength(1)
+    expect(elements[1].history?.[0].id).toBe('c-02')
   })
 })

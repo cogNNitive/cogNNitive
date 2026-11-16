@@ -1,13 +1,12 @@
 /**
- * Changeset → console element history and per-field provenance.
+ * Changeset → console element history.
  *
  * The generated console shows a "Changeset Lineage & Revision History" section
- * per element (ui-kit.js), reading `element.history`, and the origin icon per
- * field, reading `element.provenance`. The console is static and offline, so
- * both are embedded in the payload, exactly like citations.
+ * per element (ui-kit.js), reading `element.history`. The console is static and
+ * offline, so it is embedded in the payload, exactly like citations.
  *
- * Both are derived from the change log (`changelog/`), never from a field of the
- * model: history is the applied changes per unit, origin is the last one.
+ * History is derived from the change log (`changelog/`), never from a field of
+ * the model: it is every recorded change per unit, whatever its status.
  */
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -137,8 +136,6 @@ interface HistoryBearingElement {
   name: string
   slug?: string
   history?: ElementHistoryItem[]
-  /** Per field with an applied change: its applied history and origin. */
-  provenance?: Record<string, UnitProvenance>
 }
 
 /** A `changes/` document: an `_NN.md` file (not a sidecar) whose stem ends in `_changes`. */
@@ -157,18 +154,6 @@ export function parseChangesetTarget(target: string): { modelPart: string; eleme
     modelPart: String(target).slice(0, at).trim(),
     elementPart: rest.split('&')[0].trim(),
   }
-}
-
-/** The field part of a field unit address, or `undefined` for a cell, body or bare unit. */
-function fieldOfUnit(unit: string): string | undefined {
-  const at = String(unit).indexOf('@')
-  if (at === -1) return undefined
-  const rest = String(unit).slice(at + 1)
-  const amp = rest.indexOf('&')
-  if (amp === -1) return undefined
-  const field = rest.slice(amp + 1)
-  if (!field || field.includes('&')) return undefined
-  return field
 }
 
 function stripWrappingQuotes(value?: string): string | undefined {
@@ -266,10 +251,10 @@ function historyItem(change: LoggedChange, resolveEvidence?: (evidence: string) 
 }
 
 /**
- * Attaches `history` (every status, for the Changes tab) and `provenance`
- * (applied-only, per field, for the origin icon) to every element whose slug,
- * id or name matches the element part of a change's unit address. Matching is
- * exact on the element part, so `a-b` and `ab` never collide. Mutates `elements`.
+ * Attaches `history` (every status, for the Changes tab) to every element whose
+ * slug, id or name matches the element part of a change's unit address. Matching
+ * is exact on the element part, so `a-b` and `ab` never collide. Mutates
+ * `elements`.
  */
 export function attachChangesetHistory(
   elements: HistoryBearingElement[],
@@ -289,21 +274,11 @@ export function attachChangesetHistory(
     )
     if (keys.size === 0) continue
 
-    const provenance: Record<string, UnitProvenance> = {}
     for (const change of log.all) {
-      const unit = unitOf(change)
-      const { elementPart } = parseChangesetTarget(unit)
+      const { elementPart } = parseChangesetTarget(unitOf(change))
       if (!elementPart || !keys.has(elementPart.toLowerCase())) continue
       if (!el.history) el.history = []
       el.history.push(historyItem(change, resolveEvidence))
-      if (!change.applied) continue
-      const field = fieldOfUnit(unit)
-      if (!field || provenance[field]) continue
-      provenance[field] = {
-        history: deriveValueHistory(log, unit),
-        origin: deriveFieldOrigin(log, unit),
-      }
     }
-    if (Object.keys(provenance).length > 0) el.provenance = provenance
   }
 }

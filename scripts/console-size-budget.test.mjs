@@ -5,7 +5,7 @@ import {
   evaluateSizeBudget,
   resolveSizeBudget,
   stripConsoleCitations,
-  stripConsoleProvenance,
+  stripConsoleHistory,
 } from './console-views.mjs'
 
 describe('resolveSizeBudget', () => {
@@ -72,6 +72,12 @@ describe('evaluateSizeBudget', () => {
     const gate = evaluateSizeBudget({ ...parts, total: 500, strategy: 'strip-citations' })
     assert.match(gate.message, /\[strategy: strip-citations\]/)
   })
+
+  it('names the history degrade step by what it drops', () => {
+    const gate = evaluateSizeBudget({ ...parts, total: CONSOLE_SIZE_BUDGET.failBytes + 1, strategy: 'strip-citations+history' })
+    assert.match(gate.message, /\[strategy: strip-citations\+history\]/)
+    assert.match(gate.message, /larger than/)
+  })
 })
 
 describe('degrade steps', () => {
@@ -79,31 +85,30 @@ describe('degrade steps', () => {
     return {
       model: {
         elements: [
-          { id: 'a', citations: { sources: [{ path: 'x' }] }, provenance: { f: {} }, history: [{ at: 1 }] },
+          { id: 'a', citations: { sources: [{ path: 'x' }] }, history: [{ at: 1 }] },
           { id: 'b' },
         ],
       },
     }
   }
 
-  it('drops only the resolved citations, leaving provenance alone', () => {
+  it('drops only the resolved citations, leaving the history alone', () => {
     const p = payload()
     assert.equal(stripConsoleCitations(p), 1)
     assert.equal(p.model.elements[0].citations, undefined)
-    assert.notEqual(p.model.elements[0].provenance, undefined)
+    assert.notEqual(p.model.elements[0].history, undefined)
   })
 
-  it('drops provenance and history as the second step', () => {
+  it('drops the per-element history as the second step', () => {
     const p = payload()
-    assert.equal(stripConsoleProvenance(p), 1)
-    assert.equal(p.model.elements[0].provenance, undefined)
+    assert.equal(stripConsoleHistory(p), 1)
     assert.equal(p.model.elements[0].history, undefined)
   })
 
   it('reports nothing to do on a payload without either', () => {
     assert.equal(stripConsoleCitations({ model: { elements: [{ id: 'a' }] } }), 0)
-    assert.equal(stripConsoleProvenance({ model: { elements: [{ id: 'a' }] } }), 0)
+    assert.equal(stripConsoleHistory({ model: { elements: [{ id: 'a' }] } }), 0)
     assert.equal(stripConsoleCitations(null), 0)
-    assert.equal(stripConsoleProvenance({}), 0)
+    assert.equal(stripConsoleHistory({}), 0)
   })
 })

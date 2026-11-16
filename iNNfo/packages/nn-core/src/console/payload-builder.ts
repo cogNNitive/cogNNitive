@@ -97,8 +97,6 @@ export interface ConsolePayloadElement {
   relations?: ConsolePayloadElementRelation[]
   citations?: Record<string, Omit<ResolvedCitation, 'field'>[]>
   history?: ElementHistoryItem[]
-  /** Per field with an applied change: its applied history and origin. */
-  provenance?: Record<string, UnitProvenance>
 }
 
 export interface ConsoleMatrixHeadEntry {
