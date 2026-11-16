@@ -1,6 +1,7 @@
 # claim: console-matrix-focus
 
 branch: session/console-matrix-focus
+pr: 683
 opened: 2026-11-16
 
 area:
