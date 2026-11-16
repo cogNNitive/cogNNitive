@@ -586,12 +586,23 @@ function buildSteps(repoRoot, options = {}) {
     }),
   });
 
-  // 5. Preflight Primitives Drift Guard (committed bundle matches nn-core source).
-  steps.push(roFresh('preflight-primitives'));
-  // 5b. nn-skills-lifecycle bundled skills-manager drift guard.
-  steps.push(roFresh('skills-manager-bundle'));
-  // 5b-bis. Shared rules rendered into the end-user skills match their source.
-  steps.push(roFresh('skill-shared-rules'));
+  // 5. Derived-artifact gate: ONE pass (`scripts/regen.js --check`) regenerates every
+  //    committed derived artifact — console bundle, console payload mirror, nn-mcp
+  //    bundle, every generated skill lib, the testlab console fixture, the catalog
+  //    copies, the docs facts regions — and fails when that pass moves a tracked path.
+  //    It replaces the twelve per-artifact freshness steps that used to sit here: a new
+  //    artifact now joins scripts/lib/freshness-guards.js instead of needing its own
+  //    step, so an artifact nobody remembered cannot go unguarded.
+  //    Serial by necessity (the pass writes the tree) and kept out of --fast: it runs
+  //    the nn-core and nn-mcp builds, measured far past a branch-push budget.
+  if (!options.fast) {
+    steps.push({
+      id: 'regen-gate',
+      desc: 'Derived Artifacts Reproduce (npm run check:regen)',
+      cmd: process.execPath,
+      args: ['scripts/regen.js', '--check'],
+    });
+  }
   // 5c. Distributed skills are self-contained: referenced `node scripts/<file>` exists in the skill folder.
   steps.push({
     id: 'skill-script-refs',
@@ -604,26 +615,18 @@ function buildSteps(repoRoot, options = {}) {
         : { ok: false, lines: res.errors.map((e) => `  - ${e}`) };
     }),
   });
-  // 7. Blueprint Catalog Drift Guard.
+  // 7. Blueprint Catalog Drift Guard. Deliberately not part of the gate above: its write
+  //    path stamps `release_tag` from the `blueprints-v*` git tags while this --check
+  //    compares the catalog with that field normalised away, so a byte diff would redden
+  //    on every tag cut instead of on real drift (pre-commit-regen.js excludes it too).
   steps.push(roFresh('blueprint-catalog'));
-  // 7b. nn-sources core mirror drift guard (render of nn-core trannsform primitives).
-  steps.push(roFresh('core-mirror'));
-  // 7b-bis. Console payload mirror drift guard.
-  steps.push(roFresh('console-payload'));
-  // 7b-ter. Single-file console bundle drift guard (offline: reads the UMD sources, no network).
-  steps.push(roFresh('console-bundle'));
   // 7b-ter-bis. The committed console fixture must reproduce a fresh export of its domain
-  // (the export itself, not a digest: nothing else regenerates it, and it drifted for weeks).
+  // (the export itself, not a digest: `regen` exports it but cannot diff it, because the
+  // export stamps `meta.generated` on every run; this check masks the stamps and names
+  // the first line that diverged).
   steps.push(
     ro('console-fixture', 'Check Console Fixture Fresh', 'scripts/lib/console-fixture-freshness.js', '--check'),
   );
-  // 7b-quinquies. Committed MCP CDN bundle must announce the package.json version
-  // (the nn-mcp-v0.37.0 release shipped 0.36.0 bytes before this guard existed).
-  steps.push(roFresh('mcp-bundle'));
-  // 7b-quater. Offline canonical-registry mirror drift guard (embedded spec copies).
-  steps.push(roFresh('canonical-registry'));
-  // 7c. Samples SSOT Drift Guard.
-  steps.push(roFresh('samples-parity'));
   // 7c-bis. Samples version coherence: every sample tracks a current shipped blueprint_version.
   steps.push(ro('samples-version', 'Check Samples Version Coherence', 'scripts/check-samples-version.mjs'));
   // 7c-ter. Procedures version coherence: every procedure tracks the current `procedures` blueprint_version.
@@ -634,8 +637,6 @@ function buildSteps(repoRoot, options = {}) {
   //     The CLI is a global tool, not a CI gate, so an invalid delta used to commit
   //     silently and only fail when a maintainer ran validate by hand.
   steps.push(ro('openspec-deltas', 'Check OpenSpec Delta Specs', 'scripts/check-openspec-deltas.mjs'));
-  // 7d. Version SSOT Drift Guard (manifest/source.yaml vs specs and SKILL.md).
-  steps.push(roFresh('version-parity'));
 
   // 7e. Docs-Derived Facts Drift Guard, checked against HEAD, never the working tree (design D5).
   //     A child step (verify.js re-enters with --check-docs-facts-drift) so its batched
@@ -650,7 +651,6 @@ function buildSteps(repoRoot, options = {}) {
 
   // 12-15. Repository guards.
   steps.push(ro('template-immutability', 'Template Immutability Guard', 'scripts/guard-template-immutability.js'));
-  steps.push(roFresh('console-shells-fresh'));
   steps.push(ro('text-encoding', 'Guard Tracked Text Encoding', 'scripts/guard-text-encoding.js'));
   steps.push(ro('nn-name-regex', 'NN Name Regex Guard', 'scripts/lib/nn-name-regex-guard.js'));
   steps.push(ro('nn-name-invariant', 'NN Name Invariant Guard', 'scripts/lib/nn-name-invariant-guard.js'));

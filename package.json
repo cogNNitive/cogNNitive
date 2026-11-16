@@ -40,6 +40,7 @@
     "check:openspec": "node scripts/check-openspec-deltas.mjs",
     "check:claims": "node scripts/claim-audit.mjs",
     "regen": "node scripts/regen.js",
+    "check:regen": "node scripts/regen.js --check",
     "verify:fast": "node scripts/verify.js --fast"
   },
   "devDependencies": {

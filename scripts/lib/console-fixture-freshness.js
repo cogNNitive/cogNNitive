@@ -6,11 +6,12 @@
  * Freshness check for the committed console fixture: the exported console the test
  * suite, the UI smoke and every console review open (`test/fixtures/testlab/domaiNN_console.html`).
  *
- * `npm run regen` covers the other derived artifacts (bundle, payload mirror, catalogs)
- * but not an exported console, and the pre-commit hook only stages what
- * `scripts/pre-commit-regen.js` knows about, so this fixture drifts silently whenever the
- * bundle, the shell or the fixture domain moves. It was ~3.9 KB stale on `main` before
- * this check existed (backlog console-fixture-regeneration-gate).
+ * `npm run regen` now exports this fixture too, but the export stamps `meta.generated`
+ * with the wall clock on every run, so a byte diff cannot judge it: `regen` restores the
+ * committed bytes when only the stamped fields moved, and this check is what actually
+ * reproduces the artifact and says *where* it diverged. Without it the fixture drifted
+ * silently whenever the bundle, the shell or the fixture domain moved — it was ~3.9 KB
+ * stale on `main` before this check existed (backlog console-fixture-regeneration-gate).
  *
  * The check reproduces the artifact instead of remembering a digest: it copies the
  * fixture domain into a throwaway checkout, exports it there and compares the bytes with
@@ -201,7 +202,7 @@ function checkConsoleFixtureFreshness(options = {}) {
   }
 }
 
-module.exports = { checkConsoleFixtureFreshness, FIXTURE_DOMAIN, CONSOLE_FILE, REGEN_COMMAND };
+module.exports = { checkConsoleFixtureFreshness, withoutStamps, FIXTURE_DOMAIN, CONSOLE_FILE, REGEN_COMMAND };
 
 if (require.main === module) {
   const { ok, message } = checkConsoleFixtureFreshness();

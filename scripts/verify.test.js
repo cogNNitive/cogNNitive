@@ -52,22 +52,12 @@ const READ_ONLY_IDS = [
   'vocabulary-doc',
   'typecheck-scripts',
   'check-licenses',
-  'preflight-primitives',
-  'skills-manager-bundle',
-  'skill-shared-rules',
   'blueprint-catalog',
-  'core-mirror',
-  'console-payload',
-  'console-bundle',
-  'canonical-registry',
-  'samples-parity',
   'samples-version',
   'procedures-version',
   'usage-procedure',
-  'version-parity',
   'docs-facts-drift',
   'template-immutability',
-  'console-shells-fresh',
   'text-encoding',
   'nn-name-regex',
   'nn-name-invariant',
@@ -99,6 +89,15 @@ test('read-only guards are pool-eligible; mutating and in-process steps stay ser
     // The referenced-external-skills guard runs in-process so a mis-pinned entry fails
     // the merge gate (verify.js), not only check-integrity.
     assert.equal(typeof byId['external-skills']?.run, 'function');
+    // The twelve per-artifact freshness steps are one gate now (npm run check:regen).
+    // It writes the tree, so it stays serial, and --fast leaves it out: the pass runs the
+    // nn-core and nn-mcp builds.
+    assert.equal(byId['regen-gate']?.parallel, undefined, 'regen-gate should stay serial');
+    assert.equal(
+      buildSteps(root, { fast: true }).some((s) => s.id === 'regen-gate'),
+      false,
+      'regen-gate is not part of --fast',
+    );
     // docs-facts-drift must be a child-process step (never an in-process run).
     assert.equal(typeof byId['docs-facts-drift'].run, 'undefined');
     assert.ok(Array.isArray(byId['docs-facts-drift'].args));

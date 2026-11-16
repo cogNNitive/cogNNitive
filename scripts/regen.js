@@ -2,23 +2,48 @@
 'use strict';
 
 /**
- * `npm run regen`: rewrites every committed derived artifact in one command, so
- * a stale-mirror push failure (or CI "... Fresh" / "Docs-Derived Facts" guard)
- * is fixed by a single step instead of hunting for the right generator.
+ * `npm run regen`: rewrites every committed derived artifact in one command, so a
+ * stale-mirror push failure (or CI drift) is fixed by a single step instead of
+ * hunting for the right generator.
  *
- * Order: build nn-core and the nn-mcp dist (generators read them), run each
- * freshness-guard generator (scripts/lib/freshness-guards.js), then the docs
- * facts. The generators are repeated until the --check guards pass (max 3
- * passes), because some generated files feed others.
+ * Order: build nn-core and the nn-mcp dist (generators read them), then run each
+ * freshness-guard generator (scripts/lib/freshness-guards.js), the docs facts, and
+ * the staged copies (catalog, manifest-next, the testlab console fixture). The
+ * generators are repeated until the `--check` guards pass (max 3 passes), because
+ * some generated files feed others.
+ *
+ * `npm run check:regen` (`--check`): runs that same pass and then fails when it moved a
+ * tracked path that was clean before it ran, which means the committed artifacts no
+ * longer reproduce from their sources. That is the single gate the twelve per-artifact
+ * freshness steps in `scripts/verify.js` were replaced by.
+ *
+ * Two entries the diff cannot judge, by construction rather than by omission:
+ *  - `iNNfo/specs/bluepriNNts/catalog.json` stamps `release_tag` from the
+ *    `blueprints-v*` git tags, so it is generated in write mode and left alone in
+ *    check mode (its own `--check` normalises the tag away; `verify.js` keeps it).
+ *  - `test/fixtures/testlab/domaiNN_console.html` carries the export wall clock in
+ *    `meta.generated`, so the pass restores the committed bytes when only the stamped
+ *    fields moved (`withoutStamps`, shared with scripts/lib/console-fixture-freshness.js).
  */
 
 const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { FRESHNESS_GUARDS } = require('./lib/freshness-guards.js');
+const { checkRegen, parseRegenMode } = require('./lib/regen-gate.js');
+const { withoutStamps, FIXTURE_DOMAIN, CONSOLE_FILE } = require('./lib/console-fixture-freshness.js');
 
 const repoRoot = path.join(__dirname, '..');
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const mode = parseRegenMode(process.argv.slice(2));
+const isCheck = mode === 'check';
+
+/**
+ * Guard ids the check pass must not run at all. `blueprint-catalog` cannot be judged
+ * by a diff (see the header), and running its generator here would dirty the tree on
+ * a pass that is supposed to leave it clean.
+ */
+const CHECK_SKIPS = new Set(['blueprint-catalog']);
 
 /** Runs a command; `quiet` captures its output instead of inheriting it. */
 function exec(cmd, args, quiet = false) {
@@ -36,53 +61,97 @@ function fail(what) {
   process.exit(1);
 }
 
-if (run(npm, ['--workspace=@cognnitive/nn-core', 'run', 'build']) !== 0) fail('nn-core build');
-if (run(npm, ['--workspace=@cognnitive/nn-mcp', 'run', 'build:dist']) !== 0) fail('nn-mcp build:dist');
+/**
+ * Exports the testlab console fixture, then puts the committed bytes back when the
+ * only difference is a wall-clock stamp, so the pass is idempotent and the gate can
+ * judge the fixture's content.
+ * @returns {{ status: number, output: string }}
+ */
+function syncConsoleFixture() {
+  const fixture = path.join(repoRoot, FIXTURE_DOMAIN.split('/').join(path.sep), CONSOLE_FILE);
+  const before = fs.existsSync(fixture) ? fs.readFileSync(fixture, 'utf8') : null;
+  const res = exec(process.execPath, ['scripts/export-console.mjs', FIXTURE_DOMAIN, '--domain', '--no-open'], true);
+  if (res.status !== 0) return { status: 1, output: `regen: console fixture export failed.\n${res.output}` };
+  if (before === null) return { status: 0, output: '' };
+  const after = fs.readFileSync(fixture, 'utf8');
+  // `meta.generated`, `citationsResolvedAt` and each swept file's `mtime` move on every
+  // export and carry no content: the fixture's own freshness check masks them for the
+  // same reason, and restamping here would dirty a 1.3 MB file on every run.
+  if (withoutStamps(before) === withoutStamps(after)) fs.writeFileSync(fixture, before);
+  return { status: 0, output: '' };
+}
 
+/** Staged copies of generated or authored sources that live in a second location. */
+function syncCopies() {
+  const catalogSrc = path.join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'catalog.json');
+  const catalogDst = path.join(repoRoot, 'docs', 'innfo', 'blueprints', 'catalog.json');
+  if (fs.existsSync(catalogSrc)) {
+    fs.mkdirSync(path.dirname(catalogDst), { recursive: true });
+    fs.copyFileSync(catalogSrc, catalogDst);
+  }
+  const manifestNextSrc = path.join(repoRoot, 'docs', 'use', 'manifest-next.md');
+  const manifestNextDst = path.join(repoRoot, 'docs', 'update', 'manifest-next.md');
+  if (fs.existsSync(manifestNextSrc)) {
+    fs.mkdirSync(path.dirname(manifestNextDst), { recursive: true });
+    fs.copyFileSync(manifestNextSrc, manifestNextDst);
+  }
+}
+
+const guards = isCheck ? FRESHNESS_GUARDS.filter((g) => !CHECK_SKIPS.has(g.id)) : FRESHNESS_GUARDS;
 const generate = [
-  ...FRESHNESS_GUARDS.map((g) => [g.script]),
+  ...guards.map((g) => [g.script]),
   ['scripts/generate-docs-facts.mjs'],
   ['scripts/generate-vocabulary-doc.mjs'],
   ['scripts/generate-video-parameters-doc.mjs'],
 ];
 const check = [
-  ...FRESHNESS_GUARDS.map((g) => [g.script, ...g.args]),
+  ...guards.map((g) => [g.script, ...g.args]),
   ['scripts/generate-docs-facts.mjs', '--check'],
   ['scripts/generate-vocabulary-doc.mjs', '--check'],
   ['scripts/generate-video-parameters-doc.mjs', '--check'],
 ];
 
-for (let pass = 1; pass <= 3; pass++) {
-  for (const args of generate) {
-    const res = exec(process.execPath, args, true);
-    if (res.status !== 0) {
-      console.error(res.output);
-      fail(args[0]);
+/**
+ * One full pass: every generator, then every `--check`, repeated until they agree.
+ * Returns the status instead of exiting so the gate can read the tree before it runs.
+ * @returns {{ status: number, output: string }}
+ */
+function runPass() {
+  for (let pass = 1; pass <= 3; pass++) {
+    for (const args of generate) {
+      const res = exec(process.execPath, args, true);
+      if (res.status !== 0) return { status: 1, output: `regen: ${args[0]} failed.\n${res.output}` };
     }
+    const results = check.map((args) => ({ args, ...exec(process.execPath, args, true) }));
+    const stale = results.filter((r) => r.status !== 0);
+    if (stale.length === 0) {
+      syncCopies();
+      const fixture = syncConsoleFixture();
+      if (fixture.status !== 0) return fixture;
+      return { status: 0, output: `regen: all derived artifacts fresh (pass ${pass}).` };
+    }
+    const details = stale.map((r) => `--- ${r.args[0]}\n${r.output.trim()}`).join('\n');
+    if (pass === 3) {
+      return { status: 1, output: `regen: 3 stale after 3 passes:\n${details}` };
+    }
+    console.log(`regen: pass ${pass} left ${stale.length} stale:\n${details}`);
   }
-  const results = check.map((args) => ({ args, ...exec(process.execPath, args, true) }));
-  const stale = results.filter((r) => r.status !== 0);
-  if (stale.length === 0) {
-    // Sync staged docs copies of catalog.json and manifest-next.md
-    const catalogSrc = path.join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'catalog.json');
-    const catalogDst = path.join(repoRoot, 'docs', 'innfo', 'blueprints', 'catalog.json');
-    if (fs.existsSync(catalogSrc)) {
-      fs.mkdirSync(path.dirname(catalogDst), { recursive: true });
-      fs.copyFileSync(catalogSrc, catalogDst);
-    }
-    const manifestNextSrc = path.join(repoRoot, 'docs', 'use', 'manifest-next.md');
-    const manifestNextDst = path.join(repoRoot, 'docs', 'update', 'manifest-next.md');
-    if (fs.existsSync(manifestNextSrc)) {
-      fs.mkdirSync(path.dirname(manifestNextDst), { recursive: true });
-      fs.copyFileSync(manifestNextSrc, manifestNextDst);
-    }
-    // Keep testlab domain console fixture synchronized with fresh console bundle
-    exec(process.execPath, ['scripts/export-console.mjs', '--domain', '--no-open'], true);
-    console.log(`regen: all derived artifacts fresh (pass ${pass}). Review with: git status --short`);
-    process.exit(0);
-  }
-  console.log(`regen: pass ${pass} left ${stale.length} stale:`);
-  for (const r of stale) console.log(`--- ${r.args[0]}
-${r.output.trim()}`);
+  return { status: 1, output: 'regen: convergence (still stale after 3 passes).' };
 }
-fail('convergence (still stale after 3 passes)');
+
+if (run(npm, ['--workspace=@cognnitive/nn-core', 'run', 'build']) !== 0) fail('nn-core build');
+if (run(npm, ['--workspace=@cognnitive/nn-mcp', 'run', 'build:dist']) !== 0) fail('nn-mcp build:dist');
+
+if (isCheck) {
+  console.log('regen: regenerating every derived artifact, then diffing against HEAD...');
+  const gate = checkRegen({ root: repoRoot, runPass });
+  console.log(gate.message);
+  process.exit(gate.ok ? 0 : 1);
+}
+
+const pass = runPass();
+if (pass.status !== 0) {
+  console.error(pass.output);
+  process.exit(1);
+}
+console.log(`${pass.output} Review with: git status --short`);
