@@ -2220,7 +2220,10 @@ export async function writeConsole(opts = {}) {
   }
 
   const finalAbsPath = relativePath ? join(root, relativePath) : null
-  if (isDelivery && finalAbsPath && existsSync(finalAbsPath) && !stagingDir) {
+  // A delivery console is immutable, and this one rule governs both write shapes: a
+  // staged export and one written straight to its final path. It runs before the page is
+  // rendered, so a refused delivery costs nothing and leaves no staged copy behind.
+  if (isDelivery && finalAbsPath && existsSync(finalAbsPath)) {
     return {
       path: finalAbsPath,
       relativePath,
@@ -2319,17 +2322,6 @@ export async function writeConsole(opts = {}) {
     const stagingDirAbs = stagingDir ? resolve(root, stagingDir) : null
     absPath = stagingDirAbs ? join(stagingDirAbs, basename(relativePath)) : finalAbsPath
     relPath = relativePath
-
-    if (isDelivery && finalAbsPath && existsSync(finalAbsPath)) {
-      return {
-        path: finalAbsPath,
-        relativePath: relPath,
-        status: 'error',
-        error: `Delivery console already exists at ${relativePath}; deliveries are immutable`,
-        knowledgeVersions,
-        opened: false,
-      }
-    }
 
     let isUnchanged = false
     if (strategy === 'none' && existsSync(absPath)) {

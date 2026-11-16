@@ -1345,4 +1345,54 @@ level: 3
     assert.equal(res.path, join(staging, `${MODEL_ID}_console.html`), 'the staged copy is the file that was written')
     assertOperatingDataDropped(await readFile(res.path, 'utf-8'))
   })
+
+  // A delivery is immutable. Both write shapes — staged and straight to the final path —
+  // apply that one rule, and a refused write renders nothing, so it logs nothing.
+  const frozenDelivery = async () => {
+    const finalDir = join(root, 'deliveries', 'v1')
+    await mkdir(finalDir, { recursive: true })
+    const finalPath = join(finalDir, 'probe_delivery.html')
+    await writeFile(finalPath, 'existing', 'utf8')
+    return finalPath
+  }
+
+  it('refuses a staged delivery over an existing final file before rendering it', async () => {
+    const { writeConsole } = await import('../scripts/export-console.mjs')
+    const finalPath = await frozenDelivery()
+    const staging = join(root, 'staging_tmp')
+    await mkdir(staging, { recursive: true })
+    const logged = []
+
+    const res = await writeConsole({
+      rootDir: root,
+      stagingDir: staging,
+      scope: { models: [MODEL_ID], readOnly: true, outFile: 'deliveries/v1/probe_delivery.html' },
+      open: false,
+      log: (line) => logged.push(line),
+    })
+
+    assert.equal(res.status, 'error')
+    assert.match(res.error, /already exists/i)
+    assert.deepEqual(logged, [], 'a refused write does not render the page first')
+    assert.equal(await readFile(finalPath, 'utf8'), 'existing', 'the frozen page is untouched')
+    assert.deepEqual(await readdir(staging), [], 'nothing is staged')
+  })
+
+  it('applies the same rule to a delivery written straight to its final path', async () => {
+    const { writeConsole } = await import('../scripts/export-console.mjs')
+    const finalPath = await frozenDelivery()
+    const logged = []
+
+    const res = await writeConsole({
+      rootDir: root,
+      scope: { models: [MODEL_ID], readOnly: true, outFile: 'deliveries/v1/probe_delivery.html' },
+      open: false,
+      log: (line) => logged.push(line),
+    })
+
+    assert.equal(res.status, 'error')
+    assert.match(res.error, /already exists/i)
+    assert.deepEqual(logged, [], 'a refused write does not render the page first')
+    assert.equal(await readFile(finalPath, 'utf8'), 'existing', 'the frozen page is untouched')
+  })
 })
