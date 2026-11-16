@@ -1214,3 +1214,135 @@ level: 3
     assert.equal(existsSync(join(root, 'domaiNN_console.html')), false, 'a model scope writes no domain file')
   })
 })
+
+/**
+ * `writeConsole` shares one delivery rule and one return contract with the MCP, so
+ * these tests drive the writer directly: what a delivery export drops, when a frozen
+ * delivery is refused, and which fields a return may carry.
+ */
+describe('writeConsole: delivery guard and return contract', () => {
+  let root
+  const MODEL_ID = 'business_V_1-0-0'
+
+  // The operating data a delivery page must never show: one element of a cost concept,
+  // and budget, cost, ledger and prompt fields on an element that stays.
+  const MODEL = `---
+title: "Delivery Business Model"
+model_version: "V_1-0-0"
+level: 3
+---
+
+# NN Stakeholders
+## NN Stakeholders: Enterprise
+  slug:: enterprise
+  name:: "Enterprise"
+  budget:: "$100k"
+  cost:: "42 USD"
+  image_prompt:: "a lighthouse at dusk"
+  ledger:: "L-77"
+
+  Leading enterprise tier.
+
+# NN Cost
+## NN Cost: Vendor Spend
+  slug:: vendor-spend
+  name:: "Vendor Spend"
+
+# NN RevenueStream
+## NN RevenueStream: Subscription
+  slug:: subscription
+  name:: "Subscription"
+  pricing:: "$50k/yr"
+`
+
+  // A domain view, so a lone-view export has a view to select, plus a data module whose
+  // facts exercise the recursive `viewData` half of the strip.
+  const PROBE_VIEW = `registerView({ title: 'Probe', icon: 'layout', order: 1, mount(ctx) { ctx.container.textContent = 'probe' } })\n`
+  const PROBE_VIEW_DATA = `export function collect() {
+  return {
+    keep: 'kept',
+    cost: 'SENTINEL-COST',
+    nested: { budget: 'SENTINEL-BUDGET', ledger: 'SENTINEL-LEDGER', image_prompt: 'SENTINEL-PROMPT' },
+  }
+}
+`
+
+  const LEAK_FIELD = /^(cost|costs|budget|budgets|spend|ledger|prompt|image_prompt|prompts|negative_prompt)$/i
+  const LEAK_VALUE = ['$100k', '42 USD', 'a lighthouse at dusk', 'L-77']
+  const VIEW_DATA_LEAK = ['SENTINEL-COST', 'SENTINEL-BUDGET', 'SENTINEL-LEDGER', 'SENTINEL-PROMPT']
+  const slot = (html, id) =>
+    JSON.parse(html.match(new RegExp(`id="${id}">([\\s\\S]*?)<\\/script>`))[1])
+  const leakyFieldNames = (model) =>
+    model.elements.flatMap((el) => Object.keys(el.fields || {})).filter((k) => LEAK_FIELD.test(k))
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), 'nn-writeconsole-'))
+    await mkdir(join(root, 'models'), { recursive: true })
+    await writeFile(join(root, 'models', `${MODEL_ID}_NN.md`), MODEL, 'utf-8')
+    await mkdir(join(root, 'consoles', 'views'), { recursive: true })
+    await writeFile(join(root, 'consoles', 'views', 'probe.js'), PROBE_VIEW, 'utf-8')
+    await writeFile(join(root, 'consoles', 'views', 'probe.data.mjs'), PROBE_VIEW_DATA, 'utf-8')
+  })
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true })
+  })
+
+  /** Cost, budget, ledger and prompt are gone from the page and from its payload. */
+  const assertOperatingDataDropped = (html) => {
+    const model = slot(html, 'nn-model')
+    assert.deepEqual(leakyFieldNames(model), [], 'no cost, budget, ledger or prompt field survives')
+    assert.deepEqual(
+      model.elements.map((el) => el.concept).filter((c) => /cost|budget|ledger|spend/i.test(c)),
+      [],
+      'the cost concept element is dropped',
+    )
+    const { probe } = slot(html, 'nn-view-data')
+    assert.deepEqual(Object.keys(probe).sort(), ['keep', 'nested'], 'the facts that are not operating data stay')
+    assert.deepEqual(probe.nested, {}, 'the nested operating data is dropped')
+    for (const value of [...LEAK_VALUE, ...VIEW_DATA_LEAK]) {
+      assert.equal(html.includes(value), false, `${value} is not in the page`)
+    }
+  }
+
+  it('drops cost, budget, ledger and prompt for a delivery scope object', async () => {
+    const { writeConsole } = await import('../scripts/export-console.mjs')
+    const plain = await writeConsole({ rootDir: root, scope: { models: [MODEL_ID] }, open: false })
+    const plainHtml = await readFile(plain.path, 'utf-8')
+    // The fixture really carries the data: the same export without a delivery scope keeps it.
+    assert.deepEqual(leakyFieldNames(slot(plainHtml, 'nn-model')).sort(), [
+      'budget',
+      'cost',
+      'image_prompt',
+      'ledger',
+    ])
+    for (const value of [...LEAK_VALUE, ...VIEW_DATA_LEAK]) {
+      assert.equal(plainHtml.includes(value), true, `${value} is exported when nothing marks the page a delivery`)
+    }
+
+    const delivery = await writeConsole({
+      rootDir: root,
+      scope: { delivery: { series: 's', episode: 'e', version: 1 }, models: [MODEL_ID] },
+      open: false,
+    })
+    assert.equal(delivery.relativePath, 'series/s/episodes/e/deliveries/v1/e_delivery.html')
+    assert.equal(delivery.status, 'written')
+    assertOperatingDataDropped(await readFile(delivery.path, 'utf-8'))
+  })
+
+  it('drops the same data for another view whose write is staged', async () => {
+    const { writeConsole } = await import('../scripts/export-console.mjs')
+    const staging = join(root, 'staging_tmp')
+    await mkdir(staging, { recursive: true })
+
+    const res = await writeConsole({
+      rootDir: root,
+      stagingDir: staging,
+      scope: { view: 'probe', model: MODEL_ID },
+      open: false,
+    })
+    assert.equal(res.status, 'written')
+    assert.equal(res.path, join(staging, `${MODEL_ID}_console.html`), 'the staged copy is the file that was written')
+    assertOperatingDataDropped(await readFile(res.path, 'utf-8'))
+  })
+})
