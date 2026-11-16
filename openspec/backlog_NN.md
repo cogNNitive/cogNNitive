@@ -545,10 +545,10 @@ batch:: b10a-console-builder-csp-hash
 value:: H
 effort:: M
 risk:: H
-status:: open
+status:: shipped
 lane:: heavy
 verdict:: current
-evidence:: iNNfo/packages/nn-mcp/src/tools/apply-change.ts:1684-1698 omits discovered peers on load failure before delete-impact computation; cross-review-sol C3 injected EACCES and remove_element still applied. Source unchanged at 8a2958b8df4bd4e20363c37bf2feba7dd0bdffdc.
+evidence:: iNNfo/packages/nn-mcp/src/tools/apply-change.ts:1684-1698 omits discovered peers on load failure before delete-impact computation; cross-review-sol C3 injected EACCES and remove_element still applied. Source unchanged at 8a2958b8df4bd4e20363c37bf2feba7dd0bdffdc. Shipped 2026-11-16 in session/safe-delete: the removal scan records every discovered candidate that fails to load and blocks each `remove_element` of the batch through the existing `blockedChanges` channel, before `partitionChangeset` can mutate a target, with code `DELETE_IMPACT_INCOMPLETE` and a diagnostic naming the candidate's workspace path and the load failure (`"kNNowledge/hidden_NN.md" (EACCES: permission denied, open '...')`). No new state was invented: the block reuses the map `partitionChangeset` already takes for changes the caller knows cannot apply, so blocked removals are conflicts and the rest of the batch still lands. The contract is the MODIFIED requirement at openspec/changes/safe-delete/specs/delete-impact-and-lifecycle/spec.md. Pinned by test/apply-change-delete-impact.test.ts, which injects EACCES on a discovered peer: the removal is blocked with the diagnostic, kNNowledge/strategy_NN.md stays byte-identical and its version unbumped; a readable peer still conflicts with REFERENCED_BY; an update_field applies with the unreadable peer present; a mixed batch reports partially_applied with the update applied and only the removal in conflict. Base-vs-change differential over the whole nn-mcp suite: 784 pass with only the two new cases failing at HEAD, 786 pass with the change. Generated artifacts moved because they inline nn-mcp source: bin/nn-mcp.bundle.js and the coNNtent core mirror.
 merged_from:: improvement-plan P01, QW-C5, R7-minimum
 done_when:: A discovered unreadable candidate blocks the affected remove_element before target persistence with a path-specific diagnostic; readable incoming references still conflict; unrelated non-destructive operations retain current behavior and partial-change handling remains correct.
 ref:: openspec/analysis/2026-11-14-improvement-plan.md
