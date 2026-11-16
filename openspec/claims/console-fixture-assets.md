@@ -24,3 +24,5 @@ area:
 # stale claim files; it does not touch this claim. This session only retires the
 # single item console-fixture-stale-assets: its status/evidence lines, never
 # another item and never a batch-zone line.
+
+pr: 664
