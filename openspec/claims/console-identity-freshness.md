@@ -29,3 +29,5 @@ area:
 # merged sessions (console-fixture-assets, console-scan-errors) whose claims were not
 # deleted on landing. This session only retires the three items above: their status
 # and evidence lines, never another item and never a batch-zone line.
+
+pr: 669
