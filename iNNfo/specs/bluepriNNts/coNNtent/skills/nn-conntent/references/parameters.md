@@ -82,7 +82,7 @@ Legend: ● can be written at this scope, · cannot.
 | `budget` | number | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
 | `daily_budget` | number | — | ● | · | · | · | · | · | · | · | · | · | · | · |
 | `output_formats` | select (multi) | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
-| `review_gates` | select (multi) | `script`, `preview` | ● | ● | · | · | ● | · | · | · | · | · | · | · |
+| `fill` | select | `crop`, `blur`, `pad` | ● | ● | · | · | ● | · | · | · | · | · | · | · |
 | `captions` | select | `off`, `words`, `lines` | ● | ● | · | · | ● | · | · | · | · | · | · | · |
 | `caption_model` | string | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
 | `thumbnail_formats` | select (multi) | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
@@ -460,9 +460,9 @@ Ordered list of delivery sizes as `<W>x<H>`. The first entry is the master size;
 
 Settable at: `Video`, `Series`, `Video Defaults`.
 
-### `review_gates`
+### `fill`
 
-The gates that stop the run before spend, in order. Defaults to `[script, preview]`. Replaces the retired single script-review flag.
+How a derived delivery format reframes the square master. `crop` is the default and stays the default because the destinations this pipeline serves re-frame a padded file themselves: YouTube pads non-native video in its own player and asks creators not to pad, TikTok letterboxes without cropping, and Instagram letterboxes on a blurred background or Smart Zooms on its own. `blur` scales the whole square to FIT and centres it over a blurred, darkened, scaled-to-fill backdrop (suffix `_blur`). `pad` does the same over a solid background, black unless `fill_pad_color` supplies a colour (suffix `_pad`). Choose `blur` or `pad` only for a destination that honours the file as delivered: a brand-owned player, an embed, OTT, or a broadcast slot that permits it. Unset means `crop`, so an existing episode renders exactly as before.
 
 Settable at: `Video`, `Series`, `Video Defaults`.
 

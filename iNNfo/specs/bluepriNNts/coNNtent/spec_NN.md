@@ -478,8 +478,14 @@ type:: select
 multiple:: true
 description:: Ordered list of delivery sizes as `<W>x<H>`. The first entry is the master size; the rest are derived from the master. Defaults to `[1920x1920, 1080x1920, 1920x1080, 1080x1080]`.
 
-## NN Field Definition: review_gates
+## NN Field Definition: fill
 concept:: [Video, Series, Video Defaults]
+scope:: video
+type:: select
+options:: [crop, blur, pad]
+description:: How a derived delivery format reframes the square master. `crop` is the default and stays the default because the destinations this pipeline serves re-frame a padded file themselves: YouTube pads non-native video in its own player and asks creators not to pad, TikTok letterboxes without cropping, and Instagram letterboxes on a blurred background or Smart Zooms on its own. `blur` scales the whole square to FIT and centres it over a blurred, darkened, scaled-to-fill backdrop (suffix `_blur`). `pad` does the same over a solid background, black unless `fill_pad_color` supplies a colour (suffix `_pad`). Choose `blur` or `pad` only for a destination that honours the file as delivered: a brand-owned player, an embed, OTT, or a broadcast slot that permits it. Unset means `crop`, so an existing episode renders exactly as before.
+
+## NN Field Definition: review_gatesconcept:: [Video, Series, Video Defaults]
 scope:: video
 type:: select
 multiple:: true

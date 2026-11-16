@@ -170,6 +170,7 @@ regenerates the domaiNN console, and opens it only when the exit needs a human (
    node scripts/produce.mjs <episode-dir> [--dry-run] [--no-open]
    ```
    *`produce` derives the delivery files from the master — `<slug>_1080x1920.mp4`, `<slug>_1920x1080.mp4` and `<slug>_1080x1080.mp4` according to `output_formats` — writes the chapters into `description.md`, sets `master::` and `thumbnail::` on the Video element, and moves the Episode to `status:: produced`. A format with no preset is `unsupported-format`, never a guess. It never writes a manifest by hand: `compile` owns `hyperframes/manifest.json`.*
+   *How a derived file reframes the square is `fill::` (`crop | blur | pad`, Video/Series/Video Defaults). `crop` is the default and the right choice for the destinations this pipeline serves, which re-frame a padded file themselves (YouTube pads non-native video in its own player and asks creators not to pad; TikTok letterboxes; Instagram letterboxes on a blurred background or Smart Zooms). `blur` and `pad` write a suffixed file (`_blur`, `_pad`) with the whole square fitted and centred, and are for a destination that honours the file as delivered: a brand-owned player, an embed, OTT, or a broadcast slot that permits it. Unset means `crop`, so an existing episode renders exactly as before; an unknown value is refused by name.*
 9. **Housekeeping (optional)**:
    ```bash
    node scripts/prune-duplicates.mjs <episode-or-series-dir> [--apply] [--json]

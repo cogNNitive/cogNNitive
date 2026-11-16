@@ -640,10 +640,18 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
   }
   let formats = []
   if (presets.length > 0) {
+    // `fill::` is a delivery concern resolved through the cascade; a document that
+    // declares nothing resolves to `crop`, so its output is byte-identical to before.
+    const fillValue = resolveForEpisode(episode.model, scriptPath, 'fill').value
+    const fill = fillValue === null || fillValue === undefined || fillValue === '' ? undefined : String(fillValue)
+    const padColorValue = resolveForEpisode(episode.model, scriptPath, 'fill_pad_color').value
+    const padColor = padColorValue === null || padColorValue === undefined || padColorValue === '' ? undefined : String(padColorValue)
     const made = await (deps.formats || renderFormats)({
       master: masterPath,
       outDir: path.join(episodeDir, 'formats'),
       formats: presets,
+      ...(fill ? { fill } : {}),
+      ...(padColor ? { padColor } : {}),
       force: true,
     })
     formats = made.variants || []
