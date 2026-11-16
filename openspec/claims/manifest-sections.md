@@ -27,3 +27,5 @@ overlap:
   - openspec/backlog_NN.md: also claimed by session/backlog-grill (openspec/claims/backlog-grill.md).
     This session edits ONLY the workspace-manifest-section-ownership item block and its batch line,
     in the last commit before the PR, so a collision is one line and not a rebase of the whole file.
+
+pr: 704
