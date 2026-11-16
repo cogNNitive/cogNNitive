@@ -432,10 +432,10 @@ batch:: b10b-console-builder-cli-input
 value:: M
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: scripts/export-console.mjs:1122-1133 reads min(size, 500, budget) bytes and decodes them as utf8, so a multibyte preview comes out shorter than 500 characters and a split sequence ends in a replacement glyph. The review overstated it as affecting every truncated non-ASCII preview: the shortfall is always present but mild, and the glyph appears only when the cut splits a sequence. The existing test (test/console-export-files.test.mjs:244) checks only length <= 500. Audited 2026-11-14 at main 551d5a18.
+evidence:: scripts/export-console.mjs:1122-1133 reads min(size, 500, budget) bytes and decodes them as utf8, so a multibyte preview comes out shorter than 500 characters and a split sequence ends in a replacement glyph. The review overstated it as affecting every truncated non-ASCII preview: the shortfall is always present but mild, and the glyph appears only when the cut splits a sequence. The existing test (test/console-export-files.test.mjs:244) checks only length <= 500. Audited 2026-11-14 at main 551d5a18. Shipped 2026-11-16 in session/console-files-inventory: the bounded preview decodes through a `node:string_decoder` StringDecoder, which withholds an incomplete trailing sequence, so a cut inside a multi-byte code point no longer emits U+FFFD; the byte budget and the character cap keep their values, binaries stay uninlined, the shared preview budget stays bounded and `snippetTruncated` still marks a cut. Covered by test/console-export-files.test.mjs "cuts a preview between code points instead of emitting a replacement glyph" (a 500-byte cut landing inside a two-byte é) and "keeps a preview that ends exactly on a code-point boundary unchanged".
 done_when:: A preview of 600 two-byte characters is capped at 500 characters with no trailing replacement glyph.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D10
 batch:: b10e-console-builder-files-section
@@ -444,10 +444,10 @@ batch:: b10e-console-builder-files-section
 value:: M
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: scripts/export-console.mjs:1086-1092 matches citations with basename(c.norm) === basename(rel), and the changes loop at :1100-1106 has the identical defect, which the review omitted. Only one assertion touches it (test/console-export-files.test.mjs:130). It does not depend on console-builder-d06-model-identity-path. Prefer the exact normalized path, then the longest matching suffix, then the basename only when unambiguous. Audited 2026-11-14 at main 551d5a18.
+evidence:: scripts/export-console.mjs:1086-1092 matches citations with basename(c.norm) === basename(rel), and the changes loop at :1100-1106 has the identical defect, which the review omitted. Only one assertion touches it (test/console-export-files.test.mjs:130). It does not depend on console-builder-d06-model-identity-path. Prefer the exact normalized path, then the longest matching suffix, then the basename only when unambiguous. Audited 2026-11-14 at main 551d5a18. Shipped 2026-11-16 in session/console-files-inventory: both loops call one `referenceMatches` resolver, which keeps the path matches unchanged (exact path, then a suffix of one another) and resolves a directory-less reference by basename only when that name is unique among the inventory files, so two same-named files in different folders no longer receive each other's counts. Covered by test/console-export-files.test.mjs "counts a citation only for the path it names, not for same-named siblings", "counts change evidence only for the path it names, not for same-named siblings", "counts a bare-basename reference when that name is unique, in both loops" and "does not count an ambiguous bare-basename reference for any same-named file".
 done_when:: Two same-named files in different folders get citation counts only from their own paths, and bare-basename citations still count when unambiguous, in both the inventory and the changes loop.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D11
 batch:: b10e-console-builder-files-section
