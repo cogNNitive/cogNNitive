@@ -1,6 +1,6 @@
 import { describe, it, before, after, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
+import { mkdtemp, rm, mkdir, writeFile, readFile, readdir, cp, utimes } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname, basename } from 'node:path'
@@ -9,6 +9,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { consoleHtml, consoleBundle, consoleMembers } from './helpers/console-artifacts.mjs'
 import { runExportConsole } from '../scripts/export-console.mjs'
+import { checkConsoleFixtureFreshness, REGEN_COMMAND } from '../scripts/lib/console-fixture-freshness.js'
 import { CONSOLE_SIZE_BUDGET } from '../scripts/console-views.mjs'
 import { JSDOM } from 'jsdom'
 
@@ -1560,5 +1561,316 @@ level: 3
     )
     assert.doesNotMatch(res.stdout, /WARNING: \[export-console\]/, 'warnings never reach the stdout half')
     assert.deepEqual(writers(), original)
+  })
+})
+
+describe('domain console identity is checkout-independent (b18 console-domain-id-path-hash)', () => {
+  let root
+
+  /** The committed TestLab fixture: the domain every export here reproduces. */
+  const fixtureDomain = resolve(here, '..', 'test', 'fixtures', 'testlab')
+
+  /**
+   * The fields that move on every export or checkout: the export wall clock, the citation
+   * resolution stamp, and each swept file's modification time (a git checkout stamps every
+   * file at clone time, and only some platforms' copy APIs carry mtimes, so a copy is not a
+   * reproducible input for it). Everything else in the artifact must be reproducible.
+   */
+  const WALL_CLOCK_RE = /("(?:generated|citationsResolvedAt|mtime)":")[^"]*"/g
+  const withoutWallClock = (html) => html.replace(WALL_CLOCK_RE, '$1<stamp>"')
+
+  /** `meta.domainId` of an exported console. */
+  const domainIdOf = (html) => {
+    const island = html.match(/<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/)
+    assert.ok(island, 'the page carries the model island')
+    return JSON.parse(island[1]).meta.domainId
+  }
+
+  /** The `nn-schema` slot of an exported console. */
+  const schemaOf = (html) => {
+    const island = html.match(/<script type="application\/json" id="nn-schema">([\s\S]*?)<\/script>/)
+    assert.ok(island, 'the page carries the schema island')
+    return JSON.parse(island[1])
+  }
+
+  /**
+   * A copy of the fixture domain at `test/fixtures/testlab` inside `projectDir`. The
+   * `.git` entry is what makes the copy a project root: without one the folder is not
+   * inside any project, which is a different (last-resort) identity branch.
+   */
+  const seedProject = async (projectDir) => {
+    await mkdir(join(projectDir, '.git'), { recursive: true })
+    const domain = join(projectDir, 'test', 'fixtures', 'testlab')
+    await cp(fixtureDomain, domain, {
+      recursive: true,
+      // A build output: the export writes it and never reads it as domain content.
+      filter: (src) => basename(src) !== 'domaiNN_console.html',
+    })
+    return domain
+  }
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), 'nn-domain-id-test-'))
+  })
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true })
+  })
+
+  it('exports byte-identical consoles from two differently named checkouts', async () => {
+    const domains = []
+    for (const name of ['checkout-a', 'checkout-b']) {
+      domains.push(await seedProject(join(root, name)))
+    }
+
+    for (const domain of domains) {
+      const res = await runCli([domain, '--domain'])
+      assert.equal(res.code, 0, res.stderr)
+    }
+
+    const [a, b] = await Promise.all(
+      domains.map((domain) => readFile(join(domain, 'domaiNN_console.html'), 'utf-8')),
+    )
+    const idA = domainIdOf(a)
+    assert.equal(idA, domainIdOf(b), 'the draft-store key follows the project-relative path')
+    assert.match(idA, /^testlab-[0-9a-f]{8}$/, 'the id keeps its `<name>-<short hash>` shape')
+    assert.equal(
+      withoutWallClock(a),
+      withoutWallClock(b),
+      'nothing but the wall-clock fields depends on the checkout directory name',
+    )
+  })
+
+  it('keeps two same-named domains of one project apart by their relative path', async () => {
+    const model = `---
+title: "Relative Path Model"
+knowledge_version: "V_0-1-0"
+level: 3
+---
+
+# NN Stakeholders
+## NN Stakeholders: Enterprise
+slug:: enterprise
+`
+    const domains = []
+    for (const [project, domainRel] of [
+      ['project-one', 'kNNowledge/testlab'],
+      ['project-two', 'test/fixtures/testlab'],
+    ]) {
+      const domain = join(root, project, domainRel)
+      await mkdir(join(root, project, '.git'), { recursive: true })
+      await mkdir(domain, { recursive: true })
+      await writeFile(join(domain, 'model_V_0-1-0_NN.md'), model, 'utf-8')
+      domains.push(domain)
+    }
+
+    const ids = []
+    for (const domain of domains) {
+      const res = await runCli([domain, '--domain'])
+      assert.equal(res.code, 0, res.stderr)
+      ids.push(domainIdOf(await readFile(join(domain, 'domaiNN_console.html'), 'utf-8')))
+    }
+    assert.match(ids[0], /^testlab-[0-9a-f]{8}$/)
+    assert.match(ids[1], /^testlab-[0-9a-f]{8}$/)
+    assert.notEqual(ids[0], ids[1], 'same name, different project-relative path: two draft stores')
+  })
+
+  it('derives the same id and the same bytes when only the file mtimes differ', async () => {
+    // What a git checkout and a `fs.cp` copy on Linux produce: the same content stamped at
+    // a different instant. Identity must not move with it.
+    const model = `---
+title: "Mtime Model"
+knowledge_version: "V_0-1-0"
+level: 3
+---
+
+# NN Stakeholders
+## NN Stakeholders: Enterprise
+slug:: enterprise
+`
+    const domains = []
+    for (const project of ['project-a', 'project-b']) {
+      const domain = join(root, project, 'test', 'fixtures', 'testlab')
+      await mkdir(join(root, project, '.git'), { recursive: true })
+      await mkdir(join(domain, 'sources', 'import'), { recursive: true })
+      await writeFile(join(domain, 'model_V_0-1-0_NN.md'), model, 'utf-8')
+      await writeFile(join(domain, 'sources', 'import', 'note.md'), '# note\n', 'utf-8')
+      domains.push(domain)
+    }
+    const later = new Date(Date.now() + 60_000)
+    await utimes(join(domains[1], 'sources', 'import', 'note.md'), later, later)
+
+    const htmls = []
+    for (const domain of domains) {
+      const res = await runCli([domain, '--domain'])
+      assert.equal(res.code, 0, res.stderr)
+      htmls.push(await readFile(join(domain, 'domaiNN_console.html'), 'utf-8'))
+    }
+
+    const [a, b] = htmls
+    assert.notEqual(
+      a.match(/"mtime":"([^"]*)"/)[1],
+      b.match(/"mtime":"([^"]*)"/)[1],
+      'the two exports really do carry different file mtimes',
+    )
+    assert.equal(domainIdOf(a), domainIdOf(b), 'the id follows the path, never the mtimes')
+    assert.equal(withoutWallClock(a), withoutWallClock(b), 'and the artifact reproduces')
+  })
+
+  it("resolves blueprints from the repository, not from the machine's install", async () => {
+    // `parent_spec: procedures_V_0-4-0` is a library blueprint: it is in this repository, and
+    // it also happens to be installed under `~/.agents/bluepriNNts` on a developer machine.
+    // The library tier defaults to that home install, so the same commit exported a full
+    // Procedure/Work schema where the package was installed and a derived one on CI, ~11 KB
+    // apart in the schema slot (the b18 CI failure).
+    const domain = join(root, 'project', 'domains', 'library')
+    const emptyLibrary = join(root, 'no-library')
+    await mkdir(join(root, 'project', '.git'), { recursive: true })
+    await mkdir(domain, { recursive: true })
+    await mkdir(emptyLibrary, { recursive: true })
+    await writeFile(
+      join(domain, 'procedure_runner_V_0-1-0_NN.md'),
+      `---
+title: "Procedure Runner"
+knowledge_version: "V_0-1-0"
+level: 3
+parent_spec:
+  name: "procedures_V_0-4-0"
+---
+
+# NN Work
+## NN Work: Intake
+slug:: intake
+`,
+      'utf-8',
+    )
+
+    const res = await runCli([domain, '--domain'], { env: { INNFO_GLOBAL_DIR: emptyLibrary } })
+    assert.equal(res.code, 0, res.stderr)
+
+    const schema = schemaOf(await readFile(join(domain, 'domaiNN_console.html'), 'utf-8'))
+    const work = schema.concepts.find((c) => c.name === 'Work')
+    assert.ok(work, 'the repository blueprint supplied the Work concept')
+    assert.ok(
+      Array.isArray(work.fields) && work.fields.some((f) => f.declaredBy?.family === 'procedures-app'),
+      `Work carries the blueprint's own fields: ${JSON.stringify(work).slice(0, 200)}`,
+    )
+    assert.deepEqual(
+      schema.procedures.map((p) => p.id),
+      ['usage'],
+      "the blueprint's own procedure list survives an empty home install",
+    )
+  })
+})
+
+describe('committed console fixture freshness gate (b18 console-fixture-regeneration-gate)', () => {
+  let root
+
+  const repoRoot = resolve(here, '..')
+  /** The committed fixture: both the reference artifact and the tree the gate re-exports. */
+  const fixtureDomain = resolve(repoRoot, 'test', 'fixtures', 'testlab')
+
+  /** A domain in the layout the checker exports from: a project root with the fixture path. */
+  const seedCheckout = async (projectDir, modelFile) => {
+    await mkdir(join(projectDir, '.git'), { recursive: true })
+    const domain = join(projectDir, 'test', 'fixtures', 'testlab')
+    await mkdir(join(domain, 'kNNowledge'), { recursive: true })
+    await writeFile(join(domain, 'kNNowledge', 'testlab_V_0-1-0_NN.md'), modelFile, 'utf-8')
+    return domain
+  }
+
+  const MODEL = `---
+title: "Fixture Freshness Model"
+knowledge_version: "V_0-1-0"
+level: 3
+---
+
+# NN Stakeholders
+## NN Stakeholders: Enterprise
+slug:: enterprise
+`
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), 'nn-fixture-freshness-test-'))
+  })
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true })
+  })
+
+  it('passes on the committed fixture', () => {
+    const { ok, message } = checkConsoleFixtureFreshness({ repoRoot })
+    assert.equal(ok, true, message)
+    assert.match(message, /console fixture is fresh/)
+  })
+
+  it('reproduces the artifact after a checkout stamps every file anew', async () => {
+    // mtime is checkout metadata, never content: a clone and a copy carry different stamps
+    // for the same files, and `fs.cp` only keeps them on platforms whose copy API carries
+    // them. The gate must reproduce the artifact regardless, or it only ever passes on the
+    // machine that wrote it (the b18 CI failure).
+    const domain = join(root, 'checkout', 'test', 'fixtures', 'testlab')
+    await mkdir(join(root, 'checkout', '.git'), { recursive: true })
+    await cp(fixtureDomain, domain, { recursive: true })
+    const restamped = new Date(Date.now() - 3 * 60 * 60 * 1000)
+    for (const entry of await readdir(domain, { recursive: true, withFileTypes: true })) {
+      if (!entry.isFile()) continue
+      const full = join(entry.parentPath ?? entry.path, entry.name)
+      await utimes(full, restamped, restamped)
+    }
+
+    const res = checkConsoleFixtureFreshness({ repoRoot, fixtureDomain: domain })
+    assert.equal(res.ok, true, res.message)
+    assert.match(res.message, /console fixture is fresh/)
+  })
+
+  it('fails on a stale fixture, names the first difference and the command that fixes it', async () => {
+    const domain = await seedCheckout(join(root, 'checkout'), MODEL)
+    // The artifact a previous export left behind, and then the source moved on.
+    const first = await runCli([domain, '--domain'])
+    assert.equal(first.code, 0, first.stderr)
+    await writeFile(
+      join(domain, 'kNNowledge', 'testlab_V_0-1-0_NN.md'),
+      `${MODEL}\n# NN Stakeholders\n## NN Stakeholders: Startup\nslug:: startup\n`,
+      'utf-8',
+    )
+
+    const stale = checkConsoleFixtureFreshness({ repoRoot, fixtureDomain: domain })
+    assert.equal(stale.ok, false, 'a console its domain outgrew is stale')
+    assert.match(stale.message, /is stale/, stale.message)
+    assert.match(stale.message, /first difference at line \d+/)
+    assert.ok(stale.message.includes(`    ${REGEN_COMMAND}`), `the message names the exact command: ${stale.message}`)
+
+    // Regenerating is what turns the check green, and nothing else.
+    const regen = await runCli([domain, '--domain'])
+    assert.equal(regen.code, 0, regen.stderr)
+    const fresh = checkConsoleFixtureFreshness({ repoRoot, fixtureDomain: domain })
+    assert.equal(fresh.ok, true, fresh.message)
+  })
+
+  it('fails naming the command when the fixture console is missing', async () => {
+    const domain = await seedCheckout(join(root, 'checkout'), MODEL)
+    const res = checkConsoleFixtureFreshness({ repoRoot, fixtureDomain: domain })
+    assert.equal(res.ok, false)
+    assert.match(res.message, /is missing/)
+    assert.ok(res.message.includes(REGEN_COMMAND))
+  })
+
+  it('fails naming the command when a fresh export cannot run', async () => {
+    const domain = await seedCheckout(join(root, 'checkout'), MODEL)
+    const seeded = await runCli([domain, '--domain'])
+    assert.equal(seeded.code, 0, seeded.stderr)
+
+    const res = checkConsoleFixtureFreshness({
+      repoRoot,
+      fixtureDomain: domain,
+      spawnExport: () => {
+        throw Object.assign(new Error('export blew up'), { stderr: 'detail: missing assets' })
+      },
+    })
+    assert.equal(res.ok, false)
+    assert.match(res.message, /a fresh export of test\/(fixtures\/)?testlab failed/)
+    assert.match(res.message, /detail: missing assets/)
+    assert.ok(res.message.includes(`    ${REGEN_COMMAND}`))
   })
 })

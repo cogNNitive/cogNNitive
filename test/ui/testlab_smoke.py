@@ -1,7 +1,9 @@
-"""Playwright UI smoke test for the TestLab coverage domain.
+"""Playwright UI smoke test for the TestLab console fixture.
 
-Opens the latest generated model console via file:// and
-asserts it renders the expected content without JS errors. Runs locally with:
+Opens the console the exporter writes today -- ``test/fixtures/testlab/domaiNN_console.html``,
+the same committed artifact the ``console-fixture`` step of ``scripts/verify.js`` keeps
+reproducible -- and asserts it renders the expected domain content with no JS page error
+and no non-CDN failed request. Runs locally with:
 
   npm run test:ui
 
@@ -9,20 +11,46 @@ asserts it renders the expected content without JS errors. Runs locally with:
 --out-dir temp/ui-smoke). Requires Python Playwright + Chromium:
 
   pip install playwright && playwright install chromium
+
+It used to open the frozen
+``artifacts/TestLab_coverage_TestLab_console/TestLab_coverage_TestLab_console_20261013T045336Z.html``
+snapshot, so the smoke validated a month-old artifact and every shell change after it
+went unexercised -- which is how a stylesheet the shell no longer loads survived for weeks
+(#664, backlog console-ui-smoke-current-console). The frozen snapshot is no longer opened
+by anything here; if the console file is missing, regenerate it first:
+
+  node scripts/export-console.mjs test/fixtures/testlab --domain --no-open
 """
 import argparse
-import glob
 import os
 import sys
 
 from playwright.sync_api import sync_playwright
 
+CONSOLE_FILE = 'domaiNN_console.html'
+REGEN_COMMAND = 'node scripts/export-console.mjs test/fixtures/testlab --domain --no-open'
 
-def latest(pattern):
-    files = sorted(glob.glob(pattern))
-    if not files:
-        raise SystemExit(f'no files match {pattern}')
-    return os.path.abspath(files[-1])
+# The domain content the exported console must show. `Element 1A`-`2A` and the two probes
+# live in the coverage model, which the whole-domain export renders first.
+EXPECTED_TEXT = [
+    'Element 1A',
+    'Element 1B',
+    'Element 1C',
+    'Element 2A',
+    'Image traceability probe',
+    'Very long description probe',
+]
+
+# Hosts a console may reach: the shell's optional CDN assets. Everything else that fails
+# is a broken local reference, which is exactly what this smoke is here to catch.
+ALLOWED_HOSTS = ('cdn.tailwindcss.com', 'fonts.googleapis.com', 'cdn.jsdelivr.net', 'raw.githubusercontent.com')
+
+
+def console_path(lab_root):
+    path = os.path.abspath(os.path.join(lab_root, CONSOLE_FILE))
+    if not os.path.isfile(path):
+        raise SystemExit(f'no console at {path}; export it first:\n  {REGEN_COMMAND}')
+    return path
 
 
 def main():
@@ -31,7 +59,7 @@ def main():
     ap.add_argument('--out-dir', required=True)
     args = ap.parse_args()
 
-    console = latest(os.path.join(args.lab_root, 'artifacts', 'TestLab_coverage_TestLab_console', 'TestLab_coverage_TestLab_console_*.html'))
+    console = console_path(args.lab_root)
     os.makedirs(args.out_dir, exist_ok=True)
     failures = []
 
@@ -48,27 +76,26 @@ def main():
         page.on('pageerror', lambda e: page_errors.append(str(e)))
         page.on('requestfailed', lambda r: bad_requests.append(f'{r.url} ({r.failure})'))
 
-        # ---- Model console ----
+        # ---- Domain console ----
         page.goto(f'file://{console}')
-        page.wait_for_selector('#innfo-content', timeout=15000)
+        page.wait_for_selector('#nn-content', timeout=15000)
         page.wait_for_function(
-            "document.querySelector('#innfo-content').textContent.includes('Element 1A')",
+            "document.querySelector('#nn-content').textContent.includes('Element 1A')",
             timeout=15000,
         )
-        content = page.text_content('#innfo-content') or ''
-        for needle in ['Element 1A', 'Element 1B', 'Element 1C', 'Element 2A', 'Image traceability probe', 'Very long description probe']:
+        content = page.text_content('#nn-content') or ''
+        for needle in EXPECTED_TEXT:
             check(f'console shows {needle!r}', needle in content)
-        matrices = page.text_content('#innfo-matrices') or ''
+        matrices = page.text_content('#nn-matrices') or ''
         check('console matrices show crossing', 'relevant' in matrices, repr(matrices[:160]))
-        rail_items = page.locator('#innfo-rail a, #innfo-rail button, #innfo-rail li').count()
+        rail_items = page.locator('#nn-rail a, #nn-rail button, #nn-rail li').count()
         check('console rail has nav entries', rail_items > 0, f'({rail_items} found)')
-        page.fill('#innfo-search', '1B')
+        page.fill('#nn-search', '1B')
         page.wait_for_timeout(500)
-        check('console search accepts input', page.input_value('#innfo-search') == '1B')
+        check('console search accepts input', page.input_value('#nn-search') == '1B')
         page.screenshot(path=os.path.join(args.out_dir, 'console.png'))
         check('console has no JS page errors', len(page_errors) == 0, repr(page_errors[:3]))
-        allowed_hosts = ('cdn.tailwindcss.com', 'fonts.googleapis.com', 'cdn.jsdelivr.net', 'raw.githubusercontent.com')
-        env_only = [u for u in bad_requests if not any(h in u for h in allowed_hosts)]
+        env_only = [u for u in bad_requests if not any(h in u for h in ALLOWED_HOSTS)]
         check('console has no non-CDN failed requests', len(env_only) == 0, repr(env_only[:3]))
 
         browser.close()
