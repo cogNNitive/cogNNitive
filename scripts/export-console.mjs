@@ -1465,10 +1465,18 @@ export async function collectWorkspaceFiles(workspaceRoot, options = {}) {
  * model, or { selected: models } for the CLI multi-model selection); view (a lone view
  * export, written as a write-once family); open (default true); launcher (injected
  * opener, for tests); platform (default process.platform); log (progress lines,
- * default silent so the MCP never writes to stdout); models (pre-scanned models).
+ * default silent so the MCP never writes to stdout); models (pre-scanned models);
+ * stagingDir (write the page there instead of at its final path, for a caller that then
+ * moves it into place); changes (false omits the changesets).
  *
- * Resolves to { path, relativePath, status ("written" or "unchanged"),
- * knowledgeVersions, opened, openError, breakdown, summary }. Throws ConsoleExportError.
+ * A delivery page — a scope that carries `delivery`, an outFile under `deliveries/vN/`,
+ * a stagingDir or the conntent-delivery view — carries no cost, budget, ledger or prompt
+ * data, and it is immutable.
+ *
+ * Resolves to { path, relativePath, status ("written", "unchanged" or "error"),
+ * knowledgeVersions, opened, alreadyOpen?, openError?, error? }. A status of "error" is
+ * a refused write, the delivery page already existing: it is the only case that sets
+ * error, and nothing was written. Throws ConsoleExportError.
  */
 export async function writeConsole(opts = {}) {
   const {

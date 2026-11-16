@@ -1395,4 +1395,54 @@ level: 3
     assert.deepEqual(logged, [], 'a refused write does not render the page first')
     assert.equal(await readFile(finalPath, 'utf8'), 'existing', 'the frozen page is untouched')
   })
+
+  // The JSDoc is the writer's contract with every caller, so this test reads it: a field
+  // a return carries has to be documented there, and a field documented there has to be
+  // reachable from some return.
+  it('returns exactly the fields its JSDoc documents, on every path', async () => {
+    const { writeConsole } = await import('../scripts/export-console.mjs')
+    const source = await readFile(scriptPath, 'utf-8')
+    const promise = source.indexOf('The single console writer')
+    const doc = source.slice(
+      source.lastIndexOf('/**', promise),
+      source.indexOf('export async function writeConsole'),
+    )
+    const documentedText = doc.match(/Resolves to \{([\s\S]*?)\}/)
+    assert.ok(documentedText, 'the JSDoc still says what a return carries')
+    const documented = documentedText[1]
+      .split(',')
+      .map((part) => part.trim().replace(/^\*+/, '').trim().split(/[\s(]/)[0].replace(/\?$/, ''))
+      .filter((name) => /^[a-zA-Z]\w*$/.test(name))
+
+    const kept = {
+      written: await writeConsole({ rootDir: root, scope: { models: [MODEL_ID] }, open: false }),
+      unchanged: await writeConsole({ rootDir: root, scope: { models: [MODEL_ID] }, open: false }),
+      opened: await writeConsole({ rootDir: root, open: true, openCooldownMinutes: 10, launcher: async () => {} }),
+      alreadyOpen: await writeConsole({ rootDir: root, open: true, openCooldownMinutes: 10, launcher: async () => {} }),
+      openError: await writeConsole({
+        rootDir: root,
+        scope: { models: [MODEL_ID], outFile: 'probe-open.html' },
+        open: true,
+        platform: 'sunos',
+      }),
+    }
+    await frozenDelivery()
+    kept.error = await writeConsole({
+      rootDir: root,
+      scope: { models: [MODEL_ID], readOnly: true, outFile: 'deliveries/v1/probe_delivery.html' },
+      open: false,
+    })
+
+    // Every path returned what it claims to have done.
+    assert.deepEqual(
+      Object.fromEntries(Object.entries(kept).map(([path, res]) => [path, res.status])),
+      { written: 'written', unchanged: 'unchanged', opened: 'written', alreadyOpen: 'unchanged', openError: 'written', error: 'error' },
+    )
+    assert.equal(kept.opened.opened, true)
+    assert.equal(kept.alreadyOpen.alreadyOpen, true)
+    assert.match(kept.openError.openError, /not supported/)
+
+    const observed = new Set(Object.values(kept).flatMap((res) => Object.keys(res)))
+    assert.deepEqual([...observed].sort(), [...new Set(documented)].sort())
+  })
 })

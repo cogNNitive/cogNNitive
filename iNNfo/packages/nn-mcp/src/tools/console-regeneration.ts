@@ -27,12 +27,19 @@ export interface ConsoleWriterOptions {
 export interface ConsoleWriterResult {
   path: string
   relativePath?: string
-  status: 'written' | 'unchanged'
+  /**
+   * `error` is a refused write: the target delivery console already exists and deliveries
+   * are immutable, so nothing was written and `error` says why. `writeConsole` in
+   * `scripts/export-console.mjs` is the only producer; its JSDoc states the same set.
+   */
+  status: 'written' | 'unchanged' | 'error'
   knowledgeVersions?: Record<string, { knowledge_version: string | null; sha256: string }>
   opened: boolean
   /** The console was already open in a tab inside the coalescing window; nothing was launched. */
   alreadyOpen?: boolean
   openError?: string
+  /** Why the write was refused; set only with `status: "error"`. */
+  error?: string
 }
 
 export type ConsoleWriter = (options: ConsoleWriterOptions) => Promise<ConsoleWriterResult>
@@ -129,6 +136,17 @@ export async function regenerateConsole(root: string, opts: RegenerateOptions = 
       open,
       ...(opts.launcher ? { launcher: opts.launcher } : {}),
     })
+    if (result.status === 'error') {
+      // A refused write is a blocked write, and this module reports those as `failed`.
+      // This comparison is also the typecheck pin on the union: dropping "error" from
+      // `ConsoleWriterResult.status` makes it a non-overlapping comparison, and returning
+      // `result.status` unchanged makes it a non-assignable ConsoleOutcome status.
+      return {
+        status: 'failed',
+        path: result.path,
+        error: result.error ?? `the console writer refused to write ${result.path}`,
+      }
+    }
     return {
       status: result.status,
       path: result.path,
