@@ -9,6 +9,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { consoleHtml, consoleBundle, consoleMembers } from './helpers/console-artifacts.mjs'
 import { runExportConsole } from '../scripts/export-console.mjs'
+import { checkConsoleFixtureFreshness, REGEN_COMMAND } from '../scripts/lib/console-fixture-freshness.js'
 import { CONSOLE_SIZE_BUDGET } from '../scripts/console-views.mjs'
 import { JSDOM } from 'jsdom'
 
@@ -1666,3 +1667,92 @@ slug:: enterprise
   })
 })
 
+describe('committed console fixture freshness gate (b18 console-fixture-regeneration-gate)', () => {
+  let root
+
+  const repoRoot = resolve(here, '..')
+
+  /** A domain in the layout the checker exports from: a project root with the fixture path. */
+  const seedCheckout = async (projectDir, modelFile) => {
+    await mkdir(join(projectDir, '.git'), { recursive: true })
+    const domain = join(projectDir, 'test', 'fixtures', 'testlab')
+    await mkdir(join(domain, 'kNNowledge'), { recursive: true })
+    await writeFile(join(domain, 'kNNowledge', 'testlab_V_0-1-0_NN.md'), modelFile, 'utf-8')
+    return domain
+  }
+
+  const MODEL = `---
+title: "Fixture Freshness Model"
+knowledge_version: "V_0-1-0"
+level: 3
+---
+
+# NN Stakeholders
+## NN Stakeholders: Enterprise
+slug:: enterprise
+`
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), 'nn-fixture-freshness-test-'))
+  })
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true })
+  })
+
+  it('passes on the committed fixture', () => {
+    const { ok, message } = checkConsoleFixtureFreshness({ repoRoot })
+    assert.equal(ok, true, message)
+    assert.match(message, /console fixture is fresh/)
+  })
+
+  it('fails on a stale fixture, names the first difference and the command that fixes it', async () => {
+    const domain = await seedCheckout(join(root, 'checkout'), MODEL)
+    // The artifact a previous export left behind, and then the source moved on.
+    const first = await runCli([domain, '--domain'])
+    assert.equal(first.code, 0, first.stderr)
+    await writeFile(
+      join(domain, 'kNNowledge', 'testlab_V_0-1-0_NN.md'),
+      `${MODEL}\n# NN Stakeholders\n## NN Stakeholders: Startup\nslug:: startup\n`,
+      'utf-8',
+    )
+
+    const stale = checkConsoleFixtureFreshness({ repoRoot, fixtureDomain: domain })
+    assert.equal(stale.ok, false, 'a console its domain outgrew is stale')
+    assert.match(stale.message, /is stale/, stale.message)
+    assert.match(stale.message, /first difference at line \d+/)
+    assert.ok(stale.message.includes(`    ${REGEN_COMMAND}`), `the message names the exact command: ${stale.message}`)
+
+    // Regenerating is what turns the check green, and nothing else.
+    const regen = await runCli([domain, '--domain'])
+    assert.equal(regen.code, 0, regen.stderr)
+    const fresh = checkConsoleFixtureFreshness({ repoRoot, fixtureDomain: domain })
+    assert.equal(fresh.ok, true, fresh.message)
+  })
+
+  it('fails naming the command when the fixture console is missing', async () => {
+    const domain = await seedCheckout(join(root, 'checkout'), MODEL)
+    const res = checkConsoleFixtureFreshness({ repoRoot, fixtureDomain: domain })
+    assert.equal(res.ok, false)
+    assert.match(res.message, /is missing/)
+    assert.ok(res.message.includes(REGEN_COMMAND))
+  })
+
+  it('fails naming the command when a fresh export cannot run', async () => {
+    const domain = await seedCheckout(join(root, 'checkout'), MODEL)
+    const seeded = await runCli([domain, '--domain'])
+    assert.equal(seeded.code, 0, seeded.stderr)
+
+    const res = checkConsoleFixtureFreshness({
+      repoRoot,
+      fixtureDomain: domain,
+      spawnExport: () => {
+        throw Object.assign(new Error('export blew up'), { stderr: 'detail: missing assets' })
+      },
+    })
+    assert.equal(res.ok, false)
+    assert.match(res.message, /a fresh export of test\/(fixtures\/)?testlab failed/)
+    assert.match(res.message, /detail: missing assets/)
+    assert.ok(res.message.includes(`    ${REGEN_COMMAND}`))
+  })
+})

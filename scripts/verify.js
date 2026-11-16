@@ -610,6 +610,11 @@ function buildSteps(repoRoot, options = {}) {
   steps.push(roFresh('console-payload'));
   // 7b-ter. Single-file console bundle drift guard (offline: reads the UMD sources, no network).
   steps.push(roFresh('console-bundle'));
+  // 7b-ter-bis. The committed console fixture must reproduce a fresh export of its domain
+  // (the export itself, not a digest: nothing else regenerates it, and it drifted for weeks).
+  steps.push(
+    ro('console-fixture', 'Check Console Fixture Fresh', 'scripts/lib/console-fixture-freshness.js', '--check'),
+  );
   // 7b-quinquies. Committed MCP CDN bundle must announce the package.json version
   // (the nn-mcp-v0.37.0 release shipped 0.36.0 bytes before this guard existed).
   steps.push(roFresh('mcp-bundle'));
