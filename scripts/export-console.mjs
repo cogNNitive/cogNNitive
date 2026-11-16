@@ -1769,6 +1769,14 @@ export async function writeConsole(opts = {}) {
         rootDir: root,
         parentName: fm.parent_spec.name,
         parentUrl: fm.parent_spec.url,
+        // The library tier is where bluepriNNt packages live, and it defaults to the
+        // machine's `~/.agents/bluepriNNts`. Pinning it to `consolePackagesDir` keeps a
+        // checkout exporting against the blueprints it carries: otherwise the same commit
+        // exports two consoles, one from the repository's `procedures` package and one from
+        // whatever that machine installed (observed in batch b18: a domain with
+        // `parent_spec: procedures_V_0-4-0` resolved a full Procedure/Work schema here and a
+        // derived one on CI, 11 KB apart in the schema slot).
+        globalDir: consolePackagesDir(consoleDir),
       })
       for (const warning of resolution.warnings) {
         warn(warning)

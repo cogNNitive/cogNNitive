@@ -14,11 +14,11 @@
  *
  * The check reproduces the artifact instead of remembering a digest: it copies the
  * fixture domain into a throwaway checkout, exports it there and compares the bytes with
- * the committed file. Only the two per-export wall-clock fields are normalized —
- * `meta.generated` (the export timestamp) and each model's `citationsResolvedAt`. Nothing
- * else may vary, which also pins `meta.domainId`: it is derived from the domain's
- * project-relative path (see `domainIdSourcePath` in `scripts/export-console.mjs`), so a
- * differently named checkout must reproduce it too.
+ * the committed file. Only the wall-clock fields are normalized — `meta.generated` (the
+ * export timestamp), each model's `citationsResolvedAt` and each swept file's `mtime`;
+ * everything else must reproduce byte for byte, which also pins `meta.domainId`: it is
+ * derived from the domain's project-relative path (see `domainIdSourcePath` in
+ * `scripts/export-console.mjs`), so a differently named checkout must reproduce it too.
  *
  * The throwaway copy mirrors a real checkout on purpose, because the export resolves some
  * model field values (already-rebased asset paths such as
@@ -44,14 +44,21 @@ const CONSOLE_FILE = 'domaiNN_console.html';
 const REGEN_COMMAND = `node scripts/export-console.mjs ${FIXTURE_DOMAIN} --domain --no-open`;
 
 /**
- * The two fields that move on every export: the export wall clock and the citation
- * resolution stamp. Nothing else in the artifact is allowed to vary.
+ * The fields that move on every export or checkout: the export wall clock, the citation
+ * resolution stamp, and each swept file's modification time. Nothing else in the artifact
+ * is allowed to vary.
+ *
+ * `files.inventory[].mtime` is checkout metadata, not content: a git checkout stamps every
+ * file at clone time, and copying a tree only preserves timestamps on platforms whose
+ * copy API carries them (Windows) — on Linux `fs.cp` leaves the copy stamped "now". Without
+ * it masked, the artifact only ever reproduces on the machine that wrote it. Content drift
+ * still fails the comparison through `size`, `sha256` and the `snippet` of every entry.
  */
-const STAMP_RE = /("(?:generated|citationsResolvedAt)":")[^"]*"/g;
+const STAMP_RE = /("(?:generated|citationsResolvedAt|mtime)":")[^"]*"/g;
 
 /**
  * @param {string} html
- * @returns {string} the artifact with its two wall-clock fields masked
+ * @returns {string} the artifact with its wall-clock fields masked
  */
 function withoutStamps(html) {
   return html.replace(STAMP_RE, '$1<stamp>"');
@@ -170,7 +177,7 @@ function checkConsoleFixtureFreshness(options = {}) {
     if (committed === fresh) {
       return {
         ok: true,
-        message: `console fixture is fresh: ${path.join(FIXTURE_DOMAIN, consoleFile)} reproduces a fresh export apart from the two export stamps.`,
+        message: `console fixture is fresh: ${path.join(FIXTURE_DOMAIN, consoleFile)} reproduces a fresh export apart from the wall-clock fields (generated, citationsResolvedAt, mtime).`,
       };
     }
 
