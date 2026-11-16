@@ -238,7 +238,7 @@ Transcribe it.
       assert.ok(jsonMatch, 'nn-model script slot exists in HTML')
 
       const modelJson = JSON.parse(jsonMatch[1])
-      assert.equal(modelJson.meta.models[0].filePath, 'business_V_0-2-5_NN.md')
+      assert.equal(modelJson.meta.models[0].filePath, 'models/business_V_0-2-5_NN.md')
       assert.equal(modelJson.meta.models[0].sha256, expectedHash)
       assert.equal(modelJson.meta.models[0].version, 'V_0-2-5')
       assert.deepEqual(modelJson.meta.consoleScope.models, ['business_V_0-2-5'])
@@ -387,7 +387,7 @@ notes:: "Please review the tagline"
       assert.equal(model.meta.consoleScope.models.length, 3)
       assert.deepEqual(
         model.meta.models.map((m) => m.filePath).sort(),
-        ['business_V_0-2-5_NN.md', 'metrics_V_0-1-0_NN.md', 'procedures_V_0-1-0_NN.md'],
+        ['models/business_V_0-2-5_NN.md', 'models/procedures_V_0-1-0_NN.md', 'subdomains/metrics_V_0-1-0_NN.md'],
       )
     })
 
@@ -1096,7 +1096,7 @@ level: 3
       const first = (await exportDomain()).meta
       assert.equal(first.modelVersion, undefined, 'no fabricated domain version')
       assert.ok(Array.isArray(first.models), 'models[] carries the real per-model meta')
-      const linked = first.models.find((m) => m.filePath === 'linked_V_0-1-0_NN.md')
+      const linked = first.models.find((m) => m.filePath === 'models/linked_V_0-1-0_NN.md')
       assert.ok(linked, 'models[] carries the exported model')
       assert.equal(linked.version, 'V_0-1-0')
       assert.match(linked.sha256, /^[0-9a-f]{64}$/)

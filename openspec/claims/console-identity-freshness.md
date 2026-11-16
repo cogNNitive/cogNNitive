@@ -7,8 +7,10 @@ thread: opencode subagent (batch b10f — identity and freshness: d13, d06, d05)
 area:
   - scripts/export-console.mjs
   - scripts/console-views.mjs
+  - scripts/export-console.test.mjs
   - test/console-export.test.mjs
   - test/console-export-files.test.mjs
+  - test/console-s3b-parity.test.mjs
   - openspec/backlog_NN.md
   - openspec/claims/console-identity-freshness.md
 

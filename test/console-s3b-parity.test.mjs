@@ -306,7 +306,7 @@ describe('S3b parity (groups 9-12) on a real export', () => {
       const pill = cardOf(document, idOf('Alpha')).querySelector('[data-field-type="knowledge"]')
       assert.equal(pill.getAttribute('data-knowledge-bound'), 'true')
       pill.click()
-      const pricingId = model_.meta.models.find((m) => m.filePath === 'pricing_NN.md').id
+      const pricingId = model_.meta.models.find((m) => m.filePath === 'models/pricing_NN.md').id
       assert.equal(document.getElementById('nn-search').value, `model:${pricingId}`)
       assert.ok(cards(document).length > 0)
       assert.ok(cards(document).every((id) => model_.elements.find((e) => e.id === id).modelId === pricingId))

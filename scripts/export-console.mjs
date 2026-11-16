@@ -1712,7 +1712,7 @@ export async function writeConsole(opts = {}) {
             }
             el.modelId = mId
             el.modelTitle = mTitle
-            el.modelFile = fileName
+            el.modelFile = relPath
             el.modelDir = dirname(relPath)
             const cName = el.concept || 'Element'
             const eName = el.name || el.id || ''
@@ -1727,7 +1727,7 @@ export async function writeConsole(opts = {}) {
           if (mat) {
             mat.modelId = mId
             mat.modelTitle = mTitle
-            mat.modelFile = fileName
+            mat.modelFile = relPath
             allMatrices.push(mat)
           }
         }
@@ -1761,7 +1761,7 @@ export async function writeConsole(opts = {}) {
       modelSummaries.push({
         id: mId,
         title: mTitle,
-        filePath: fileName,
+        filePath: relPath,
         blueprint: blueprintParsed ? blueprintParsed.base : null,
         family: blueprintFamily,
         version: (m.fm && m.fm.knowledge_version) || null,

@@ -717,8 +717,65 @@ scenarioMonths:: 12
     })
   })
 
+  describe('model identity in the console payload (d06)', () => {
+    const DUP = (title, slug) =>
+      `---\ntitle: "${title}"\nknowledge_version: "V_1-0-0"\nlevel: 3\n---\n\n# NN Item\n## NN Item: ${slug}\n  slug:: ${slug}\n`
+    const modelSlot = async () =>
+      JSON.parse((await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')).match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
+
+    it('keeps two same-named models in different folders distinct and both fresh', async () => {
+      await mkdir(join(tempDir, 'a'), { recursive: true })
+      await mkdir(join(tempDir, 'b'), { recursive: true })
+      await writeFile(join(tempDir, 'a', 'dup_V_1-0-0_NN.md'), DUP('Dup A', 'alpha'), 'utf-8')
+      await writeFile(join(tempDir, 'b', 'dup_V_1-0-0_NN.md'), DUP('Dup B', 'beta'), 'utf-8')
+
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const slot = await modelSlot()
+      const listed = slot.meta.models.map((m) => m.filePath).sort()
+      assert.deepEqual(
+        listed.filter((p) => p.endsWith('dup_V_1-0-0_NN.md')),
+        ['a/dup_V_1-0-0_NN.md', 'b/dup_V_1-0-0_NN.md'],
+        'each model is identified by its repository-relative path',
+      )
+      assert.deepEqual(
+        [...new Set(slot.elements.map((el) => el.modelFile))].filter((p) => p.endsWith('dup_V_1-0-0_NN.md')).sort(),
+        ['a/dup_V_1-0-0_NN.md', 'b/dup_V_1-0-0_NN.md'],
+        'each element names its model by the same path',
+      )
+
+      const status = await runCli([tempDir, '--status'])
+      assert.match(status.stdout, /a\/dup_V_1-0-0_NN\.md \[fresh\]/)
+      assert.match(status.stdout, /b\/dup_V_1-0-0_NN\.md \[fresh\]/)
+
+      const stale = await runCli([tempDir, '--stale'])
+      assert.equal(stale.code, 0, stale.stderr)
+      assert.match(stale.stdout, /All models are fresh/, 'nothing is stale when only the names collide')
+    })
+
+    it('still resolves a console whose entry carries the bare file name', async () => {
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const file = join(tempDir, 'domaiNN_console.html')
+      const html = await readFile(file, 'utf-8')
+      assert.ok(html.includes('"filePath":"models/business_V_1-0-0_NN.md"'), 'the payload names the model by path')
+
+      // A console exported before the change (or a hand-written fixture) carries the bare name.
+      const legacy = html.replace(
+        '"filePath":"models/business_V_1-0-0_NN.md"',
+        '"filePath":"business_V_1-0-0_NN.md"',
+      )
+      assert.notEqual(legacy, html, 'the entry was rewritten to the bare file name')
+      await writeFile(file, legacy, 'utf-8')
+
+      const status = await runCli([tempDir, '--status'])
+      assert.equal(status.code, 0)
+      assert.match(status.stdout, /models\/business_V_1-0-0_NN\.md \[fresh\]/, 'the basename form still resolves')
+      assert.match(status.stdout, /Domain console: .* \[fresh\]/)
+    })
+  })
+
   describe('domain console freshness (d05)', () => {
     const PIPELINE = (marker) => `registerView({
+
   title: 'Pipeline', icon: 'layout', order: 1, kind: 'readonly',
   mount(ctx) { ctx.container.textContent = '${marker}' },
 })
@@ -809,7 +866,7 @@ scenarioMonths:: 12
       const slot = await modelSlot()
       assert.deepEqual(
         slot.meta.models.map((m) => m.filePath).sort(),
-        ['business_V_1-0-0_NN.md', 'second_V_1-0-0_NN.md'],
+        ['models/business_V_1-0-0_NN.md', 'models/second_V_1-0-0_NN.md'],
         'every model is listed in meta.models',
       )
       const concepts = new Set(slot.elements.map((el) => el.concept))
@@ -855,7 +912,7 @@ scenarioMonths:: 12
       const slot = await modelSlot()
       assert.deepEqual(
         slot.meta.models.map((m) => m.filePath).sort(),
-        ['<changes>', 'artifacts_NN.md', 'business_V_1-0-0_NN.md', 'procedures_NN.md', 'sources_NN.md'],
+        ['<changes>', 'artifacts_NN.md', 'models/business_V_1-0-0_NN.md', 'procedures_NN.md', 'sources_NN.md'],
         'the allowlisted catalogs join the model set; the changes collection is a model while the entrypoint and the changeset document stay out',
       )
       assert.ok(
@@ -902,7 +959,7 @@ scenarioMonths:: 12
       assert.ok(el && el.citations && Array.isArray(el.citations.sources), 'source index embedded on the element')
       assert.equal(el.citations.sources[0].path, 'sources/brief.md')
       assert.ok(el.citations.sources[0].excerpt.includes('Enterprise context'))
-      const cited = slot.meta.models.find((m) => m.filePath === 'cited_V_1-0-0_NN.md')
+      const cited = slot.meta.models.find((m) => m.filePath === 'models/cited_V_1-0-0_NN.md')
       assert.deepEqual(cited.sources, ['kNNowledge/cited_V_1-0-0_NN.md'], 'the model file-level source is embedded')
     })
 
