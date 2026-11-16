@@ -875,6 +875,9 @@ describe('allowInlineScripts', () => {
   it('still appends the inlined bundle hash to the shipped shell CSP, changing nothing else', () => {
     const shell = readFileSync(join(consoleDir, 'artifact_shell.html'), 'utf8')
     const before = policyOf(shell)
+    // The shell ships no static hash any more, so the exporter's single insertion is the
+    // whole difference: that is the byte-identity this case pins.
+    assert.equal(before.match(/sha256-/g), null, 'the shell carries no hand-written hash')
     const after = policyOf(inlineConsoleAssets(shell, { bundle: 'b()', css: 'a{}', views: [] }))
     assert.equal(after, before.replace(/(script-src[^;]*)/, (directive) => `${directive} ${sha('\nb()\n')}`))
   })
