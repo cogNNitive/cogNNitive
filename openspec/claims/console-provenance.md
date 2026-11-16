@@ -1,6 +1,7 @@
 # claim: console-provenance
 
 branch: session/console-provenance
+pr: 670
 opened: 2026-11-16
 thread: opencode subagent (batch b12 — a payload map nothing reads)
 
