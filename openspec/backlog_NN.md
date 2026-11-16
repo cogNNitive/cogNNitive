@@ -233,10 +233,10 @@ ref:: issue-558
 value:: M
 effort:: M
 risk:: M
-status:: open
+status:: shipped
 lane:: heavy
 verdict:: current
-evidence:: The coNNtent engine writes series/<s>/assets/<slug>/ while references/folder-contract.md declares series/<s>/episodes/<slug>/, and produce.modelIdOf only recognizes the assets/ parent (produce.mjs:101-107), so an episode outside assets/ yields a bare slug. Verified 2026-11-07.
+evidence:: Shipped 2026-11-16 in session/episode-layout. The contract was the correct side, and the engine had already converged on it: `references/folder-contract.md` and `spec_NN.md` declare `series/<s>/episodes/<slug>/`, `scripts/lib/layout.mjs` reports the retired `series/<s>/assets/<slug>/` as a `legacy-layout` finding, and discovery (`detect-state.mjs`) and placement read `episodes/` only — the evidence's `produce.mjs:101-107` line no longer exists, because `modelIdOf` moved into `scripts/lib/pipeline.mjs` and `cdc77264` flipped its recognized parent from `assets` to `episodes`. What still disagreed was the derivation's fallback: `modelIdOf` recognized an `episodes/` parent and otherwise returned the document's file stem, so `produce` on an episode under `series/<s>/assets/<slug>/` produced the bare id `e_coNNtent` and died much later in validation with `MODEL_ADDRESSED_BY_STEM` (observed on base afcb1102 in the new produce test). It now derives the id from the one contract location through `episodeIdentity` (moved from `translation-source.mjs` to `scripts/lib/episode.mjs`, so the translation reader and the id share one derivation) and refuses any document outside `series/<series>/episodes/<slug>/` with `episode-outside-contract` (exit 1), naming the contract location and the retired `assets/` layout. Pinned by `test/episode-location.test.mjs` (the contract location yields `<s>/<slug>`; the legacy `assets/` location, a series root and a domaiNN root each get the refusal) and `test/produce.test.mjs` "an episode outside series/<s>/episodes/ is refused before any spend" (no render, status unchanged), with `test/folder-contract-crosscheck.test.mjs` holding the doc and the derivation to the same code and the same layout. No migration was needed: no `series/<s>/assets/` directory exists anywhere in the repo.
 done_when:: The blueprint's declared folder contract and the engine agree on one layout, the id derivation follows the contract wherever an episode lives, and a test covers an episode outside assets/.
 ref:: issue-565
 batch:: b4j-episode-layout-drift
