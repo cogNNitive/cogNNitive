@@ -39,10 +39,10 @@ force-push and deletion, so the release is the last commit of the pull request a
 rejects a PR that forgets it. CI carries the `merge_group` gate (`scripts/release-claim.mjs
 --check`) so the rule would become blocking the day a merge queue is enabled; today no queue
 exists, so that gate never runs. The net is `claim-audit.mjs`, which names every claim whose PR
-is no longer open:
+is no longer open. A claim written before its PR opened (no `pr:`) is judged by its `branch:`:
 
 ```powershell
-gh pr list --state open --limit 1000 --json number > temp/prs.json
+gh pr list --state all --limit 5000 --json number,headRefName,state > temp/prs.json
 npm run check:claims -- --prs temp/prs.json
 ```
 

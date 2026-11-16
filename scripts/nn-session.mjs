@@ -311,8 +311,24 @@ function status(argv) {
   )
 }
 
+/**
+ * True when the branch's reflog proves nothing was ever committed on it. Such a
+ * branch still points at the commit it was cut from, so `merge-base --is-ancestor`
+ * reads it as merged while its agent may be writing files right now. A fast-forward
+ * from main moves the ref without being work, so only commit-like entries count.
+ * An empty or unreadable reflog proves nothing and returns false.
+ */
+function neverCommitted(root, branch) {
+  const log = tryGit(['reflog', 'show', '--format=%gs', `refs/heads/${branch}`], root)
+  const entries = log.ok ? log.out.split(/\r?\n/).filter(Boolean) : []
+  if (entries.length === 0) return false
+  return !entries.some((subject) => /^(commit|cherry-pick|rebase|reset)/.test(subject))
+}
+
 function stop(argv) {
-  const refusal = stopSession(repoRoot(argv), sessionId(argv))
+  const refusal = stopSession(repoRoot(argv), sessionId(argv), {
+    force: argv.includes('--force'),
+  })
   if (refusal) {
     console.error(refusal)
     process.exit(1)
@@ -324,7 +340,7 @@ function stop(argv) {
  * of exiting, so `sweep` can skip one session and carry on with the rest.
  * @returns {string | null}
  */
-function stopSession(root, id) {
+function stopSession(root, id, { force = false } = {}) {
   const target = worktreePath(root, id)
   const branch = `session/${id}`
 
@@ -350,6 +366,12 @@ function stopSession(root, id) {
     if (dirty) {
       return `refusing: ${target} has uncommitted changes:\n${dirty}\nsave what matters and revert the rest, then stop again.`
     }
+  }
+  // "No commits yet" passes the ancestry test above, so it would read as merged.
+  if (branchExists && !force && neverCommitted(root, branch)) {
+    return `refusing: ${branch} has no commits yet, so it may be a live session that has not committed.\nconfirm nobody is using it, then stop it with --force.`
+  }
+  if (registered && dirExists) {
     removeNodeModulesLinks(target)
     tryGit(['worktree', 'remove', target], root)
     dirExists = existsSync(target)
@@ -425,7 +447,7 @@ else if (cmd === 'stop') stop(process.argv.slice(2))
 else if (cmd === 'sweep') sweep(process.argv.slice(2))
 else {
   console.error(
-    'usage: nn-session.mjs start|list|status|stop|sweep [--id <id>] [--no-install] [--full-install] [--root <path>]',
+    'usage: nn-session.mjs start|list|status|stop|sweep [--id <id>] [--no-install] [--full-install] [--force] [--root <path>]',
   )
   process.exit(2)
 }

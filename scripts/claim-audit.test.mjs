@@ -141,7 +141,7 @@ test('omitting --prs is a usage error and prints the collector command', () => {
   const { root } = fixture({ claims: { 'console-live.md': LIVE_CLAIM } })
   const { code, out } = run(['--root', root])
   assert.strictEqual(code, 2)
-  assert.match(out, /gh pr list --state open/)
+  assert.match(out, /gh pr list --state all --limit 5000 --json number,headRefName,state/)
 })
 
 test('a UTF-16 PR list, as PowerShell writes it, is still read', () => {
@@ -153,4 +153,48 @@ test('a UTF-16 PR list, as PowerShell writes it, is still read', () => {
   const { code, out } = run(['--root', root, '--prs', file])
   assert.strictEqual(code, 0)
   assert.match(out, /1 live/)
+})
+
+test('a claim with no pr: whose branch already merged is released, named by that PR', () => {
+  const { root, file } = fixture({
+    claims: { 'console-draft.md': NO_PR_CLAIM },
+    prs: [{ number: 703, headRefName: 'session/console-draft', state: 'MERGED' }],
+  })
+  const { code, out } = run(['--root', root, '--prs', file])
+  assert.strictEqual(code, 1)
+  assert.match(out, /0 live, 1 released, 0 without a PR/)
+  assert.match(out, /openspec\/claims\/console-draft\.md {2}released \(PR #703 is not open\)/)
+})
+
+test('a claim with no pr: whose branch has an open PR is live', () => {
+  const { root, file } = fixture({
+    claims: { 'console-draft.md': NO_PR_CLAIM },
+    prs: [
+      { number: 650, headRefName: 'session/console-draft', state: 'MERGED' },
+      { number: 710, headRefName: 'session/console-draft', state: 'OPEN' },
+    ],
+  })
+  const { code, out } = run(['--root', root, '--prs', file])
+  assert.strictEqual(code, 0)
+  assert.match(out, /1 live, 0 released, 0 without a PR/)
+})
+
+test('a pr: listed as merged in a --state all list is released, not live', () => {
+  const { root, file } = fixture({
+    claims: { 'console-live.md': LIVE_CLAIM },
+    prs: [{ number: 700, headRefName: 'session/console-live', state: 'MERGED' }],
+  })
+  const { code, out } = run(['--root', root, '--prs', file])
+  assert.strictEqual(code, 1)
+  assert.match(out, /PR #700 is not open/)
+})
+
+test('a claim with no pr: and no PR for its branch stays unjudged', () => {
+  const { root, file } = fixture({
+    claims: { 'console-draft.md': NO_PR_CLAIM },
+    prs: [{ number: 703, headRefName: 'session/other', state: 'MERGED' }],
+  })
+  const { code, out } = run(['--root', root, '--prs', file])
+  assert.strictEqual(code, 0)
+  assert.match(out, /no PR yet/)
 })

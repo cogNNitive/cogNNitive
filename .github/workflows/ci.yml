@@ -218,7 +218,7 @@ jobs:
         if: github.event_name != 'merge_group'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr list --state open --limit 1000 --json number > "$RUNNER_TEMP/prs.json"
+        run: gh pr list --state all --limit 5000 --json number,headRefName,state > "$RUNNER_TEMP/prs.json"
 
       - name: Audit claims
         if: github.event_name != 'merge_group'

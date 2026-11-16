@@ -16,11 +16,12 @@
  * area, reads every claim and judges each one by the state of its PR.
  *
  * Usage:
- *   gh pr list --state open --limit 1000 --json number > temp/prs.json
+ *   gh pr list --state all --limit 5000 --json number,headRefName,state > temp/prs.json
  *   node scripts/claim-audit.mjs --prs temp/prs.json
  *
  *   --root <dir>   repository root (default: parent of this script)
- *   --prs <file>   open PRs, gh shape: [{"number":672}]. Required: without it a
+ *   --prs <file>   PRs, gh shape: [{"number":672,"headRefName":"session/x","state":"MERGED"}].
+ *                  An entry without `state` counts as open. Required: without it a
  *                  claim cannot be judged, and an audit that cannot judge must
  *                  not report success.
  *   --json         machine-readable result
@@ -37,7 +38,7 @@ import { fileURLToPath } from 'node:url'
 import { normalizePullRequests, readClaims } from './claim-check.mjs'
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
-const COLLECT = 'gh pr list --state open --limit 1000 --json number > temp/prs.json'
+const COLLECT = 'gh pr list --state all --limit 5000 --json number,headRefName,state > temp/prs.json'
 
 /**
  * Splits the claims folder into the three states that decide the exit code. A
@@ -45,14 +46,25 @@ const COLLECT = 'gh pr list --state open --limit 1000 --json number > temp/prs.j
  * opened yet, and the audit has nothing to compare it against.
  */
 export function auditClaims({ claims, pullRequests }) {
-  const open = new Set(pullRequests.map((pr) => pr.number))
+  // A PR without a state comes from an `--state open` list, so it is open.
+  const isOpen = (pr) => !pr.state || pr.state.toUpperCase() === 'OPEN'
+  const open = new Set(pullRequests.filter(isOpen).map((pr) => pr.number))
   const released = []
   const live = []
   const unverifiable = []
 
   for (const claim of claims) {
     if (!claim.pr) {
-      unverifiable.push(claim)
+      // A claim written before its PR opened never learns its number. Judge it
+      // by its branch instead, or it reads as "no PR yet" forever after it lands.
+      const byBranch = claim.branch
+        ? pullRequests.filter((pr) => pr.branch === claim.branch)
+        : []
+      if (byBranch.some(isOpen)) live.push(claim)
+      else if (byBranch.length > 0) {
+        const landed = Math.max(...byBranch.map((pr) => pr.number))
+        released.push({ ...claim, pr: landed })
+      } else unverifiable.push(claim)
       continue
     }
     if (open.has(claim.pr)) live.push(claim)
@@ -83,7 +95,9 @@ function parseArgs(argv) {
 
 function loadPullRequests(root, explicit) {
   const file = path.isAbsolute(explicit) ? explicit : path.join(root, explicit)
-  return normalizePullRequests(readJsonLoose(file))
+  const raw = readJsonLoose(file)
+  const states = Array.isArray(raw) ? raw.map((pr) => String(pr.state ?? '')) : []
+  return normalizePullRequests(raw).map((pr, index) => ({ ...pr, state: states[index] }))
 }
 
 /**

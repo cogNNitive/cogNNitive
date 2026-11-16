@@ -90,6 +90,15 @@ after(() => {
   if (TEMPLATE) rmSync(TEMPLATE, { recursive: true, force: true })
 })
 
+/** Commits one file in a session worktree and fast-forwards main to it: a session that landed. */
+function landCommit(repo, worktree, file) {
+  git(['merge', '-q', '--ff-only', 'main'], worktree)
+  writeFileSync(join(worktree, file), file)
+  git(['add', '-A'], worktree)
+  git(['commit', '-m', `land ${file}`], worktree)
+  git(['merge', '-q', '--ff-only', git(['rev-parse', 'HEAD'], worktree)], repo)
+}
+
 function makeRepo(base) {
   cpSync(TEMPLATE, base, { recursive: true })
   return join(base, 'repo')
@@ -109,7 +118,7 @@ test('start creates and reuses a session worktree; stop removes it', () => {
     assert.equal(s2.code, 0)
     assert.equal(s2.out, target)
 
-    const st = run(['stop', '--id', 's1', '--root', repo])
+    const st = run(['stop', '--id', 's1', '--root', repo, '--force'])
     assert.equal(st.code, 0)
     assert.ok(!existsSync(target), 'worktree removed')
   } finally {
@@ -320,6 +329,8 @@ test('sweep skips a dirty merged worktree and still removes the clean ones', () 
   try {
     run(['start', '--id', 'w1', '--root', repo, '--no-install'])
     run(['start', '--id', 'w2', '--root', repo, '--no-install'])
+    landCommit(repo, cleanTarget, 'w1-sibling.txt')
+    landCommit(repo, dirtyTarget, 'w1.txt')
     writeFileSync(join(dirtyTarget, 'f.txt'), 'changed')
 
     const sw = runAll(['sweep', '--root', repo])
@@ -378,7 +389,7 @@ test('stop removes a legacy node_modules junction without deleting primary sourc
     symlinkSync(join(repo, 'node_modules'), join(target, 'node_modules'), 'junction')
     assert.ok(existsSync(join(target, 'node_modules')), 'junction in place')
 
-    const st = run(['stop', '--id', 's5', '--root', repo])
+    const st = run(['stop', '--id', 's5', '--root', repo, '--force'])
     assert.equal(st.code, 0)
     assert.ok(!existsSync(target), 'worktree removed')
     assert.ok(existsSync(join(srcDir, 'keep.txt')), 'primary source survived the worktree removal')
@@ -441,7 +452,7 @@ test('stop tolerates a deregistered, empty leftover dir without crashing', () =>
     git(['worktree', 'remove', target], repo)
     mkdirSync(target, { recursive: true })
 
-    const st = runAll(['stop', '--id', 's9', '--root', repo])
+    const st = runAll(['stop', '--id', 's9', '--root', repo, '--force'])
     assert.equal(st.code, 0)
     assert.ok(!st.out.includes('at Object.'), 'no raw stack trace')
     assert.ok(!existsSync(target), 'empty leftover dir cleaned up')
@@ -498,6 +509,61 @@ test('start leaves an existing worktree alone (no reinstall)', () => {
     assert.ok(!s.out.includes('npm ci'), 'second start does not install')
   } finally {
     run(['stop', '--id', 's10', '--root', repo])
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('sweep keeps a clean session that never committed: git reads it as merged, but it is live', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  const target = join(dirname(repo), 'cogNNitive-e1')
+  try {
+    run(['start', '--id', 'e1', '--root', repo, '--no-install'])
+
+    const sw = runAll(['sweep', '--root', repo])
+    assert.equal(sw.code, 0, sw.out)
+    assert.ok(sw.out.includes('skipped session/e1'), 'names the skipped session')
+    assert.ok(sw.out.includes('no commits yet'), 'says why')
+    assert.ok(existsSync(target), 'worktree kept')
+    assert.notEqual(git(['branch', '--list', 'session/e1'], repo), '', 'branch kept')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('stop refuses a session that never committed unless --force', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  const target = join(dirname(repo), 'cogNNitive-e2')
+  try {
+    run(['start', '--id', 'e2', '--root', repo, '--no-install'])
+
+    const st = run(['stop', '--id', 'e2', '--root', repo])
+    assert.notEqual(st.code, 0)
+    assert.ok(st.out.includes('refusing: session/e2 has no commits yet'), st.out)
+    assert.ok(st.out.includes('--force'), 'names the way out')
+    assert.ok(existsSync(target), 'worktree NOT removed')
+
+    const forced = run(['stop', '--id', 'e2', '--root', repo, '--force'])
+    assert.equal(forced.code, 0, forced.out)
+    assert.ok(!existsSync(target), 'worktree removed with --force')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('stop removes a session whose commits landed on main, without --force', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  const target = join(dirname(repo), 'cogNNitive-e3')
+  try {
+    run(['start', '--id', 'e3', '--root', repo, '--no-install'])
+    landCommit(repo, target, 'e3.txt')
+
+    const st = run(['stop', '--id', 'e3', '--root', repo])
+    assert.equal(st.code, 0, st.out)
+    assert.ok(!existsSync(target), 'landed worktree removed')
+  } finally {
     rmSync(base, { recursive: true, force: true })
   }
 })
