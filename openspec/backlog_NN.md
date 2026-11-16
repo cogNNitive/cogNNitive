@@ -432,10 +432,10 @@ batch:: b10b-console-builder-cli-input
 value:: M
 effort:: S
 risk:: L
-status:: open
+status:: shipped
 lane:: light
 verdict:: current
-evidence:: scripts/export-console.mjs:1122-1133 reads min(size, 500, budget) bytes and decodes them as utf8, so a multibyte preview comes out shorter than 500 characters and a split sequence ends in a replacement glyph. The review overstated it as affecting every truncated non-ASCII preview: the shortfall is always present but mild, and the glyph appears only when the cut splits a sequence. The existing test (test/console-export-files.test.mjs:244) checks only length <= 500. Audited 2026-11-14 at main 551d5a18.
+evidence:: scripts/export-console.mjs:1122-1133 reads min(size, 500, budget) bytes and decodes them as utf8, so a multibyte preview comes out shorter than 500 characters and a split sequence ends in a replacement glyph. The review overstated it as affecting every truncated non-ASCII preview: the shortfall is always present but mild, and the glyph appears only when the cut splits a sequence. The existing test (test/console-export-files.test.mjs:244) checks only length <= 500. Audited 2026-11-14 at main 551d5a18. Shipped 2026-11-16 in session/console-files-inventory: the bounded preview decodes through a `node:string_decoder` StringDecoder, which withholds an incomplete trailing sequence, so a cut inside a multi-byte code point no longer emits U+FFFD; the byte budget and the character cap keep their values, binaries stay uninlined, the shared preview budget stays bounded and `snippetTruncated` still marks a cut. Covered by test/console-export-files.test.mjs "cuts a preview between code points instead of emitting a replacement glyph" (a 500-byte cut landing inside a two-byte é) and "keeps a preview that ends exactly on a code-point boundary unchanged".
 done_when:: A preview of 600 two-byte characters is capped at 500 characters with no trailing replacement glyph.
 ref:: openspec/analysis/2026-11-14-console-builder-review/consolidated-plan-and-verdict.md@D10
 batch:: b10e-console-builder-files-section

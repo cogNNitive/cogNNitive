@@ -244,6 +244,29 @@ blueprint_version: "1.0.0"
     assert.ok(bigEntry.snippet.length <= 500, `preview must stay within the excerpt cap, got ${bigEntry.snippet.length}`)
   })
 
+  it('cuts a preview between code points instead of emitting a replacement glyph', async () => {
+    // 499 single-byte characters put the 500-byte preview cut inside the two-byte 'é'.
+    const body = 'a'.repeat(499) + 'é' + 'b'.repeat(100)
+    await writeFile(join(tempDir, 'sources', 'import', 'multibyte.md'), body, 'utf8')
+    const files = await collectWorkspaceFiles(tempDir, { elements: [], changesets: [] })
+    const entry = files.inventory.find((e) => e.path === 'sources/import/multibyte.md')
+    assert.ok(entry, 'multibyte.md should be in the inventory')
+    assert.equal(entry.snippet.includes('\uFFFD'), false, 'a cut inside a code point must not emit U+FFFD')
+    assert.equal(entry.snippet, 'a'.repeat(499), 'the incomplete trailing sequence is withheld')
+    assert.equal(entry.snippetTruncated, true)
+  })
+
+  it('keeps a preview that ends exactly on a code-point boundary unchanged', async () => {
+    const body = 'a'.repeat(500) + 'é' + 'b'.repeat(100)
+    await writeFile(join(tempDir, 'sources', 'import', 'boundary.md'), body, 'utf8')
+    const files = await collectWorkspaceFiles(tempDir, { elements: [], changesets: [] })
+    const entry = files.inventory.find((e) => e.path === 'sources/import/boundary.md')
+    assert.ok(entry, 'boundary.md should be in the inventory')
+    assert.equal(entry.snippet, 'a'.repeat(500), 'a cut on a code-point boundary keeps the whole prefix')
+    assert.equal(entry.snippet.includes('\uFFFD'), false)
+    assert.equal(entry.snippetTruncated, true)
+  })
+
   it('supports --no-files flag to omit files precomputation', async () => {
     const res = await runExportConsole([tempDir, '--domain', '--no-files', '--no-open'], { open: false })
     assert.equal(res.exitCode, 0)

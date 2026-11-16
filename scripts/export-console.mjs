@@ -41,6 +41,7 @@ import { createReadStream, existsSync, readFileSync, realpathSync, writeFileSync
 import { join, relative, basename, resolve, dirname, isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
+import { StringDecoder } from 'node:string_decoder'
 import { homedir } from 'node:os'
 import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'
@@ -1191,7 +1192,9 @@ export async function collectWorkspaceFiles(workspaceRoot, options = {}) {
         } finally {
           await handle.close()
         }
-        snippet = buf.toString('utf8')
+        // StringDecoder withholds an incomplete trailing sequence, so a cut that
+        // lands inside a multi-byte code point never emits U+FFFD.
+        snippet = new StringDecoder('utf8').write(buf)
         snippetTruncated = want < st.size
         snippetBudget -= want
       } catch {
