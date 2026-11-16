@@ -290,6 +290,100 @@ notes:: "Budget revision ${i + 1} recorded so the per-element history has real w
   })
 })
 
+// console-matrix-provenance-payload (batch b17): the same dead-map class as the
+// element one b12 removed, one slot over. The builder emitted `matrix.provenance` —
+// per row/column `{history, origin}` — for every non-empty cell, and no browser-side
+// console source reads it: every view renders the cell VALUE. The export is pinned
+// here, on a domain that actually holds a matrix with an applied cell change, so a
+// producer that puts the key back cannot slip through on an empty fixture.
+const MATRIX_MODEL = `---
+title: "Matrix Domain"
+model_version: "V_1-0-0"
+level: 3
+---
+
+# NN Stakeholders
+## NN Stakeholders: Enterprise
+slug:: enterprise
+
+## NN Stakeholders: Startup
+slug:: startup
+
+# NN matrices: Impact Matrix
+| - | Startup |
+| :--- | :---: |
+| Enterprise | high |
+`
+
+const MATRIX_CHANGES = `---
+spec_version: "V_0-4-0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://example.test/changes/spec_NN.md"
+blueprint_version: "V_0-2-0"
+status: applied
+title: "Matrix changes"
+author: "OpenCode"
+applied_at: "2026-11-16T12:00:00.000Z"
+---
+
+# NN index
+
+* [[Change]]
+
+# NN Change
+
+## NN Change: m-01
+op:: update_matrix_cell
+target:: business_V_1-0-0@Impact Matrix&enterprise&startup
+resolved_target:: business_V_1-0-0@impact-matrix&enterprise&startup
+to:: "high"
+author:: OpenCode
+notes:: "Set the impact cell from the source."
+`
+
+describe('an exported payload ships no matrix provenance (b17)', () => {
+  let root
+  let island
+  let slot
+
+  before(async () => {
+    root = await mkdtemp(join(tmpdir(), 'nn-prov-matrix-'))
+    await mkdir(join(root, 'models'), { recursive: true })
+    await mkdir(join(root, 'changes'), { recursive: true })
+    await writeFile(join(root, 'models', 'business_V_1-0-0_NN.md'), MATRIX_MODEL, 'utf-8')
+    await writeFile(join(root, 'changes', 'dom_matrix_1_changes_NN.md'), MATRIX_CHANGES, 'utf-8')
+    const res = await exportDomain(root)
+    assert.equal(res.exitCode, 0, `the export succeeded: ${res.stderr}`)
+    island = modelIsland(await readFile(join(root, 'domaiNN_console.html'), 'utf-8'))
+    slot = JSON.parse(island)
+  })
+
+  after(async () => {
+    if (root && existsSync(root)) await rm(root, { recursive: true, force: true })
+  })
+
+  it('carries the cell value and no per-cell provenance map', () => {
+    const matrix = slot.matrices.find((m) => m.name === 'Impact Matrix')
+    assert.ok(matrix, 'the matrix is embedded')
+    assert.equal(matrix.cells.Enterprise.Startup, 'high', 'the cell keeps the value the Matrices view renders')
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(matrix, 'provenance'),
+      false,
+      'no matrix provenance map ships: the console has no reader for it',
+    )
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(matrix, 'history'),
+      false,
+      'and no matrix history map replaces it',
+    )
+    // This domain DOES hold a matrix with an applied cell change, so the byte-level
+    // check is real: no producer can put the key back unnoticed.
+    assert.equal(island.includes('"provenance"'), false, 'the model slot carries no provenance key at all')
+  })
+})
+
 /**
  * Boots an exported console the way the file does: patch what jsdom lacks, execute
  * the bundle, then boot. `runScripts: 'outside-only'` keeps the inlined copy from

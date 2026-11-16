@@ -1,10 +1,14 @@
 /**
- * Console payload identity, exact cell provenance and the collections slot
- * (distributed-storage S5b: hierarchical-identity; distributed-collection-resolution).
+ * Console payload identity and the collections slot (distributed-storage S5b:
+ * hierarchical-identity; distributed-collection-resolution).
  *
  * `buildConsolePayload` stays pure and browser-safe: it never reads a domaiNN, so
  * the caller that HAS the domain index passes the id in. The standalone fallback
  * is the compact stem of the file name, never a path.
+ *
+ * The exact `<model-id>@<matrix-slug>&<row-slug>&<col-slug>` cell key this file
+ * used to pin went with `matrix.provenance` (batch b17): no browser-side console
+ * source reads per-cell history, so the payload no longer derives one.
  */
 import { describe, it, expect } from 'vitest'
 import { buildConsolePayload } from '../../src/index.js'
@@ -29,27 +33,6 @@ slug:: element-2a
 
 const PLACEMENT_PATH = 'series/villabotijos-today/assets/pepper-mapache/pepper-mapache_coNNtent_NN.md'
 
-const cellChange = (modelId: string, id: string, evidence: string) => ({
-  id,
-  op: 'update_matrix_cell',
-  target: `${modelId}@Impact Matrix&element-1a&element-2a`,
-  resolved_target: `${modelId}@impact-matrix&element-1a&element-2a`,
-  to: 'high',
-  evidence,
-  status: 'applied',
-})
-
-const CHANGESET = (modelId: string, evidence: string) => ({
-  path: 'changes/dom_lucas_20261010T120000Z_changes_NN.md',
-  status: 'applied',
-  author: 'lucas',
-  appliedAt: '2026-10-10T12:00:00.000Z',
-  changes: [cellChange(modelId, 'c-01', evidence)],
-})
-
-const cellProvenance = (payload: ReturnType<typeof buildConsolePayload>) =>
-  payload.model.matrices[0].provenance?.['Element 1A']?.['Element 2A']
-
 describe('payload modelId is the domain index id', () => {
   it('uses the id the caller passes, not a path', () => {
     const payload = buildConsolePayload({
@@ -72,46 +55,6 @@ describe('payload modelId is the domain index id', () => {
   it('falls back to the title slug when there is no path either', () => {
     const payload = buildConsolePayload({ content: MODEL('Ghostbusters Business Model') })
     expect(payload.model.meta.modelId).toBe('ghostbusters-business-model')
-  })
-})
-
-describe('cell provenance is keyed exactly', () => {
-  it('matches this model\'s cell unit', () => {
-    const payload = buildConsolePayload({
-      content: MODEL('El mapache fuera de la ley'),
-      modelId: 'villabotijos-today/pepper-mapache',
-      changesets: [CHANGESET('villabotijos-today/pepper-mapache', 'sources/a.md@## Impact')],
-    })
-    expect(cellProvenance(payload)?.origin?.changeId).toBe('c-01')
-  })
-
-  it('never borrows a cell unit from another model with the same suffix', () => {
-    const payload = buildConsolePayload({
-      content: MODEL('El mapache fuera de la ley'),
-      modelId: 'villabotijos-today/pepper-mapache',
-      changesets: [CHANGESET('innteresante/intro', 'sources/b.md@## Other video')],
-    })
-    expect(cellProvenance(payload)).toBeUndefined()
-  })
-
-  it('gives each of two models with the same suffix its own cell origin', () => {
-    const changesets = [
-      CHANGESET('villabotijos-today/pepper-mapache', 'sources/a.md@## Impact'),
-      CHANGESET('innteresante/intro', 'sources/b.md@## Other video'),
-    ]
-    // The other model's change is listed first: a suffix match would pick it.
-    const mine = buildConsolePayload({
-      content: MODEL('El mapache fuera de la ley'),
-      modelId: 'villabotijos-today/pepper-mapache',
-      changesets,
-    })
-    const other = buildConsolePayload({
-      content: MODEL('Intro'),
-      modelId: 'innteresante/intro',
-      changesets,
-    })
-    expect(cellProvenance(mine)?.origin?.evidence).toBe('sources/a.md@## Impact')
-    expect(cellProvenance(other)?.origin?.evidence).toBe('sources/b.md@## Other video')
   })
 })
 

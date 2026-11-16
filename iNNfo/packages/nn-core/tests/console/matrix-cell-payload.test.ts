@@ -1,7 +1,13 @@
 /**
- * Matrix cell provenance in the console payload (change-provenance: consumers
- * read the log; console-payload-builder: every non-empty cell carries history and
- * origin).
+ * Matrix cells in the console payload (console-matrix-provenance-payload).
+ *
+ * The builder used to emit `matrix.provenance` — a per row/column map of
+ * `{history, origin}` built with `deriveValueHistory` and `deriveFieldOrigin` for
+ * every non-empty cell. No browser-side console source read it: nn-runtime.js,
+ * review.js, ui-kit.js, studio.js, the render-* modules and the per-blueprint view
+ * modules all render the cell VALUE only, and the size-budget degrade ladder never
+ * walked matrices either. The export paid the derivation on every cell for a map
+ * nothing displayed, so it is gone: a matrix ships its definition and its cells.
  */
 import { describe, it, expect } from 'vitest'
 import { buildConsolePayload } from '../../src/index.js'
@@ -54,13 +60,8 @@ const CHANGESET = {
   ],
 }
 
-const cell = (payload: ReturnType<typeof buildConsolePayload>) => {
-  const matrix = payload.model.matrices[0]
-  return matrix.provenance?.['Element 1A']?.['Element 2A']
-}
-
-describe('console matrix cell provenance', () => {
-  it('derives the cell origin from the last applied change', () => {
+describe('console matrix cells ship their values, not their provenance', () => {
+  it('emits no per-cell provenance map for a cell two applied changes set', () => {
     const payload = buildConsolePayload({
       content: MODEL,
       path: 'kNNowledge/Impact_NN.md',
@@ -68,19 +69,23 @@ describe('console matrix cell provenance', () => {
       changesets: [CHANGESET],
     })
 
-    const provenance = cell(payload)
-    expect(provenance).toBeDefined()
-    expect(provenance?.origin?.changeId).toBe('c-02')
-    expect(provenance?.origin?.evidence).toBe('sources/b.md@## Revised')
-    expect(provenance?.history.map((hop) => hop.changeId)).toEqual(['c-01', 'c-02'])
+    const matrix = payload.model.matrices[0]
+    // The derived map: the change log is read for the element history, never for a
+    // matrix, so the matrix must not advertise one.
+    expect(matrix).not.toHaveProperty('provenance')
+    expect(matrix).not.toHaveProperty('history')
+    // The cell itself still ships, which is what the Matrices view renders.
+    expect(matrix.cells['Element 1A']?.['Element 2A']).toBe('high')
   })
 
-  it('carries no provenance for a cell no applied change touched', () => {
+  it('emits no provenance map when no changeset exists either', () => {
     const payload = buildConsolePayload({
-      content: MODEL.replace('| Element 1A | high |', '| Element 1A | high |\n| - | - |'),
+      content: MODEL,
       path: 'kNNowledge/Impact_NN.md',
       changesets: [],
     })
-    expect(payload.model.matrices[0].provenance).toBeUndefined()
+
+    expect(payload.model.matrices[0]).not.toHaveProperty('provenance')
+    expect(payload.model.matrices[0].cells['Element 1A']?.['Element 2A']).toBe('high')
   })
 })
