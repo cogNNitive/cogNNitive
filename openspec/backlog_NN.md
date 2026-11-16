@@ -692,6 +692,72 @@ evidence:: Shipped in batch b10g: the `plain` table of `findModuleSyntax` rows i
 done_when:: The table gains a row that feeds a closing brace followed by a slash and pins the scanner's verdict, and no production code changes.
 batch:: b10g-console-builder-hygiene
 
+## NN Item: console-matrix-provenance-payload
+value:: M
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: Found on 2026-11-16 while shipping console-unread-provenance-payload (PR #670). `iNNfo/packages/nn-core/src/console/payload-builder.ts:418-443` emits `matrix.provenance` per row and column, each entry `{history, origin}`, and a grep over every browser-side console source (nn-runtime.js, review.js, ui-kit.js, studio.js, render-*.js, the per-blueprint assets/*.js view modules) returns zero readers. The element map was removed by #670, but the degrade ladder in scripts/console-views.mjs (653-675) never walks matrices, so this one is not even strippable under the size budget today.
+done_when:: The export emits no `matrix.provenance`, matrix history still reaches the console wherever a reader exists, the over-budget degrade path reports what it now strips for matrices, and a test pins the payload shape.
+batch:: b17-console-matrix-provenance
+
+## NN Item: console-fixture-regeneration-gate
+value:: M
+effort:: M
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: Found on 2026-11-16 in batch b10a. `test/fixtures/testlab/domaiNN_console.html` was stale on `main` at 75daf23f by ~3,871 bytes: regenerating it from unchanged sources changed the file, because the bundle and shell had moved since the last committed export and nothing regenerates this fixture. `npm run regen` covers the other derived artifacts (bundle, payload mirror, catalogs) but not the exported console, and the pre-commit hook only stages what `scripts/pre-commit-regen.js` knows about, so the fixture drifts until someone runs the export by hand.
+done_when:: A freshness check compares the committed `test/fixtures/testlab/domaiNN_console.html` against a fresh export of the same fixture (timestamps and the path-derived domain id normalized) and fails naming the command that regenerates it; regenerating it makes the check pass.
+batch:: b18-console-fixture-integrity
+
+## NN Item: console-domain-id-path-hash
+value:: L
+effort:: S
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: Found on 2026-11-16 in batch b16. `scripts/export-console.mjs` derives `meta.domainId` as the basename plus a short hash of the lowercased ABSOLUTE export path, so exporting the same fixture from two differently named worktrees produces two different committed artifacts (observed: `testlab-82fea50b` -> `testlab-74fcfcb4`). Two workers hit the resulting churn independently, and a differential harness reported false diffs until both sides ran from the same path.
+done_when:: The committed console's domain id is derived from workspace content or from the domain-relative path, never from the absolute checkout path; exporting the same domain from two differently named worktrees yields byte-identical output apart from the wall-clock stamps; a test pins it.
+batch:: b18-console-fixture-integrity
+
+## NN Item: console-ui-smoke-current-console
+value:: M
+effort:: M
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: Found on 2026-11-16 in batch b16. `test/ui/testlab_smoke.py` opens the frozen `artifacts/TestLab_coverage_TestLab_console/..._20261013T045336Z.html` snapshot, not `test/fixtures/testlab/domaiNN_console.html` that the exporter produces. CI's `ui-smoke` therefore validates a month-old artifact, which is how the dead `innfo-ui.css` survived (#664). The repointing is NI-2 in openspec/analysis/2026-11-14-independent-sonnet.md and needs a test/ui change.
+done_when:: The UI smoke opens the console the exporter writes today, asserts no non-CDN failed request and no JS page error against it, and still passes on a fixture with zero views.
+batch:: b18-console-fixture-integrity
+
+## NN Item: console-focus-refresh-reveal
+value:: L
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: Found on 2026-11-16 in batch b13 (PR #668). After a deep-link boot reveals the page holding the focused card, a later refresh re-mounts page 0 only: the focused page is not revealed again, so the element the URL names is no longer in the DOM until the reader clicks Show more. The focus id is consumed once by contract, so this is not a regression, but the URL and the DOM disagree after any refresh and no test covers it.
+done_when:: A refresh after a deep-link boot either re-reveals the focused page or clears the focus from the URL, so the address bar and the mounted cards never disagree; a test pins the chosen behaviour.
+batch:: b17-console-matrix-provenance
+
+## NN Item: nn-mcp-bundle-reproducibility
+value:: M
+effort:: M
+risk:: M
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: Observed on every console batch on 2026-11-16: `npm --workspace=@cognnitive/nn-mcp run build` rewrites the committed `iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js` with a 22-byte diff (943,460 -> 943,438 on this machine), so the pre-commit hook stages a change no author asked for and every worker has to restore the file and commit with `--no-verify`. The guards only compare an embedded version, so CI stays green and the drift is invisible. Same family as the console bundle, which IS reproducible (build twice, zero diff). Lane is heavy because the artifact is a release asset.
+done_when:: Two consecutive builds of the nn-mcp bundle from the same tree produce byte-identical output, the committed artifact equals a clean build in CI, and a check fails when they diverge; the restore-and-no-verify workaround stops being necessary.
+batch:: b19-nn-mcp-bundle-reproducibility
+
 # NN Batch
 
 ## NN Batch: b3a-source-import-guards
@@ -950,5 +1016,26 @@ state:: planned
 order:: 40
 lane:: light
 items:: console-builder-d08-output-capture
+risk:: M
+state:: planned
+
+## NN Batch: b17-console-matrix-provenance
+order:: 41
+lane:: light
+items:: console-matrix-provenance-payload, console-focus-refresh-reveal
+risk:: L
+state:: planned
+
+## NN Batch: b18-console-fixture-integrity
+order:: 42
+lane:: light
+items:: console-fixture-regeneration-gate, console-domain-id-path-hash, console-ui-smoke-current-console
+risk:: M
+state:: planned
+
+## NN Batch: b19-nn-mcp-bundle-reproducibility
+order:: 43
+lane:: heavy
+items:: nn-mcp-bundle-reproducibility
 risk:: M
 state:: planned
