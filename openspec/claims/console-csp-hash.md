@@ -1,6 +1,7 @@
 # claim: console-csp-hash
 
 branch: session/console-csp-hash
+pr: 672
 opened: 2026-11-16
 thread: opencode subagent (batch b10a — CSP hash handling)
 
@@ -22,3 +23,9 @@ area:
 # tokens removed from the shipped shell. That is reported to the parent, not done here.
 #
 # No batch-zone line and no other backlog item is touched.
+#
+# claim-check against the areas exits 0 ("area is free"). It reports six released
+# tombstones — console-fixture-assets (#664), console-focus-mount (#668),
+# console-identity-freshness (#669), console-provenance (#670), console-scan-errors (#665)
+# and console-views-hygiene (#666) — whose PRs are no longer open, so none is a live lock.
+# No PR was open when this session claimed the area.
