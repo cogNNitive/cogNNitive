@@ -29,7 +29,7 @@ import { resolve, resolveKeyed } from './cascade.mjs';
 import { resolveLibrary } from './library.mjs';
 import { applyCachedAvatars } from './avatar-jobs.mjs';
 import { buildTtsVoiceOptions } from './tts-options.mjs';
-import { buildImageOptions } from './image-options.mjs';
+import { buildImageOptions, imageModelsFor } from './image-options.mjs';
 import { appendTimingRow, timingRow } from './facts.mjs';
 import { assertImageSize, loadMergedCatalog } from './catalog.mjs';
 import { warnUnpricedAllowedModels } from '../asset-cost-estimator.mjs';
@@ -585,11 +585,11 @@ async function synthesizeScriptAssets(parsed, synthesizer, models, onProgress = 
     for (const layer of Array.isArray(sc.layers) ? sc.layers : []) {
       const prompt = layer.properties?.layer_prompt || layer.properties?.prompt;
       if (!prompt) continue;
-      const imageModel = normalizeModelId(resolve('image_model', bags).value);
-      const imageSize = resolve('image_size', bags).value;
-      // The size is validated against the merged catalog's `sizes` for the resolved model,
-      // overlay included, before any provider call.
-      if (imageSize) assertImageSize(catalog || loadMergedCatalog({ overlay: null }), imageModel, imageSize);
+      const { image: imageModel, imageSize } = imageModelsFor({
+        bags,
+        parsed,
+        catalog: catalog || loadMergedCatalog({ overlay: null }),
+      });
       const mediaOptions = buildImageOptions(sc, layer, { ...models, image: imageModel, imageSize });
       const ref = `${sc.id}/${layer.name}`;
       onProgress({ phase: 'media-start', done: mediaDone, total: mediaTotal, scene: sc.id, model: imageModel });
