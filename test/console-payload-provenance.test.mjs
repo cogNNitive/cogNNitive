@@ -20,6 +20,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { JSDOM } from 'jsdom'
 import { runExportConsole } from '../scripts/export-console.mjs'
+import { decodeConsoleModelText, encodeConsoleModel, slotTextOf } from './helpers/console-slots.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const consoleDir = resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
@@ -33,11 +34,16 @@ async function exportDomain(root) {
   return res
 }
 
-/** The `nn-model` payload island of an exported console. */
+/** The raw (compressed, base64) `nn-model` slot text of an exported console. */
+function encodedIsland(html) {
+  const text = slotTextOf(html, 'nn-model')
+  assert.ok(text, 'the exported console carries the nn-model payload island')
+  return text
+}
+
+/** The `nn-model` payload island of an exported console, decoded to its JSON text. */
 function modelIsland(html) {
-  const m = /id="nn-model">([\s\S]*?)<\/script>/.exec(html)
-  assert.ok(m, 'the exported console carries the nn-model payload island')
-  return m[1]
+  return decodeConsoleModelText(encodedIsland(html))
 }
 
 const MODEL = `---
@@ -249,8 +255,8 @@ notes:: "Budget revision ${i + 1} recorded so the per-element history has real w
     const measured = await exportDomain(root)
     assert.equal(measured.exitCode, 0, `the measuring export succeeded: ${measured.stderr}`)
     const fullHtml = await readFile(join(root, 'domaiNN_console.html'), 'utf-8')
-    const fullIsland = modelIsland(fullHtml)
-    const model = JSON.parse(fullIsland)
+    const fullIsland = encodedIsland(fullHtml)
+    const model = JSON.parse(modelIsland(fullHtml))
 
     const without = (drop) =>
       JSON.stringify({
@@ -261,10 +267,13 @@ notes:: "Budget revision ${i + 1} recorded so the per-element history has real w
           return copy
         }),
       })
-    const noCitations = without(['citations'])
-    const noCitationsNoHistory = without(['citations', 'history'])
+    // The page carries the model compressed, so every size is the size of the slot the
+    // exporter would write for that payload.
+    const slotOf = (json) => '\n' + encodeConsoleModel(JSON.parse(json)) + '\n'
+    const noCitations = slotOf(without(['citations']))
+    const noCitationsNoHistory = slotOf(without(['citations', 'history']))
     const historyBytes = bytes(noCitations) - bytes(noCitationsNoHistory)
-    assert.ok(historyBytes > 1000, `the fixture carries a real history (${historyBytes} B)`)
+    assert.ok(historyBytes > 200, `the fixture carries a real history (${historyBytes} B)`)
 
     // Stage 1 alone cannot fit; stage 2 does. The island is the only part of the
     // page the ladder changes, so the totals move by exactly its byte delta.
@@ -410,7 +419,8 @@ function boot(html) {
     disconnect() {}
   }
   window.eval(BUNDLE)
-  const res = window.nnConsole.boot(window.document)
+  // The page decodes its compressed model before booting; this test pre-decodes it.
+  const res = window.nnConsole.boot(window.document, { modelText: modelIsland(html) })
   assert.equal(res.ok, true, 'the exported console boots')
   return { window, document: window.document }
 }

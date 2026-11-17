@@ -5,6 +5,18 @@ import { join } from 'node:path'
 import { createRequire } from 'node:module'
 
 import { installDialogStub } from './helpers/dialog-stub'
+import { deflateRawSync, inflateRawSync } from 'node:zlib'
+
+/** The nn-model slot holds the payload deflate-raw compressed and base64 encoded. */
+const encodeModelSlot = (model: unknown): string =>
+  deflateRawSync(Buffer.from(JSON.stringify(model), 'utf8'), { level: 9 }).toString('base64')
+
+/** The decoded JSON text of a document's nn-model slot; the page decodes it before boot. */
+const decodedModelText = (doc: Document): string => {
+  const text = (doc.getElementById('nn-model')?.textContent ?? '').trim()
+  return text ? inflateRawSync(Buffer.from(text, 'base64')).toString('utf8') : ''
+}
+
 const req = createRequire(import.meta.url)
 const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
 const modelConsolePath = join(consoleDir, 'artifact_shell.html')
@@ -69,8 +81,8 @@ function renderModelConsole(overrideConfig?: any, overrideMeta?: any): void {
       `$1${JSON.stringify(sampleSchema)}$2`,
     )
     .replace(
-      /(<script type="application\/json" id="nn-model">)[\s\S]*?(<\/script>)/,
-      `$1${JSON.stringify(modelToUse)}$2`,
+      /(<script type="application\/x-nn-deflate-base64" id="nn-model">)[\s\S]*?(<\/script>)/,
+      `$1${encodeModelSlot(modelToUse)}$2`,
     )
     .replace(
       /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
@@ -108,11 +120,11 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
 
     // First evaluation
     const api1 = loadRuntime()
-    api1.boot(document)
+    api1.boot(document, { modelText: decodedModelText(document) })
 
     // Second evaluation (simulating second bundle load)
     const api2 = loadRuntime()
-    api2.boot(document)
+    api2.boot(document, { modelText: decodedModelText(document) })
 
     const roots = document.querySelectorAll('[data-nn-feedback-root]')
     expect(roots.length).toBe(1)
@@ -127,7 +139,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
   it('calls showModal once per click on #nn-feedback-open', () => {
     renderModelConsole()
     const api = loadRuntime()
-    api.boot(document)
+    api.boot(document, { modelText: decodedModelText(document) })
 
     const modal = document.getElementById('nn-feedback-modal') as HTMLDialogElement
     const showModalSpy = vi.spyOn(modal, 'showModal')
@@ -141,7 +153,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
   it('composeExport builds a changeset document and no JSON payload', () => {
     renderModelConsole()
     const api = loadRuntime()
-    api.boot(document)
+    api.boot(document, { modelText: decodedModelText(document) })
 
     const storeKey = 'nn-console:v4:ghostbusters-model'
     const existing = JSON.parse(localStorage.getItem(storeKey) || '{"v":4,"modelId":"ghostbusters-model","drafts":[],"reviewed":{}}')
@@ -159,7 +171,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     localStorage.setItem(storeKey, JSON.stringify(existing))
 
     // Re-boot so the controller reads the seeded store.
-    api.boot(document)
+    api.boot(document, { modelText: decodedModelText(document) })
     const composed = api.composeExport(
       { store: { drafts: () => JSON.parse(localStorage.getItem(storeKey) || '{}').drafts }, modelId: 'ghostbusters-model', modelTitle: 'GhostbustersModel', modelVersion: 'V_0-2-1', meta: { changesBlueprintVersion: 'V_0-3-0' } },
       'Egon Spengler',
@@ -174,7 +186,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
   it('injects nothing when feedback-export is not declared in needs', () => {
     renderModelConsole({ needs: ['concept-rail', 'fulltext-search'] })
     const api = loadRuntime()
-    api.boot(document)
+    api.boot(document, { modelText: decodedModelText(document) })
 
     expect(document.querySelector('[data-nn-feedback-root]')).toBeNull()
     expect(document.getElementById('nn-feedback-open')).toBeNull()
@@ -191,7 +203,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     document.body.appendChild(stepperModal)
 
     const api = loadRuntime()
-    api.boot(document)
+    api.boot(document, { modelText: decodedModelText(document) })
 
     expect(document.getElementById('nn-export-modal')).toBe(stepperModal)
     expect(document.getElementById('nn-feedback-modal')).not.toBeNull()
@@ -223,7 +235,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
       }),
     )
     const api = loadRuntime()
-    api.boot(document)
+    api.boot(document, { modelText: decodedModelText(document) })
     expect(document.querySelector('#nn-feedback-banner .nn-banner-stale')).toBeNull()
     expect(document.querySelector('[data-nn="stale-feedback"]')).toBeNull()
   })
@@ -231,7 +243,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
   it('the export modal describes the real flow and never mentions sealing', () => {
     renderModelConsole()
     const api = loadRuntime()
-    api.boot(document)
+    api.boot(document, { modelText: decodedModelText(document) })
     const modal = document.getElementById('nn-feedback-modal')!
     expect(modal.textContent).not.toContain('Sealed')
     expect(modal.textContent).not.toContain('proposal_sha')
@@ -248,7 +260,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
   it('the agent prompt asks the agent to apply and report skipped changes with reasons', () => {
     renderModelConsole()
     const api = loadRuntime()
-    api.boot(document)
+    api.boot(document, { modelText: decodedModelText(document) })
     document
       .getElementById('nn-feedback-open')!
       .dispatchEvent(new Event('click', { bubbles: true }))
@@ -262,7 +274,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
   it('does not leak the config needs[] list into the review banner', () => {
     renderModelConsole()
     const api = loadRuntime()
-    api.boot(document)
+    api.boot(document, { modelText: decodedModelText(document) })
     const banner = document.getElementById('nn-feedback-banner')
     expect(banner).not.toBeNull()
     expect(banner!.querySelector('.nn-banner-needs')).toBeNull()
@@ -284,7 +296,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
   it('the single shell renders a citation icon for an element with citations', () => {
     renderModelConsole()
     const api = loadRuntime()
-    api.boot(document)
+    api.boot(document, { modelText: decodedModelText(document) })
 
     // Element 'el-threat-slimer' has citations; the runtime renders them from
     // the kit (no model viewer).

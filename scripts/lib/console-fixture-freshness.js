@@ -57,12 +57,34 @@ const REGEN_COMMAND = `node scripts/export-console.mjs ${FIXTURE_DOMAIN} --domai
  */
 const STAMP_RE = /("(?:generated|citationsResolvedAt|mtime)":")[^"]*"/g;
 
+/** The compressed nn-model slot of a console page: open tag, body, close tag. */
+const MODEL_SLOT_RE = /(<script type="[^"]*" id="nn-model">)([\s\S]*?)(<\/script>)/;
+
+/**
+ * The page with its nn-model slot decoded (deflate-raw + base64, see `encodeConsoleModel`
+ * in scripts/export-console.mjs) back to the JSON the exporter compressed, so the stamps
+ * inside it can be masked. A slot that does not decode is left as it is, so it still
+ * differs from a fresh export.
+ * @param {string} html
+ * @returns {string}
+ */
+function withDecodedModel(html) {
+  return html.replace(MODEL_SLOT_RE, (whole, open, body, close) => {
+    try {
+      const { decodeConsoleModelText } = require('../export-console.mjs');
+      return `${open}\n${decodeConsoleModelText(body)}\n${close}`;
+    } catch {
+      return whole;
+    }
+  });
+}
+
 /**
  * @param {string} html
- * @returns {string} the artifact with its wall-clock fields masked
+ * @returns {string} the artifact with its model decoded and its wall-clock fields masked
  */
 function withoutStamps(html) {
-  return html.replace(STAMP_RE, '$1<stamp>"');
+  return withDecodedModel(html).replace(STAMP_RE, '$1<stamp>"');
 }
 
 /** A copy of `text` short enough to read inside a failure message. */
@@ -202,7 +224,7 @@ function checkConsoleFixtureFreshness(options = {}) {
   }
 }
 
-module.exports = { checkConsoleFixtureFreshness, withoutStamps, FIXTURE_DOMAIN, CONSOLE_FILE, REGEN_COMMAND };
+module.exports = { checkConsoleFixtureFreshness, withoutStamps, withDecodedModel, FIXTURE_DOMAIN, CONSOLE_FILE, REGEN_COMMAND };
 
 if (require.main === module) {
   const { ok, message } = checkConsoleFixtureFreshness();

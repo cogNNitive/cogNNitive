@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join, resolve as resolvePath } from 'node:path'
 import { JSDOM } from 'jsdom'
-import { runExportConsole, collectWorkspaceFiles } from '../scripts/export-console.mjs'
+import { runExportConsole, collectWorkspaceFiles, decodeConsoleModelText } from '../scripts/export-console.mjs'
 
 const sha = (text) => createHash('sha256').update(text).digest('hex')
 
@@ -127,7 +127,7 @@ blueprint_version: "1.0.0"
     const modelScript = dom.window.document.getElementById('nn-model')
     assert.ok(modelScript, '#nn-model script tag should exist')
 
-    const files = JSON.parse(modelScript.textContent).files
+    const files = JSON.parse(decodeConsoleModelText(modelScript.textContent)).files
     assert.ok(files, 'model.files must be defined')
     assert.ok(Array.isArray(files.inventory), 'files.inventory must be an array')
 
@@ -333,7 +333,7 @@ blueprint_version: "1.0.0"
     const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf8')
     const dom = new JSDOM(html)
     const modelScript = dom.window.document.getElementById('nn-model')
-    assert.equal(JSON.parse(modelScript.textContent).files, undefined)
+    assert.equal(JSON.parse(decodeConsoleModelText(modelScript.textContent)).files, undefined)
   })
 
   it('includes files inventory on --filter scoped builds', async () => {
@@ -346,7 +346,7 @@ blueprint_version: "1.0.0"
     const html = await readFile(scopedHtmlPath, 'utf8')
     const dom = new JSDOM(html)
     const modelScript = dom.window.document.getElementById('nn-model')
-    const payload = JSON.parse(modelScript.textContent)
+    const payload = JSON.parse(decodeConsoleModelText(modelScript.textContent))
     assert.ok(payload.files, 'scoped console must contain model.files')
     assert.ok(payload.files.inventory.length >= 5)
   })

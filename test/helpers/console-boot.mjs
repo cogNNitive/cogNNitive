@@ -5,6 +5,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { topmostModal, submitEdit } from './console-contract.mjs'
+import { decodedModelTextOf, modelSlotMarkup } from './console-slots.mjs'
 
 const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -36,7 +37,8 @@ export const MODEL = {
   ],
 }
 
-export function bootConsole({ registry, model = MODEL, schema, config, url = 'http://localhost', before, runScripts, viewData } = {}) {
+// `drafts` fills the nn-drafts slot (`{ drafts, uiState }`); absent, the slot is `{}`.
+export function bootConsole({ registry, model = MODEL, schema, config, url = 'http://localhost', before, runScripts, viewData, drafts } = {}) {
   const schemaSlot = schema || { concepts: [{ name: 'Fleet' }] }
   const configSlot = config || { needs: ['feedback-export'] }
   // Absent viewData keeps the slot out, so the "no data" path is the real shell path.
@@ -59,7 +61,8 @@ export function bootConsole({ registry, model = MODEL, schema, config, url = 'ht
       </div>
       <script type="application/json" id="nn-config">${JSON.stringify(configSlot)}</script>
       <script type="application/json" id="nn-schema">${JSON.stringify(schemaSlot)}</script>
-      <script type="application/json" id="nn-model">${JSON.stringify(model)}</script>
+      ${modelSlotMarkup(model)}
+      <script type="application/json" id="nn-drafts">${JSON.stringify(drafts || {})}</script>
       ${viewDataSlot}
     </body></html>`,
     runScripts ? { url, runScripts } : { url },
@@ -69,7 +72,10 @@ export function bootConsole({ registry, model = MODEL, schema, config, url = 'ht
   global.localStorage = dom.window.localStorage
   global.CustomEvent = dom.window.CustomEvent
   if (before) before(dom.window.document)
-  const res = nnConsole.boot(dom.window.document, registry ? { registry } : undefined)
+  // The real page decodes nn-model asynchronously before boot; tests pre-decode it with
+  // the Node codec so boot stays synchronous.
+  const modelText = decodedModelTextOf(dom.window.document)
+  const res = nnConsole.boot(dom.window.document, registry ? { registry, modelText } : { modelText })
   return { dom, document: dom.window.document, res }
 }
 
@@ -81,8 +87,8 @@ export function bootConsoleFromShell() {
   const html = shell
     .replace(/<script\s+src=[^>]*><\/script>/g, '')
     .replace(
-      /(<script type="application\/json" id="nn-model">)[\s\S]*?(<\/script>)/,
-      (_m, open, close) => open + JSON.stringify(MODEL) + close,
+      /<script type="[^"]*" id="nn-model">[\s\S]*?<\/script>/,
+      () => modelSlotMarkup(MODEL),
     )
     .replace(
       /(<script type="application\/json" id="nn-schema">)[\s\S]*?(<\/script>)/,
@@ -93,7 +99,7 @@ export function bootConsoleFromShell() {
   global.document = dom.window.document
   global.localStorage = dom.window.localStorage
   global.CustomEvent = dom.window.CustomEvent
-  const res = nnConsole.boot(dom.window.document)
+  const res = nnConsole.boot(dom.window.document, { modelText: decodedModelTextOf(dom.window.document) })
   return { dom, document: dom.window.document, res }
 }
 

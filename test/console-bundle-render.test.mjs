@@ -10,6 +10,7 @@ import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { JSDOM } from 'jsdom'
 import { consoleDir } from './helpers/console-boot.mjs'
+import { decodedModelTextOf, modelSlotMarkup } from './helpers/console-slots.mjs'
 
 const require = createRequire(import.meta.url)
 const { SOURCES } = require('../scripts/lib/console-bundle.js')
@@ -37,7 +38,8 @@ function shellHtml(model = { meta: { title: 'T', modelId: 't', modelVersion: 'V_
   </div>
   <script type="application/json" id="nn-config">{"needs":["feedback-export"]}</script>
   <script type="application/json" id="nn-schema">{"concepts":[{"name":"Fleet"}]}</script>
-  <script type="application/json" id="nn-model">${JSON.stringify(model)}</script>
+  ${modelSlotMarkup(model)}
+  <script type="application/json" id="nn-drafts">{}</script>
 </body></html>`
 }
 
@@ -47,10 +49,17 @@ const SHELL = shellHtml()
 // the exported console loads it. `__innfoNoAutoBoot` keeps the runtime from booting
 // itself before the test is ready to read the result. `before` patches the window
 // before the bundle runs, and `hash` sets the deep link the boot reads.
-function bootBundle(html = SHELL, { hash = '', before } = {}) {
+// jsdom has no Compression Streams and no Response; a browser has both, so the window
+// borrows Node's (`streams: false` models a browser without them).
+function bootBundle(html = SHELL, { hash = '', before, streams = true } = {}) {
   const dom = new JSDOM(html, { url: 'http://localhost/' + hash, runScripts: 'dangerously', pretendToBeVisual: true })
   const win = dom.window
   win.__innfoNoAutoBoot = true
+  if (streams) {
+    win.Response = Response
+    win.DecompressionStream = DecompressionStream
+    win.CompressionStream = CompressionStream
+  }
   if (before) before(win)
   // jsdom ships neither; the bundled vendor code probes both at load time.
   win.matchMedia = () => ({
@@ -99,7 +108,7 @@ describe('committed nn-console.bundle.js', () => {
   })
 
   it('boots the console', () => {
-    const res = ctx.win.nnConsole.boot(ctx.document)
+    const res = ctx.win.nnConsole.boot(ctx.document, { modelText: decodedModelTextOf(ctx.document) })
     assert.equal(res.ok, true)
     assert.equal(res.elements, 0)
   })
@@ -195,7 +204,7 @@ function bootWide(hash = '') {
       }
     },
   })
-  ctx.win.nnConsole.boot(ctx.document)
+  ctx.win.nnConsole.boot(ctx.document, { modelText: decodedModelTextOf(ctx.document) })
   return { ...ctx, scrolls }
 }
 
@@ -296,5 +305,59 @@ describe('a refresh after a deep-link boot never loses the element the URL names
     assert.equal(urlClaims(reloaded.win), null, 'the reloaded page names no element')
     assert.equal(reloaded.document.getElementById('el-' + FOCUS_ID), null, 'so it mounts no card the URL could claim')
     assert.equal(cards(reloaded.document).length, PAGE, 'one page, as a plain boot')
+  })
+})
+
+// The page boots itself: autoBoot decodes the compressed nn-model slot (deflate-raw +
+// base64) with DecompressionStream, then runs the synchronous boot. Both tests run the
+// committed bundle exactly as an exported page does, with the self-boot left on.
+describe('the committed bundle decodes the compressed model slot at boot', () => {
+  const small = {
+    meta: { title: 'Small', modelId: 'small', modelVersion: 'V_1-0-0' },
+    elements: [
+      { id: 'a1', concept: 'Fleet', name: 'Alpha', fields: {} },
+      { id: 'b2', concept: 'Fleet', name: 'Beta', fields: {} },
+    ],
+    matrices: [],
+  }
+  const selfBooting = (win) => {
+    win.__innfoNoAutoBoot = false
+  }
+  async function until(check, what) {
+    for (let i = 0; i < 100; i++) {
+      if (check()) return
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    }
+    assert.fail(`timed out waiting for ${what}`)
+  }
+
+  it('autoBoot decodes the slot and renders every element', async () => {
+    const ctx = bootBundle(shellHtml(small), { before: selfBooting })
+    await until(() => cards(ctx.document).length === 2, 'the two element cards')
+    assert.equal(ctx.document.getElementById('nn-boot-error'), null, 'no boot error is shown')
+  })
+
+  it('decodeAndBoot (public API) resolves to the boot result of the decoded model', async () => {
+    const ctx = bootBundle(shellHtml(small))
+    const res = await ctx.win.nnConsole.decodeAndBoot(ctx.document)
+    assert.equal(res.ok, true)
+    assert.equal(res.elements, 2)
+  })
+
+  it('shows a visible error instead of a blank page when DecompressionStream is missing', async () => {
+    const ctx = bootBundle(shellHtml(small), { before: selfBooting, streams: false })
+    await until(() => ctx.document.getElementById('nn-boot-error'), 'the boot error')
+    const box = ctx.document.getElementById('nn-boot-error')
+    assert.equal(box.getAttribute('role'), 'alert')
+    assert.match(box.textContent, /DecompressionStream/)
+    assert.match(box.textContent, /Chrome, Edge, Firefox or Safari/)
+    assert.equal(cards(ctx.document).length, 0, 'nothing booted from an undecoded slot')
+  })
+
+  it('shows a visible error when the slot holds corrupt data', async () => {
+    const html = shellHtml(small).replace(/(id="nn-model">)[^<]*/, '$1bm90IGRlZmxhdGU=')
+    const ctx = bootBundle(html, { before: selfBooting })
+    await until(() => ctx.document.getElementById('nn-boot-error'), 'the boot error')
+    assert.match(ctx.document.getElementById('nn-boot-error').textContent, /nn-model slot holds corrupt compressed data/)
   })
 })

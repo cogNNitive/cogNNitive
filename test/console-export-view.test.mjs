@@ -10,6 +10,7 @@ import { promisify } from 'node:util'
 import { runExportConsole } from '../scripts/export-console.mjs'
 import { CONSOLE_SIZE_BUDGET } from '../scripts/console-views.mjs'
 import { JSDOM } from 'jsdom'
+import { decodedModelTextOf, lendCompressionStreams, modelOf as modelOfHtml, pageBooted } from './helpers/console-slots.mjs'
 
 const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -88,6 +89,7 @@ describe('export-console size budget and --view (S2c2)', () => {
       url: 'http://localhost/' + hash,
       runScripts: 'dangerously',
       beforeParse(w) {
+        lendCompressionStreams(w)
         w.matchMedia = () => ({
           matches: false,
           addListener() {},
@@ -98,10 +100,10 @@ describe('export-console size budget and --view (S2c2)', () => {
         })
       },
     })
-    await new Promise((ok) => dom.window.addEventListener('load', ok))
+    await pageBooted(dom)
     return dom
   }
-  const modelOf = (dom) => JSON.parse(dom.window.document.getElementById('nn-model').textContent)
+  const modelOf = (dom) => JSON.parse(decodedModelTextOf(dom.window.document))
 
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), 'nn-view-'))
@@ -208,9 +210,7 @@ describe('export-console size budget and --view (S2c2)', () => {
       assert.equal(existsSync(dir), true)
       const members = (await readdir(dir)).map((n) => join(dir, n))
       assert.equal(members.length, 1)
-      const model = JSON.parse(
-        (await readFile(members[0], 'utf-8')).match(/id="nn-model">([\s\S]*?)<\/script>/)[1],
-      )
+      const model = modelOfHtml(await readFile(members[0], 'utf-8'))
       assert.equal(model.meta.consoleScope.view, 'alpha')
       assert.equal(model.meta.consoleScope.models.length, 1)
       assert.ok(model.meta.consoleScope.label)
@@ -404,7 +404,7 @@ describe('export-console size budget and --view (S2c2)', () => {
       const scopedDoc = async (id) => {
         const html = await readFile((await viewOutputs(id))[0], 'utf-8')
         const doc = new win.DOMParser().parseFromString(html, 'text/html')
-        assert.equal(win.nnConsole.boot(doc).ok, true)
+        assert.equal((await win.nnConsole.decodeAndBoot(doc)).ok, true)
         doc.querySelector(`#nn-view-tabs [data-tab="${id}"]`).click()
         return win.__ctxs.filter((c) => c.ctx.container.ownerDocument === doc).pop().ctx
       }

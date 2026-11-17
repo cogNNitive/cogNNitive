@@ -16,6 +16,7 @@ import path from 'node:path'
 import { JSDOM } from 'jsdom'
 
 import { writeConsole } from '../scripts/export-console.mjs'
+import { decodedModelTextOf } from './helpers/console-slots.mjs'
 import { nnConsole, bootConsole } from './helpers/console-boot.mjs'
 
 const BLUEPRINT = path.resolve('iNNfo/specs/bluepriNNts/coNNtent/spec_NN.md')
@@ -50,7 +51,7 @@ async function exportedModel(root) {
   await writeConsole({ rootDir: root, scope: 'domain', open: false })
   const html = fs.readFileSync(path.join(root, 'domaiNN_console.html'), 'utf8')
   const dom = new JSDOM(html)
-  return JSON.parse(dom.window.document.getElementById('nn-model').textContent)
+  return JSON.parse(decodedModelTextOf(dom.window.document))
 }
 
 test('a distributed episode is addressed by its hierarchical id, not its filename stem', async () => {
