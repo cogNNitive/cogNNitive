@@ -123,7 +123,15 @@ export function parseNNModel(content) {
   return { docSite, sections, pages, navbarItems, assets };
 }
 
-function buildSidebarMarkdown(sections, pages) {
+/**
+ * Orders the model's pages the way the suite presents them: root pages first, then each
+ * section in `section_order`, each group by `order`. The sidebar and the single-file
+ * master document both read the order from here, so they cannot drift.
+ * @returns {{ rootPages: Array<object>, sections: Array<{ section: object, pages: Array<object> }> }}
+ */
+export function orderPageTree(sections, pages) {
+  const byOrder = (a, b) => parseInt(a.fields.order || '999', 10) - parseInt(b.fields.order || '999', 10);
+
   const sortedSections = Array.from(sections.values()).sort((a, b) => {
     const orderA = parseInt(a.fields.section_order || a.fields.order || '999', 10);
     const orderB = parseInt(b.fields.section_order || b.fields.order || '999', 10);
@@ -145,39 +153,46 @@ function buildSidebarMarkdown(sections, pages) {
     }
   }
 
-  const sortPages = (pageList) => {
-    return pageList.sort((a, b) => {
-      const orderA = parseInt(a.fields.order || '999', 10);
-      const orderB = parseInt(b.fields.order || '999', 10);
-      return orderA - orderB;
-    });
+  return {
+    rootPages: rootPages.sort(byOrder),
+    sections: sortedSections.map((section) => ({
+      section,
+      pages: (sectionPages.get(section.id) || []).sort(byOrder),
+    })),
   };
+}
+
+export function pageTitle(page) {
+  return page.fields.title || page.id;
+}
+
+export function pageRoute(page) {
+  return page.fields.route || page.fields.source.replace(/\.md$/, '');
+}
+
+function buildSidebarMarkdown(sections, pages) {
+  const { rootPages, sections: groups } = orderPageTree(sections, pages);
 
   const lines = [];
 
   // 1. Root-level pages
-  for (const page of sortPages(rootPages)) {
-    const title = page.fields.title || page.id;
-    const route = page.fields.route || page.fields.source.replace(/\.md$/, '');
-    lines.push(`- [${title}](${route})`);
+  for (const page of rootPages) {
+    lines.push(`- [${pageTitle(page)}](${pageRoute(page)})`);
   }
 
   // 2. Sections and their children
-  for (const section of sortedSections) {
-    const pagesForSection = sectionPages.get(section.id) || [];
-    if (pagesForSection.length === 0) continue;
+  for (const group of groups) {
+    if (group.pages.length === 0) continue;
 
     if (lines.length > 0) {
       lines.push('');
     }
 
-    const sectionTitle = section.fields.title || section.id;
+    const sectionTitle = group.section.fields.title || group.section.id;
     lines.push(`- **${sectionTitle}**`);
 
-    for (const page of sortPages(pagesForSection)) {
-      const title = page.fields.title || page.id;
-      const route = page.fields.route || page.fields.source.replace(/\.md$/, '');
-      lines.push(`  - [${title}](${route})`);
+    for (const page of group.pages) {
+      lines.push(`  - [${pageTitle(page)}](${pageRoute(page)})`);
     }
   }
 

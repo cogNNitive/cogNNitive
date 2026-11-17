@@ -8,9 +8,10 @@
  *
  * Order: build nn-core and the nn-mcp dist (generators read them), then run each
  * freshness-guard generator (scripts/lib/freshness-guards.js), the docs facts, and
- * the staged copies (catalog, manifest-next, the testlab console fixture). The
- * generators are repeated until the `--check` guards pass (max 3 passes), because
- * some generated files feed others.
+ * the staged copies (catalog, manifest-next, the testlab console fixture). The docs
+ * master document runs last, because it concatenates the pages the docs generators
+ * just rewrote. The generators are repeated until the `--check` guards pass (max 3
+ * passes), because some generated files feed others.
  *
  * `npm run check:regen` (`--check`): runs that same pass and then fails when it moved a
  * tracked path that was clean before it ran, which means the committed artifacts no
@@ -103,12 +104,15 @@ const generate = [
   ['scripts/generate-docs-facts.mjs'],
   ['scripts/generate-vocabulary-doc.mjs'],
   ['scripts/generate-video-parameters-doc.mjs'],
+  // Last: it concatenates the pages those two generators just rewrote.
+  ['scripts/generate-docs-master.mjs'],
 ];
 const check = [
   ...guards.map((g) => [g.script, ...g.args]),
   ['scripts/generate-docs-facts.mjs', '--check'],
   ['scripts/generate-vocabulary-doc.mjs', '--check'],
   ['scripts/generate-video-parameters-doc.mjs', '--check'],
+  ['scripts/generate-docs-master.mjs', '--check'],
 ];
 
 /**
