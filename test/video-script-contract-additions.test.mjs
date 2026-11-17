@@ -235,15 +235,19 @@ async function runTests() {
     assert.match(DEFAULTS, /^voice_model:: minimax\/speech-2\.8-hd$/m);
     assert.match(DEFAULTS, /^background_audio_volume:: 0\.2$/m);
     assert.match(DEFAULTS, /^image_size:: 1024x1024$/m);
-    assert.match(DEFAULTS, /^output_formats:: \[1920x1920, 1080x1920, 1920x1080, 1080x1080\]$/m);
+    assert.match(DEFAULTS, /^output_formats:: \[1920x1080, 1080x1920, 1080x1080\]$/m);
     assert.match(DEFAULTS, /^review_gates:: \[script, preview\]$/m);
     assert.match(DEFAULTS, /^parent_spec:\n  name: "coNNtent_V_0-15-0"$/m);
 
-    // The declared master replaces master_resolution; delivery formats are derived.
+    // V_0-26-0: every `output_formats` entry renders natively; there is no master and no
+    // derived format, so `master` and `fill` are retired with `master_resolution`.
     assert.strictEqual(fieldDefinition('master_resolution'), null, 'master_resolution is retired');
-    assert.match(fieldDefinition('master'), /^description:: .*`output_formats`/m);
-    assert.match(fieldDefinition('master'), /<slug>_<W>x<H>\.mp4/);
-    assert.match(fieldDefinition('position'), /central safe square/);
+    assert.strictEqual(fieldDefinition('master'), null, 'master is retired');
+    assert.strictEqual(fieldDefinition('fill'), null, 'fill is retired');
+    assert.match(fieldDefinition('output_formats'), /<slug>_<W>x<H>\.mp4/);
+    assert.match(fieldDefinition('output_formats'), /primary/);
+    assert.match(fieldDefinition('position'), /safe area of each output canvas/);
+    assert.doesNotMatch(SPEC, /central safe square/);
     assert.strictEqual(fieldDefinition('resolution'), null, 'resolution stays undeclared');
     assert.strictEqual(fieldDefinition('format'), null, 'format stays undeclared');
     assert.strictEqual(fieldDefinition('fps'), null, 'fps stays undeclared');
