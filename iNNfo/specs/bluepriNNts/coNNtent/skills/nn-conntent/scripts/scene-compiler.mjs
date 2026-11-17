@@ -990,7 +990,7 @@ export class SceneCompiler {
         generator: 'cogNNitive Video Engine',
         generatedAt: new Date().toISOString(),
         scriptSource,
-        // The Video element's reserved slug: the render names the master after it.
+        // The Video element's reserved slug: the render names every output after it.
         ...(parsed.slug ? { videoSlug: parsed.slug } : {}),
       },
     };
