@@ -775,6 +775,24 @@ async function installConsoleAssetAtCommit(asset, consoleDir, state) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Renders one ref column of the status table.
+ *
+ * A pinned commit keeps the 7-character short form the table has always shown,
+ * but a release tag is printed whole: clipping it to 7 characters made
+ * `blueprints-v0.70.1` and `blueprints-v0.72.0` both read `bluepri`, so the pin
+ * could not be read from `status` at all (#710). Columns size themselves to the
+ * widest cell, so the full tag widens the table only when a tag is in play.
+ *
+ * @param {string|null|undefined} value Commit, release tag, or nothing.
+ * @returns {string}
+ */
+function statusRef(value) {
+  if (!value) return '-';
+  const text = String(value);
+  return /^[0-9a-f]{40}$/i.test(text) ? text.slice(0, 7) : text;
+}
+
+/**
  * Prints formatted status table to console.
  * @param {Array<{ type: string, name: string, pinned: string, installed: string, status: string }>} rows
  * @returns {void}
@@ -883,8 +901,8 @@ async function cmdStatus(args) {
     rows.push({
       type: 'skill',
       name: skill.name,
-      pinned: skill.commit ? skill.commit.slice(0, 7) : '-',
-      installed: entry ? entry.commit.slice(0, 7) : '-',
+      pinned: statusRef(skill.commit),
+      installed: statusRef(entry && entry.commit),
       status,
     });
     if (status === 'outdated') outdatedSkills.push(skill);
@@ -906,8 +924,8 @@ async function cmdStatus(args) {
     rows.push({
       type: 'template',
       name: template.name,
-      pinned: template.commit ? template.commit.slice(0, 7) : '-',
-      installed: entry ? entry.commit.slice(0, 7) : '-',
+      pinned: statusRef(template.commit),
+      installed: statusRef(entry && entry.commit),
       status,
     });
     if (status === 'outdated') outdatedBlueprints.push(template);
@@ -929,8 +947,8 @@ async function cmdStatus(args) {
     rows.push({
       type: 'mcp',
       name: server.name,
-      pinned: server.commit ? server.commit.slice(0, 7) : '-',
-      installed: entry ? entry.commit.slice(0, 7) : '-',
+      pinned: statusRef(server.commit),
+      installed: statusRef(entry && entry.commit),
       status,
     });
     if (status === 'outdated') outdatedMcp.push(server);
@@ -952,8 +970,8 @@ async function cmdStatus(args) {
     rows.push({
       type: 'console',
       name: fileName,
-      pinned: asset.commit ? asset.commit.slice(0, 7) : '-',
-      installed: entry ? entry.commit.slice(0, 7) : '-',
+      pinned: statusRef(asset.commit),
+      installed: statusRef(entry && entry.commit),
       status,
     });
     if (status === 'outdated') outdatedConsoleAssets.push(asset);
@@ -979,8 +997,8 @@ async function cmdStatus(args) {
     rows.push({
       type: 'catalog',
       name,
-      pinned: catalogEntry && catalogEntry.release_tag ? String(catalogEntry.release_tag).slice(0, 7) : '-',
-      installed: installedTag ? String(installedTag).slice(0, 7) : '-',
+      pinned: statusRef(catalogEntry && catalogEntry.release_tag),
+      installed: statusRef(installedTag),
       status,
     });
   }
@@ -2167,6 +2185,7 @@ module.exports = {
   DEFAULT_STATE_FILE,
   LEGACY_STATE_FILE,
   getManifestUrl,
+  statusRef,
   requestFor,
   fetchString,
   fetchJson,
