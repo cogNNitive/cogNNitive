@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { withDecodedModel } from './helpers/console-slots.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const lab = join(here, 'fixtures', 'testlab')
@@ -114,7 +115,8 @@ describe('TestLab coverage domain fixtures', () => {
   })
 
   it('ships a domain console with both models, the Procedure view, and Element 1B lineage', () => {
-    const console = read('domaiNN_console.html')
+    // The model slot is compressed: read the page with it decoded.
+    const console = withDecodedModel(read('domaiNN_console.html'))
     // Both models are aggregated, including the procedures model.
     assert.match(console, /TestLab_coverage_TestLab_NN\.md/)
     assert.match(console, /TestLab_procedures_TestLab_procedures_NN\.md/)

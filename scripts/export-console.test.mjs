@@ -8,8 +8,18 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { consoleHtml, consoleBundle, consoleMembers } from '../test/helpers/console-artifacts.mjs'
-import { runExportConsole, writeConsole } from './export-console.mjs'
+import { runExportConsole, writeConsole, decodeConsoleModelText } from './export-console.mjs'
 import { createHash } from 'node:crypto'
+import { withDecodedModel } from './lib/console-fixture-freshness.js'
+
+/**
+ * The nn-model slot of an exported page as `[whole, jsonText]` (the shape of a regex
+ * match), with its compressed (deflate-raw + base64) body decoded; null when absent.
+ */
+function modelSlotMatch(html) {
+  const m = /<script type="[^"]*" id="nn-model">([\s\S]*?)<\/script>/.exec(html)
+  return m ? [m[0], decodeConsoleModelText(m[1])] : null
+}
 
 const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -232,9 +242,7 @@ Transcribe it.
       )
       const expectedHash = computeHash(sourceContent)
 
-      const jsonMatch = htmlContent.match(
-        /<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/,
-      )
+      const jsonMatch = modelSlotMatch(htmlContent)
       assert.ok(jsonMatch, 'nn-model script slot exists in HTML')
 
       const modelJson = JSON.parse(jsonMatch[1])
@@ -259,9 +267,7 @@ Transcribe it.
 
       const htmlPath = consoleHtml(tempDir, 'business_V_0-2-5')
       const htmlContent = await readFile(htmlPath, 'utf-8')
-      const jsonMatch = htmlContent.match(
-        /<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/,
-      )
+      const jsonMatch = modelSlotMatch(htmlContent)
       assert.ok(jsonMatch, 'nn-model script slot exists in HTML')
 
       const modelJson = JSON.parse(jsonMatch[1])
@@ -304,9 +310,7 @@ notes:: "Please review the tagline"
       const res = await runCli([tempDir, 'business'])
       assert.equal(res.code, 0)
       const htmlContent = await readFile(consoleHtml(tempDir, 'business_V_0-2-5'), 'utf-8')
-      const jsonMatch = htmlContent.match(
-        /<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/,
-      )
+      const jsonMatch = modelSlotMatch(htmlContent)
       assert.ok(jsonMatch, 'nn-model slot exists')
       const modelJson = JSON.parse(jsonMatch[1])
       const element = modelJson.elements.find((e) => e.name === 'Enterprise Customer')
@@ -383,7 +387,7 @@ notes:: "Please review the tagline"
       const members = await readdir(join(tempDir, 'artifacts', families[0]))
       assert.equal(members.length, 1)
       const html = await readFile(join(tempDir, 'artifacts', families[0], members[0]), 'utf-8')
-      const model = JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
+      const model = JSON.parse(modelSlotMatch(html)[1])
       assert.equal(model.meta.consoleScope.models.length, 3)
       assert.deepEqual(
         model.meta.models.map((m) => m.filePath).sort(),
@@ -738,7 +742,7 @@ notes:: "Please review the tagline"
       await install(dir)
       await runInstalled(dir, ['business'])
       const html = await readFile(consoleHtml(tempDir, 'business_V_0-2-5'), 'utf-8')
-      const model = JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
+      const model = JSON.parse(modelSlotMatch(html)[1])
       assert.deepEqual(model.meta.consoleScope.models, ['business_V_0-2-5'])
     })
   })
@@ -789,14 +793,14 @@ notes:: "Please review the tagline"
       const dirFiles = await readdir(join(tempDir, 'artifacts', 'business_V_0-2-5_console'))
       assert.deepEqual(dirFiles, ['business_V_0-2-5_console.html'], 'no stamped console, bundle or tmp file')
       const html = await readFile(stable, 'utf-8')
-      const meta = JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1]).meta
+      const meta = JSON.parse(modelSlotMatch(html)[1]).meta
       assert.equal(meta.models[0].sha256, computeHash(await readFile(file, 'utf-8')))
     })
 
     it('embeds per-model meta.sources from the core payload builder', async () => {
       await runCli([tempDir, 'business'])
       const html = await readFile(consoleHtml(tempDir, 'business_V_0-2-5'), 'utf-8')
-      const meta = JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1]).meta
+      const meta = JSON.parse(modelSlotMatch(html)[1]).meta
       const sources = meta.models[0].sources
       assert.ok(Array.isArray(sources) && sources.length > 0)
       assert.ok(sources[0].endsWith('business_V_0-2-5_NN.md'))
@@ -872,7 +876,7 @@ notes:: "Please review the tagline"
       })
       assert.equal(res.relativePath, 'deliveries/v1/probe_delivery.html')
       assert.equal(existsSync(res.path), true)
-      const html = await readFile(res.path, 'utf-8')
+      const html = withDecodedModel(await readFile(res.path, 'utf-8'))
       assert.match(html, /"readOnly":true/)
       assert.match(html, /"models":\["business_V_0-2-5"\]/)
     })
@@ -1074,7 +1078,7 @@ level: 3
       const res = await runCli([tempDir, '--domain'])
       assert.equal(res.code, 0, res.stderr)
       const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
-      return JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
+      return JSON.parse(modelSlotMatch(html)[1])
     }
 
     it('qualifies element ids with the model id and remaps relations to them', async () => {
@@ -1146,7 +1150,7 @@ metricValue:: 56
       const htmlPath = consoleHtml(tempDir, 'matrix_V_0-1-0')
       const htmlContent = await readFile(htmlPath, 'utf-8')
       const modelJson = JSON.parse(
-        htmlContent.match(/<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/)[1],
+        modelSlotMatch(htmlContent)[1],
       )
 
       assert.equal(modelJson.matrices.length, 2, 'both ordinary matrices serialized')
@@ -1193,7 +1197,7 @@ health:: critical
       const schemaJson = JSON.parse(schemaMatch[1])
       assert.ok(Array.isArray(schemaJson.fields), 'schema.fields is an array')
 
-      const modelMatch = html.match(/<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/)
+      const modelMatch = modelSlotMatch(html)
       assert.ok(modelMatch, 'nn-model script tag found')
       const modelJson = JSON.parse(modelMatch[1])
       assert.ok(Array.isArray(modelJson.elements), 'model.elements is an array')
@@ -1275,7 +1279,7 @@ applied_at: "2026-01-01T00:00:00.000Z"
       const res = await runCli([tempDir, '--domain'])
       assert.equal(res.code, 0, res.stderr)
       const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
-      return JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
+      return JSON.parse(modelSlotMatch(html)[1])
     }
 
     it('orders changesets by code unit, exactly like the views lib (d16)', async () => {
@@ -1454,7 +1458,7 @@ notes:: "note ${n}"
     const res = await runCli([root, '--domain', ...extraArgs])
     assert.equal(res.code, 0, res.stderr)
     const html = await readFile(domainFile(), 'utf-8')
-    return { html, slot: JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1]) }
+    return { html, slot: JSON.parse(modelSlotMatch(html)[1]) }
   }
   const seed = async (count) => {
     await mkdir(join(root, 'models'), { recursive: true })
@@ -1521,7 +1525,7 @@ notes:: "note ${n}"
     const { writeConsole } = await import('./export-console.mjs')
     await writeConsole({ rootDir: root, open: false, changes: false })
     const html = await readFile(domainFile(), 'utf-8')
-    const slot = JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
+    const slot = JSON.parse(modelSlotMatch(html)[1])
     assertOmitted({ html, slot }, 2)
   })
 
@@ -1593,7 +1597,8 @@ status:: active
   const domainFile = () => join(root, 'domaiNN_console.html')
   const exportDomain = async () => {
     const res = await runExportConsole([root, '--domain', '--no-open'], { open: false })
-    const html = existsSync(domainFile()) ? await readFile(domainFile(), 'utf-8') : ''
+    // The model slot is compressed: the page is read with it decoded.
+    const html = existsSync(domainFile()) ? withDecodedModel(await readFile(domainFile(), 'utf-8')) : ''
     return { ...res, html }
   }
   const seed = async () => {

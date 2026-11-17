@@ -24,7 +24,8 @@ The console runtime does NOT compile JSX at runtime or during development.
 ### Rule B: Zero Runtime Network Calls & No Modules
 * The console must be fully self-contained and work offline on the `file://` protocol.
 * **FORBIDDEN**: `fetch(...)`, `XMLHttpRequest`, or `<script type="module">`.
-* Payload data is injected into HTML shells via embedded `<script id="nn-model">` JSON slots.
+* Payload data is injected into HTML shells via embedded script slots. `nn-config`, `nn-schema` and `nn-view-data` are plain JSON. `nn-model` (`type="application/x-nn-deflate-base64"`) holds the model JSON compressed with deflate-raw (level 9) and base64-encoded; the runtime decodes it with `DecompressionStream('deflate-raw')` in `autoBoot` before the synchronous `boot(document, { modelText })`, and shows a visible error when the browser lacks it. Saved drafts and UI state live in the plain JSON `<script id="nn-drafts">` slot (`{ drafts, uiState }`, `{}` in a fresh export), never in `nn-model`.
+* Decode the model of an exported console in Node: `node -e "const h=require('fs').readFileSync(process.argv[1],'utf8');const b=/id=.nn-model.>([^<]*)</.exec(h)[1];console.log(require('zlib').inflateRawSync(Buffer.from(b.trim(),'base64')).toString())" domaiNN_console.html`
 
 ### Rule C: No Ad-Hoc NPM Runtime Dependencies
 * All runtime code must belong to the 12 canonical sources listed in `scripts/lib/console-bundle.js`.

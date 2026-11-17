@@ -4,6 +4,7 @@ import { JSDOM } from 'jsdom'
 import { createRequire } from 'node:module'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { decodedModelTextOf, draftsOf, modelOf, modelSlotMarkup, slotTextOf } from './helpers/console-slots.mjs'
 
 const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -93,10 +94,14 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
 
     <script type="application/json" id="nn-config">${JSON.stringify(configData || { needs: ['feedback-export', 'concept-rail'] })}</script>
     <script type="application/json" id="nn-schema">${JSON.stringify(schemaData || sampleSchema)}</script>
-    <script type="application/json" id="nn-model">${JSON.stringify(modelData || sampleModel)}</script>
+    ${modelSlotMarkup(modelData || sampleModel)}
+    <script type="application/json" id="nn-drafts">{}</script>
   </body>
 </html>`
   }
+
+  /** Boots a document whose compressed nn-model slot is pre-decoded with the Node codec. */
+  const bootDoc = (doc) => nnConsole.boot(doc, { modelText: decodedModelTextOf(doc) })
 
   beforeEach(() => {
     dom = new JSDOM(createConsoleHtml(), { url: 'http://localhost' })
@@ -118,8 +123,8 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
   })
 
   describe('1. In-Place Self-Saving Mechanism (Quine Pattern)', () => {
-    it('serializes active state and drafts into live #nn-model tag', async () => {
-      const bootRes = nnConsole.boot(document)
+    it('writes drafts and UI state into #nn-drafts and keeps #nn-model compressed', async () => {
+      const bootRes = bootDoc(document)
       assert.ok(bootRes.ok, 'Console boot succeeded')
       const state = bootRes.state
 
@@ -146,30 +151,93 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
       assert.ok(res.ok, 'saveSnapshot succeeded')
       assert.equal(res.draftsCount, 1)
 
-      // Verify DOM synchronization in live DOM:
-      const modelSlot = document.getElementById('nn-model')
-      const savedModel = JSON.parse(modelSlot.textContent)
-      assert.ok(Array.isArray(savedModel.drafts), 'savedModel has drafts array')
-      assert.equal(savedModel.drafts.length, 1)
-      assert.equal(savedModel.drafts[0].proposed, 'Class VII (Vigorous)')
-      assert.equal(savedModel.drafts[0].field, 'severity')
+      // The drafts and the UI state live in the plain JSON nn-drafts slot:
+      const saved = draftsOf(res.html)
+      assert.ok(Array.isArray(saved.drafts), 'nn-drafts has a drafts array')
+      assert.equal(saved.drafts.length, 1)
+      assert.equal(saved.drafts[0].proposed, 'Class VII (Vigorous)')
+      assert.equal(saved.drafts[0].field, 'severity')
+      assert.ok(saved.uiState, 'uiState is serialized')
+      assert.equal(saved.uiState.searchQuery, 'concept:ParanormalThreat')
+      assert.equal(saved.uiState.activeTab, 'explorer')
+      assert.deepEqual(JSON.parse(document.getElementById('nn-drafts').textContent), saved, 'the live DOM holds the same slot')
 
-      // Verify UI state serialization:
-      assert.ok(savedModel.uiState, 'uiState is serialized')
-      assert.equal(savedModel.uiState.searchQuery, 'concept:ParanormalThreat')
-      assert.equal(savedModel.uiState.activeTab, 'explorer')
+      // The model stays compressed and carries neither drafts nor UI state:
+      const modelText = slotTextOf(res.html, 'nn-model').trim()
+      assert.match(modelText, /^[A-Za-z0-9+/=]+$/, 'nn-model is base64')
+      const savedModel = modelOf(res.html)
+      assert.equal(savedModel.drafts, undefined)
+      assert.equal(savedModel.uiState, undefined)
+      assert.deepEqual(savedModel.elements.map((e) => e.id), ['threat-slimer', 'equip-trap'])
+      assert.equal(savedModel.meta.modelId, 'ghostbusters-model')
 
       // Verify complete HTML serialization:
       assert.ok(res.html.startsWith('<!DOCTYPE html>\n'), 'HTML starts with <!DOCTYPE html>\\n')
-      assert.ok(res.html.includes('Class VII (Vigorous)'), 'HTML contains proposed draft content')
+      assert.ok(res.html.includes('Class VII (Vigorous)'), 'HTML contains proposed draft content (plain JSON drafts)')
       assert.ok(!res.html.includes('data-nn-console-booted="true"'), 'data-nn-console-booted attribute is stripped for re-booting')
 
       // Verify live DOM keeps its boot attribute intact:
       assert.equal(document.documentElement.getAttribute('data-nn-console-booted'), 'true')
     })
 
+    it('escapes < in the drafts slot so a draft cannot close the script element', async () => {
+      const state = bootDoc(document).state
+      state.store.addDraft({
+        element_id: 'threat-slimer',
+        concept: 'ParanormalThreat',
+        element: 'Slimer',
+        element_slug: 'slimer',
+        kind: 'comment',
+        comment: '</script><script>alert(1)</script>',
+        base_hash: 'abcdef0123456789',
+      })
+      const res = await nnConsole.saveSnapshot(document, state, { forceDownload: true })
+      assert.ok(res.ok, String(res.error))
+      const raw = slotTextOf(res.html, 'nn-drafts')
+      assert.equal(raw.includes('<'), false, 'no raw < inside the slot')
+      assert.ok(raw.includes('\\u003c/script>'), 'the markup is escaped as \\u003c')
+      assert.equal(draftsOf(res.html).drafts[0].comment, '</script><script>alert(1)</script>', 'and decodes back verbatim')
+    })
+
+    it('starts from the decoded model, so keys the state does not hold (files) survive a save', async () => {
+      const files = {
+        inventory: [
+          {
+            id: 'sources/a.md',
+            path: 'sources/a.md',
+            category: 'source',
+            size: 10,
+            sha256: 'a'.repeat(64),
+            mimeType: 'text/markdown',
+            mtime: '2026-11-01T10:00:00.000Z',
+            citationsCount: 0,
+            excerptCount: 0,
+          },
+        ],
+      }
+      const withFiles = { ...sampleModel, files, collections: { custom: ['kept'] } }
+      dom = new JSDOM(createConsoleHtml(withFiles), { url: 'http://localhost' })
+      document = dom.window.document
+      global.window = dom.window
+      global.document = document
+      const state = bootDoc(document).state
+      const res = await nnConsole.saveSnapshot(document, state, { forceDownload: true })
+      assert.ok(res.ok, String(res.error))
+      const saved = modelOf(res.html)
+      assert.deepEqual(saved.files, files, 'model.files is kept')
+      assert.deepEqual(saved.collections, { custom: ['kept'] }, 'an unknown model key is kept')
+    })
+
+    it('refuses to save a document whose model slot was never decoded, instead of dropping keys', async () => {
+      const state = bootDoc(document).state
+      const undecoded = new JSDOM(createConsoleHtml(), { url: 'http://localhost' }).window.document
+      const res = await nnConsole.saveSnapshot(undecoded, state, { forceDownload: true })
+      assert.equal(res.ok, false)
+      assert.match(res.error, /nn-model slot is compressed/)
+    })
+
     it('uses File System Access API (window.showSaveFilePicker) when supported', async () => {
-      const bootRes = nnConsole.boot(document)
+      const bootRes = bootDoc(document)
       const state = bootRes.state
 
       let pickerCalled = false
@@ -202,7 +270,7 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
     })
 
     it('gracefully handles user cancellation in showSaveFilePicker (AbortError)', async () => {
-      const bootRes = nnConsole.boot(document)
+      const bootRes = bootDoc(document)
       const state = bootRes.state
 
       window.showSaveFilePicker = async () => {
@@ -219,7 +287,7 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
 
   describe('2. "Copy Prompt for AI Agent" Action', () => {
     it('composes structured Markdown prompt with domain, address, changeset diff, and actionable instructions', () => {
-      const bootRes = nnConsole.boot(document)
+      const bootRes = bootDoc(document)
       const state = bootRes.state
 
       state.store.addDraft({
@@ -247,7 +315,7 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
     })
 
     it('copies agent prompt to clipboard and displays feedback toast', async () => {
-      const bootRes = nnConsole.boot(document)
+      const bootRes = bootDoc(document)
       const state = bootRes.state
 
       let clipboardText = ''
@@ -271,7 +339,7 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
   describe('3. Rehydration Guarantee (End-to-End Quine Roundtrip)', () => {
     it('rehydrates 100% of modified state, drafts, overrides, and UI selections from a saved snapshot', async () => {
       // Step A: Boot instance 1
-      const boot1 = nnConsole.boot(document)
+      const boot1 = bootDoc(document)
       const state1 = boot1.state
 
       // Step B: User modifications
@@ -311,8 +379,12 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
       const freshDom = new JSDOM(quineHtml, { url: 'http://localhost/rehydrated.html' })
       const freshDoc = freshDom.window.document
 
-      // Boot instance 2 directly from the quine HTML
-      const boot2 = nnConsole.boot(freshDoc)
+      // The saved file grows no indentation: both slots are single compact lines.
+      assert.equal(slotTextOf(quineHtml, 'nn-model').trim().includes('\n'), false)
+      assert.equal(slotTextOf(quineHtml, 'nn-drafts').trim().includes('\n'), false)
+
+      // Boot instance 2 from the quine HTML the way the page does: decode, then boot.
+      const boot2 = await nnConsole.decodeAndBoot(freshDoc)
       assert.ok(boot2.ok, 'Fresh boot succeeded from quine HTML')
       const state2 = boot2.state
 
@@ -343,7 +415,7 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
 
   describe('4. TopBarActions UI Kit & Header Integration', () => {
     it('mounts Save Snapshot and Copy AI Prompt buttons into #nn-navbar-actions', () => {
-      nnConsole.boot(document)
+      bootDoc(document)
 
       const actionsContainer = document.getElementById('nn-navbar-actions')
       assert.ok(actionsContainer, '#nn-navbar-actions exists')
@@ -358,7 +430,7 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
     })
 
     it('TopBarActions updates draft count dynamically on user edits', () => {
-      const bootRes = nnConsole.boot(document)
+      const bootRes = bootDoc(document)
       const state = bootRes.state
 
       const saveBtn = document.querySelector('[data-nn="save-snapshot"]')

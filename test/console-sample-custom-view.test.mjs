@@ -8,6 +8,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { runExportConsole } from '../scripts/export-console.mjs'
 import { JSDOM } from 'jsdom'
+import { decodedModelTextOf, lendCompressionStreams, pageBooted } from './helpers/console-slots.mjs'
 
 const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -69,6 +70,7 @@ describe('sample custom view (test/_samples_nn/consoles/views/missing-descriptio
       url: 'http://localhost',
       runScripts: 'dangerously',
       beforeParse(w) {
+        lendCompressionStreams(w)
         w.matchMedia = () => ({
           matches: false,
           addListener() {},
@@ -79,7 +81,7 @@ describe('sample custom view (test/_samples_nn/consoles/views/missing-descriptio
         })
       },
     })
-    await new Promise((ok) => dom.window.addEventListener('load', ok))
+    await pageBooted(dom)
     domCache.set(source, dom)
     return dom
   }
@@ -98,7 +100,7 @@ describe('sample custom view (test/_samples_nn/consoles/views/missing-descriptio
     tab.click()
     const rows = doc.querySelectorAll(`#nn-tab-${VIEW_ID} [data-element-id]`)
     assert.ok(rows.length > 0, 'lists elements')
-    const model = JSON.parse(doc.getElementById('nn-model').textContent)
+    const model = JSON.parse(decodedModelTextOf(doc))
     const missing = model.elements.filter((e) => !String(e.description ?? '').trim())
     assert.equal(rows.length, missing.length, 'exactly the elements without a description')
   })

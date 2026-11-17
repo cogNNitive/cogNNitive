@@ -4,6 +4,7 @@ import { JSDOM } from 'jsdom'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { consoleDir, nnConsole, MODEL } from './helpers/console-boot.mjs'
+import { decodedModelTextOf, modelSlotMarkup } from './helpers/console-slots.mjs'
 
 const FILES_PAYLOAD = {
   inventory: [
@@ -112,10 +113,7 @@ function bootFromShell(model) {
   const shell = readFileSync(join(consoleDir, 'artifact_shell.html'), 'utf8')
   const html = shell
     .replace(/<script\s+src=[^>]*><\/script>/g, '')
-    .replace(
-      /(<script type="application\/json" id="nn-model">)[\s\S]*?(<\/script>)/,
-      (_m, open, close) => open + JSON.stringify(model).replace(/</g, '\\u003c') + close,
-    )
+    .replace(/<script type="[^"]*" id="nn-model">[\s\S]*?<\/script>/, () => modelSlotMarkup(model))
     .replace(
       /(<script type="application\/json" id="nn-schema">)[\s\S]*?(<\/script>)/,
       (_m, open, close) => open + JSON.stringify({ concepts: [{ name: 'Fleet' }] }) + close,
@@ -125,7 +123,7 @@ function bootFromShell(model) {
   global.document = dom.window.document
   global.localStorage = dom.window.localStorage
   global.CustomEvent = dom.window.CustomEvent
-  nnConsole.boot(dom.window.document)
+  nnConsole.boot(dom.window.document, { modelText: decodedModelTextOf(dom.window.document) })
   return dom.window.document
 }
 

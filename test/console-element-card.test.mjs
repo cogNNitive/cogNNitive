@@ -5,6 +5,7 @@ import { JSDOM } from 'jsdom'
 import { createRequire } from 'node:module'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { decodedModelTextOf, modelSlotMarkup } from './helpers/console-slots.mjs'
 
 const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -324,10 +325,7 @@ describe('Single shell end-to-end (runtime renderElement)', () => {
         /(<script type="application\/json" id="nn-schema">)[\s\S]*?(<\/script>)/,
         '$1{"concepts": [{"name": "Fleet"}]}$2',
       )
-      .replace(
-        /(<script type="application\/json" id="nn-model">)[\s\S]*?(<\/script>)/,
-        `$1${JSON.stringify(model)}$2`,
-      )
+      .replace(/<script type="[^"]*" id="nn-model">[\s\S]*?<\/script>/, () => modelSlotMarkup(model))
       .replace(
         /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
         '$1{"needs":["concept-rail","fulltext-search"]}$2',
@@ -344,7 +342,7 @@ describe('Single shell end-to-end (runtime renderElement)', () => {
     global.nnUI = UI
     global.nnReview = nnReview
     const nnConsole = require(join(consoleDir, 'nn-runtime.js'))
-    nnConsole.boot(global.document)
+    nnConsole.boot(global.document, { modelText: decodedModelTextOf(global.document) })
     const card = global.document.querySelector('#el-ecto-1')
     assert.ok(card, 'card renders with domId')
     card.setOpen(true)

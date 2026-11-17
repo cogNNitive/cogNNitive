@@ -8,6 +8,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { nnConsole, bootConsole } from './helpers/console-boot.mjs'
 import { openUnitModal } from './helpers/console-contract.mjs'
+import { modelOf, slotTextOf } from './helpers/console-slots.mjs'
 
 const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -86,9 +87,9 @@ const GARAGE_MODEL = model(
 )
 
 function slotOf(html, id) {
-  const m = html.match(new RegExp(`<script type="application/json" id="${id}">([\\s\\S]*?)</script>`))
-  assert.ok(m, `slot ${id} present`)
-  return JSON.parse(m[1])
+  const text = slotTextOf(html, id)
+  assert.ok(text !== null, `slot ${id} present`)
+  return id === 'nn-model' ? modelOf(html) : JSON.parse(text)
 }
 
 describe('P0-1 declared field types reach the console (end to end)', () => {

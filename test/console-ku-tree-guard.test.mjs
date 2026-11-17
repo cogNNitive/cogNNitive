@@ -17,7 +17,7 @@ const { parseUnitAddress, unitHome } = require(
 
 let document
 
-before(() => {
+before(async () => {
   global.nnIcons = require(join(consoleDir, 'nn-icons.js'))
   const nnConsole = require(join(consoleDir, 'nn-runtime.js'))
   const html = readFileSync(join(root, 'test', 'fixtures', 'testlab', 'domaiNN_console.html'), 'utf8')
@@ -26,7 +26,9 @@ before(() => {
   global.document = dom.window.document
   global.localStorage = dom.window.localStorage
   global.CustomEvent = dom.window.CustomEvent
-  nnConsole.boot(dom.window.document)
+  // The exported page decodes its compressed nn-model slot before it boots; so does this.
+  const res = await nnConsole.decodeAndBoot(dom.window.document)
+  assert.equal(res.ok, true, String(res.error))
   document = dom.window.document
 })
 

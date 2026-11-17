@@ -3,6 +3,17 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { createConsoleEnv, shellPath } from './helpers/console-review-env'
 import { installDialogStub } from './helpers/dialog-stub'
+import { deflateRawSync, inflateRawSync } from 'node:zlib'
+
+/** The nn-model slot holds the payload deflate-raw compressed and base64 encoded. */
+const encodeModelSlot = (model: unknown): string =>
+  deflateRawSync(Buffer.from(JSON.stringify(model), 'utf8'), { level: 9 }).toString('base64')
+
+/** The decoded JSON text of a document's nn-model slot; the page decodes it before boot. */
+const decodedModelText = (doc: Document): string => {
+  const text = (doc.getElementById('nn-model')?.textContent ?? '').trim()
+  return text ? inflateRawSync(Buffer.from(text, 'base64')).toString('utf8') : ''
+}
 
 const env = createConsoleEnv()
 
@@ -34,8 +45,8 @@ function renderModelConsole(): void {
       `$1${JSON.stringify(sampleSchema)}$2`,
     )
     .replace(
-      /(<script type="application\/json" id="nn-model">)[\s\S]*?(<\/script>)/,
-      `$1${JSON.stringify(sampleModel)}$2`,
+      /(<script type="application\/x-nn-deflate-base64" id="nn-model">)[\s\S]*?(<\/script>)/,
+      `$1${encodeModelSlot(sampleModel)}$2`,
     )
     .replace(
       /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
@@ -76,7 +87,7 @@ function seedDraft(overrides: any = {}) {
 
 function boot() {
   const mods = env.loadConsole()
-  const res = mods.Console.boot(env.document)
+  const res = mods.Console.boot(env.document, { modelText: decodedModelText(env.document) })
   return { mods, controller: res && res.controller }
 }
 
@@ -112,7 +123,7 @@ describe('console-review-export (preview + clipboard)', () => {
       store.drafts = () => read().map((d: object) => ({ ...d, sources: 'sources/report.pdf#p3' }))
       return store
     }
-    mods.Console.boot(env.document)
+    mods.Console.boot(env.document, { modelText: decodedModelText(env.document) })
     const dialog = env.document.createElement('dialog') as any
     dialog.id = 'nn-citation-dialog'
     dialog.showModal = vi.fn()

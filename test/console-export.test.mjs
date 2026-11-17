@@ -9,9 +9,19 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { consoleHtml, consoleBundle, consoleMembers } from './helpers/console-artifacts.mjs'
 import { runExportConsole } from '../scripts/export-console.mjs'
-import { checkConsoleFixtureFreshness, REGEN_COMMAND } from '../scripts/lib/console-fixture-freshness.js'
+import { checkConsoleFixtureFreshness, REGEN_COMMAND, withoutStamps } from '../scripts/lib/console-fixture-freshness.js'
 import { CONSOLE_SIZE_BUDGET } from '../scripts/console-views.mjs'
 import { JSDOM } from 'jsdom'
+import {
+  CONSOLE_MODEL_SLOT_TYPE,
+  decodedModelTextOf,
+  lendCompressionStreams,
+  modelOf,
+  pageBooted,
+  rewriteModelText,
+  slotTextOf,
+  withDecodedModel,
+} from './helpers/console-slots.mjs'
 
 const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -109,7 +119,8 @@ level: 3
     assert.match(htmlContent, /<style>[\s\S]*--nn-bg[\s\S]*<\/style>/, 'css inlined')
     assert.match(htmlContent, /<script type="application\/json" id="nn-config">/)
     assert.match(htmlContent, /<script type="application\/json" id="nn-schema">/)
-    assert.match(htmlContent, /<script type="application\/json" id="nn-model">/)
+    assert.ok(htmlContent.includes(`<script type="${CONSOLE_MODEL_SLOT_TYPE}" id="nn-model">`), 'compressed model slot')
+    assert.match(htmlContent, /<script type="application\/json" id="nn-drafts">\s*\{\}\s*<\/script>/, 'empty drafts slot')
     assert.match(htmlContent, /id="nn-tab-review"/)
   })
 
@@ -142,7 +153,7 @@ level: 3
     dom.window.eval('var matchMedia = window.matchMedia;' + bundleJs)
 
     const doc = dom.window.document
-    dom.window.nnConsole.boot(doc)
+    dom.window.nnConsole.boot(doc, { modelText: decodedModelTextOf(doc) })
 
     // Verify the navbar identity (single model -> the model title) and reviewer chip
     const titleEl = doc.getElementById('nn-domain-title')
@@ -200,14 +211,12 @@ level: 3
     const htmlPath = consoleHtml(tempDir, 'xss_V_1-0-0')
     const htmlContent = await readFile(htmlPath, 'utf-8')
 
-    // Inside the script tag for nn-model, there must be no literal </script> or <script> or <div>
-    const modelScriptMatch = htmlContent.match(/<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/)
-    assert.ok(modelScriptMatch)
-    const slotBody = modelScriptMatch[1]
-    assert.equal(slotBody.includes('<script>'), false)
-    assert.equal(slotBody.includes('</script>'), false)
-    assert.equal(slotBody.includes('<div>'), false)
-    assert.ok(slotBody.includes('\\u003c/script>'))
+    // The nn-model slot holds base64 only, so no markup in the model can close it; the
+    // decoded model keeps the markup verbatim as data.
+    const slotBody = slotTextOf(htmlContent, 'nn-model')
+    assert.ok(slotBody)
+    assert.match(slotBody, /^[A-Za-z0-9+/=\s]+$/, 'the slot body is base64')
+    assert.ok(JSON.stringify(modelOf(htmlContent)).includes('</script>'), 'the decoded model keeps the markup as text')
   })
 
   it('ignores any feedback-ledger.jsonl: a domain with one exports the same bytes', async () => {
@@ -272,7 +281,7 @@ level: 3
     assert.equal(res.code, 0)
 
     const htmlPath = consoleHtml(tempDir, 'cited_V_1-0-0')
-    const htmlContent = await readFile(htmlPath, 'utf-8')
+    const htmlContent = withDecodedModel(await readFile(htmlPath, 'utf-8'))
     assert.ok(htmlContent.includes('citationsResolvedAt'))
     assert.ok(htmlContent.includes('sources/brief.md'))
   })
@@ -484,7 +493,7 @@ scenarioMonths:: 12
       await writeFile(join(tempDir, 'models', 'm_V_1-0-0_NN.md'), metricsModel, 'utf-8')
       assert.equal((await runCli([tempDir, '--domain'])).code, 0)
       const html = await readFile(domainFile(), 'utf-8')
-      const slot = JSON.parse(html.match(/<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/)[1])
+      const slot = modelOf(html)
       const summary = slot.meta.models.find((s) => s.blueprint === 'metrics')
       assert.ok(summary, JSON.stringify(slot.meta.models))
       assert.equal(summary.projection, undefined, 'projection is view-derived, not exporter-derived')
@@ -532,6 +541,7 @@ scenarioMonths:: 12
         url: 'http://localhost',
         runScripts: 'dangerously',
         beforeParse(w) {
+          lendCompressionStreams(w)
           w.matchMedia = () => ({
             matches: false,
             addListener() {},
@@ -542,7 +552,7 @@ scenarioMonths:: 12
           })
         },
       })
-      await new Promise((ok) => dom.window.addEventListener('load', ok))
+      await pageBooted(dom)
       const doc = dom.window.document
       const tabs = [...doc.querySelectorAll('#nn-view-tabs [data-tab]')].map((b) => b.dataset.tab)
       assert.ok(tabs.includes('timeline'), JSON.stringify(tabs))
@@ -563,6 +573,7 @@ scenarioMonths:: 12
         url: 'http://localhost',
         runScripts: 'dangerously',
         beforeParse(w) {
+          lendCompressionStreams(w)
           w.matchMedia = () => ({
             matches: false,
             addListener() {},
@@ -573,7 +584,7 @@ scenarioMonths:: 12
           })
         },
       })
-      await new Promise((ok) => dom.window.addEventListener('load', ok))
+      await pageBooted(dom)
       const doc = dom.window.document
       const tabs = [...doc.querySelectorAll('#nn-view-tabs [data-tab]')].map((b) => b.dataset.tab)
       assert.ok(tabs.indexOf('pipeline') >= 0 && tabs.indexOf('other') > tabs.indexOf('pipeline'), 'tabs come from the registry, ordered')
@@ -677,7 +688,7 @@ scenarioMonths:: 12
       assert.equal((await runCli([tempDir, '--domain'])).code, 0)
       const second = await readFile(domainFile(), 'utf-8')
       assert.equal(stripStamp(second), stripStamp(first))
-      assert.ok(first.includes('"generated"'), 'the stamp convention is still present')
+      assert.ok(withDecodedModel(first).includes('"generated"'), 'the stamp convention is still present')
     })
   })
 
@@ -722,7 +733,7 @@ scenarioMonths:: 12
     const DUP = (title, slug) =>
       `---\ntitle: "${title}"\nknowledge_version: "V_1-0-0"\nlevel: 3\n---\n\n# NN Item\n## NN Item: ${slug}\n  slug:: ${slug}\n`
     const modelSlot = async () =>
-      JSON.parse((await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')).match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
+      modelOf(await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8'))
 
     it('keeps two same-named models in different folders distinct and both fresh', async () => {
       await mkdir(join(tempDir, 'a'), { recursive: true })
@@ -757,12 +768,11 @@ scenarioMonths:: 12
       assert.equal((await runCli([tempDir, '--domain'])).code, 0)
       const file = join(tempDir, 'domaiNN_console.html')
       const html = await readFile(file, 'utf-8')
-      assert.ok(html.includes('"filePath":"models/business_V_1-0-0_NN.md"'), 'the payload names the model by path')
+      assert.ok(withDecodedModel(html).includes('"filePath":"models/business_V_1-0-0_NN.md"'), 'the payload names the model by path')
 
       // A console exported before the change (or a hand-written fixture) carries the bare name.
-      const legacy = html.replace(
-        '"filePath":"models/business_V_1-0-0_NN.md"',
-        '"filePath":"business_V_1-0-0_NN.md"',
+      const legacy = rewriteModelText(html, (json) =>
+        json.replace('"filePath":"models/business_V_1-0-0_NN.md"', '"filePath":"business_V_1-0-0_NN.md"'),
       )
       assert.notEqual(legacy, html, 'the entry was rewritten to the bare file name')
       await writeFile(file, legacy, 'utf-8')
@@ -864,7 +874,7 @@ scenarioMonths:: 12
   describe('Changes collection in the domain payload', () => {
     const domainFile = () => join(tempDir, 'domaiNN_console.html')
     const modelSlot = async () =>
-      JSON.parse((await readFile(domainFile(), 'utf-8')).match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
+      modelOf(await readFile(domainFile(), 'utf-8'))
 
     const changeset = (status, title) =>
       `---\nspec_version: "V_0-4-0"\nlevel: 3\nparent_spec:\n  name: changes\n  url: "https://example.test/changes/spec_NN.md"\nblueprint_version: "V_0-2-0"\nstatus: ${status}\ntitle: "${title}"\n---\n\n# NN Change\n\n## NN Change: c-01\nop:: comment\ntarget:: Business Model@enterprise&tagline\nnotes:: "note"\nevidence:: sources/brief.md@## Overview\n`
@@ -892,7 +902,7 @@ scenarioMonths:: 12
   describe('D14 remainder: every model, history, source index, embed threshold, size budget', () => {
     const domainFile = () => join(tempDir, 'domaiNN_console.html')
     const modelSlot = async () =>
-      JSON.parse((await readFile(domainFile(), 'utf-8')).match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
+      modelOf(await readFile(domainFile(), 'utf-8'))
 
     it('embeds every model of the domaiNN in the domain payload', async () => {
       await writeFile(
@@ -1016,8 +1026,8 @@ scenarioMonths:: 12
         'utf-8',
       )
       assert.equal((await runCli([tempDir, '--domain'])).code, 0)
-      const html = await readFile(domainFile(), 'utf-8')
-      const slot = JSON.parse(html.match(/id="nn-model">([\s\S]*?)<\/script>/)[1])
+      const html = withDecodedModel(await readFile(domainFile(), 'utf-8'))
+      const slot = modelOf(await readFile(domainFile(), 'utf-8'))
       const cite = slot.elements.find((e) => e.slug === 'big').citations.sources[0]
       assert.equal(cite.truncated, true, 'a heavy source is truncated')
       assert.equal(cite.excerpt.length, 500, 'the excerpt is capped, not the whole body')
@@ -1308,8 +1318,7 @@ level: 3
   const LEAK_FIELD = /^(cost|costs|budget|budgets|spend|ledger|prompt|image_prompt|prompts|negative_prompt)$/i
   const LEAK_VALUE = ['$100k', '42 USD', 'a lighthouse at dusk', 'L-77']
   const VIEW_DATA_LEAK = ['SENTINEL-COST', 'SENTINEL-BUDGET', 'SENTINEL-LEDGER', 'SENTINEL-PROMPT']
-  const slot = (html, id) =>
-    JSON.parse(html.match(new RegExp(`id="${id}">([\\s\\S]*?)<\\/script>`))[1])
+  const slot = (html, id) => (id === 'nn-model' ? modelOf(html) : JSON.parse(slotTextOf(html, id)))
   const leakyFieldNames = (model) =>
     model.elements.flatMap((el) => Object.keys(el.fields || {})).filter((k) => LEAK_FIELD.test(k))
 
@@ -1339,7 +1348,7 @@ level: 3
     assert.deepEqual(Object.keys(probe).sort(), ['keep', 'nested'], 'the facts that are not operating data stay')
     assert.deepEqual(probe.nested, {}, 'the nested operating data is dropped')
     for (const value of [...LEAK_VALUE, ...VIEW_DATA_LEAK]) {
-      assert.equal(html.includes(value), false, `${value} is not in the page`)
+      assert.equal(withDecodedModel(html).includes(value), false, `${value} is not in the page`)
     }
   }
 
@@ -1355,7 +1364,7 @@ level: 3
       'ledger',
     ])
     for (const value of [...LEAK_VALUE, ...VIEW_DATA_LEAK]) {
-      assert.equal(plainHtml.includes(value), true, `${value} is exported when nothing marks the page a delivery`)
+      assert.equal(withDecodedModel(plainHtml).includes(value), true, `${value} is exported when nothing marks the page a delivery`)
     }
 
     const delivery = await writeConsole({
@@ -1576,14 +1585,12 @@ describe('domain console identity is checkout-independent (b18 console-domain-id
    * file at clone time, and only some platforms' copy APIs carry mtimes, so a copy is not a
    * reproducible input for it). Everything else in the artifact must be reproducible.
    */
-  const WALL_CLOCK_RE = /("(?:generated|citationsResolvedAt|mtime)":")[^"]*"/g
-  const withoutWallClock = (html) => html.replace(WALL_CLOCK_RE, '$1<stamp>"')
+  const withoutWallClock = (html) => withoutStamps(html)
 
   /** `meta.domainId` of an exported console. */
   const domainIdOf = (html) => {
-    const island = html.match(/<script type="application\/json" id="nn-model">([\s\S]*?)<\/script>/)
-    assert.ok(island, 'the page carries the model island')
-    return JSON.parse(island[1]).meta.domainId
+    assert.ok(slotTextOf(html, 'nn-model'), 'the page carries the model island')
+    return modelOf(html).meta.domainId
   }
 
   /** The `nn-schema` slot of an exported console. */
@@ -1709,8 +1716,8 @@ slug:: enterprise
 
     const [a, b] = htmls
     assert.notEqual(
-      a.match(/"mtime":"([^"]*)"/)[1],
-      b.match(/"mtime":"([^"]*)"/)[1],
+      withDecodedModel(a).match(/"mtime":"([^"]*)"/)[1],
+      withDecodedModel(b).match(/"mtime":"([^"]*)"/)[1],
       'the two exports really do carry different file mtimes',
     )
     assert.equal(domainIdOf(a), domainIdOf(b), 'the id follows the path, never the mtimes')
