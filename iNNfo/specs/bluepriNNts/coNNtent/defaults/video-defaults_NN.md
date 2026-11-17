@@ -18,7 +18,6 @@ title: "Video Defaults"
 slug:: defaults
 voice_model:: minimax/speech-2.8-hd
 image_model:: wavespeed-ai/z-image/turbo
-image_size:: 1024x1024
 avatar_model:: wavespeed-ai/infinitetalk-fast
 background_audio_volume:: 0.2
 transition:: none

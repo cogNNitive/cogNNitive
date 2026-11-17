@@ -234,7 +234,7 @@ async function runTests() {
     assert.doesNotMatch(DEFAULTS, /^language::/m, 'no language default: an unset language is a validation error');
     assert.match(DEFAULTS, /^voice_model:: minimax\/speech-2\.8-hd$/m);
     assert.match(DEFAULTS, /^background_audio_volume:: 0\.2$/m);
-    assert.match(DEFAULTS, /^image_size:: 1024x1024$/m);
+    assert.doesNotMatch(DEFAULTS, /^image_size::/m, 'no image_size default: the size derives from the primary format');
     assert.match(DEFAULTS, /^output_formats:: \[1920x1080, 1080x1920, 1080x1080\]$/m);
     assert.match(DEFAULTS, /^review_gates:: \[script, preview\]$/m);
     assert.match(DEFAULTS, /^parent_spec:\n  name: "coNNtent_V_0-15-0"$/m);

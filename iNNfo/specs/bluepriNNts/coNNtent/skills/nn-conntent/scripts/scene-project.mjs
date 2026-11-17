@@ -123,6 +123,7 @@ function assetSizeOf(layer, why) {
  * runs when the two keys differ, so a single-valued fit needs no asset size.
  */
 export function chosenFit(layer, box) {
+  if (layer.layer_avatar_origin) return 'cover';
   const map = fitMapOf(layer.layer_fit)
   if (!map) return null
   if (map.native === map.mismatch) return map.native
