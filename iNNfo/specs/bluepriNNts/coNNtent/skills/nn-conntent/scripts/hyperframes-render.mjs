@@ -185,8 +185,26 @@ function stageComponents(manifest, projectDir) {
     // components); the fallback is the packaged slot contract.
     const src = entry?.path || path.join(skillDir, 'slots', `${name}.html`);
     if (!fs.existsSync(src)) continue;
-    fs.copyFileSync(src, path.join(componentsDir, `${name}.html`));
+    const html = fs.readFileSync(src, 'utf8');
+    fs.writeFileSync(path.join(componentsDir, `${name}.html`), stampCanvas(html, manifest.width, manifest.height), 'utf8');
   }
+}
+
+/**
+ * Stamps a slot component's root (`id="root"`) with the canvas of the format project it is
+ * staged into (spec S6): the source declares no fixed size, so one component serves every
+ * format. A manifest without a size leaves the file as it is.
+ * @param {string} html
+ * @param {number} width
+ * @param {number} height
+ */
+export function stampCanvas(html, width, height) {
+  if (!(Number(width) > 0) || !(Number(height) > 0)) return html;
+  return String(html).replace(/<div\b[^>]*\bid="root"[^>]*>/, (tag) =>
+    tag
+      .replace(/\s+data-(?:width|height)="[^"]*"/g, '')
+      .replace(/\bid="root"/, `id="root" data-width="${Number(width)}" data-height="${Number(height)}"`),
+  );
 }
 
 /**

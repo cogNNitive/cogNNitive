@@ -88,20 +88,13 @@ test('the compiler lists every declared output format, the first one sizing the 
   assert.deepEqual(lowered.outputFormats.map((f) => f.size), ['1920x1080', '1080x1920', '1080x1080']);
 });
 
-test('the six overlay components lay out inside the central safe square', () => {
-  // Components live as `library/components/<name>/index.html` in the package.
+test('the overlay components carry no central-square inset (the safe area is per canvas)', () => {
+  // Components live as `library/components/<name>/index.html` in the package; their
+  // per-canvas layout is pinned by safe-area.test.mjs and safe-zone.test.mjs.
   const BPS = path.resolve(__dirname, '..', '..', '..'); // test -> nn-conntent -> skills -> coNNtent
   for (const name of ['lower-third', 'caption', 'title', 'quote', 'watermark', 'b-roll']) {
-    const html = fs
-      .readFileSync(path.join(BPS, 'library', 'components', name, 'index.html'), 'utf8')
-      .replace(/\r\n/g, '\n');
-    assert.match(html, /#root \{ position: absolute; inset: 21\.875%; overflow: visible; \}/, `${name} carries the inset`);
-    assert.doesNotMatch(html, /#root \{ position: absolute; inset: 0;/, `${name} no longer fills the whole master`);
+    const html = fs.readFileSync(path.join(BPS, 'library', 'components', name, 'index.html'), 'utf8');
+    assert.doesNotMatch(html, /inset: 21\.875%/, `${name} has no central-square inset`);
+    assert.match(html, /var\(--safe-top/, `${name} reads the canvas safe area`);
   }
-});
-
-test('the safe square is the intersection of the three crops', () => {
-  // 1920 - 2*420 = 1080 in both axes; 420/1920 = 21.875%.
-  assert.equal(1920 - 2 * 420, 1080);
-  assert.equal(Math.round((420 / 1920) * 100000) / 1000, 21.875);
 });

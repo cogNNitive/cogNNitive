@@ -668,6 +668,9 @@ export class SceneCompiler {
       layer_avatar_model: avatarModel ?? undefined,
       layer_avatar_resolution: fields.avatar_resolution,
       layer_fit: fit,
+      // Only `inset` changes the projection (spec S6); `full` is the default and stays out
+      // of the lowered model, so it never moves the script-gate hash.
+      layer_placement: fields.placement === 'inset' ? 'inset' : undefined,
     };
     for (const key of Object.keys(properties)) {
       if (properties[key] === undefined) delete properties[key];

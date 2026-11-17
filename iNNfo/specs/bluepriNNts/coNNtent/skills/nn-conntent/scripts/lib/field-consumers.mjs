@@ -58,6 +58,7 @@ export const FIELD_CONSUMERS = {
   prompt: ['scene-compiler.mjs', 'lib/image-options.mjs'],
   text: ['scene-compiler.mjs'],
   position: ['scene-compiler.mjs'],
+  placement: ['scene-compiler.mjs', 'scene-project.mjs'],
   enter_animation: ['scene-compiler.mjs'],
   exit_animation: ['scene-compiler.mjs'],
   z_index: ['scene-compiler.mjs'],
@@ -100,7 +101,6 @@ export const PLANNED_CONSUMERS = {
   intro: '5',
   style: '5',
   text_from: '5',
-  placement: '5',
   timing: '5',
 };
 

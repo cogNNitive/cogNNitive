@@ -326,7 +326,7 @@ description:: Intro media reused by the episode's fixed first Scene. Resolves th
 concept:: Layer
 type:: select
 options:: [avatar, media, text, animation]
-description:: Required Layer behaviour type. `avatar` is a lip-synced paid job; `media` is an image or a video; `text` is overlay text; `animation` mounts an authored HyperFrames project as a sub-composition. Appearance and visual components come from Presets, never from the type.
+description:: Required Layer behaviour type. `avatar` is a lip-synced paid job; `media` is an image or a video; `text` is overlay text; `animation` mounts an authored HyperFrames project as a sub-composition; every format project root declares its canvas safe area as the CSS variables `--safe-top`, `--safe-right`, `--safe-bottom` and `--safe-left` (pixels), so an authored animation lays out per canvas by reading them. Appearance and visual components come from Presets, never from the type.
 
 ## NN Field Definition: placement
 concept:: Layer
