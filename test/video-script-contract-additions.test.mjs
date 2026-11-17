@@ -113,8 +113,9 @@ async function runTests() {
     }), { bags: BLUEPRINT_BAGS });
     const broll = manifest.tracks.overlays.filter((o) => o.type === 'broll');
     assert.strictEqual(broll.length, 2);
-    assert.strictEqual(broll[0].config.fit, 'contain');
-    assert.strictEqual(broll[1].config.fit, 'cover');
+    // V_0-25-0: `fit` lowers to the keyed `{ native, mismatch }` map; a scalar sets both.
+    assert.deepStrictEqual(broll[0].config.fit, { native: 'contain', mismatch: 'contain' });
+    assert.deepStrictEqual(broll[1].config.fit, { native: 'cover', mismatch: 'cover' });
     console.log('OK b-roll fit:: contain is carried; the blueprint default stays cover');
   }
 
