@@ -1288,6 +1288,31 @@ agent-bootstrap:
   console.log('✔ depends_on reader + validator');
 }
 
+// #710: the status table must print a release tag whole. Clipping the ref to 7
+// characters made `blueprints-v0.70.1` and `blueprints-v0.72.0` both read
+// `bluepri`, so the pin could not be read from `status` at all.
+{
+  const { statusRef } = require('./lib/skills-commands.js');
+  assert.strictEqual(
+    statusRef('a922bb16bf2017f4b512e9c9a1fb555588370416'),
+    'a922bb1',
+    'a 40-hex commit keeps the short form',
+  );
+  assert.strictEqual(
+    statusRef('blueprints-v0.72.0'),
+    'blueprints-v0.72.0',
+    'a release tag is printed whole',
+  );
+  assert.notStrictEqual(
+    statusRef('blueprints-v0.70.1'),
+    statusRef('blueprints-v0.72.0'),
+    'two releases stay distinguishable in the table',
+  );
+  assert.strictEqual(statusRef(null), '-', 'a missing ref renders as a dash');
+  assert.strictEqual(statusRef(undefined), '-', 'an undefined ref renders as a dash');
+  console.log('ok status ref column widens a release tag (#710)');
+}
+
 console.log('All skills-manager unit tests passed successfully!');
 }
 
