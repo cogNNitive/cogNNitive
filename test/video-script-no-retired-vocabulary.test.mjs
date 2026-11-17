@@ -80,7 +80,7 @@ test('the blueprint declares the current field names only', () => {
   const spec = fs
     .readFileSync(path.join(ROOT, 'iNNfo/specs/bluepriNNts/coNNtent/spec_NN.md'), 'utf8')
     .replace(/\r\n/g, '\n');
-  for (const retired of ['template', 'tool', 'tts_model', 'music_volume', 'presenter_asset', 'intro_asset', 'level', 'speed', 'emotion', 'voice_tone', 'master_resolution', 'scene_duration', 'scene_tts_model']) {
+  for (const retired of ['template', 'tool', 'tts_model', 'music_volume', 'presenter_asset', 'intro_asset', 'level', 'speed', 'emotion', 'voice_tone', 'master_resolution', 'master', 'fill', 'scene_duration', 'scene_tts_model']) {
     assert.doesNotMatch(
       spec,
       new RegExp(`^## NN Field Definition: ${retired}$`, 'm'),

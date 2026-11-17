@@ -79,7 +79,7 @@ export const FIT_ASPECT_TOLERANCE = 0.05
 export const FIT_BLUR_REFERENCE_PX = 24
 /** ...and scales linearly with the shorter side (13.5px at 1080). */
 export const FIT_BLUR_REFERENCE_SIDE = 1920
-/** Backdrop darkening for a `fit:: blur`/`card` layer: the same intent as render-formats' DEFAULT_BRIGHTNESS. */
+/** Backdrop darkening for a `fit:: blur`/`card` layer. */
 export const FIT_BLUR_BRIGHTNESS = 0.82
 /** `card` geometry, as fractions of the box's shorter side: margin, corner radius, shadow offset and blur. */
 export const FIT_CARD = Object.freeze({ inset: 0.05, radius: 0.02, shadowY: 0.012, shadowBlur: 0.04, shadowAlpha: 0.45 })
