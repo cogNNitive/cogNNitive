@@ -227,6 +227,32 @@ jobs:
           set -o pipefail
           node scripts/claim-audit.mjs --prs "$RUNNER_TEMP/prs.json" --warn-only | tee -a "$GITHUB_STEP_SUMMARY"
 
+  # ── Release bump: `nn-mcp` and `nn-console` ship only when their package.json carries
+  #    an untagged version, so a PR that changes their release paths without a bump
+  #    merges and releases nothing (#650 missed 0.37.2, #670/#683 missed 0.37.4). Only the
+  #    PR's own diff is checked, so an older unreleased change on the base blames nobody.
+  release-bump:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Full history and every release tag: the check diffs against the base
+          # branch and reads the latest `nn-mcp-v*` / `nn-console-v*` tags.
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.23.4
+
+      - name: A changed authored release key carries an unreleased version
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: node scripts/release/check-authored-bump.js --base "origin/$BASE_REF"
+
   # One-way publish of the built site to the public distribution repo
   # (`cogNNitive-web`), which owns the GitHub Pages deployment for
   # `cognnitive.com`. The monorepo no longer serves Pages from itself: this job

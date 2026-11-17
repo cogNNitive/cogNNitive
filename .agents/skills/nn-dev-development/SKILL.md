@@ -202,6 +202,9 @@ tag shapes are a contract. Nobody tags by hand.
 
 - **To release nn-mcp or the console:** bump its `package.json` version in the PR, then
   run `npm run sync:versions`, `npm install --package-lock-only` and `npm run regen`.
+  The `release-bump` CI job enforces it: a PR that changes a path of `nn-mcp` or
+  `nn-console` (`scripts/release/release-keys.js`) without moving that key to an
+  untagged version fails (`node scripts/release/check-authored-bump.js --base origin/main`).
 - **A failed release run:** fix forward on `main`, or re-run one tag with
   `gh workflow run release.yml --ref main -f tag=<tag> -f publish=true` (one at a time;
   concurrent dispatches cancel each other). Never delete or move a published tag.

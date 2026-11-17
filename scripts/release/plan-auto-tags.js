@@ -118,4 +118,4 @@ if (require.main === module) {
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `tags=${json}\n`);
 }
 
-module.exports = { planAutoTags, bumpFor, readRepoState };
+module.exports = { planAutoTags, bumpFor, readRepoState, latestVersion, AUTHORED_PACKAGES };
