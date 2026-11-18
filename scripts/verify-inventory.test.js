@@ -239,8 +239,8 @@ blueprints:
     const names = [...text.matchAll(/^    name: '([^']*)',$/gm)].map((m) => m[1]).sort();
     assert.deepStrictEqual(
       names,
-      // Two `innfo` anchors: V_0-5-0 (the historical pin) and V_0-7-0 (distributed storage).
-      ['blank', 'changes', 'defiNNition', 'domaiNN', 'innfo', 'innfo', 'procedures', 'sidecar', 'sources', 'artifacts'].sort(),
+      // Three `innfo` anchors: V_0-5-0 (the historical pin), V_0-7-0 (distributed storage) and V_0-8-0 (write policy).
+      ['blank', 'changes', 'defiNNition', 'domaiNN', 'innfo', 'innfo', 'innfo', 'procedures', 'sidecar', 'sources', 'artifacts'].sort(),
       'canonical registry must embed L0/L1 specs plus exactly the 7 Core bluepriNNts',
     );
     for (const removed of ['business', 'business-model', 'organization', 'metrics', 'workspace', 'analysis', 'projects']) {
@@ -254,6 +254,7 @@ blueprints:
       'INNFO_SPEC_CONTENT',
       'INNFO_V_0_5_0_SPEC_CONTENT',
       'INNFO_V_0_7_0_SPEC_CONTENT',
+      'INNFO_V_0_8_0_SPEC_CONTENT',
       'DOMAINN_SPEC_CONTENT',
       'BLANK_SPEC_CONTENT',
       'PROCEDURES_SPEC_CONTENT',
