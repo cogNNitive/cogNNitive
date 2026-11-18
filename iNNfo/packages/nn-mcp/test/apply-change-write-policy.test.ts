@@ -223,3 +223,105 @@ describe('apply_change enforces the concept write policy', () => {
     expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
   })
 })
+
+/* ── whole-model operations on distributed instances ───────────────────────── */
+
+const RUNS_BLUEPRINT = (runPolicy: string) => `---
+spec_version: "V_0-1-0"
+level: 2
+title: "Runs"
+parent_spec:
+  name: "iNNfo_V_0-7-0"
+  url: "specs/iNNfo_V_0-7-0_NN.md"
+---
+
+# NN Concept Definition
+
+## NN Concept Definition: Run
+type:: list
+storage:: distributed
+placement:: runs/{slug}/
+${runPolicy ? `write_policy:: ${runPolicy}\n` : ''}
+## NN Concept Definition: Note
+type:: list
+
+# NN Field Definition
+
+## NN Field Definition: text
+concept:: Note
+type:: string
+`
+
+/** Distributed storage is read from bluepriNNts under iNNfo V_0-7-0 or later. */
+const L1_V07 = `---
+spec_version: "V_0-7-0"
+level: 1
+title: "iNNfo"
+parent_spec:
+  name: "defiNNition_V_0-1-0"
+  url: "specs/defiNNition_V_0-1-0_NN.md"
+---
+`
+
+const ADD_RUN =
+  'op:: add_model\ntarget:: first-run\nconcept:: Run\nblueprint_name:: runs_V_0-1-0\nblueprint_url:: specs/bluepriNNts/runs_V_0-1-0_NN.md\nname:: First Run\n'
+
+async function setupRuns(runPolicy: string): Promise<void> {
+  await mkdir(join(specsDir, 'bluepriNNts'), { recursive: true })
+  await writeFile(join(specsDir, 'iNNfo_V_0-7-0_NN.md'), L1_V07, 'utf-8')
+  // The domain index learns a bluepriNNt's storage from the models that already use it.
+  await writeFile(
+    join(knowledgeDir, 'notes_NN.md'),
+    '---\nlevel: 3\ntitle: "Notes"\nknowledge_version: "V_0-1-0"\nparent_spec:\n  name: "runs_V_0-1-0"\n  url: "specs/bluepriNNts/runs_V_0-1-0_NN.md"\n---\n\n# NN Note\n\n## NN Note: First\ntext:: hello\n',
+    'utf-8',
+  )
+  await writeFile(join(specsDir, 'bluepriNNts', 'runs_V_0-1-0_NN.md'), RUNS_BLUEPRINT(runPolicy), 'utf-8')
+}
+
+/** Creates the instance under a mutable Run, then switches the declaration. */
+async function createRunThenDeclare(runPolicy: string): Promise<string> {
+  await setupRuns('')
+  const created = await apply(ADD_RUN)
+  expect(created.errors ?? []).toEqual([])
+  await setupRuns(runPolicy)
+  return readFile(join(root, 'runs', 'first-run', 'first-run_runs_NN.md'), 'utf-8')
+}
+
+describe('apply_change enforces the write policy on whole models', () => {
+  it('accepts creating an instance of an append-only distributed concept', async () => {
+    await setupRuns('append-only')
+    const res = await apply(ADD_RUN)
+    expect(res.errors ?? []).toEqual([])
+    expect(res.success).toBe(true)
+  })
+
+  it('refuses creating an instance of a read-only distributed concept', async () => {
+    await setupRuns('read-only')
+    const res = await apply(ADD_RUN)
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
+    expect(res.errors?.map((e) => e.message).join(' ')).toContain('"Run" is read-only')
+  })
+
+  it('refuses removing an append-only instance and keeps its file', async () => {
+    const before = await createRunThenDeclare('append-only')
+    const res = await apply('op:: remove_model\ntarget:: first-run\n')
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
+    expect(await readFile(join(root, 'runs', 'first-run', 'first-run_runs_NN.md'), 'utf-8')).toBe(before)
+  })
+
+  it('refuses moving an append-only instance', async () => {
+    await createRunThenDeclare('append-only')
+    const res = await apply('op:: move_model\ntarget:: first-run\nto:: second-run\n')
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
+  })
+
+  it('still removes an instance whose concept declares nothing', async () => {
+    await createRunThenDeclare('')
+    const res = await apply('op:: remove_model\ntarget:: first-run\n')
+    expect(res.errors ?? []).toEqual([])
+    expect(res.success).toBe(true)
+  })
+})

@@ -24266,21 +24266,47 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       }
       return entry.schema ?? void 0;
     };
-    const writeScopesFor = (entry) => {
-      if (entry.writeScopes !== void 0) return { ok: true, scopes: entry.writeScopes };
-      const found = findScopeChain2(entry.filePath);
+    const writeScopesAt = (filePath) => {
+      const found = findScopeChain2(filePath);
       if (!found.ok) {
-        if (found.code === "NO_DOMAIN_ROOT") {
-          entry.writeScopes = [];
-          return { ok: true, scopes: [] };
-        }
+        if (found.code === "NO_DOMAIN_ROOT") return { ok: true, scopes: [] };
         return { ok: false, detail: found.code };
       }
       const loaded = loadChain2(found.chain);
       if (!loaded.ok) return { ok: false, detail: `${loaded.code}: ${loaded.path}` };
-      entry.writeScopes = [...loaded.loaded.nodes];
-      return { ok: true, scopes: entry.writeScopes };
+      return { ok: true, scopes: [...loaded.loaded.nodes] };
     };
+    const writeScopesFor = (entry) => {
+      if (entry.writeScopes !== void 0) return { ok: true, scopes: entry.writeScopes };
+      const result = writeScopesAt(entry.filePath);
+      if (result.ok) entry.writeScopes = result.scopes;
+      return result;
+    };
+    const writePolicyRejection = async (args) => {
+      const { change, schema, scopes, modelSlug } = args;
+      if (!scopes.ok) {
+        return rejectPhase1(
+          "WRITE_POLICY_UNRESOLVED",
+          change.target,
+          `change "${change.id}": the domaiNN scope chain of model "${modelSlug}" could not be read (${scopes.detail}), so its write policy cannot be resolved`
+        );
+      }
+      const names = args.concepts.length > 0 ? [...new Set(args.concepts)] : [""];
+      for (const conceptName of names) {
+        const declared2 = conceptName ? schema?.concepts.find((c) => c.name.toLowerCase() === conceptName.toLowerCase()) : void 0;
+        const effective = resolveWritePolicy({
+          blueprint: args.blueprintPolicy,
+          concept: declared2?.writePolicy,
+          scopes: scopes.scopes
+        });
+        const violation = writePolicyViolation(effective.policy, change.op, declared2?.name ?? (conceptName || modelSlug));
+        if (violation) {
+          return recordRejection([{ path: change.target, message: violation.message, code: violation.code }], change.id);
+        }
+      }
+      return null;
+    };
+    const conceptsIn = (model) => [...model.elements.entries()].filter(([, list]) => list.length > 0).map(([concept]) => concept);
     for (const change of csDoc.changes) {
       if (change.op === "comment" || change.op === "produce_artifact") continue;
       const { modelSlug } = parseTargetAddress(change.target);
@@ -24314,6 +24340,17 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
             change.target,
             `change "${change.id}": bluepriNNt "${blueprintName}" does not compose: ${detail}`
           );
+        }
+        if (plan?.root) {
+          const rejected = await writePolicyRejection({
+            change,
+            concepts: [plan.root.concept],
+            schema: composed.schema,
+            blueprintPolicy: resolvedBlueprint.template.frontmatter?.[WRITE_POLICY_KEY],
+            scopes: writeScopesAt(plan.path),
+            modelSlug: cleanId
+          });
+          if (rejected) return rejected;
         }
         const content = scaffoldKnowledgeDocument({
           id: cleanId,
@@ -24639,6 +24676,18 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       const { modelSlug, parts, remainder } = parseTargetAddress(change.target);
       const entry = loadedModels.get(modelSlug.toLowerCase());
       if (!entry) continue;
+      if (change.op === "move_model" || change.op === "remove_model" || change.op === "extract_instance") {
+        const extracted = change.op === "extract_instance" ? extractPlans.get(change.id)?.concept : void 0;
+        const rejected = await writePolicyRejection({
+          change,
+          concepts: change.op === "extract_instance" ? extracted ? [extracted] : [] : conceptsIn(entry.model),
+          schema: await schemaFor(entry),
+          blueprintPolicy: entry.blueprintWritePolicy,
+          scopes: writeScopesFor(entry),
+          modelSlug: entry.modelSlug
+        });
+        if (rejected) return rejected;
+      }
       if (change.op === "move_model") {
         const plan = movePlans.get(change.id);
         if (!plan) {
@@ -24776,24 +24825,15 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         const policySchema = renameSchema ?? await schemaFor(entry);
         const elementIdent = String(mutationArgs.elementName ?? "") || parseTargetAddress(change.target).remainder.split("&")[0].trim();
         const conceptName = String(mutationArgs.conceptName ?? "") || findElementInModel(entry.model, void 0, elementIdent)?.concept || "";
-        const declared2 = conceptName ? policySchema?.concepts.find((c) => c.name.toLowerCase() === conceptName.toLowerCase()) : void 0;
-        const scopes = writeScopesFor(entry);
-        if (!scopes.ok) {
-          return rejectPhase1(
-            "WRITE_POLICY_UNRESOLVED",
-            change.target,
-            `change "${change.id}": the domaiNN scope chain of model "${entry.modelSlug}" could not be read (${scopes.detail}), so its write policy cannot be resolved`
-          );
-        }
-        const effective = resolveWritePolicy({
-          blueprint: entry.blueprintWritePolicy,
-          concept: declared2?.writePolicy,
-          scopes: scopes.scopes
+        const rejected = await writePolicyRejection({
+          change,
+          concepts: conceptName ? [conceptName] : [],
+          schema: policySchema,
+          blueprintPolicy: entry.blueprintWritePolicy,
+          scopes: writeScopesFor(entry),
+          modelSlug: entry.modelSlug
         });
-        const violation = writePolicyViolation(effective.policy, change.op, declared2?.name ?? (conceptName || entry.modelSlug));
-        if (violation) {
-          return recordRejection([{ path: change.target, message: violation.message, code: violation.code }], change.id);
-        }
+        if (rejected) return rejected;
       }
       const mutRes = applyMutation(entry.model, change.op, mutationArgs, renameSchema);
       if (!mutRes.success) {
