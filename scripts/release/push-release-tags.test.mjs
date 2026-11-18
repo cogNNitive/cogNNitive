@@ -85,14 +85,12 @@ function runScript(fixture, tags, sha = fixture.sha) {
   // The runner exports GITHUB_STEP_SUMMARY to every step, so a child that inherits
   // process.env writes the summary there instead of stdout. Scrub it: the summary
   // path has its own case.
-  const env = {
-    ...process.env,
-    TAGS: JSON.stringify(tags),
-    GITHUB_SHA: sha,
-    PUSH_RELEASE_TAGS_ATTEMPTS: '1',
-    PUSH_RELEASE_TAGS_DELAY_MS: '0',
-  }
+  const env = { ...process.env }
   delete env.GITHUB_STEP_SUMMARY
+  env.TAGS = JSON.stringify(tags)
+  env.GITHUB_SHA = sha
+  env.PUSH_RELEASE_TAGS_ATTEMPTS = '1'
+  env.PUSH_RELEASE_TAGS_DELAY_MS = '0'
   return spawnSync(process.execPath, [SCRIPT], { cwd: fixture.work, encoding: 'utf-8', env })
 }
 
