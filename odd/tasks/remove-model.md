@@ -77,7 +77,7 @@ published), and the registry mirror and catalog are regenerated.
 | T7  | S5    | inline | done   | propose scan shared with apply; `missing_referrer_updates` tested (100c92d2) |
 | T8  | S11   | inline | done   | `changes-blueprint-text` guard 4/4, registry + catalogs regenerated (5ec48bb3) |
 | T9  | all   | inline | done   | docs pages, generated table, `master.md` in sync; delta spec passes `check:openspec` (09393d05, 1c9d04dc) |
-| T10 | all   | inline | done   | nn-core 2664/2664, nn-mcp 802/802, nn-sources 607/607, typecheck clean; `verify:fast` OOM'd here (see L9), every failing step passes alone |
+| T10 | all   | inline | done   | nn-core 2664/2664, nn-mcp 802/802, nn-sources 607/607, typecheck clean; CI `verify` green on PR #724; `verify:fast` OOM'd locally (see L9), every failing step passes alone |
 
 ## Log
 
@@ -148,6 +148,15 @@ inline guards (`console-shell`, `external-skills`, `skill-script-refs`,
 nn-mcp 802/802, nn-sources 607/607; `tsc` clean for nn-core and nn-mcp; `check:openspec`,
 `check-docs-links`, `generate-docs-facts --check`, `generate-docs-master --check` and
 `regen --check` all clean. CI is the gate for the full run.
+
+L10 (CI, 2026-11-18): PR #724. `verify` green, plus `quality`, `site`, `spec-integrity`,
+`ui-smoke`, `claims` and `release-bump`. Two gates fired and were fixed rather than
+waved through: `release-bump` required the authored keys to carry an unreleased
+version (nn-mcp and nn-core to 0.39.0, then nn-console 0.39.0 with its shell repinned,
+because the regenerated console bundle embeds nn-core), and CI `verify` caught the
+docs-facts CLI fixture now needing both `mcp-tools` targets pre-created. The local
+`verify:fast` failures did not reproduce in CI, which is the same signature L9 describes.
+
 
 
 
