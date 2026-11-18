@@ -235,6 +235,7 @@ function checkToken(
   domain: DomainIndex,
   successor?: (id: string) => string | undefined,
   mirrors?: MirrorLookup,
+  removal?: (id: string) => { changeset: string; changeId: string } | undefined,
 ): ReferenceDiagnostic[] {
   const { root, element, concept, fieldDef } = ctx
   const path = diagnosticPath(root, concept, element, fieldDef)
@@ -277,14 +278,28 @@ function checkToken(
     // A stale address after a recorded move names the old id AND its recorded
     // successor (design A11), so the fix is unambiguous and never guessed.
     const moved = parsed.model !== null && resolved.problem.code === 'REF_MODEL_NOT_FOUND' ? successor?.(parsed.model) : undefined
-    const hint = moved ? ` (recorded successor: "${moved}" — retarget the reference to it)` : ''
+    // A removed model has no successor: the tombstone is the changeset that recorded
+    // its removal, so the fix is to retarget or drop the reference deliberately.
+    const removed =
+      parsed.model !== null && !moved && resolved.problem.code === 'REF_MODEL_NOT_FOUND'
+        ? removal?.(parsed.model)
+        : undefined
+    const hint = moved
+      ? ` (recorded successor: "${moved}" — retarget the reference to it)`
+      : removed
+        ? ` (recorded removal: ${removed.changeset} — change "${removed.changeId}" removed this model; retarget or drop the reference)`
+        : ''
     return [
       {
         path,
         message: `${resolved.problem.message}; referenced from ${where}${hint}`,
         severity: 'error',
         code: resolved.problem.code,
-        meta: { field: fieldDef.name, ...(moved ? { successor: moved } : {}) },
+        meta: {
+          field: fieldDef.name,
+          ...(moved ? { successor: moved } : {}),
+          ...(removed ? { removal: removed.changeset } : {}),
+        },
       },
     ]
   }
@@ -367,12 +382,18 @@ export function validateWorkspaceReferences(
   successor?: (id: string) => string | undefined,
   /** Resolves a `sources/sync/<alias>/...` address through the index of that mirror folder. */
   mirrors?: MirrorLookup,
+  /**
+   * The recorded removal of a removed model id (`ChangeLog.removalOf`). Hosts that
+   * hold the change log pass it so an address to a removed model names the
+   * changeset that recorded the removal — the tombstone — instead of only the id.
+   */
+  removal?: (id: string) => { changeset: string; changeId: string } | undefined,
 ): ReferenceDiagnostic[] {
   const diagnostics: ReferenceDiagnostic[] = [...validateMultivalueSyntax(result, index)]
   for (const value of iterateTypedFieldValues(result, index)) {
     const scalars = Array.isArray(value.raw) ? value.raw.map(String) : [String(value.raw)]
     if (scalars.some(isCommaJoinedMultivalue)) continue // reported once as MULTIVALUE_SYNTAX
-    for (const token of tokensOf(value.raw)) diagnostics.push(...checkToken(token, value, index, domain, successor, mirrors))
+    for (const token of tokensOf(value.raw)) diagnostics.push(...checkToken(token, value, index, domain, successor, mirrors, removal))
   }
   return diagnostics
 }
