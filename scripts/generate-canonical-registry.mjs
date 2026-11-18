@@ -43,6 +43,7 @@ const MAP = {
   DOMAINN_SPEC_CONTENT: 'bluepriNNts/domaiNN/spec_NN.md',
   BLANK_SPEC_CONTENT: 'bluepriNNts/blank/spec_NN.md',
   PROCEDURES_SPEC_CONTENT: 'bluepriNNts/procedures/spec_NN.md',
+  EXECUTIONS_SPEC_CONTENT: 'bluepriNNts/executions/spec_NN.md',
   SOURCES_SPEC_CONTENT: 'bluepriNNts/sources/spec_NN.md',
   ARTIFACTS_SPEC_CONTENT: 'bluepriNNts/artifacts/spec_NN.md',
   SIDECAR_SPEC_CONTENT: 'bluepriNNts/sidecar/spec_NN.md',

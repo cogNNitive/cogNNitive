@@ -96,7 +96,7 @@ export type {
 
 export { parseAddress, formatAddress, isAddressError } from './address/index.js'
 export type { Address, AddressError, AddressErrorCode, ModelId, Unit } from './address/index.js'
-export { buildDomainIndex, fileLocalDiagnostics, versionSkew } from './domain/index.js'
+export { buildDomainIndex, fileLocalDiagnostics, placementForDeclarations, versionSkew } from './domain/index.js'
 export type {
   AddressResolution,
   CollectionMember,

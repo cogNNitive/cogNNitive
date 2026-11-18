@@ -58,7 +58,7 @@ const FROZEN_NAMES = ['workspace'];
  * offline canonical registry. Every other catalog entry is an optional vertical
  * hydrated on demand (`tier: 'free'`).
  */
-const CORE_NAMES = new Set(['domaiNN', 'changes', 'sidecar', 'sources', 'artifacts', 'procedures', 'blank']);
+const CORE_NAMES = new Set(['domaiNN', 'changes', 'sidecar', 'sources', 'artifacts', 'procedures', 'executions', 'blank']);
 
 /**
  * The git top-level directory that contains `dir`, or null when `dir` is not
