@@ -416,6 +416,30 @@ describe('strict provenance of instance models (distributed-storage S6a)', () =>
     expect(fold.provenance.diagnostics.filter((d) => d.code === 'EDITED_WITHOUT_RECORD' || d.code === 'MODEL_WITHOUT_FILE')).toEqual([])
   })
 
+  it('a recorded removal is not drift in strict replay either', async () => {
+    expect(
+      (
+        await applyChange(
+          iRoot,
+          await writeInstanceCs([CREATE_EPISODE], 'create_changes_NN.md'),
+        )
+      ).success,
+    ).toBe(true)
+
+    const removed = await applyChange(
+      iRoot,
+      await writeInstanceCs(
+        [{ id: 'c-01', op: 'remove_model', target: 'villabotijos-today/new-episode' }],
+        'remove_changes_NN.md',
+      ),
+    )
+    expect(removed.success, JSON.stringify(removed.errors)).toBe(true)
+
+    const strict = await checkDomainProvenance(iRoot, { strict: true })
+    expect(strict.diagnostics.map((d) => `${d.code}: ${d.unit ?? ''}`)).toEqual([])
+    expect(strict.ok).toBe(true)
+  })
+
   it('reports an instance with no recorded creation as not strictly checkable', async () => {
     const dir = join(iRoot, 'series', 'villabotijos-today', 'assets', 'hand-made')
     await mkdir(dir, { recursive: true })

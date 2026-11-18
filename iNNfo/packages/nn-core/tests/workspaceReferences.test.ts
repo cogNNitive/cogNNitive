@@ -174,6 +174,24 @@ describe('validateWorkspaceReferences: addresses (cross-model-reference-validati
     expect(validateWorkspaceReferences(result, index)[0].message).not.toContain('recorded successor')
   })
 
+  it('an address to a removed model names the changeset that recorded the removal', () => {
+    const { result, index } = twoModels('innteresante/intro@00-gancho')
+    const removal = (id: string) =>
+      id === 'innteresante/intro'
+        ? { changeset: 'changes/2026-11-18_agent_x_changes_NN.md', changeId: 'c-07' }
+        : undefined
+
+    const [d] = validateWorkspaceReferences(result, index, undefined, undefined, undefined, removal)
+    expect(d.code).toBe('REF_MODEL_NOT_FOUND')
+    expect(d.message).toContain('innteresante/intro')
+    expect(d.message).toContain('2026-11-18_agent_x_changes_NN.md')
+    expect(d.message).toContain('c-07')
+    expect(d.meta).toMatchObject({ removal: 'changes/2026-11-18_agent_x_changes_NN.md' })
+
+    // Without a recorded removal the message names only the id.
+    expect(validateWorkspaceReferences(result, index)[0].message).not.toContain('recorded removal')
+  })
+
   it('the title-qualified form is rejected as a removed form and never resolved by title', () => {
     const { result, index } = twoModels('[[Acme Org :: Jane Doe]]')
     const diagnostics = validateWorkspaceReferences(result, index)

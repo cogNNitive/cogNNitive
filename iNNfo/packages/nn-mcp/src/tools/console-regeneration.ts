@@ -251,6 +251,8 @@ export interface ApplyOutcomeLike {
   changeset?: string
   /** Ids of the models created by `add_model` changes in this apply. */
   createdModels?: string[]
+  /** Ids of the models removed by `remove_model` changes in this apply. */
+  removedModels?: string[]
 }
 
 /**
@@ -271,9 +273,11 @@ export async function applyWithConsole<T extends ApplyOutcomeLike>(
   if (!result.success || (result.status !== 'applied' && result.status !== 'partially_applied')) {
     return payload
   }
-  // A commit that created models reconciles the domain manifest (a derived index) first,
-  // so the regenerated console lists them. A failure never alters the apply outcome.
-  if (result.createdModels && result.createdModels.length > 0) {
+  // A commit that created or removed models reconciles the domain manifest (a derived
+  // index) first, so the regenerated console lists them and archives the removed ones.
+  // A failure never alters the apply outcome.
+  const affectedModels = [...(result.createdModels ?? []), ...(result.removedModels ?? [])]
+  if (affectedModels.length > 0) {
     try {
       payload.manifest = await (opts.syncManifest ?? syncDomainManifest)(root, { dry_run: false })
     } catch (err) {

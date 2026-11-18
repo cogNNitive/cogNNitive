@@ -17,6 +17,7 @@ import type { ChangeItem } from '@cognnitive/nn-core'
 import { proposeChangeset } from './propose-changeset'
 import { applyChange } from './apply-change'
 import { validateKnowledge } from './validate'
+import { checkWorkspace } from './check-workspace'
 import { rmWithRetry } from '../../test/helpers/fs-retry'
 import type { ConsoleWriter } from './console-regeneration'
 
@@ -1236,6 +1237,183 @@ describe('move_model of an instance (distributed-storage S6b)', () => {
     expect(missing[0]!.op).toBe('update_field')
     expect(missing[0]!.target).toBe('villabotijos-today/pepper-mapache@pepper-mapache&related')
     expect(missing[0]!.to).toBe('villabotijos-today/welcome')
+  })
+})
+
+/* ── remove_model: a recorded removal of an instance model ───────────────────
+ *
+ * A sealed, reviewable change, not a filesystem delete. The apply guards run
+ * before any write; the file disappears inside the same atomic persistence.
+ */
+
+const REMOVE_INTRO: ChangeItem = { id: 'c-01', op: 'remove_model', target: 'villabotijos-today/intro' }
+
+describe('remove_model of an instance (recorded model removal)', () => {
+  beforeEach(async () => {
+    process.env.INNFO_CACHE_DIR = join(iRoot, '.cache')
+    vi.spyOn(global, 'fetch').mockRejectedValue(new Error('network disabled in tests'))
+    await rmWithRetry(iRoot)
+    for (const dir of [iChangesDir, iBlueprintsDir, iKnowledgeDir, iSeriesDir, OTHER_SERIES_DIR]) {
+      await mkdir(dir, { recursive: true })
+    }
+    await writeFile(join(iSpecsDir, 'defiNNe_V_0-1-0_NN.md'), LEVEL0_CONTENT, 'utf-8')
+    await writeFile(join(iSpecsDir, 'iNNfo_V_0-7-0_NN.md'), LEVEL1_CONTENT, 'utf-8')
+    await writeFile(join(iBlueprintsDir, 'coNNtent_V_0-1-0_NN.md'), VIDEO_BLUEPRINT, 'utf-8')
+    await writeFile(join(iBlueprintsDir, 'plain_V_0-1-0_NN.md'), PLAIN_BLUEPRINT, 'utf-8')
+    await writeFile(join(iSeriesDir, 'villabotijos-today_coNNtent_NN.md'), seriesModel('villabotijos-today', 'Villabotijos Today'), 'utf-8')
+    await writeFile(join(OTHER_SERIES_DIR, 'otra_coNNtent_NN.md'), seriesModel('otra', 'Otra'), 'utf-8')
+    await writeFile(join(iKnowledgeDir, 'notes_NN.md'), PLAIN_MODEL, 'utf-8')
+  })
+
+  afterEach(async () => {
+    delete process.env.INNFO_CACHE_DIR
+    vi.restoreAllMocks()
+    await rmWithRetry(iRoot)
+  })
+
+  it('deletes the file inside the apply and records the removal, with no version transition', async () => {
+    const paths = await writeThreeVideos()
+
+    const res = await applyInstance([REMOVE_INTRO])
+
+    expect(res.success, JSON.stringify(res.errors)).toBe(true)
+    expect(res.status).toBe('applied')
+    expect(res.removedModels).toEqual(['villabotijos-today/intro'])
+    expect(existsSync(paths.introA!)).toBe(false)
+    // The instance root folder goes with the file; the sibling model stays.
+    expect(existsSync(join(iSeriesDir, 'assets', 'intro'))).toBe(false)
+    expect(existsSync(paths.pepper!)).toBe(true)
+    // A removed model has no next version.
+    expect(res.models!['villabotijos-today/intro']).toBeUndefined()
+    expect(Object.keys(res.models!)).toEqual([])
+  })
+
+  it('records the removal in the changeset: applied, sealed, with its evidence', async () => {
+    await writeThreeVideos()
+    const cs = await writeInstanceCs([REMOVE_INTRO])
+
+    const res = await applyChange(iRoot, cs)
+    expect(res.success, JSON.stringify(res.errors)).toBe(true)
+
+    const text = await readFile(join(iRoot, cs), 'utf-8')
+    const doc = parseChangeset(text)
+    expect(doc.frontmatter.status).toBe('applied')
+    expect(verifyProposalSha(doc)).toBe(true)
+    expect(text).toContain('op:: remove_model')
+    expect(text).toContain('target:: villabotijos-today/intro')
+    // An applied change carries no per-change resolution: the batch-wide facts are
+    // written once, in the frontmatter (change-provenance).
+    expect(doc.changes[0]!.status).toBeUndefined()
+    expect(doc.changes[0]!.resolution).toBeUndefined()
+  })
+
+  it('leaves check_domain with no MODEL_WITHOUT_FILE for the removed id', async () => {
+    await writeThreeVideos()
+
+    const before = await checkWorkspace(iRoot, { offline: true })
+    expect(before.provenance.diagnostics.map((d) => d.code)).not.toContain('MODEL_WITHOUT_FILE')
+
+    const res = await applyInstance([REMOVE_INTRO])
+    expect(res.success, JSON.stringify(res.errors)).toBe(true)
+
+    const after = await checkWorkspace(iRoot, { offline: true })
+    expect(after.provenance.diagnostics.map((d) => d.code)).not.toContain('MODEL_WITHOUT_FILE')
+  })
+
+  it('rejects a compact model with REMOVE_REQUIRES_INSTANCE and deletes nothing', async () => {
+    const before = await readFile(join(iKnowledgeDir, 'notes_NN.md'), 'utf-8')
+
+    const res = await applyInstance([{ id: 'c-01', op: 'remove_model', target: 'notes' }])
+
+    expect(res.success).toBe(false)
+    expect(res.errors!.map((e) => e.code)).toContain('REMOVE_REQUIRES_INSTANCE')
+    expect(await readFile(join(iKnowledgeDir, 'notes_NN.md'), 'utf-8')).toBe(before)
+  })
+
+  it('rejects a missing model with MODEL_NOT_FOUND', async () => {
+    const res = await applyInstance([{ id: 'c-01', op: 'remove_model', target: 'villabotijos-today/ghost' }])
+
+    expect(res.success).toBe(false)
+    expect(res.errors!.map((e) => e.code)).toContain('MODEL_NOT_FOUND')
+  })
+
+  it('rejects a model whose folder still holds another model, naming the ids', async () => {
+    const paths = await writeThreeVideos()
+
+    const res = await applyInstance([{ id: 'c-01', op: 'remove_model', target: 'villabotijos-today' }])
+
+    expect(res.success).toBe(false)
+    const error = res.errors!.find((e) => e.code === 'REMOVE_MODEL_HAS_DESCENDANTS')
+    expect(error, JSON.stringify(res.errors)).toBeDefined()
+    expect(error!.message).toContain('villabotijos-today/intro')
+    expect(existsSync(paths.introA!)).toBe(true)
+  })
+
+  it('rejects a model a live reference addresses, leaving the file in place', async () => {
+    const paths = await writeThreeVideos()
+    const referrerPath = await writeInstanceFile(
+      PEPPER_REL,
+      referringVideoModel('pepper-mapache', 'Pepper Mapache', 'villabotijos-today/intro'),
+    )
+    const before = await readFile(referrerPath, 'utf-8')
+
+    const res = await applyInstance([REMOVE_INTRO])
+
+    expect(res.success).toBe(false)
+    expect(res.errors!.map((e) => e.code)).toContain('REMOVE_LEAVES_DANGLING_REFERENCES')
+    expect(existsSync(paths.introA!)).toBe(true)
+    expect(await readFile(referrerPath, 'utf-8')).toBe(before)
+  })
+
+  it('applies when the same changeset retargets every referrer away from the id', async () => {
+    const paths = await writeThreeVideos()
+    const referrerPath = await writeInstanceFile(
+      PEPPER_REL,
+      referringVideoModel('pepper-mapache', 'Pepper Mapache', 'villabotijos-today/intro'),
+    )
+
+    const res = await applyInstance([
+      REMOVE_INTRO,
+      {
+        id: 'c-02',
+        op: 'update_field',
+        target: 'villabotijos-today/pepper-mapache@pepper-mapache&related',
+        from: 'villabotijos-today/intro',
+        to: 'villabotijos-today/pepper-mapache',
+      },
+    ])
+
+    expect(res.success, JSON.stringify(res.errors)).toBe(true)
+    expect(existsSync(paths.introA!)).toBe(false)
+    expect(await readFile(referrerPath, 'utf-8')).toContain('related:: villabotijos-today/pepper-mapache')
+
+    const workspace = await validateKnowledge(iRoot, 'villabotijos-today/pepper-mapache', undefined, undefined, true, { checkFreshness: false })
+    expect(workspace.errors.filter((e) => /REF_MODEL_NOT_FOUND/.test(e.message))).toEqual([])
+  })
+
+  it('answers an address to the removed id with REF_MODEL_NOT_FOUND', async () => {
+    await writeThreeVideos()
+    const res = await applyInstance([REMOVE_INTRO])
+    expect(res.success, JSON.stringify(res.errors)).toBe(true)
+
+    const workspace = await validateKnowledge(iRoot, undefined, undefined, undefined, true, { checkFreshness: false })
+    const dangling = workspace.errors.filter((e) => /REF_MODEL_NOT_FOUND/.test(e.message))
+    expect(dangling).toEqual([])
+  })
+
+  it('propose_changeset reports the missing referrer updates before writing anything', async () => {
+    await writeThreeVideos()
+    await writeInstanceFile(PEPPER_REL, referringVideoModel('pepper-mapache', 'Pepper Mapache', 'villabotijos-today/intro'))
+
+    const proposed = await proposeChangeset(iRoot, { operations: [REMOVE_INTRO], open: false }, { writer })
+
+    expect(proposed.success).toBe(false)
+    const error = proposed.errors!.find((e) => e.code === 'REMOVE_LEAVES_DANGLING_REFERENCES')
+    expect(error, JSON.stringify(proposed.errors)).toBeDefined()
+    const missing = (error as { missing_referrer_updates?: ChangeItem[] }).missing_referrer_updates ?? []
+    expect(missing).toHaveLength(1)
+    expect(missing[0]!.target).toBe('villabotijos-today/pepper-mapache@pepper-mapache&related')
+    expect(missing[0]!.op).toBe('update_field')
   })
 })
 

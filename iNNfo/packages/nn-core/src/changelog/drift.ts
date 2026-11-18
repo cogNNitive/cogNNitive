@@ -141,7 +141,8 @@ function modelOfUnit(unit: string): string {
  * The model ids the log names: model id -> the first applied change that touches
  * it. A rekey moves units (and element origins) under a model id no change ever
  * targeted directly: an extracted instance and a moved model are both touched by
- * the change that carried the rekey (design A10, A11). The keys are the raw model
+ * the change that carried the rekey (design A10, A11). A `remove_model` touches
+ * its own id even when no element change ever named it. The keys are the raw model
  * part of the unit address, exactly as the log spells it.
  */
 export function touchedModels(log: ChangeLog): Map<string, LoggedChange> {
@@ -154,6 +155,11 @@ export function touchedModels(log: ChangeLog): Map<string, LoggedChange> {
   for (const rekey of log.rekeys) {
     if (touched.has(rekey.to)) continue
     if (rekey.change) touched.set(rekey.to, rekey.change)
+  }
+  for (const change of log.all) {
+    if (!change.applied || change.op !== 'remove_model') continue
+    const model = (change.resolvedTarget ?? change.target).trim()
+    if (model && !touched.has(model)) touched.set(model, change)
   }
   return touched
 }
@@ -233,6 +239,10 @@ export function checkProvenance(
   }
   for (const [modelId, change] of touched) {
     if (covered.has(modelId)) continue
+    // A recorded removal is a terminal state: the fold never saw a later change
+    // re-create the id, so the missing file is explained by the removal rather
+    // than by a loss. A missing file with no recorded removal stays an error.
+    if (log.removalOf(modelId as ModelId)) continue
     diagnostics.push({
       code: 'MODEL_WITHOUT_FILE',
       severity,

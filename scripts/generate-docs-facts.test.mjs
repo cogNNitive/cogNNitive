@@ -57,6 +57,15 @@ function fixtureTree(opts = {}) {
     : ['# nn-innfo', '', '17 deterministic tools', ''].join('\n');
   fs.writeFileSync(path.join(nnInnfoDir, 'SKILL.md'), skillBody, 'utf8');
 
+  // The published reference page carries the same region; both targets are rendered,
+  // so the fixture must pre-create both or the job exits 2 on a missing target.
+  const referenceDir = path.join(root, 'docs', 'documentation', 'content', 'reference');
+  fs.mkdirSync(referenceDir, { recursive: true });
+  const referenceBody = withMarkers
+    ? ['# MCP tools', '', OPEN_MARKER, targetBody, CLOSE_MARKER, ''].join('\n')
+    : ['# MCP tools', '', '17 deterministic tools', ''].join('\n');
+  fs.writeFileSync(path.join(referenceDir, 'mcp-tools.md'), referenceBody, 'utf8');
+
   return root;
 }
 

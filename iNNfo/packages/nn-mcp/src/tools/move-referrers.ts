@@ -83,14 +83,65 @@ export async function findDanglingReferrers(
   check: MoveReferenceCheck,
   retargets: ReadonlyMap<string, string>,
 ): Promise<DanglingReference[]> {
+  const addressing = await scanAddressingReferences(rootDir, check.fromId, {
+    files: [check.fromPath],
+    folders: [dirname(check.fromPath)],
+  })
+  const out: DanglingReference[] = []
+  for (const hit of addressing) {
+    if (clearedBy(hit, check.fromId, retargets)) continue
+    out.push({ unit: hit.unit, value: hit.value, suggested: retargetValue(hit.value, check.fromId, check.toId) })
+  }
+  return out
+}
+
+/**
+ * Every typed reference that would be left addressing a model a `remove_model` is
+ * about to remove. A reference is cleared when the same changeset retargets its
+ * unit away from the id; a suggestion cannot be computed (only the caller knows
+ * whether the reference should point elsewhere or become empty), so `suggested` is
+ * the cleared value `''`.
+ */
+export async function findDanglingReferrersForRemoval(
+  rootDir: string,
+  removal: { id: string; path: string },
+  retargets: ReadonlyMap<string, string>,
+): Promise<DanglingReference[]> {
+  // Only the removed file is excluded: a sibling model in the same folder is a
+  // genuine incoming referrer.
+  const addressing = await scanAddressingReferences(rootDir, removal.id, { files: [removal.path], folders: [] })
+  const out: DanglingReference[] = []
+  for (const hit of addressing) {
+    if (clearedBy(hit, removal.id, retargets)) continue
+    out.push({ unit: hit.unit, value: hit.value, suggested: '' })
+  }
+  return out
+}
+
+/** One typed field whose value addresses the id being moved or removed. */
+interface AddressingReference {
+  unit: string
+  value: string
+}
+
+/**
+ * The typed fields of every other workspace model whose value addresses `id` (or one
+ * of its descendants). `exclude.files` and `exclude.folders` name what belongs to the
+ * model under change, so its own fields never count as incoming references.
+ */
+async function scanAddressingReferences(
+  rootDir: string,
+  id: string,
+  exclude: { files: readonly string[]; folders: readonly string[] },
+): Promise<AddressingReference[]> {
   const discovered = await discoverDomainModels(rootDir)
   const { index } = await buildNodeDomainIndex(rootDir)
-  const movedDir = dirname(check.fromPath)
-  const out: DanglingReference[] = []
+  const out: AddressingReference[] = []
   for (const model of discovered) {
-    if (model.path === check.fromPath || model.path.startsWith(`${movedDir}${sep}`)) continue
-    const id = index.byPath(model.input.path)?.id
-    if (!id) continue
+    if (exclude.files.includes(model.path)) continue
+    if (exclude.folders.some((folder) => model.path.startsWith(`${folder}${sep}`))) continue
+    const modelId = index.byPath(model.input.path)?.id
+    if (!modelId) continue
     let parsed
     try {
       parsed = parseKnowledge(await readFile(model.path, 'utf-8'))
@@ -104,16 +155,21 @@ export async function findDanglingReferrers(
           const value = Array.isArray(raw)
             ? `[${raw.map(String).join(', ')}]`
             : String(raw ?? '')
-          if (!tokensOf(value).some((token) => addressesModel(token, check.fromId))) continue
-          const unit = `${id}@${element.slug}&${field}`
-          const retarget = retargets.get(unit)
-          if (retarget !== undefined && !tokensOf(retarget).some((token) => addressesModel(token, check.fromId))) {
-            continue
-          }
-          out.push({ unit, value, suggested: retargetValue(value, check.fromId, check.toId) })
+          if (!tokensOf(value).some((token) => addressesModel(token, id))) continue
+          out.push({ unit: `${modelId}@${element.slug}&${field}`, value })
         }
       }
     }
   }
   return out
+}
+
+/** True when `retargets` already clears this reference away from `id`. */
+function clearedBy(
+  hit: AddressingReference,
+  id: string,
+  retargets: ReadonlyMap<string, string>,
+): boolean {
+  const retarget = retargets.get(hit.unit)
+  return retarget !== undefined && !tokensOf(retarget).some((token) => addressesModel(token, id))
 }

@@ -64,7 +64,7 @@ import { canonicalizeTarget, modelIdAliases } from './model-id.js'
 import { artifactTargetProblem } from './produce-artifact.js'
 import { findElementInModel, mutationArgsForChange, parseTargetAddress } from './change-args.js'
 import { writeProposedChangeset } from './propose-changeset.js'
-import { findDanglingReferrers } from './move-referrers.js'
+import { findDanglingReferrers, findDanglingReferrersForRemoval } from './move-referrers.js'
 
 import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
 
@@ -93,6 +93,8 @@ export interface ApplyChangeResult {
   warnings?: Array<{ path: string; message: string }>
   /** Ids of the models an `add_model` change created in this apply (fresh commits only). */
   createdModels?: string[]
+  /** Ids of the models a `remove_model` change removed in this apply (fresh commits only). */
+  removedModels?: string[]
 }
 
 
@@ -864,6 +866,8 @@ export async function executeChangesetApply(
       movedFrom?: string
       /** `move_model`: where the file will live once Phase 2 relocates it. */
       plannedPath?: string
+      /** `remove_model`: the file is deleted in Phase 2 instead of written. */
+      removed?: boolean
     }
     const loadedModels = new Map<string, LoadedModelEntry>()
 
@@ -1494,6 +1498,68 @@ export async function executeChangesetApply(
       })
     }
 
+    /**
+     * `remove_model` plans: a recorded removal of one instance model. Every check
+     * runs before any write, exactly like a move, and the file is deleted inside
+     * Phase 2's atomic persistence — never before.
+     */
+    interface RemovePlan {
+      changeId: string
+      id: string
+      /** Absolute path of the model file that disappears. */
+      path: string
+    }
+    const removePlans = new Map<string, RemovePlan>()
+    for (const change of csDoc.changes) {
+      if (change.op !== 'remove_model') continue
+      const id = change.target.trim()
+      if (!isSafeRelativeId(id)) {
+        return rejectProposal(
+          'REMOVE_INVALID_TARGET',
+          change.target,
+          `change "${change.id}" carries an unsafe model id`,
+          change.id,
+        )
+      }
+      const { index: domainIndex, pathOf } = await nodeIndex()
+      const target = domainIndex.byId(id)
+      if (!target) {
+        return rejectPhase1('MODEL_NOT_FOUND', id, `remove_model target "${id}" does not exist`)
+      }
+      if (target.storage.kind !== 'instance') {
+        return rejectProposal(
+          'REMOVE_REQUIRES_INSTANCE',
+          id,
+          `change "${change.id}": "${id}" is a compact model; remove_model removes an instance model only`,
+          change.id,
+        )
+      }
+      const path = pathOf(id)
+      if (!path) {
+        return rejectPhase1('MODEL_NOT_FOUND', id, `remove_model target "${id}" has no file`)
+      }
+      // A container's folder holds its contents. Deleting it would orphan them, so
+      // the children go first — a separate, reviewable change. The index paths are
+      // workspace-relative, so the comparison stays on that side.
+      const folder = dirname(target.path)
+      const children = domainIndex.models
+        .filter((m) => {
+          if (m.id === id) return false
+          const inside = relative(folder, m.path)
+          return inside !== '' && !inside.startsWith('..') && !isAbsolute(inside)
+        })
+        .map((m) => m.id)
+      if (children.length > 0) {
+        return rejectProposal(
+          'REMOVE_MODEL_HAS_DESCENDANTS',
+          id,
+          `change "${change.id}": "${id}" still holds ${children.length} model(s) in its folder (${children.join(', ')}); remove them first`,
+          change.id,
+        )
+      }
+      removePlans.set(change.id, { changeId: change.id, id, path })
+    }
+
     /** Resolve (once per model) the bluepriNNt schema a model conforms to. */
     const schemaFor = async (entry: LoadedModelEntry): Promise<BlueprintSchema | undefined> => {
       if (entry.schema === undefined) {
@@ -1887,6 +1953,34 @@ export async function executeChangesetApply(
       }
     }
 
+    // Referrers of a removal: a model may disappear only when every typed reference
+    // to its id (or a descendant) is cleared by an `update_field` in the SAME
+    // changeset. A dangling reference would make a sealed graph unaddressable, so the
+    // removal is rejected and the caller gets the missing update_field changes.
+    if (removePlans.size > 0) {
+      const retargets = new Map<string, string>()
+      for (const change of cleanSubset) {
+        if (change.op !== 'update_field' || change.to === undefined) continue
+        retargets.set(change.target, change.to)
+      }
+      for (const plan of removePlans.values()) {
+        const dangling = await findDanglingReferrersForRemoval(
+          rootDir,
+          { id: plan.id, path: plan.path },
+          retargets,
+        )
+        if (dangling.length === 0) continue
+        return rejectPhase1(
+          'REMOVE_LEAVES_DANGLING_REFERENCES',
+          plan.id,
+          `REMOVE_LEAVES_DANGLING_REFERENCES: removing "${plan.id}" leaves ` +
+            `${dangling.length} reference(s) addressing it (${dangling
+              .map((d) => d.unit)
+              .join(', ')}); retarget or clear each with an update_field in this changeset`,
+        )
+      }
+    }
+
     // Apply mutations for clean subset in memory
     for (const change of cleanSubset) {
       if (isNonMutating(change.op)) {
@@ -1914,6 +2008,19 @@ export async function executeChangesetApply(
         }
         change.status = 'applied'
         change.resolution = `Moved model "${plan.fromId}" to "${plan.toId}"`
+        continue
+      }
+
+      // A removal carries no element mutation: the record is the change itself and
+      // the file disappears inside Phase 2's atomic persistence.
+      if (change.op === 'remove_model') {
+        const plan = removePlans.get(change.id)
+        if (!plan) {
+          return rejectPhase1('REMOVE_INVALID_TARGET', change.target, `change "${change.id}" has no removal plan`)
+        }
+        entry.removed = true
+        change.status = 'applied'
+        change.resolution = `Removed model "${plan.id}"`
         continue
       }
 
@@ -2232,7 +2339,7 @@ export async function executeChangesetApply(
       }
     }
     for (const [, entry] of loadedModels) {
-      if (entry.mutated && !entry.created) {
+      if ((entry.mutated || entry.removed) && !entry.created) {
         try {
           const content = await readFile(entry.filePath, 'utf-8')
           originalModelsBackup.set(entry.filePath, content)
@@ -2338,6 +2445,24 @@ export async function executeChangesetApply(
         // the rollback restores the original content there.
         if (entry.movedFrom) persistedFiles.add(entry.movedFrom)
       }
+
+      // Removals last: a removed file is deleted inside the same atomic step, and
+      // marked as persisted so the rollback restores it from the backup. A folder
+      // the removal emptied is pruned upward, stopping at the first folder that is
+      // not empty and never removing the canonical kNNowledge/ or the domaiNN root.
+      for (const [, entry] of loadedModels) {
+        if (!entry.removed) continue
+        await rm(entry.filePath, { force: true })
+        persistedFiles.add(entry.filePath)
+        const knowledgeRoot = join(rootDir, 'kNNowledge')
+        let dir = dirname(entry.filePath)
+        while (dir !== rootDir && dir !== knowledgeRoot && isInsideRoot(rootDir, dir)) {
+          const left = await readdir(dir).catch(() => null)
+          if (!left || left.length > 0) break
+          if (!(await rmdir(dir).then(() => true, () => false))) break
+          dir = dirname(dir)
+        }
+      }
     } catch (err) {
       await rollbackPersistence()
       throw err
@@ -2345,6 +2470,9 @@ export async function executeChangesetApply(
 
     const createdModelIds = Array.from(loadedModels.values())
       .filter((entry) => entry.created)
+      .map((entry) => entry.modelSlug)
+    const removedModelIds = Array.from(loadedModels.values())
+      .filter((entry) => entry.removed)
       .map((entry) => entry.modelSlug)
 
     // Annotate changeset document
@@ -2424,6 +2552,7 @@ export async function executeChangesetApply(
       model: loadedModels.size === 1 ? loadedModels.values().next().value?.model : undefined,
       newPath: loadedModels.size === 1 ? loadedModels.values().next().value?.filePath : undefined,
       ...(createdModelIds.length > 0 ? { createdModels: createdModelIds } : {}),
+      ...(removedModelIds.length > 0 ? { removedModels: removedModelIds } : {}),
     }
   } finally {
     await lockHandle.release()

@@ -19,6 +19,7 @@ export const CHANGE_OPS = [
   'comment',
   'add_model',
   'move_model',
+  'remove_model',
   'extract_instance',
   'freeze_slugs',
   'bump_version',
@@ -263,6 +264,45 @@ export function moveModelProblems(change: ChangeItem): string[] {
   if (!to) problems.push(`change "${id}": move_model requires "to" (the new instance model id)`)
   else if (!bareModelId(to) || to.startsWith('/')) {
     problems.push(`change "${id}": move_model "to" must be the new instance model id`)
+  }
+  return problems
+}
+
+/**
+ * Structural problems of one `remove_model` change, as human-readable messages
+ * naming the change id. `remove_model` removes an instance model: `target` is the
+ * model id and the change carries nothing else beyond `evidence`, `notes` and
+ * `author`. A destination (`to`) would make it a move, and an element payload
+ * would make it an element change; both are refused here rather than guessed at.
+ */
+export function removeModelProblems(change: ChangeItem): string[] {
+  if (change.op !== 'remove_model') return []
+  const problems: string[] = []
+  const id = change.id
+  for (const key of ['to', 'from', 'base_hash', 'concept', 'name', 'knowledge_version'] as const) {
+    if (change[key] !== undefined) {
+      problems.push(`change "${id}": remove_model must not carry "${key}"`)
+    }
+  }
+  if (change.fields !== undefined || change.slug !== undefined) {
+    problems.push(`change "${id}": remove_model must not carry element payload (slug, fields)`)
+  }
+  if (change.seed !== undefined) {
+    problems.push(`change "${id}": seed is valid only on add_matrix`)
+  }
+  const target = String(change.target ?? '').trim()
+  // `/` is legal: an instance id is hierarchical. An `@` makes it an element
+  // address, which names a unit, not the model this change removes.
+  const bareModelId =
+    target.length > 0 &&
+    !target.includes('@') &&
+    !target.includes('&') &&
+    !target.includes('\\') &&
+    !target.includes('..') &&
+    !/^[a-zA-Z]:/.test(target) &&
+    !target.startsWith('/')
+  if (!bareModelId) {
+    problems.push(`change "${id}": remove_model target must be the instance model id`)
   }
   return problems
 }

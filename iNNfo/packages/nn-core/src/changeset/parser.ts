@@ -1,5 +1,5 @@
 import { parse as parseYaml } from 'yaml'
-import { addModelProblems, extractInstanceProblems, isChangeOp, isChangeStatus, moveModelProblems, reviewGateProblems } from './types.js'
+import { addModelProblems, extractInstanceProblems, isChangeOp, isChangeStatus, moveModelProblems, removeModelProblems, reviewGateProblems } from './types.js'
 import { splitSourceFieldValue } from '../sourceRef.js'
 import type {
   ChangesetDocument,
@@ -294,6 +294,10 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
   const extractProblems = changes.flatMap(extractInstanceProblems)
   if (extractProblems.length > 0) {
     throw new Error(`Invalid extract_instance change: ${extractProblems.join('; ')}`)
+  }
+  const removeProblems = changes.flatMap(removeModelProblems)
+  if (removeProblems.length > 0) {
+    throw new Error(`Invalid remove_model change: ${removeProblems.join('; ')}`)
   }
 
   // A file carrying any review_gate change must declare the three provenance

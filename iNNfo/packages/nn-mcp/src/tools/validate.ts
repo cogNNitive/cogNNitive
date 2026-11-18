@@ -361,6 +361,10 @@ export async function collectWorkspaceDiagnostics(
       (await buildNodeDomainIndex(rootDir)).index,
       (id) => log.successorOf(id as ModelId),
       await buildMirrorLookup(rootDir),
+      (id) => {
+        const removal = log.removalOf(id as ModelId)
+        return removal ? { changeset: removal.changeset, changeId: removal.id } : undefined
+      },
     ),
     ...collectSynchronizationDiagnostics(rootDir),
     ...validateWorkspaceSources(result, resolveSource, snapshot, evidenceCitationSites(log)),

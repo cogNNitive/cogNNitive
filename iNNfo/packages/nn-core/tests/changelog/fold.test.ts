@@ -278,6 +278,45 @@ describe('fold: move_model rekeys the identity (distributed-storage S6b)', () =>
   })
 })
 
+describe('fold: remove_model drops the model and records the tombstone', () => {
+  it('removes the units and element origins of the removed model, and keeps the change', () => {
+    const log = logOf([
+      {
+        changes: [
+          { id: 'c-01', op: 'add_element', target: 'villabotijos-today/intro@Video', name: 'Intro', resolved_target: 'villabotijos-today/intro@intro' },
+          { id: 'c-02', op: 'update_field', target: 'villabotijos-today/intro@intro&title', to: 'Intro', resolved_target: 'villabotijos-today/intro@intro&title' },
+          { id: 'c-03', op: 'add_element', target: 'other/pitch@Video', name: 'Pitch', resolved_target: 'other/pitch@pitch' },
+          { id: 'c-04', op: 'update_field', target: 'other/pitch@pitch&title', to: 'Pitch', resolved_target: 'other/pitch@pitch&title' },
+        ],
+      },
+      { changes: [{ id: 'c-05', op: 'remove_model', target: 'villabotijos-today/intro' }] },
+    ])
+
+    // The removed model owns no live unit any more; its sibling is untouched.
+    expect([...log.units('villabotijos-today/intro')]).toEqual([])
+    expect([...log.units('other/pitch')].map((u) => u.key)).toEqual(['other/pitch@pitch&title'])
+    // The element origins went with it, and the change is the model tombstone.
+    expect(log.elementOrigin('villabotijos-today/intro@intro')).toBeUndefined()
+    expect(log.tombstones.map((t) => t.id)).toContain('c-05')
+    expect(log.removalOf('villabotijos-today/intro' as never)?.id).toBe('c-05')
+    // History is not erased: the log still answers for the removed units.
+    expect(log.history('villabotijos-today/intro@intro&title').map((c) => c.id)).toEqual(['c-02'])
+  })
+
+  it('a later creation of the same id makes the removal non-terminal', () => {
+    const log = logOf([
+      { changes: [{ id: 'c-01', op: 'remove_model', target: 'a' }] },
+      { changes: [{ id: 'c-02', op: 'add_model', target: 'a' }] },
+    ])
+    expect(log.removalOf('a' as never)).toBeUndefined()
+  })
+
+  it('a recorded removal of an id no change ever created is still a tombstone', () => {
+    const log = logOf([{ changes: [{ id: 'c-01', op: 'remove_model', target: 'stray' }] }])
+    expect(log.removalOf('stray' as never)?.id).toBe('c-01')
+  })
+})
+
 describe('fold: extract_instance rekeys the extracted slug set (distributed-storage S6d)', () => {
   /** A registry with two Videos, one carrying a Scene and a Layer. */
   const registryLog = () =>

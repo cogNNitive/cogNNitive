@@ -100,12 +100,19 @@ export interface FoldResult {
   readonly units: Map<string, FoldedUnit>
   /** Unit keys whose last applied change cleared them (`to:: ''`), expected absent. */
   readonly cleared: ReadonlySet<string>
-  /** remove_element / remove_matrix changes, in canonical order. */
+  /** remove_element / remove_matrix / remove_model changes, in canonical order. */
   readonly tombstones: readonly LoggedChange[]
   /** Element key -> position of the latest add_element (the epoch cut). */
   readonly epochs: Map<string, number>
   /** Element key -> the change that created or removed it (add wins until a later remove). */
   readonly elements: Map<string, LoggedChange>
+  /**
+   * Model id -> the last applied change that created or removed it (`add_model`,
+   * `extract_instance`, `move_model` destination, `remove_model`). Add wins until a
+   * later remove, exactly like `elements`, so an id re-created after a removal is
+   * live again and a missing file is drift again.
+   */
+  readonly models: Map<string, LoggedChange>
   /** Model -> rename events, in canonical order. */
   readonly relinks: Map<string, Relink[]>
   /** `move_model` identity changes, in canonical order. */
@@ -187,6 +194,7 @@ export function foldChanges(changes: readonly LoggedChange[]): FoldResult {
   const tombstones: LoggedChange[] = []
   const epochs = new Map<string, number>()
   const elements = new Map<string, LoggedChange>()
+  const models = new Map<string, LoggedChange>()
   const relinks = new Map<string, Relink[]>()
   const rekeys: Rekey[] = []
 
@@ -201,6 +209,12 @@ export function foldChanges(changes: readonly LoggedChange[]): FoldResult {
     if (!change.applied) return
     const address = change.resolvedTarget ?? change.target
     switch (change.op) {
+      case 'add_model':
+        // A created model id exists from this order on (no `resolved_target`: a
+        // model-level change names no unit). It makes an earlier removal of the
+        // same id non-terminal.
+        models.set(address.trim(), change)
+        return
       case 'add_element': {
         const { model, parts } = splitUnitKey(address)
         const key = change.resolvedTarget
@@ -266,6 +280,9 @@ export function foldChanges(changes: readonly LoggedChange[]): FoldResult {
           change.op === 'extract_instance' ? change.target.split('@')[0]!.trim() : change.target
         const toId = change.to ?? ''
         if (!fromId || !toId || fromId === toId) return
+        // The destination id exists from here on: a removal recorded before it is
+        // not terminal any more.
+        models.set(toId, change)
         const rekey = (key: string): string => rekeyKey(key, fromId, toId, slugs)
         const rekeyMap = <V>(map: Map<string, V>, withKey: (value: V, key: string) => V): void => {
           for (const [key, value] of [...map]) {
@@ -333,6 +350,33 @@ export function foldChanges(changes: readonly LoggedChange[]): FoldResult {
         }
         return
       }
+      case 'remove_model': {
+        // A removed model is terminal only while nothing re-creates the id: the
+        // model map is last-wins, exactly like `elements`. Its units, epochs and
+        // element origins go with it, so no live view reports units for a model
+        // that no longer has a file. History is untouched: the log still answers
+        // for the removed units.
+        const id = address.trim()
+        const inModel = (key: string): boolean => {
+          const { model } = splitUnitKey(key)
+          return model === id || model.startsWith(`${id}/`)
+        }
+        for (const key of [...units.keys()]) {
+          if (inModel(key)) units.delete(key)
+        }
+        for (const key of [...cleared]) {
+          if (inModel(key)) cleared.delete(key)
+        }
+        for (const key of [...epochs.keys()]) {
+          if (inModel(key)) epochs.delete(key)
+        }
+        for (const key of [...elements.keys()]) {
+          if (inModel(key)) elements.delete(key)
+        }
+        models.set(id, change)
+        tombstones.push(change)
+        return
+      }
       case 'produce_artifact':
         setUnit(units, cleared, address, 'artifact', address, change, order)
         return
@@ -341,7 +385,7 @@ export function foldChanges(changes: readonly LoggedChange[]): FoldResult {
     }
   })
 
-  return { units, cleared, tombstones, epochs, elements, relinks, rekeys }
+  return { units, cleared, tombstones, epochs, elements, models, relinks, rekeys }
 }
 
 /**

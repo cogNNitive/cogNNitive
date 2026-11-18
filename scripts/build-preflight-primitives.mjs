@@ -139,9 +139,14 @@ async function renderTarget(target) {
   })
   // esbuild prints third-party paths relative to the checkout (`../<checkout-dir>/node_modules/...`
   // when node_modules is a junction into another tree); normalise so the output is checkout-independent.
+  // An absolute Windows path appears when the resolved module lives on another drive than
+  // the repo (a worktree whose node_modules points at a checkout elsewhere), and it must
+  // never reach a committed artifact: it leaks a local path and breaks determinism.
   return result.outputFiles[0].text
     .replace(/\r\n/g, '\n')
     .replace(/(?:\.\.\/[^/\s"]+\/)+node_modules\//g, 'node_modules/')
+    .replace(/(?<![A-Za-z0-9:])[A-Za-z]:[\\/][^"'\n]*?[\\/]node_modules[\\/]/g, 'node_modules/')
+    .replace(/(?<![A-Za-z0-9:])[A-Za-z]:[\\/][^"'\n]*?[\\/]iNNfo[\\/]/g, 'iNNfo/')
 }
 
 async function main() {
