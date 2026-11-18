@@ -29,6 +29,11 @@ export {
   canonicalizeDefinition,
   applyAliasToSchema,
   findDeclaredField,
+  WRITE_POLICIES,
+  WRITE_POLICY_KEY,
+  resolveWritePolicy,
+  writeOperationOf,
+  writePolicyViolation,
   CANONICAL_BLUEPRINTS,
   findCanonicalBlueprint,
   getCanonicalSpecContent,
@@ -40,6 +45,8 @@ export type {
   IncludeResolver,
   ResolvedBlueprintSchema,
   CanonicalBlueprint,
+  WritePolicy,
+  WritePolicyResolution,
 } from './schema/index.js'
 
 export {

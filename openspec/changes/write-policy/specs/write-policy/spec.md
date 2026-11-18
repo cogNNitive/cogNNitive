@@ -1,6 +1,6 @@
 # Delta for write-policy
 
-Every Level-3 write goes through a changeset today, whatever the data. High-volume operational data (procedure executions, ledgers, readings) pays the full changeset ceremony for elements nobody reviews one by one, while imported snapshots already need a separate `read_only` marker. This change lands the contract first: a concept declares which kinds of write its instances accept, and the declaration cascades from the bluepriNNt to the concept to the domaiNN. Enforcement in `apply_change`, a direct-write channel and the closure rule for citations are later changes.
+Every Level-3 write goes through a changeset today, whatever the data. High-volume operational data (procedure executions, ledgers, readings) pays the full changeset ceremony for elements nobody reviews one by one, while imported snapshots already need a separate `read_only` marker. This change lands the contract and its enforcement in `apply_change`: a concept declares which kinds of write its instances accept, the declaration cascades from the bluepriNNt to the concept to the domaiNN, and a changeset that breaks it is rejected. A direct-write channel and the closure rule for citations are later changes.
 
 ## ADDED Requirements
 
@@ -55,3 +55,21 @@ An operation whose kind the resolved policy does not allow MUST be reported as `
 - WHEN an `update_field` on one of its instances is checked
 - THEN it is reported as `WRITE_POLICY_DENIED`
 - AND an `add_element` on the same concept is allowed
+
+### Requirement: apply_change enforces the write policy
+
+`apply_change` MUST resolve the write policy of the concept each instance-writing change targets, from its Concept Definition, its bluepriNNt frontmatter and the `scope: true` documents of the model's domaiNN chain, and MUST reject the changeset with `WRITE_POLICY_DENIED` before any write when the policy does not allow that change.
+When the model has no domaiNN root, only the bluepriNNt levels MUST apply.
+When the domaiNN scope chain cannot be read, the changeset MUST be rejected with `WRITE_POLICY_UNRESOLVED`, because an unread scope might tighten the policy. (Previously: an unreadable or malformed document in the model's folder chain did not affect `apply_change`.)
+A concept that declares nothing, under a bluepriNNt and a domaiNN that declare nothing, MUST keep accepting every change it accepted before.
+
+#### Scenario: The domaiNN tightens through a root scope document
+- GIVEN a mutable concept `Work` and a `scope: true` document at the domaiNN root declaring `write_policy:: read-only`
+- WHEN a changeset with an `update_field` on a `Work` element is applied
+- THEN it is rejected with `WRITE_POLICY_DENIED`
+- AND the model is byte-identical
+
+#### Scenario: An unreadable scope chain fails closed
+- GIVEN a `scope: true` document at the domaiNN root whose frontmatter is malformed
+- WHEN any instance-writing changeset is applied in that domaiNN
+- THEN it is rejected with `WRITE_POLICY_UNRESOLVED`
