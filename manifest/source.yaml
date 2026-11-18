@@ -46,12 +46,7 @@ skills:
     repo: cogNNitive/cogNNitive-web
     path: skills/nn-site-generator
     ref_key: skills
-    description: Create or edit websites, add analytics, add contact forms.
-  - name: nn-design-presets
-    repo: cogNNitive/cogNNitive-web
-    path: skills/nn-design-presets
-    ref_key: skills
-    description: cogNNitive visual design presets — palettes, typography, spacing.
+    description: Create or edit websites, add analytics, add contact forms, and apply the cogNNitive visual design presets — palettes, typography, spacing.
   - name: nn-skills-lifecycle
     repo: cogNNitive/cogNNitive-web
     path: skills/nn-skills-lifecycle
