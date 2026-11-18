@@ -9,6 +9,7 @@ import type {
 import { normalizeConceptType, normalizeFieldType } from '../types/parser.js'
 import { parseKnowledge } from '../parser/index.js'
 import { readStorage } from './storage.js'
+import { readWritePolicy } from './writePolicy.js'
 
 /**
  * Root primitives of the Metaplantilla Nivel 1 (V_0-5-0). A level-2 template
@@ -97,6 +98,8 @@ export function extractBlueprintSchema(parsed: ParsedKnowledge): BlueprintSchema
     if (conceptDescription) concept.description = conceptDescription
     const storage = readStorage(el.fields)
     if (storage) concept.storage = storage
+    const writePolicy = readWritePolicy(el.fields)
+    if (writePolicy) concept.writePolicy = writePolicy
     concepts.push(concept)
     fieldsByConcept.set(concept.name, [])
   }

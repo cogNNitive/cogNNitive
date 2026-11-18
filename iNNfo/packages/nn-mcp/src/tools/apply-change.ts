@@ -47,8 +47,15 @@ import {
   evidencePaths,
   changesetLikeOf,
   resolveChangeFacts,
+  findScopeChain,
+  loadChain,
+  resolveWritePolicy,
+  writeOperationOf,
+  writePolicyViolation,
+  WRITE_POLICY_KEY,
 } from '@cognnitive/nn-core'
 import type {
+  ScopeNode,
   SpecDocument,
   ParsedKnowledge,
   BlueprintSchema,
@@ -868,6 +875,10 @@ export async function executeChangesetApply(
       plannedPath?: string
       /** `remove_model`: the file is deleted in Phase 2 instead of written. */
       removed?: boolean
+      /** `write_policy` of the bluepriNNt frontmatter, cached with `schema`. */
+      blueprintWritePolicy?: unknown
+      /** The domaiNN scope chain of the model (write-policy cascade), cached per model. */
+      writeScopes?: ScopeNode[]
     }
     const loadedModels = new Map<string, LoadedModelEntry>()
 
@@ -1569,11 +1580,34 @@ export async function executeChangesetApply(
           entry.schema = schemaBlueprint
             ? resolveBlueprintSchema(schemaBlueprint.rawContent, schemaInclude).schema
             : null
+          const blueprintFm = schemaBlueprint?.frontmatter as Record<string, unknown> | undefined
+          entry.blueprintWritePolicy = blueprintFm?.[WRITE_POLICY_KEY]
         } catch {
           entry.schema = null
         }
       }
       return entry.schema ?? undefined
+    }
+
+    /**
+     * The domaiNN scope chain above a model, for the write-policy cascade (cached per
+     * model). No domaiNN root means nothing at Level 3 can restrict the policy; any
+     * other chain failure fails closed, because a scope we cannot read might tighten it.
+     */
+    const writeScopesFor = (entry: LoadedModelEntry): { ok: true; scopes: ScopeNode[] } | { ok: false; detail: string } => {
+      if (entry.writeScopes !== undefined) return { ok: true, scopes: entry.writeScopes }
+      const found = findScopeChain(entry.filePath)
+      if (!found.ok) {
+        if (found.code === 'NO_DOMAIN_ROOT') {
+          entry.writeScopes = []
+          return { ok: true, scopes: [] }
+        }
+        return { ok: false, detail: found.code }
+      }
+      const loaded = loadChain(found.chain)
+      if (!loaded.ok) return { ok: false, detail: `${loaded.code}: ${loaded.path}` }
+      entry.writeScopes = [...loaded.loaded.nodes]
+      return { ok: true, scopes: entry.writeScopes }
     }
 
     for (const change of csDoc.changes) {
@@ -2164,6 +2198,37 @@ export async function executeChangesetApply(
       }
 
       const mutationArgs = mutationArgsForChange(change, entry.model, renameSchema)
+
+      // Write policy (write-policy): the concept's declaration, its bluepriNNt default and
+      // the domaiNN chain decide which kinds of write the concept's instances accept.
+      const writeOperation = writeOperationOf(change.op)
+      if (writeOperation !== null) {
+        const policySchema = renameSchema ?? (await schemaFor(entry))
+        const elementIdent =
+          String(mutationArgs.elementName ?? '') || parseTargetAddress(change.target).remainder.split('&')[0].trim()
+        const conceptName =
+          String(mutationArgs.conceptName ?? '') || findElementInModel(entry.model, undefined, elementIdent)?.concept || ''
+        const declared = conceptName
+          ? policySchema?.concepts.find((c) => c.name.toLowerCase() === conceptName.toLowerCase())
+          : undefined
+        const scopes = writeScopesFor(entry)
+        if (!scopes.ok) {
+          return rejectPhase1(
+            'WRITE_POLICY_UNRESOLVED',
+            change.target,
+            `change "${change.id}": the domaiNN scope chain of model "${entry.modelSlug}" could not be read (${scopes.detail}), so its write policy cannot be resolved`,
+          )
+        }
+        const effective = resolveWritePolicy({
+          blueprint: entry.blueprintWritePolicy,
+          concept: declared?.writePolicy,
+          scopes: scopes.scopes,
+        })
+        const violation = writePolicyViolation(effective.policy, change.op, declared?.name ?? (conceptName || entry.modelSlug))
+        if (violation) {
+          return recordRejection([{ path: change.target, message: violation.message, code: violation.code }], change.id)
+        }
+      }
 
       const mutRes = coreApplyMutation(entry.model, change.op, mutationArgs, renameSchema)
       if (!mutRes.success) {
