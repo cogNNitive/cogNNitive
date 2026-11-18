@@ -10,6 +10,7 @@ import type {
 import { parseKnowledge } from '../parser/index.js'
 import { type BlueprintSchema, extractBlueprintSchema } from './extract.js'
 import { validateStorage } from './storage.js'
+import { validateWritePolicy } from './writePolicy.js'
 
 /* ── Additive template composition (`includes`) ─────────────────
  *
@@ -426,7 +427,9 @@ export function resolveBlueprintSchema(
     attachDeclaredBy(local, provenance, declMetaOf(parsed.frontmatter, selfLabel))
     // With includes declared but no resolver the schema is incomplete (a container may live in an
     // include), so the storage check only runs on a schema that is whole.
-    if (_depth === 0 && includes.length === 0) errors.push(...validateStorage(local.concepts))
+    if (_depth === 0 && includes.length === 0) {
+      errors.push(...validateStorage(local.concepts), ...validateWritePolicy(local.concepts))
+    }
     return { schema: local, errors }
   }
 
@@ -519,7 +522,7 @@ export function resolveBlueprintSchema(
     attachDeclaredBy(base, provenance, declMetaOf(parsed.frontmatter, selfLabel))
     // A composition that failed to resolve an include is incomplete, same as above.
     if (!errors.some((e) => e.path.startsWith('includes.') && /could not be resolved/.test(e.message))) {
-      errors.push(...validateStorage(base.concepts))
+      errors.push(...validateStorage(base.concepts), ...validateWritePolicy(base.concepts))
     }
   }
 

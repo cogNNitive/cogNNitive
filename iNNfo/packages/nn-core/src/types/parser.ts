@@ -1,4 +1,5 @@
 import type { ConceptStorage } from '../schema/storage.js'
+import type { ConceptWritePolicy } from '../schema/writePolicy.js'
 
 /** Concept `type::` values. The `as const` array is the single source of
  *  truth; `ConceptType` is derived from it so the two cannot drift. */
@@ -149,6 +150,8 @@ export interface Concept {
   description?: string
   /** Storage declaration (`storage::`, `container::`, `placement::`). Absent means `compact`. */
   storage?: ConceptStorage
+  /** Write policy declaration (`write_policy::`). Absent means the bluepriNNt default. */
+  writePolicy?: ConceptWritePolicy
 }
 
 

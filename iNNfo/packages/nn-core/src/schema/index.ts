@@ -21,6 +21,28 @@ export type { IncludeResolver, ResolvedBlueprintSchema } from './compose.js'
 export { findDeclaredField } from './declaredField.js'
 
 export {
+  DEFAULT_WRITE_POLICY,
+  WRITE_POLICIES,
+  WRITE_POLICY_KEY,
+  allowedOperations,
+  parseWritePolicy,
+  readWritePolicy,
+  resolveWritePolicy,
+  validateWritePolicy,
+  writeOperationOf,
+  writePolicyViolation,
+} from './writePolicy.js'
+export type {
+  ConceptWritePolicy,
+  WriteOperation,
+  WritePolicy,
+  WritePolicyDiagnostic,
+  WritePolicyInput,
+  WritePolicyResolution,
+  WritePolicyViolation,
+} from './writePolicy.js'
+
+export {
   STORAGE_MODES,
   parsePlacement,
   readStorage,
