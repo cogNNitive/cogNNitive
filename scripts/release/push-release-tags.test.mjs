@@ -82,17 +82,18 @@ function remoteTags(origin) {
 }
 
 function runScript(fixture, tags, sha = fixture.sha) {
-  return spawnSync(process.execPath, [SCRIPT], {
-    cwd: fixture.work,
-    encoding: 'utf-8',
-    env: {
-      ...process.env,
-      TAGS: JSON.stringify(tags),
-      GITHUB_SHA: sha,
-      PUSH_RELEASE_TAGS_ATTEMPTS: '1',
-      PUSH_RELEASE_TAGS_DELAY_MS: '0',
-    },
-  })
+  // The runner exports GITHUB_STEP_SUMMARY to every step, so a child that inherits
+  // process.env writes the summary there instead of stdout. Scrub it: the summary
+  // path has its own case.
+  const env = {
+    ...process.env,
+    TAGS: JSON.stringify(tags),
+    GITHUB_SHA: sha,
+    PUSH_RELEASE_TAGS_ATTEMPTS: '1',
+    PUSH_RELEASE_TAGS_DELAY_MS: '0',
+  }
+  delete env.GITHUB_STEP_SUMMARY
+  return spawnSync(process.execPath, [SCRIPT], { cwd: fixture.work, encoding: 'utf-8', env })
 }
 
 describe('push-release-tags: one atomic push, idempotent, never moves a tag', () => {
