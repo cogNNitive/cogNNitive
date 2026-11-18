@@ -384,3 +384,60 @@ describe('move_model (distributed-storage S6b)', () => {
     expect(() => parseChangeset(body)).toThrow(/move_model/)
   })
 })
+
+describe('remove_model (recorded model removal)', () => {
+  const header = [
+    '---',
+    'spec_version: "V_0-4-0"',
+    'level: 3',
+    'parent_spec:',
+    '  name: changes',
+    '  url: "https://example.test/changes/spec_NN.md"',
+    'blueprint_version: "V_0-10-0"',
+    'status: proposed',
+    '---',
+    '',
+    '# NN Change',
+    '',
+  ].join('\n')
+
+  it('parses remove_model with a bare instance model id and seals it', () => {
+    const doc: ChangesetDocument = {
+      frontmatter: {
+        spec_version: 'V_0-4-0',
+        level: 3,
+        parent_spec: { name: 'changes', url: 'https://example.test/changes/spec_NN.md' },
+        blueprint_version: 'V_0-10-0',
+        status: 'proposed',
+      },
+      changes: [
+        { id: 'c-01', op: 'remove_model', target: 'villabotijos-today/intro', evidence: 'decision' },
+      ],
+    }
+    doc.frontmatter.proposal_sha = computeProposalSha(doc.changes)
+    const parsed = parseChangeset(serializeChangeset(doc))
+    expect(parsed.changes[0]).toMatchObject({
+      op: 'remove_model',
+      target: 'villabotijos-today/intro',
+      evidence: 'decision',
+    })
+    expect(computeProposalSha(parsed.changes)).toBe(parsed.frontmatter.proposal_sha)
+    // The target is part of the seal: removing another model is another proposal.
+    expect(
+      computeProposalSha([{ ...parsed.changes[0]!, target: 'villabotijos-today/other' }]),
+    ).not.toBe(parsed.frontmatter.proposal_sha)
+  })
+
+  it('rejects a remove_model that carries an element payload or a destination', () => {
+    for (const extra of ['to:: somewhere/else', 'from:: villabotijos-today/intro@intro', 'name:: Intro', 'slug:: intro']) {
+      const body = `${header}## NN Change: c-01\nop:: remove_model\ntarget:: villabotijos-today/intro\n${extra}\nevidence:: decision\n`
+      expect(() => parseChangeset(body), extra).toThrow(/remove_model/)
+    }
+  })
+
+  it('rejects a remove_model whose target is an element address', () => {
+    const body = `${header}## NN Change: c-01\nop:: remove_model\ntarget:: villabotijos-today/intro@00-gancho\nevidence:: decision\n`
+    expect(() => parseChangeset(body)).toThrow(/remove_model/)
+    expect(() => parseChangeset(body)).toThrow(/c-01/)
+  })
+})

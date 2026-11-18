@@ -255,6 +255,61 @@ describe('a model touched by an applied change with no file entry (distributed-s
     expect(d).toMatchObject({ unit: 'villabotijos-today/intro' })
     expect(d?.message).toContain('villabotijos-today/intro')
   })
+
+  it('a recorded removal is a terminal state, not drift', () => {
+    const log = logOf([
+      {
+        changes: [
+          { id: 'c-01', op: 'add_model', target: 'villabotijos-today/intro', concept: 'Video', name: 'Intro' },
+          { id: 'c-02', op: 'update_field', target: 'villabotijos-today/intro@intro&title', to: 'Intro', resolved_target: 'villabotijos-today/intro@intro&title' },
+        ],
+      },
+      { changes: [{ id: 'c-03', op: 'remove_model', target: 'villabotijos-today/intro' }] },
+    ])
+    expect(codes(checkProvenance(log, []))).not.toContain('MODEL_WITHOUT_FILE')
+    expect(codes(checkProvenance(log, [], { strict: true }))).not.toContain('MODEL_WITHOUT_FILE')
+  })
+
+  it('a file present after a recorded removal is a resurrection the log cannot explain', () => {
+    const log = logOf([
+      {
+        changes: [
+          { id: 'c-01', op: 'add_model', target: 'villabotijos-today/intro', concept: 'Video', name: 'Intro' },
+          { id: 'c-02', op: 'remove_model', target: 'villabotijos-today/intro' },
+        ],
+      },
+    ])
+    const models = [modelOf(MODEL, 'villabotijos-today/intro')]
+    expect(codes(checkProvenance(log, models))).toContain('UNIT_WITHOUT_RECORD')
+  })
+
+  it('a removal followed by a re-creation is live again, so a missing file is drift', () => {
+    const log = logOf([
+      {
+        changes: [
+          { id: 'c-01', op: 'add_model', target: 'villabotijos-today/intro', concept: 'Video', name: 'Intro' },
+          { id: 'c-02', op: 'remove_model', target: 'villabotijos-today/intro' },
+          { id: 'c-03', op: 'add_model', target: 'villabotijos-today/intro', concept: 'Video', name: 'Intro' },
+        ],
+      },
+    ])
+    const d = checkProvenance(log, []).diagnostics.find((x) => x.code === 'MODEL_WITHOUT_FILE')
+    expect(d).toMatchObject({ unit: 'villabotijos-today/intro' })
+  })
+
+  it('a removal followed by a move into the same id is live again, so a missing file is drift', () => {
+    const log = logOf([
+      {
+        changes: [
+          { id: 'c-01', op: 'add_model', target: 'villabotijos-today/intro', concept: 'Video', name: 'Intro' },
+          { id: 'c-02', op: 'remove_model', target: 'villabotijos-today/intro' },
+          { id: 'c-03', op: 'move_model', target: 'other-series/intro', to: 'villabotijos-today/intro' },
+        ],
+      },
+    ])
+    const d = checkProvenance(log, []).diagnostics.find((x) => x.code === 'MODEL_WITHOUT_FILE')
+    expect(d).toMatchObject({ unit: 'villabotijos-today/intro' })
+  })
 })
 
 describe('an extraction is drift-free and a hand-made layout is not (distributed-storage S6d)', () => {

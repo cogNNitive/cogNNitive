@@ -111,6 +111,14 @@ export interface ChangeLog {
   /** The change that created or removed the element at `elementKey`, if any. */
   elementOrigin(elementKey: string): LoggedChange | undefined
   /**
+   * The applied `remove_model` that removed this model id, when nothing has
+   * re-created it since (`undefined` for an id that was never removed, and for one
+   * a later `add_model`, `extract_instance` or `move_model` brought back). A
+   * recorded removal is a terminal state for `MODEL_WITHOUT_FILE`, the way a
+   * recorded move that ends in a live model already is.
+   */
+  removalOf(id: ModelId): LoggedChange | undefined
+  /**
    * The model ids this id carried before the one it names now, oldest first
    * (design A10). Empty for an id that was never moved.
    */
@@ -274,6 +282,11 @@ class ChangeLogImpl implements ChangeLog {
 
   elementOrigin(elementKey: string): LoggedChange | undefined {
     return this.fold.elements.get(elementKey)
+  }
+
+  removalOf(id: ModelId): LoggedChange | undefined {
+    const change = this.fold.models.get(id)
+    return change?.op === 'remove_model' ? change : undefined
   }
 
   get tombstones(): readonly LoggedChange[] {
