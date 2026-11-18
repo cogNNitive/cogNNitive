@@ -29,6 +29,7 @@ export const CHANGE_OPS = [
   'rename_field',
   'set_field_default',
   'review_gate',
+  'close_model',
 ] as const
 
 /** Version levels a `bump_version` change may request (carried in `to`). */
@@ -53,7 +54,7 @@ export interface ChangeItem {
   op: ChangeOp
   /**
    * Canonical D5 target address: model@element&field or model@matrix&row&col or model@concept.
-   * `freeze_slugs` and `bump_version` target a bare model id; `bump_version` carries its level in `to`.
+   * `freeze_slugs`, `bump_version` and `close_model` target a bare model id; `bump_version` carries its level in `to`.
    */
   target: string
   from?: string

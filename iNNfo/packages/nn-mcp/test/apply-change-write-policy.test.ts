@@ -325,3 +325,47 @@ describe('apply_change enforces the write policy on whole models', () => {
     expect(res.success).toBe(true)
   })
 })
+
+/* ── closing event ─────────────────────────────────────────────────────────── */
+
+describe('close_model records a closing event after which nothing is written', () => {
+  it('closes the model by setting closed: true in its frontmatter', async () => {
+    await setup()
+    const res = await apply('op:: close_model\ntarget:: ops\n')
+    expect(res.errors ?? []).toEqual([])
+    expect(res.success).toBe(true)
+    expect(await modelText()).toMatch(/^closed: true$/m)
+  })
+
+  it('refuses an addition to a closed model, even on an append-only concept', async () => {
+    await setup()
+    await apply('op:: close_model\ntarget:: ops\n')
+    const closed = await modelText()
+    const res = await apply(ADD_LOG)
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('MODEL_CLOSED')
+    expect(await modelText()).toBe(closed)
+  })
+
+  it('refuses a write placed after the closing event in the same changeset', async () => {
+    await setup()
+    const rel = 'changes/policy_changes_NN.md'
+    const text = changeset('op:: close_model\ntarget:: ops\n').replace(
+      'evidence:: decision\n',
+      'evidence:: decision\n\n## NN Change: c-02\n' + ADD_LOG + 'evidence:: decision\n',
+    )
+    await writeFile(join(root, rel), text, 'utf-8')
+    const res = await applyChange(root, rel)
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('MODEL_CLOSED')
+    expect(await modelText()).toBe(MODEL)
+  })
+
+  it('refuses closing a model twice', async () => {
+    await setup()
+    await apply('op:: close_model\ntarget:: ops\n')
+    const res = await apply('op:: close_model\ntarget:: ops\n')
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('MODEL_CLOSED')
+  })
+})

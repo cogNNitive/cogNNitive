@@ -2,6 +2,7 @@ import type { ParsedKnowledge, ElementNode, TaxonomyEdge, MatrixCell } from './t
 import type { ConceptField } from './types/parser.js'
 import { ElementsMap } from './types/index.js'
 import type { BlueprintSchema } from './schema/index.js'
+import { MODEL_CLOSED_KEY, isModelClosed } from './schema/writePolicy.js'
 import {
   CONCEPT_DEFINITION,
   FIELD_DEFINITION,
@@ -238,6 +239,7 @@ const MUTATION_HANDLERS: Record<string, MutationHandler> = {
   repin_blueprint: (model, args) => repinBlueprint(model, args),
   rename_field: (model, args) => renameFieldKey(model, args),
   set_field_default: (model, args) => setFieldDefault(model, args),
+  close_model: (model) => closeModel(model),
 }
 
 /** Names of every operation the mutation engine implements. */
@@ -285,6 +287,20 @@ function repinBlueprint(model: ParsedKnowledge, args: Record<string, unknown>): 
   const version = to.match(/V_\d+-\d+-\d+/)?.[0]
   fm.parent_spec = { ...(fm.parent_spec ?? {}), name: to, url }
   if (version) fm.blueprint_version = version
+  return { success: true }
+}
+
+/**
+ * `close_model`: the closing event of a model. It sets `closed: true` in the
+ * frontmatter; the changeset that carries it is the record of who closed it and
+ * when. A closed model accepts no further instance write.
+ */
+function closeModel(model: ParsedKnowledge): MutationResult {
+  const fm = model.frontmatter as Record<string, any>
+  if (isModelClosed(fm)) {
+    return { success: false, errors: [{ path: MODEL_CLOSED_KEY, message: 'MODEL_CLOSED: the model is already closed' }] }
+  }
+  fm[MODEL_CLOSED_KEY] = true
   return { success: true }
 }
 

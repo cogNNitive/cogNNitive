@@ -24,6 +24,8 @@ export {
   DEFAULT_WRITE_POLICY,
   WRITE_POLICIES,
   WRITE_POLICY_KEY,
+  MODEL_CLOSED_KEY,
+  isModelClosed,
   allowedOperations,
   parseWritePolicy,
   readWritePolicy,

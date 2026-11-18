@@ -53,6 +53,7 @@ import {
   writeOperationOf,
   writePolicyViolation,
   WRITE_POLICY_KEY,
+  isModelClosed,
 } from '@cognnitive/nn-core'
 import type {
   ScopeNode,
@@ -324,8 +325,31 @@ function altersNormativeLines(input: string, writeBack: string): boolean {
   return before.some((line, i) => line !== after[i])
 }
 
+/** The domaiNN scope chain above a path, for the write-policy cascade. */
+type WriteScopes = { ok: true; scopes: ScopeNode[] } | { ok: false; detail: string }
+
 /**
- * Preconditions of the model-level maintenance changes (`bump_version`, `freeze_slugs`):
+ * No domaiNN root means nothing at Level 3 can restrict the policy; any other chain
+ * failure fails closed, because a scope we cannot read might tighten it.
+ */
+function writeScopesAt(filePath: string): WriteScopes {
+  const found = findScopeChain(filePath)
+  if (!found.ok) {
+    if (found.code === 'NO_DOMAIN_ROOT') return { ok: true, scopes: [] }
+    return { ok: false, detail: found.code }
+  }
+  const loaded = loadChain(found.chain)
+  if (!loaded.ok) return { ok: false, detail: `${loaded.code}: ${loaded.path}` }
+  return { ok: true, scopes: [...loaded.loaded.nodes] }
+}
+
+/** The concepts that have at least one instance in a model. */
+function conceptsIn(model: ParsedKnowledge): string[] {
+  return [...model.elements.entries()].filter(([, list]) => list.length > 0).map(([concept]) => concept)
+}
+
+/**
+ * Preconditions of the model-level maintenance changes (`bump_version`, `freeze_slugs`, `close_model`):
  * they target a Level-3 kNNowledge model, never the unversioned lineage record, and a
  * bump names a valid level.
  */
@@ -1595,17 +1619,6 @@ export async function executeChangesetApply(
      * model). No domaiNN root means nothing at Level 3 can restrict the policy; any
      * other chain failure fails closed, because a scope we cannot read might tighten it.
      */
-    type WriteScopes = { ok: true; scopes: ScopeNode[] } | { ok: false; detail: string }
-    const writeScopesAt = (filePath: string): WriteScopes => {
-      const found = findScopeChain(filePath)
-      if (!found.ok) {
-        if (found.code === 'NO_DOMAIN_ROOT') return { ok: true, scopes: [] }
-        return { ok: false, detail: found.code }
-      }
-      const loaded = loadChain(found.chain)
-      if (!loaded.ok) return { ok: false, detail: `${loaded.code}: ${loaded.path}` }
-      return { ok: true, scopes: [...loaded.loaded.nodes] }
-    }
     const writeScopesFor = (entry: LoadedModelEntry): WriteScopes => {
       if (entry.writeScopes !== undefined) return { ok: true, scopes: entry.writeScopes }
       const result = writeScopesAt(entry.filePath)
@@ -1652,9 +1665,6 @@ export async function executeChangesetApply(
       return null
     }
 
-    /** The concepts that have at least one instance in a model. */
-    const conceptsIn = (model: ParsedKnowledge): string[] =>
-      [...model.elements.entries()].filter(([, list]) => list.length > 0).map(([concept]) => concept)
 
     for (const change of csDoc.changes) {
       if (change.op === 'comment' || change.op === 'produce_artifact') continue
@@ -2093,6 +2103,21 @@ export async function executeChangesetApply(
       const entry = loadedModels.get(modelSlug.toLowerCase())
       if (!entry) continue
 
+      // A closed model accepts nothing after its closing event, whatever its write
+      // policy, including a second close.
+      if ((writeOperationOf(change.op) !== null || change.op === 'close_model') && isModelClosed(entry.model.frontmatter as Record<string, unknown>)) {
+        return recordRejection(
+          [
+            {
+              path: change.target,
+              message: `MODEL_CLOSED: model "${entry.modelSlug}" has a closing event; "${change.op}" cannot write to it`,
+              code: 'MODEL_CLOSED',
+            },
+          ],
+          change.id,
+        )
+      }
+
       // Write policy on whole models: a removal removes every instance the model
       // holds, a move updates their address, an extraction removes the element
       // from this model.
@@ -2221,7 +2246,7 @@ export async function executeChangesetApply(
         continue
       }
 
-      if (change.op === 'bump_version' || change.op === 'freeze_slugs') {
+      if (change.op === 'bump_version' || change.op === 'freeze_slugs' || change.op === 'close_model') {
         const problem = maintenanceChangeProblem(change, entry.model, entry.created)
         if (problem) return rejectProposal(problem.code, change.target, `change "${change.id}": ${problem.message}`, change.id)
       }
