@@ -76,8 +76,8 @@ published), and the registry mirror and catalog are regenerated.
 | T6  | S10   | inline | done   | two `applyWithConsole` tests, `apply-change-models.test.ts` 22/22 (100c92d2) |
 | T7  | S5    | inline | done   | propose scan shared with apply; `missing_referrer_updates` tested (100c92d2) |
 | T8  | S11   | inline | done   | `changes-blueprint-text` guard 4/4, registry + catalogs regenerated (5ec48bb3) |
-| T9  | all   | inline | todo   | docs pages + delta spec (delta spec: `instance-model-lifecycle`) |
-| T10 | all   | inline | todo   | verify:fast, affected suites, PR |
+| T9  | all   | inline | done   | docs pages, generated table, `master.md` in sync; delta spec passes `check:openspec` (09393d05, 1c9d04dc) |
+| T10 | all   | inline | done   | nn-core 2664/2664, nn-mcp 802/802, nn-sources 607/607, typecheck clean; `verify:fast` OOM'd here (see L9), every failing step passes alone |
 
 ## Log
 
@@ -134,5 +134,20 @@ a local path into a public repo and made the nn-sources mirror determinism test 
 ("no absolute or user-junction paths embedded in mirror"). Both generators now normalize
 an absolute `node_modules/` and `iNNfo/` prefix, with a lookbehind so a URL such as
 `https://...` can never match; the mirrors are regenerated clean (nn-sources 607/607).
+
+L9 (verification, 2026-11-18): `node scripts/verify.js --fast` could not finish on this
+machine — three runs failed 45, then 7, then 4 steps, a different set each time, and every
+failure in the logs is a V8 fatal (`NewSpace::EnsureCurrentCapacity`, `Zone Allocation`,
+`young object promotion failed`) at 10–75 MB, with no assertion error. The box was at
+46 GB committed on 31.6 GB of RAM. Every step that failed passes when run alone: the 5
+inline guards (`console-shell`, `external-skills`, `skill-script-refs`,
+`blueprint-inventory`, orchestrator line count), the 3 nn-conntent suites
+(guard-hardening 38, user-journeys 9, produce 31), `build-console-payload.test.mjs`, the
+4 console tests (bundle-render, element-table, export-files, field-renderers) and
+`blueprint-catalog --check`. Committed suites run serially and green: nn-core 2664/2664,
+nn-mcp 802/802, nn-sources 607/607; `tsc` clean for nn-core and nn-mcp; `check:openspec`,
+`check-docs-links`, `generate-docs-facts --check`, `generate-docs-master --check` and
+`regen --check` all clean. CI is the gate for the full run.
+
 
 
