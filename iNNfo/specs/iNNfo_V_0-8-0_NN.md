@@ -193,7 +193,7 @@ Storage composes like any other Concept property: a bluepriNNt that `includes` a
 A Concept declares which kinds of write its instances accept. Every write to an instance is one of three kinds: adding an instance, updating one (its fields, text, name or address) or removing one.
 
 - `write_policy:: mutable`: add, update and remove. This is the behavior of a Concept that declares nothing.
-- `write_policy:: append-only`: add only. An instance, once written, is never changed or removed. Suited to logs, executions and readings.
+- `write_policy:: append-only`: write once. Instances are added and a value that is still empty may be filled, but a written value is never changed or removed, nor is the instance. Suited to logs, executions and readings.
 - `write_policy:: read-only`: no write. Suited to imported snapshots.
 
 The policy cascades. A bluepriNNt MAY declare `write_policy` in its frontmatter as the default for the Concepts that declare none, and a Concept declaration overrides that default in either direction. At kNNowledge level, the domaiNN root and its `scope: true` folders MAY declare `write_policy::` in their scope document; such a declaration only keeps or tightens the policy inherited from above (`mutable` > `append-only` > `read-only`), never loosens it, and an isolated scope does not escape it. An unknown value at any level is treated as `read-only`.

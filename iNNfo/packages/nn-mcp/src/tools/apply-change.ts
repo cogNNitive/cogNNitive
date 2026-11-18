@@ -343,6 +343,34 @@ function writeScopesAt(filePath: string): WriteScopes {
   return { ok: true, scopes: [...loaded.loaded.nodes] }
 }
 
+const isEmptyValue = (value: unknown): boolean =>
+  value === undefined || value === null || (typeof value === 'string' && value.trim() === '') || (Array.isArray(value) && value.length === 0)
+
+/**
+ * True when an update only writes values the element does not have yet: the
+ * fields an `update_field` or `set_fields` sets are all empty, or the text an
+ * `update_element_text` sets is empty. Anything else (a rename, an overwrite) is
+ * a real update.
+ */
+function writesOnlyEmptyValues(change: ChangeItem, element: Record<string, any>): boolean {
+  const fields = (element.fields ?? {}) as Record<string, unknown>
+  if (change.op === 'update_field') {
+    const field = change.target.slice(change.target.lastIndexOf('&') + 1).trim()
+    return change.target.includes('&') && field !== '' && isEmptyValue(fields[field])
+  }
+  if (change.op === 'set_fields') {
+    let keys: string[]
+    try {
+      keys = Object.keys(JSON.parse(String(change.to ?? '')) as Record<string, unknown>)
+    } catch {
+      return false
+    }
+    return keys.length > 0 && keys.every((key) => isEmptyValue(fields[key]))
+  }
+  if (change.op === 'update_element_text') return isEmptyValue(element.description)
+  return false
+}
+
 /** The concepts that have at least one instance in a model. */
 function conceptsIn(model: ParsedKnowledge): string[] {
   return [...model.elements.entries()].filter(([, list]) => list.length > 0).map(([concept]) => concept)
@@ -1619,6 +1647,7 @@ export async function executeChangesetApply(
      * model). No domaiNN root means nothing at Level 3 can restrict the policy; any
      * other chain failure fails closed, because a scope we cannot read might tighten it.
      */
+
     const writeScopesFor = (entry: LoadedModelEntry): WriteScopes => {
       if (entry.writeScopes !== undefined) return { ok: true, scopes: entry.writeScopes }
       const result = writeScopesAt(entry.filePath)
@@ -2307,10 +2336,13 @@ export async function executeChangesetApply(
         const policySchema = renameSchema ?? (await schemaFor(entry))
         const elementIdent =
           String(mutationArgs.elementName ?? '') || parseTargetAddress(change.target).remainder.split('&')[0].trim()
-        const conceptName =
-          String(mutationArgs.conceptName ?? '') || findElementInModel(entry.model, undefined, elementIdent)?.concept || ''
+        const found = findElementInModel(entry.model, String(mutationArgs.conceptName ?? '') || undefined, elementIdent)
+        const conceptName = String(mutationArgs.conceptName ?? '') || found?.concept || ''
+        // Filling a value that is still empty writes something new, so it is checked
+        // as an add: an append-only instance is written once, never overwritten.
+        const fillsEmpty = writeOperation === 'update' && found !== null && writesOnlyEmptyValues(change, found.element)
         const rejected = await writePolicyRejection({
-          change,
+          change: fillsEmpty ? { ...change, op: 'add_element' } : change,
           concepts: conceptName ? [conceptName] : [],
           schema: policySchema,
           blueprintPolicy: entry.blueprintWritePolicy,

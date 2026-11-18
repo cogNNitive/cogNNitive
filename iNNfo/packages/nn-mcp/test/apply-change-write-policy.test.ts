@@ -369,3 +369,40 @@ describe('close_model records a closing event after which nothing is written', (
     expect(res.errors?.map((e) => e.code)).toContain('MODEL_CLOSED')
   })
 })
+
+describe('an append-only instance is written once', () => {
+  it('fills a field the instance does not have yet', async () => {
+    await setup()
+    await apply(ADD_LOG)
+    const res = await apply('op:: update_field\ntarget:: ops@Entry Two&note\nto:: second\n')
+    expect(res.errors ?? []).toEqual([])
+    expect(res.success).toBe(true)
+    expect(await modelText()).toMatch(/## NN Log: Entry Two\n(?:.*\n)*?note:: second/)
+  })
+
+  it('fills several empty fields at once with set_fields', async () => {
+    await setup()
+    await apply(ADD_LOG)
+    const res = await apply('op:: set_fields\ntarget:: ops@Entry Two\nto:: {"note": "second"}\n')
+    expect(res.errors ?? []).toEqual([])
+    expect(await modelText()).toMatch(/## NN Log: Entry Two\n(?:.*\n)*?note:: second/)
+  })
+
+  it('refuses overwriting a value once it is written', async () => {
+    await setup()
+    await apply(ADD_LOG)
+    await apply('op:: update_field\ntarget:: ops@Entry Two&note\nto:: second\n')
+    const written = await modelText()
+    const res = await apply('op:: update_field\ntarget:: ops@Entry Two&note\nto:: changed\n')
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
+    expect(await modelText()).toBe(written)
+  })
+
+  it('still refuses filling an empty field of a read-only concept', async () => {
+    await setup({ blueprintFm: 'write_policy: read-only\n' })
+    const res = await apply('op:: update_field\ntarget:: ops@Vision&owner\nto:: Ana\n')
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
+  })
+})
