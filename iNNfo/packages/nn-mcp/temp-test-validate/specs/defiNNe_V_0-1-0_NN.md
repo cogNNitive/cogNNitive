@@ -1,5 +1,0 @@
----
-spec_version: "V_0-1-0"
-level: 0
-title: "Local defiNNe Spec"
----
