@@ -294,6 +294,9 @@ jobs:
   #    changed (scripts/release/plan-auto-tags.js decides key and version) and run the
   #    release workflow for each tag, one at a time, `blueprints` first. Tags pushed
   #    with GITHUB_TOKEN trigger no workflow, so release.yml is called directly here.
+  #    The tags land in ONE atomic push (scripts/release/push-release-tags.mjs): a
+  #    rejection therefore leaves every tag or none, never a half-tagged commit whose
+  #    `release` job is skipped (#725).
   auto-tag:
     needs: [verify, site, quality, spec-integrity]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -314,14 +317,7 @@ jobs:
       - name: Create and push tags
         env:
           TAGS: ${{ steps.plan.outputs.tags }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          for tag in $(echo "$TAGS" | jq -r '.[]'); do
-            git tag -a "$tag" -m "release: $tag" "$GITHUB_SHA"
-            git push origin "refs/tags/$tag"
-            echo "- \`$tag\`" >> "$GITHUB_STEP_SUMMARY"
-          done
+        run: node scripts/release/push-release-tags.mjs
 
   release:
     needs: auto-tag
