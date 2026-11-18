@@ -117,8 +117,15 @@ async function renderTarget(target, esbuild) {
   })
   const rawCode = withImportMetaUrl(result.outputFiles[0].text.replace(/\r\n/g, '\n'), target.banner)
   return rawCode
+    // Normalize every path esbuild prints into the mirror. The relative forms are
+    // what a single-drive checkout produces; the absolute forms appear when the
+    // resolved module lives on another drive than the repo (a worktree whose
+    // node_modules points at a checkout elsewhere), and they must never be
+    // committed: they leak a local path and break the mirror determinism test.
     .replace(/(?:\.\.\/)+(?:[\w.-]+\/)?node_modules\//g, 'node_modules/')
     .replace(/(?:\.\.\/)+(?:[\w.-]+\/)?iNNfo\//g, 'iNNfo/')
+    .replace(/(?<![A-Za-z0-9:])[A-Za-z]:[\\/][^"'\n]*?[\\/]node_modules[\\/]/g, 'node_modules/')
+    .replace(/(?<![A-Za-z0-9:])[A-Za-z]:[\\/][^"'\n]*?[\\/]iNNfo[\\/]/g, 'iNNfo/')
 }
 
 function getArg(flag) {

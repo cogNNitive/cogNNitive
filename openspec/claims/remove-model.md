@@ -32,6 +32,9 @@ area:
   - docs/documentation/content/reference/mcp-tools.md
   - docs/documentation/master.md   # generated from content/
   - scripts/generate-docs-facts.mjs
+  - scripts/build-core-mirrors.mjs
+  - scripts/build-preflight-primitives.mjs
+  - scripts/verify-drift-guard.test.js
   - skills/nn-innfo/SKILL.md   # generated
   - openspec/changes/remove-model/specs/**
   - odd/tasks/remove-model.md

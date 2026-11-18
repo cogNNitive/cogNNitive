@@ -126,3 +126,13 @@ L7: `EXECUTION_FACT_KEYS`/`compactExecutionFacts` delete a per-change `status` a
 written changeset file failed for that reason and were corrected to assert the
 frontmatter status and the absence of per-change facts, which is the documented shape.
 
+L8 (generated mirror leak, 2026-11-18): the pre-commit hook regenerates the committed
+nn-core mirrors, and from this worktree it embedded 144 absolute paths
+(`D:/Users/.../node_modules/...`) in three of them: `node_modules` is a junction to the
+primary checkout on another drive, so esbuild cannot print a relative path. That leaked
+a local path into a public repo and made the nn-sources mirror determinism test fail
+("no absolute or user-junction paths embedded in mirror"). Both generators now normalize
+an absolute `node_modules/` and `iNNfo/` prefix, with a lookbehind so a URL such as
+`https://...` can never match; the mirrors are regenerated clean (nn-sources 607/607).
+
+
