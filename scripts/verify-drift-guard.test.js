@@ -67,6 +67,16 @@ function buildFixtureRepo() {
 
   // Write mode: produce a genuinely-correct generated state, the same way
   // build-docs.mjs does before verify.js ever runs (design D5).
+  // The published reference page carries the same region, so the fixture must
+  // pre-create it too, or the generator reports a missing target.
+  const referenceDir = path.join(root, 'docs', 'documentation', 'content', 'reference');
+  fs.mkdirSync(referenceDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(referenceDir, 'mcp-tools.md'),
+    ['# MCP tools', '', '## Tool inventory', '', OPEN_MCP, 'placeholder', CLOSE_MCP, ''].join('\n'),
+    'utf-8',
+  );
+
   execFileSync(process.execPath, [GENERATE_DOCS_FACTS], { cwd: root, encoding: 'utf-8' });
 
   git(root, ['init', '-q']);
