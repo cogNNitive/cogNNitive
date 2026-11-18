@@ -45,6 +45,10 @@ const DIST_RELATIVE_PATH = path.join('iNNfo', 'packages', 'nn-mcp', 'dist', 'ser
 // hand-typed count.
 const MCP_TARGET_RELATIVE_PATHS = [
   path.join('skills', 'nn-innfo', 'SKILL.md'),
+  // The published reference page carries the same region. It used to be hand-typed
+  // inside the marker pair, which is how it drifted to 23 rows while the registry
+  // held 24 tools (the `read_lineage` row was missing).
+  path.join('docs', 'documentation', 'content', 'reference', 'mcp-tools.md'),
 ];
 
 /**
