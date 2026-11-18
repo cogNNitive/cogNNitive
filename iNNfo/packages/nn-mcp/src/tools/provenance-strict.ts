@@ -53,8 +53,10 @@ export interface StrictProvenanceOptions {
  * Ops the replay does not run: they write no body. `move_model` is here because
  * the replay skeleton is already built under the model's CURRENT id, which is
  * what the move produced (design A10); the identity chain carries it.
+ * `remove_model` is here because a removed model has no file to compare: the
+ * removed id is a terminal state for the drift check, never a replay target.
  */
-const NON_REPLAY_OPS = new Set(['add_model', 'bump_version', 'comment', 'produce_artifact', 'move_model'])
+const NON_REPLAY_OPS = new Set(['add_model', 'bump_version', 'comment', 'produce_artifact', 'move_model', 'remove_model'])
 
 const EVIDENCE_CODES = new Set(['EVIDENCE_UNKNOWN', 'EVIDENCE_SOURCE_CHANGED'])
 

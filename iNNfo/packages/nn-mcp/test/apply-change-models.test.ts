@@ -340,6 +340,32 @@ describe('add_model: manifest reconciliation after commit', () => {
   })
 })
 
+describe('remove_model: manifest reconciliation after commit', () => {
+  const writer: ConsoleWriter = async () => ({ path: join(root, 'domaiNN_console.html'), status: 'written', opened: false })
+
+  it('syncs the manifest non-dry after a commit that removed a model', async () => {
+    const syncManifest = vi.fn(async () => ({ written: true, manifest_path: 'domaiNN_NN.md' }))
+    const payload = await applyWithConsole(
+      root,
+      async () => ({ success: true, status: 'applied', changeset: 'changes/x_changes_NN.md', removedModels: ['villabotijos-today/intro'] }),
+      { writer, open: false, syncManifest },
+    )
+
+    expect(syncManifest).toHaveBeenCalledWith(root, { dry_run: false })
+    expect(payload.manifest).toEqual({ written: true, manifest_path: 'domaiNN_NN.md' })
+  })
+
+  it('syncs when a commit both created and removed models', async () => {
+    const syncManifest = vi.fn(async () => ({ written: true, manifest_path: 'domaiNN_NN.md' }))
+    await applyWithConsole(
+      root,
+      async () => ({ success: true, status: 'applied', createdModels: ['a'], removedModels: ['b'] }),
+      { writer, open: false, syncManifest },
+    )
+    expect(syncManifest).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('bump_version on a model created in the same changeset', () => {
   it('is rejected with a code instead of reporting a skipped bump as applied', async () => {
     const path = await writeCs([

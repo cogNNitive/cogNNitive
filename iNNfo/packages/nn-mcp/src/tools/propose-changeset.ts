@@ -30,7 +30,7 @@ import { findKnowledgeFile, ModelIdError } from './spec.js'
 import { canonicalizeTarget, modelIdAliases, modelIdOfTarget } from './model-id.js'
 import { artifactTargetProblem } from './produce-artifact.js'
 import { buildNextSteps, regenerateConsole, type ConsoleOutcome, type NextSteps, type RegenerateOptions } from './console-regeneration.js'
-import { findDanglingReferrers } from './move-referrers.js'
+import { findDanglingReferrers, findDanglingReferrersForRemoval } from './move-referrers.js'
 
 /**
  * The single writer of proposed changesets. Every code path that leaves a sealed
@@ -249,6 +249,17 @@ function requiredKeyProblems(change: ChangeItem, label: string): string[] {
         problems.push(`${label}: move_model "to" must be the new instance model id`)
       }
       break
+    case 'remove_model':
+      if (target.includes('@') || target.includes('&') || /\.[a-z]+$/i.test(target)) {
+        problems.push(`${label}: remove_model target must be the instance model id`)
+      }
+      // A destination would make it a move; a payload would make it an element change.
+      for (const key of ['to', 'from', 'concept', 'name', 'slug', 'base_hash'] as const) {
+        if (change[key] !== undefined) {
+          problems.push(`${label}: remove_model must not carry "${key}"`)
+        }
+      }
+      break
     case 'extract_instance':
       // `target` is the source element address; `to` is the instance id it becomes.
       if (!target.includes('@') || target.includes('&')) {
@@ -418,9 +429,10 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
       }
     }
   }
-  // A move whose referrers are not retargeted in the same proposal is reported with
-  // the update_field changes that would fix it (design A10, the lineage-as-changes A9
-  // payload pattern). Apply runs the same scan, so the proposal never surprises it.
+  // A move or a removal whose referrers are not retargeted in the same proposal is
+  // reported with the update_field changes that would fix it (design A10, the
+  // lineage-as-changes A9 payload pattern). Apply runs the same scan, so the proposal
+  // never surprises it.
   if (errors.length === 0) {
     const retargets = new Map<string, string>()
     for (const change of operations) {
@@ -428,22 +440,30 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
       retargets.set(change.target, change.to)
     }
     for (const [index, change] of operations.entries()) {
-      if (change.op !== 'move_model' || !change.target || !change.to) continue
+      if (change.op !== 'move_model' && change.op !== 'remove_model') continue
+      if (!change.target) continue
+      if (change.op === 'move_model' && !change.to) continue
       const fromPath = await findKnowledgeFile(rootDir, change.target).catch(() => null)
       if (!fromPath) continue
-      const dangling = await findDanglingReferrers(
-        rootDir,
-        { fromId: change.target, toId: change.to, fromPath },
-        retargets,
-      )
+      const removing = change.op === 'remove_model'
+      const dangling = removing
+        ? await findDanglingReferrersForRemoval(rootDir, { id: change.target, path: fromPath }, retargets)
+        : await findDanglingReferrers(rootDir, { fromId: change.target, toId: change.to!, fromPath }, retargets)
       if (dangling.length === 0) continue
+      const code = removing ? 'REMOVE_LEAVES_DANGLING_REFERENCES' : 'MOVE_LEAVES_DANGLING_REFERENCES'
+      const what = removing
+        ? `removing "${change.target}" leaves`
+        : `moving "${change.target}" to "${change.to}" leaves`
+      const fix = removing
+        ? 'retarget or clear each with an update_field change'
+        : 'add the missing update_field changes'
       errors.push({
         path: `operations[${index}]`,
-        code: 'MOVE_LEAVES_DANGLING_REFERENCES',
+        code,
         message:
-          `MOVE_LEAVES_DANGLING_REFERENCES: moving "${change.target}" to "${change.to}" leaves ` +
-          `${dangling.length} reference(s) pointing at the old id (${dangling.map((d) => d.unit).join(', ')}); ` +
-          `add the missing update_field changes`,
+          `${code}: ${what} ` +
+          `${dangling.length} reference(s) ${removing ? 'addressing it' : 'pointing at the old id'} (` +
+          `${dangling.map((d) => d.unit).join(', ')}); ${fix}`,
         missing_referrer_updates: dangling.map(
           (d): ChangeItem => ({
             id: '',
