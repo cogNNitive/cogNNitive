@@ -30,7 +30,8 @@ export interface ProcedureArtifact {
   producers: string[]
 }
 
-export type GraphDiagnosticCode = 'MISSING_SLUG' | 'UNKNOWN_NEXT' | 'NO_START' | 'MULTIPLE_STARTS' | 'CYCLE'
+export type GraphDiagnosticCode =
+  'MISSING_SLUG' | 'UNKNOWN_NEXT' | 'NO_START' | 'MULTIPLE_STARTS' | 'CYCLE'
 
 export interface GraphDiagnostic {
   code: GraphDiagnosticCode
@@ -84,9 +85,12 @@ export interface RunEvent {
   at?: string
 }
 
-export type RunStatus = 'open' | 'waiting' | 'blocked' | 'drifted' | 'completed' | 'failed' | 'cancelled'
-export type StepStatus = 'pending' | 'active' | 'waiting' | 'done' | 'failed' | 'reopened' | 'off_path'
-export type ArtifactStatus = 'expected' | 'produced' | 'validated' | 'rejected' | 'stale' | 'not_required'
+export type RunStatus =
+  'open' | 'waiting' | 'blocked' | 'drifted' | 'completed' | 'failed' | 'cancelled'
+export type StepStatus =
+  'pending' | 'active' | 'waiting' | 'done' | 'failed' | 'reopened' | 'off_path'
+export type ArtifactStatus =
+  'expected' | 'produced' | 'validated' | 'rejected' | 'stale' | 'not_required'
 
 export interface StepState {
   status: StepStatus

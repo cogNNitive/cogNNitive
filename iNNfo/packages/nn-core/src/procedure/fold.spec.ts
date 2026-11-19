@@ -40,7 +40,13 @@ describe('foldRun', () => {
       ...UNTIL_REVIEW,
       { kind: 'step_completed', step: 'review', outcome: 'approve', next: 'publish' },
       { kind: 'step_started', step: 'publish', attempt: 1, inputs: { 'draft-doc': 'd1' } },
-      { kind: 'artifact_validated', step: 'publish', field: 'published', value: 'out/draft.html', rev: 'p1' },
+      {
+        kind: 'artifact_validated',
+        step: 'publish',
+        field: 'published',
+        value: 'out/draft.html',
+        rev: 'p1',
+      },
       { kind: 'step_completed', step: 'publish' },
     ]
     const done = foldRun(review, events, { defRev: 'V_1-0-0' })
@@ -52,7 +58,9 @@ describe('foldRun', () => {
     expect(done.artifacts.published).toMatchObject({ status: 'validated', rev: 'p1' })
     expect(done.status).toBe('open')
 
-    const closed = foldRun(review, [...events, { kind: 'completed', actor: 'agent' }], { defRev: 'V_1-0-0' })
+    const closed = foldRun(review, [...events, { kind: 'completed', actor: 'agent' }], {
+      defRev: 'V_1-0-0',
+    })
     expect(closed.status).toBe('completed')
   })
 
@@ -74,9 +82,13 @@ describe('foldRun', () => {
   })
 
   it('blocks a completion whose next is not one of the step targets', () => {
-    const s = foldRun(review, [...UNTIL_REVIEW, { kind: 'step_completed', step: 'review', next: 'draft' }], {
-      defRev: 'V_1-0-0',
-    })
+    const s = foldRun(
+      review,
+      [...UNTIL_REVIEW, { kind: 'step_completed', step: 'review', next: 'draft' }],
+      {
+        defRev: 'V_1-0-0',
+      },
+    )
     expect(s.status).toBe('blocked')
     expect(s.currentStep).toBe('review')
     expect(s.blockedBy).toMatch(/draft/)
@@ -108,9 +120,13 @@ describe('foldRun', () => {
     expect(ok.allowedNext).toEqual([])
     expect(ok.stale).toEqual([])
 
-    const s = foldRun(report, [...retried, { kind: 'artifact_validated', step: 'gather', field: 'brief', rev: 'b2' }], {
-      defRev: 'V_1-0-0',
-    })
+    const s = foldRun(
+      report,
+      [...retried, { kind: 'artifact_validated', step: 'gather', field: 'brief', rev: 'b2' }],
+      {
+        defRev: 'V_1-0-0',
+      },
+    )
     expect(s.stale).toEqual(['report'])
     expect(s.artifacts.report.status).toBe('stale')
     expect(s.reopened).toEqual(['write'])
@@ -128,11 +144,16 @@ describe('foldRun', () => {
       ],
       { defRev: 'V_1-0-0' },
     )
-    expect(s.allowedNext).toEqual([{ to: 'finish', guard: { kind: 'artifact', artifact: 'report', holds: false } }])
+    expect(s.allowedNext).toEqual([
+      { to: 'finish', guard: { kind: 'artifact', artifact: 'report', holds: false } },
+    ])
   })
 
   it('crash: an engine step started with no later event is a crash once the apply lock is free', () => {
-    const events: RunEvent[] = [{ kind: 'started' }, { kind: 'step_started', step: 'build', attempt: 1 }]
+    const events: RunEvent[] = [
+      { kind: 'started' },
+      { kind: 'step_started', step: 'build', attempt: 1 },
+    ]
     const crashed = foldRun(build, events, { defRev: 'V_1-0-0', lockFree: true })
     expect(crashed.crashed).toBe(true)
     expect(crashed.status).toBe('blocked')
@@ -143,10 +164,14 @@ describe('foldRun', () => {
     expect(running.status).toBe('open')
     expect(running.steps.build.status).toBe('active')
 
-    const later = foldRun(build, [...events, { kind: 'step_failed', step: 'build', value: 'exit 2' }], {
-      defRev: 'V_1-0-0',
-      lockFree: true,
-    })
+    const later = foldRun(
+      build,
+      [...events, { kind: 'step_failed', step: 'build', value: 'exit 2' }],
+      {
+        defRev: 'V_1-0-0',
+        lockFree: true,
+      },
+    )
     expect(later.crashed).toBe(false)
   })
 
@@ -155,7 +180,9 @@ describe('foldRun', () => {
     expect(drifted.status).toBe('drifted')
     expect(drifted.drift).toEqual({ pinned: 'V_0-9-0', current: 'V_1-0-0' })
 
-    const rebased = foldRun(review, [{ kind: 'started' }, { kind: 'rebased', value: 'V_1-0-0' }], { defRev: 'V_0-9-0' })
+    const rebased = foldRun(review, [{ kind: 'started' }, { kind: 'rebased', value: 'V_1-0-0' }], {
+      defRev: 'V_0-9-0',
+    })
     expect(rebased.status).toBe('open')
     expect(rebased.drift).toBeNull()
   })
@@ -174,8 +201,13 @@ describe('foldRun', () => {
   })
 
   it('pause, cancel and terminal events', () => {
-    expect(foldRun(build, [{ kind: 'interrupted' }], { defRev: 'V_1-0-0' })).toMatchObject({ status: 'waiting', paused: true })
-    expect(foldRun(build, [{ kind: 'interrupted' }, { kind: 'resumed' }], { defRev: 'V_1-0-0' }).paused).toBe(false)
+    expect(foldRun(build, [{ kind: 'interrupted' }], { defRev: 'V_1-0-0' })).toMatchObject({
+      status: 'waiting',
+      paused: true,
+    })
+    expect(
+      foldRun(build, [{ kind: 'interrupted' }, { kind: 'resumed' }], { defRev: 'V_1-0-0' }).paused,
+    ).toBe(false)
     expect(foldRun(build, [{ kind: 'cancelled' }], { defRev: 'V_0-0-1' }).status).toBe('cancelled')
   })
 })

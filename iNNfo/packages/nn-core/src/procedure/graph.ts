@@ -1,5 +1,11 @@
 import type { ElementNode, ParsedKnowledge } from '../types/index.js'
-import type { Executor, GraphDiagnostic, ProcedureArtifact, ProcedureGraph, ProcedureStep } from './types.js'
+import type {
+  Executor,
+  GraphDiagnostic,
+  ProcedureArtifact,
+  ProcedureGraph,
+  ProcedureStep,
+} from './types.js'
 
 const EXECUTORS: readonly string[] = ['human', 'agent', 'engine']
 
@@ -23,7 +29,8 @@ function resolver(nodes: ElementNode[]): (token: string) => string | undefined {
   return (token) => (slugs.has(token) ? token : byName.get(token.toLowerCase()))
 }
 
-const str = (v: unknown): string | undefined => (v === undefined || v === null || v === '' ? undefined : String(v))
+const str = (v: unknown): string | undefined =>
+  v === undefined || v === null || v === '' ? undefined : String(v)
 
 /**
  * Parses a procedures-bluepriNNt model into its runnable steps (design §2, §3). A Work that is
@@ -104,7 +111,11 @@ export function procedureGraph(model: ParsedKnowledge): ProcedureGraph {
   const incoming = new Set(Object.values(steps).flatMap((s) => s.next))
   const starts = Object.keys(steps).filter((s) => !incoming.has(s))
   if (starts.length === 0 && Object.keys(steps).length > 0)
-    diagnostics.push({ code: 'NO_START', severity: 'error', detail: 'Every step has an incoming next.' })
+    diagnostics.push({
+      code: 'NO_START',
+      severity: 'error',
+      detail: 'Every step has an incoming next.',
+    })
   if (starts.length > 1)
     diagnostics.push({
       code: 'MULTIPLE_STARTS',

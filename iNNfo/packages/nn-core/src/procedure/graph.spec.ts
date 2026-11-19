@@ -27,24 +27,40 @@ describe('procedureGraph', () => {
       inputs: ['draft-doc'],
     })
     expect(g.steps.draft.outputs).toEqual(['draft-doc']) // resolved by element name
-    expect(g.steps.publish).toMatchObject({ condition: 'outcome == approve', executor: 'engine', command: 'publish {draft}' })
-    expect(g.artifacts['draft-doc']).toMatchObject({ verify: 'file:draft.md', required: true, producers: ['draft'] })
+    expect(g.steps.publish).toMatchObject({
+      condition: 'outcome == approve',
+      executor: 'engine',
+      command: 'publish {draft}',
+    })
+    expect(g.artifacts['draft-doc']).toMatchObject({
+      verify: 'file:draft.md',
+      required: true,
+      producers: ['draft'],
+    })
   })
 
   it('accepts several targets written as one comma-separated string', () => {
-    const g = procedureGraph(model(`## NN Work: A\nslug:: a\nnext:: [[b]], [[C step]]\n\n## NN Work: B\nslug:: b\n\n## NN Work: C step\nslug:: c\n`))
+    const g = procedureGraph(
+      model(
+        `## NN Work: A\nslug:: a\nnext:: [[b]], [[C step]]\n\n## NN Work: B\nslug:: b\n\n## NN Work: C step\nslug:: c\n`,
+      ),
+    )
     expect(g.steps.a.next).toEqual(['b', 'c'])
     expect(g.diagnostics).toEqual([])
   })
 
   it('reports an unknown next target', () => {
     const g = procedureGraph(model(`## NN Work: A\nslug:: a\nnext:: [[ghost]]\n`))
-    expect(g.diagnostics).toContainEqual(expect.objectContaining({ code: 'UNKNOWN_NEXT', step: 'a' }))
+    expect(g.diagnostics).toContainEqual(
+      expect.objectContaining({ code: 'UNKNOWN_NEXT', step: 'a' }),
+    )
     expect(g.steps.a.next).toEqual([])
   })
 
   it('reports a cycle and no start, without looping', () => {
-    const g = procedureGraph(model(`## NN Work: A\nslug:: a\nnext:: [[b]]\n\n## NN Work: B\nslug:: b\nnext:: [[a]]\n`))
+    const g = procedureGraph(
+      model(`## NN Work: A\nslug:: a\nnext:: [[b]]\n\n## NN Work: B\nslug:: b\nnext:: [[a]]\n`),
+    )
     const codes = g.diagnostics.map((d) => d.code)
     expect(codes).toContain('CYCLE')
     expect(codes).toContain('NO_START')
@@ -54,12 +70,16 @@ describe('procedureGraph', () => {
   it('reports several starts and a missing slug', () => {
     const g = procedureGraph(model(`## NN Work: A\nslug:: a\n\n## NN Work: Loose Step\n`))
     expect(g.diagnostics).toContainEqual(expect.objectContaining({ code: 'MULTIPLE_STARTS' }))
-    expect(g.diagnostics).toContainEqual(expect.objectContaining({ code: 'MISSING_SLUG', step: 'loose-step' }))
+    expect(g.diagnostics).toContainEqual(
+      expect.objectContaining({ code: 'MISSING_SLUG', step: 'loose-step' }),
+    )
     expect(g.start).toBeNull()
   })
 
   it('treats a Work that is the parent of other Work as a container, not a step', () => {
-    const g = procedureGraph(model(`## NN Work: Proc\nslug:: proc\n\n## NN Work: A\nslug:: a\nparent:: [[proc]]\n`))
+    const g = procedureGraph(
+      model(`## NN Work: Proc\nslug:: proc\n\n## NN Work: A\nslug:: a\nparent:: [[proc]]\n`),
+    )
     expect(Object.keys(g.steps)).toEqual(['a'])
     expect(g.start).toBe('a')
   })
