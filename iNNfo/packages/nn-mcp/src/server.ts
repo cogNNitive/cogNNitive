@@ -48,7 +48,11 @@ import { queryUnits } from './tools/query-units.js'
 import { cognitivizeTool } from './tools/cognitivize.js'
 import { resolveSources } from './tools/resolve-sources.js'
 import { syncDomainManifest } from './tools/workspace-sync.js'
-import { applyWithConsole, regenerateConsole, buildNextSteps } from './tools/console-regeneration.js'
+import {
+  applyWithConsole,
+  regenerateConsole,
+  buildNextSteps,
+} from './tools/console-regeneration.js'
 import { proposeChangeset } from './tools/propose-changeset.js'
 import { initDomain } from './tools/init-domain.js'
 import { readLineageTool } from './tools/read-lineage.js'
@@ -75,7 +79,10 @@ export const ROOT_DIR: string = resolveRootDir(process.cwd(), process.env)
 declare const __INNFO_MCP_VERSION__: string
 
 export const server = new Server(
-  { name: 'nn-mcp', version: typeof __INNFO_MCP_VERSION__ !== 'undefined' ? __INNFO_MCP_VERSION__ : '0.32.0' },
+  {
+    name: 'nn-mcp',
+    version: typeof __INNFO_MCP_VERSION__ !== 'undefined' ? __INNFO_MCP_VERSION__ : '0.32.0',
+  },
   { capabilities: { tools: {} } },
 )
 
@@ -100,15 +107,19 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'list_knowledge',
       annotations: { readOnlyHint: true },
       description:
-        'Scan the knowledge directory and list every iNNfo knowledge document with its id, path, version, blueprint and storage. Pass `collection` to list one concept\'s members instead (it spans distributed instances and compact copies; each item then carries its placement finding, if any)',
+        "Scan the knowledge directory and list every iNNfo knowledge document with its id, path, version, blueprint and storage. Pass `collection` to list one concept's members instead (it spans distributed instances and compact copies; each item then carries its placement finding, if any)",
       inputSchema: {
         type: 'object',
         properties: {
           domain: { type: 'string', description: 'Optional override domain directory to scan' },
-          root: { type: 'string', description: 'Optional override domain directory to scan (alias for domain)' },
+          root: {
+            type: 'string',
+            description: 'Optional override domain directory to scan (alias for domain)',
+          },
           collection: {
             type: 'string',
-            description: 'Return the members of this concept\'s collection instead of every model (e.g. "Video")',
+            description:
+              'Return the members of this concept\'s collection instead of every model (e.g. "Video")',
           },
         },
       },
@@ -126,7 +137,8 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         properties: {
           id: {
             type: 'string',
-            description: 'Knowledge id (filename stem, `<name>_<blueprint>`, e.g. Ghostbusters_business)',
+            description:
+              'Knowledge id (filename stem, `<name>_<blueprint>`, e.g. Ghostbusters_business)',
           },
           knowledge_id: {
             type: 'string',
@@ -259,7 +271,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           scope_domain: {
             type: 'boolean',
             description:
-              "Optional domain-scope mode (default false = single-file behavior). When true, also runs cross-document reference validation across the whole domain.",
+              'Optional domain-scope mode (default false = single-file behavior). When true, also runs cross-document reference validation across the whole domain.',
           },
           intent: {
             type: 'string',
@@ -285,7 +297,8 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         properties: {
           changeset: {
             type: 'string',
-            description: 'Path to changeset document in changes/ (e.g. changes/ws_agent_changes_NN.md)',
+            description:
+              'Path to changeset document in changes/ (e.g. changes/ws_agent_changes_NN.md)',
           },
           changeset_path: {
             type: 'string',
@@ -295,13 +308,11 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           knowledge_id: { type: 'string', description: 'Knowledge id (alias for id)' },
           domain: {
             type: 'string',
-            description:
-              'Optional domain root override (defaults to the server root).',
+            description: 'Optional domain root override (defaults to the server root).',
           },
           root: {
             type: 'string',
-            description:
-              'Optional domain root override (alias for domain).',
+            description: 'Optional domain root override (alias for domain).',
           },
           op: {
             type: 'string',
@@ -350,11 +361,18 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       inputSchema: {
         type: 'object',
         properties: {
-          domain: { type: 'string', description: 'Optional domain root override (defaults to the server root).' },
-          root: { type: 'string', description: 'Optional domain root override (alias for domain).' },
+          domain: {
+            type: 'string',
+            description: 'Optional domain root override (defaults to the server root).',
+          },
+          root: {
+            type: 'string',
+            description: 'Optional domain root override (alias for domain).',
+          },
           model: {
             type: 'string',
-            description: 'Optional model id: regenerate the console scoped to this model instead of the whole domain.',
+            description:
+              'Optional model id: regenerate the console scoped to this model instead of the whole domain.',
           },
           open: {
             type: 'boolean',
@@ -380,13 +398,22 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           operations: {
             type: 'array',
             description:
-              'Change objects using the changeset keys: op, target, from, to, concept, name, slug, notes, evidence, base_hash, author. There is no fields key: add_element carries its initial fields in to, an object {field: value} validated like set_fields, written with the element in the same change under its one evidence. To change an existing element use one set_fields change (target model@element, to an object {field: value}, optional from with the expected current value of some of those fields, one evidence for all; all or nothing) for the fields that share one evidence, and one update_field change (target model@element&field) per field whose evidence differs. update_element_text writes the element prose body (target model@element). add_model also takes blueprint_name, blueprint_url and optional knowledge_version; initial content is add_element changes that follow it and target the new id. move_model carries the old instance model id in target and the new one in to, and requires an update_field retargeting every referrer in the same proposal. remove_model carries the instance model id in target and nothing else, and requires an update_field that clears or retargets every referrer in the same proposal; it is refused for a compact model (REMOVE_REQUIRES_INSTANCE) and for one whose folder still holds another model (REMOVE_MODEL_HAS_DESCENDANTS). freeze_slugs and bump_version target a bare model id; bump_version carries its level (patch, minor or major) in to. evidence is the change\'s provenance: one citation string, or the literal decision / unknown. There is no sources key.',
+              "Change objects using the changeset keys: op, target, from, to, concept, name, slug, notes, evidence, base_hash, author. There is no fields key: add_element carries its initial fields in to, an object {field: value} validated like set_fields, written with the element in the same change under its one evidence. To change an existing element use one set_fields change (target model@element, to an object {field: value}, optional from with the expected current value of some of those fields, one evidence for all; all or nothing) for the fields that share one evidence, and one update_field change (target model@element&field) per field whose evidence differs. update_element_text writes the element prose body (target model@element). add_model also takes blueprint_name, blueprint_url and optional knowledge_version; initial content is add_element changes that follow it and target the new id. move_model carries the old instance model id in target and the new one in to, and requires an update_field retargeting every referrer in the same proposal. remove_model carries the instance model id in target and nothing else, and requires an update_field that clears or retargets every referrer in the same proposal; it is refused for a compact model (REMOVE_REQUIRES_INSTANCE) and for one whose folder still holds another model (REMOVE_MODEL_HAS_DESCENDANTS). freeze_slugs and bump_version target a bare model id; bump_version carries its level (patch, minor or major) in to. evidence is the change's provenance: one citation string, or the literal decision / unknown. There is no sources key.",
             items: { type: 'object' },
           },
           title: { type: 'string', description: 'Title of the changeset.' },
-          author: { type: 'string', description: 'Author recorded on the changeset (default agent).' },
-          domain: { type: 'string', description: 'Optional domain root override (defaults to the server root).' },
-          root: { type: 'string', description: 'Optional domain root override (alias for domain).' },
+          author: {
+            type: 'string',
+            description: 'Author recorded on the changeset (default agent).',
+          },
+          domain: {
+            type: 'string',
+            description: 'Optional domain root override (defaults to the server root).',
+          },
+          root: {
+            type: 'string',
+            description: 'Optional domain root override (alias for domain).',
+          },
           open: {
             type: 'boolean',
             description: 'Open the regenerated domain console in a browser tab (default false).',
@@ -408,11 +435,15 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       inputSchema: {
         type: 'object',
         properties: {
-          dir: { type: 'string', description: 'Directory of the new domain (must not exist or be empty).' },
+          dir: {
+            type: 'string',
+            description: 'Directory of the new domain (must not exist or be empty).',
+          },
           name: { type: 'string', description: 'Display name of the domain (the manifest title).' },
           workspace_id: {
             type: 'string',
-            description: 'Optional workspace_id recorded in the manifest and used in changeset file names (defaults to the slug of name).',
+            description:
+              'Optional workspace_id recorded in the manifest and used in changeset file names (defaults to the slug of name).',
           },
         },
         required: ['dir', 'name'],
@@ -457,7 +488,10 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           content: { type: 'string', description: 'Raw blueprint content string (inline)' },
           url: { type: 'string', description: 'Explicit parent spec URL override' },
           domain: { type: 'string', description: 'Optional domain root directory override' },
-          root: { type: 'string', description: 'Optional domain root directory override (alias for domain)' },
+          root: {
+            type: 'string',
+            description: 'Optional domain root directory override (alias for domain)',
+          },
         },
       },
     },
@@ -478,14 +512,18 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         properties: {
           id: {
             type: 'string',
-            description: 'Knowledge id, `<name>_<blueprint>` with no version (e.g. arenzano_cogNNitive); the server appends the blueprint suffix and drops any version token',
+            description:
+              'Knowledge id, `<name>_<blueprint>` with no version (e.g. arenzano_cogNNitive); the server appends the blueprint suffix and drops any version token',
           },
           blueprint_url: { type: 'string', description: 'Immutable URL of the parent blueprint' },
           blueprint_name: {
             type: 'string',
             description: 'Name of the parent blueprint (e.g. cogNNitive)',
           },
-          title: { type: 'string', description: 'Logical title of the knowledge document (defaults to ID)' },
+          title: {
+            type: 'string',
+            description: 'Logical title of the knowledge document (defaults to ID)',
+          },
           knowledge_version: {
             type: 'string',
             description:
@@ -496,7 +534,10 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
             description: 'Open the regenerated domain console in a browser tab (default false).',
           },
           domain: { type: 'string', description: 'Optional domain root directory override' },
-          root: { type: 'string', description: 'Optional domain root directory override (alias for domain)' },
+          root: {
+            type: 'string',
+            description: 'Optional domain root directory override (alias for domain)',
+          },
         },
         required: ['id', 'blueprint_url', 'blueprint_name'],
       },
@@ -513,7 +554,10 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         type: 'object',
         properties: {
           domain: { type: 'string', description: 'Optional domain root directory override' },
-          root: { type: 'string', description: 'Optional domain root directory override (alias for domain)' },
+          root: {
+            type: 'string',
+            description: 'Optional domain root directory override (alias for domain)',
+          },
         },
       },
     },
@@ -533,7 +577,10 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
             description: 'Name of blueprint to hydrate (e.g. business)',
           },
           domain: { type: 'string', description: 'Optional domain root directory override' },
-          root: { type: 'string', description: 'Optional domain root directory override (alias for domain)' },
+          root: {
+            type: 'string',
+            description: 'Optional domain root directory override (alias for domain)',
+          },
           target_dir: {
             type: 'string',
             description: 'Optional target directory override (defaults to ./specs/bluepriNNts/)',
@@ -554,7 +601,10 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         type: 'object',
         properties: {
           domain: { type: 'string', description: 'Optional domain root directory override' },
-          root: { type: 'string', description: 'Optional domain root directory override (alias for domain)' },
+          root: {
+            type: 'string',
+            description: 'Optional domain root directory override (alias for domain)',
+          },
           dry_run: {
             type: 'boolean',
             description: 'Report computed changes/diff without writing (defaults to true)',
@@ -742,17 +792,27 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         properties: {
           path: {
             type: 'string',
-            description: 'Optional document or scope directory, domain-relative or absolute inside the domain root: scope-aware listing',
+            description:
+              'Optional document or scope directory, domain-relative or absolute inside the domain root: scope-aware listing',
           },
           knowledge_path: { type: 'string', description: 'Optional knowledge file path or ID' },
-          model_path: { type: 'string', description: 'Optional knowledge file path or ID (alias for knowledge_path)' },
+          model_path: {
+            type: 'string',
+            description: 'Optional knowledge file path or ID (alias for knowledge_path)',
+          },
           knowledge_id: { type: 'string', description: 'Optional knowledge ID' },
-          model_id: { type: 'string', description: 'Optional knowledge ID (alias for knowledge_id)' },
+          model_id: {
+            type: 'string',
+            description: 'Optional knowledge ID (alias for knowledge_id)',
+          },
           blueprint_name: { type: 'string', description: 'Optional blueprint name' },
           version: { type: 'string', description: 'Optional blueprint version' },
           url: { type: 'string', description: 'Optional blueprint URL' },
           domain: { type: 'string', description: 'Optional domain root directory override' },
-          root: { type: 'string', description: 'Optional domain root directory override (alias for domain)' },
+          root: {
+            type: 'string',
+            description: 'Optional domain root directory override (alias for domain)',
+          },
         },
       },
     },
@@ -768,14 +828,23 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         type: 'object',
         properties: {
           knowledge_path: { type: 'string', description: 'Optional knowledge file path or ID' },
-          model_path: { type: 'string', description: 'Optional knowledge file path or ID (alias for knowledge_path)' },
+          model_path: {
+            type: 'string',
+            description: 'Optional knowledge file path or ID (alias for knowledge_path)',
+          },
           knowledge_id: { type: 'string', description: 'Optional knowledge ID' },
-          model_id: { type: 'string', description: 'Optional knowledge ID (alias for knowledge_id)' },
+          model_id: {
+            type: 'string',
+            description: 'Optional knowledge ID (alias for knowledge_id)',
+          },
           blueprint_name: { type: 'string', description: 'Optional blueprint name' },
           version: { type: 'string', description: 'Optional blueprint version' },
           url: { type: 'string', description: 'Optional blueprint URL' },
           domain: { type: 'string', description: 'Optional domain root directory override' },
-          root: { type: 'string', description: 'Optional domain root directory override (alias for domain)' },
+          root: {
+            type: 'string',
+            description: 'Optional domain root directory override (alias for domain)',
+          },
         },
       },
     },
@@ -794,7 +863,8 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         properties: {
           path: {
             type: 'string',
-            description: 'Document or scope directory, domain-relative or absolute inside the server domain root',
+            description:
+              'Document or scope directory, domain-relative or absolute inside the server domain root',
           },
           key: { type: 'string', description: 'Field name to resolve, e.g. music_volume' },
           strategy: {
@@ -829,7 +899,8 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         properties: {
           path: {
             type: 'string',
-            description: 'Document or scope directory, domain-relative or absolute inside the server domain root',
+            description:
+              'Document or scope directory, domain-relative or absolute inside the server domain root',
           },
           key: { type: 'string', description: 'Field name to explain, e.g. music_volume' },
           strategy: {
@@ -901,9 +972,14 @@ async function dispatchTool(name: string, args: Record<string, unknown>): Promis
 
 async function handleListKnowledge(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const collection = typeof args.collection === 'string' && args.collection.trim() ? args.collection.trim() : undefined
+  const collection =
+    typeof args.collection === 'string' && args.collection.trim()
+      ? args.collection.trim()
+      : undefined
   const knowledge = await listKnowledge(root, collection ? { collection } : {})
-  return textResult(JSON.stringify(envelopeList('innfo-list-knowledge', 'knowledge', knowledge), null, 2))
+  return textResult(
+    JSON.stringify(envelopeList('innfo-list-knowledge', 'knowledge', knowledge), null, 2),
+  )
 }
 
 async function handleReadKnowledge(args: Record<string, unknown>): Promise<CallToolResult> {
@@ -930,7 +1006,8 @@ async function handleGetSpec(args: Record<string, unknown>): Promise<CallToolRes
     { url, modelId: knowledgeId },
     { inPlace: args.in_place as boolean | undefined },
   )
-  if (!result.spec) return errorResult('Spec could not be resolved from the provided url/knowledge_id')
+  if (!result.spec)
+    return errorResult('Spec could not be resolved from the provided url/knowledge_id')
   return textResult(JSON.stringify(envelope('innfo-get-spec', result), null, 2))
 }
 
@@ -953,7 +1030,8 @@ async function handleGetBlueprint(args: Record<string, unknown>): Promise<CallTo
     return errorResult('Provide either url or knowledge_id')
   }
 
-  if (!blueprint) return errorResult('Blueprint could not be resolved from the provided url/knowledge_id')
+  if (!blueprint)
+    return errorResult('Blueprint could not be resolved from the provided url/knowledge_id')
   return textResult(JSON.stringify(envelope('innfo-get-blueprint', blueprint), null, 2))
 }
 
@@ -1000,7 +1078,8 @@ async function handleApplyChange(args: Record<string, unknown>): Promise<CallToo
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
 
   const open = args.open === undefined ? false : Boolean(args.open)
-  const run = () => (changesetPath ? applyChange(root, changesetPath) : applyChange(root, id!, op!, opArgs))
+  const run = () =>
+    changesetPath ? applyChange(root, changesetPath) : applyChange(root, id!, op!, opArgs)
   const applied = await applyWithConsole(root, run, { open })
   const payload: Record<string, unknown> = { ...applied }
   return textResult(JSON.stringify(envelope('innfo-apply-change', payload), null, 2))
@@ -1080,7 +1159,12 @@ async function handleInitKnowledge(args: Record<string, unknown>): Promise<CallT
   const result = await initKnowledge(
     root,
     id,
-    { blueprint_url: blueprintUrl, blueprint_name: blueprintName, title, knowledge_version: knowledgeVersion },
+    {
+      blueprint_url: blueprintUrl,
+      blueprint_name: blueprintName,
+      title,
+      knowledge_version: knowledgeVersion,
+    },
     { open },
   )
   return textResult(JSON.stringify(envelope('innfo-init-knowledge', result), null, 2))
@@ -1147,9 +1231,11 @@ async function handleReadLineage(args: Record<string, unknown>): Promise<CallToo
   return textResult(JSON.stringify(envelope('innfo-read-lineage', result), null, 2))
 }
 
-async function handleResolveSources(args: Record<string, unknown>): Promise<CallToolResult> {  const knowledgeId = (args.knowledge_id as string) || (args.model as string)
+async function handleResolveSources(args: Record<string, unknown>): Promise<CallToolResult> {
+  const knowledgeId = (args.knowledge_id as string) || (args.model as string)
   const elementId = args.elementId as string
-  if (!knowledgeId || !elementId) return errorResult('Missing required arguments: knowledge_id, elementId')
+  if (!knowledgeId || !elementId)
+    return errorResult('Missing required arguments: knowledge_id, elementId')
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
   const results = await resolveSources(root, {
     model: knowledgeId,
@@ -1170,7 +1256,12 @@ async function handleListBlueprintProcedures(
     // the root is what PATH_OUTSIDE_SCOPE is measured against, so a caller cannot choose another.
     const scoped =
       args.domain || args.root
-        ? ({ ok: false, code: 'INVALID_ARGUMENT', detail: 'domain and root cannot be combined with path: the scoped listing is bound to the server domain root' } as const)
+        ? ({
+            ok: false,
+            code: 'INVALID_ARGUMENT',
+            detail:
+              'domain and root cannot be combined with path: the scoped listing is bound to the server domain root',
+          } as const)
         : await listBlueprintProcedures(ROOT_DIR, { path: args.path as string })
     const text = JSON.stringify(envelope('innfo-list-blueprint-procedures', scoped), null, 2)
     return scoped.ok ? textResult(text) : errorResult(text)
@@ -1230,8 +1321,7 @@ function verdictRefusedResult(detail: string): CallToolResult {
     JSON.stringify({
       ok: false,
       code: GATE_VERDICT_REFUSED,
-      message:
-        `${GATE_VERDICT_REFUSED}: a review_gate is a human verdict written by the console. ${detail}`,
+      message: `${GATE_VERDICT_REFUSED}: a review_gate is a human verdict written by the console. ${detail}`,
     }),
   )
 }

@@ -31,7 +31,13 @@ import type { ChangeItem, ChangesetDocument, SpecDocument } from '@cognnitive/nn
 import { findKnowledgeFile, ModelIdError } from './spec.js'
 import { canonicalizeTarget, modelIdAliases, modelIdOfTarget } from './model-id.js'
 import { artifactTargetProblem } from './produce-artifact.js'
-import { buildNextSteps, regenerateConsole, type ConsoleOutcome, type NextSteps, type RegenerateOptions } from './console-regeneration.js'
+import {
+  buildNextSteps,
+  regenerateConsole,
+  type ConsoleOutcome,
+  type NextSteps,
+  type RegenerateOptions,
+} from './console-regeneration.js'
 import { findDanglingReferrers, findDanglingReferrersForRemoval } from './move-referrers.js'
 import { buildNodeDomainIndex } from './domain-index.js'
 import { resolveModelCitation } from './model-citation.js'
@@ -131,7 +137,11 @@ export async function writeProposedChangeset(
 ): Promise<WrittenChangeset> {
   const author = input.author?.trim() || 'agent'
   const workspaceId = input.workspaceId?.trim() || (await resolveWorkspaceId(rootDir))
-  const document = buildProposedChangeset(input.changes, { title: input.title, author, workspaceId })
+  const document = buildProposedChangeset(input.changes, {
+    title: input.title,
+    author,
+    workspaceId,
+  })
   const text = serializeChangeset(document)
 
   const changesDir = join(rootDir, 'changes')
@@ -201,7 +211,9 @@ function requiredKeyProblems(change: ChangeItem, label: string): string[] {
       break
     case 'update_element_text':
       if (!hasElement || target.includes('&')) {
-        problems.push(`${label}: update_element_text target must be model@element (the prose body, not a field)`)
+        problems.push(
+          `${label}: update_element_text target must be model@element (the prose body, not a field)`,
+        )
       }
       if (change.to === undefined || change.to === null) {
         problems.push(`${label}: update_element_text requires "to"`)
@@ -219,11 +231,13 @@ function requiredKeyProblems(change: ChangeItem, label: string): string[] {
       if (!change.name && !change.to) problems.push(`${label}: rename_concept requires "name"`)
       break
     case 'update_matrix_cell':
-      if (target.split('&').length < 3) problems.push(`${label}: update_matrix_cell target must be model@matrix&row&col`)
+      if (target.split('&').length < 3)
+        problems.push(`${label}: update_matrix_cell target must be model@matrix&row&col`)
       need('to')
       break
     case 'add_matrix':
-      if (!target.includes('matrix:')) problems.push(`${label}: add_matrix target must be model@matrix:<name>`)
+      if (!target.includes('matrix:'))
+        problems.push(`${label}: add_matrix target must be model@matrix:<name>`)
       need('name', ' (the matrix name)')
       need('concept', ' (the row-axis concept)')
       need('to', ' (the column-axis concept)')
@@ -248,7 +262,8 @@ function requiredKeyProblems(change: ChangeItem, label: string): string[] {
       if (target.includes('@') || target.includes('&') || /\.[a-z]+$/i.test(target)) {
         problems.push(`${label}: move_model target must be the old instance model id`)
       }
-      if (!change.to) problems.push(`${label}: move_model requires "to" (the new instance model id)`)
+      if (!change.to)
+        problems.push(`${label}: move_model requires "to" (the new instance model id)`)
       else if (change.to.includes('@') || change.to.includes('&') || change.to.includes('\\')) {
         problems.push(`${label}: move_model "to" must be the new instance model id`)
       }
@@ -267,9 +282,12 @@ function requiredKeyProblems(change: ChangeItem, label: string): string[] {
     case 'extract_instance':
       // `target` is the source element address; `to` is the instance id it becomes.
       if (!target.includes('@') || target.includes('&')) {
-        problems.push(`${label}: extract_instance target must be <compact-id>@<slug> (the source element)`)
+        problems.push(
+          `${label}: extract_instance target must be <compact-id>@<slug> (the source element)`,
+        )
       }
-      if (!change.to) problems.push(`${label}: extract_instance requires "to" (the new instance model id)`)
+      if (!change.to)
+        problems.push(`${label}: extract_instance requires "to" (the new instance model id)`)
       else if (!change.to.includes('/') || change.to.includes('@') || change.to.includes('\\')) {
         problems.push(`${label}: extract_instance "to" must be the new instance model id`)
       }
@@ -306,7 +324,10 @@ async function modelExists(rootDir: string, modelId: string): Promise<boolean> {
   }
 }
 
-async function checkModelTarget(rootDir: string, modelId: string): Promise<'FOUND' | 'NOT_FOUND' | ModelIdError> {
+async function checkModelTarget(
+  rootDir: string,
+  modelId: string,
+): Promise<'FOUND' | 'NOT_FOUND' | ModelIdError> {
   try {
     const f = await findKnowledgeFile(rootDir, modelId)
     return f ? 'FOUND' : 'NOT_FOUND'
@@ -320,25 +341,40 @@ async function checkModelTarget(rootDir: string, modelId: string): Promise<'FOUN
  * Validates a proposal's operations before anything is written. Returns every problem
  * found; an empty list means the proposal may be written.
  */
-export async function validateProposal(rootDir: string, operations: ChangeItem[]): Promise<ProposalError[]> {
+export async function validateProposal(
+  rootDir: string,
+  operations: ChangeItem[],
+): Promise<ProposalError[]> {
   const errors: ProposalError[] = []
   if (operations.length === 0) {
-    return [{ path: 'operations', code: 'EMPTY_PROPOSAL', message: 'A proposal needs at least one operation' }]
+    return [
+      {
+        path: 'operations',
+        code: 'EMPTY_PROPOSAL',
+        message: 'A proposal needs at least one operation',
+      },
+    ]
   }
 
   const created = new Set<string>()
   const createdLater = new Map<string, number>()
   // A created model is addressed by its canonical id; the id the caller passed is an alias.
   const aliases = modelIdAliases(operations)
-  const canonicalModelOf = (target: string): string => modelIdOfTarget(canonicalizeTarget(target, aliases))
+  const canonicalModelOf = (target: string): string =>
+    modelIdOfTarget(canonicalizeTarget(target, aliases))
   operations.forEach((change, index) => {
-    if (change.op === 'add_model' && change.target) createdLater.set(canonicalModelOf(change.target).toLowerCase(), index)
+    if (change.op === 'add_model' && change.target)
+      createdLater.set(canonicalModelOf(change.target).toLowerCase(), index)
   })
 
   for (const [index, change] of operations.entries()) {
     const label = `operations[${index}]`
     if (!isChangeOp(change.op)) {
-      errors.push({ path: label, code: 'UNKNOWN_OPERATION', message: `${label}: "${String(change.op)}" is not a changeset operation` })
+      errors.push({
+        path: label,
+        code: 'UNKNOWN_OPERATION',
+        message: `${label}: "${String(change.op)}" is not a changeset operation`,
+      })
       continue
     }
     const shape = [
@@ -348,14 +384,22 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
     for (const message of shape) errors.push({ path: label, code: 'INVALID_OPERATION', message })
     if (shape.length > 0 || !change.target) continue
 
-    const slugProblems = elementSlugProblems({ ...change, id: `c-${String(index + 1).padStart(2, '0')}` })
+    const slugProblems = elementSlugProblems({
+      ...change,
+      id: `c-${String(index + 1).padStart(2, '0')}`,
+    })
     for (const problem of slugProblems) {
-      errors.push({ path: `${label}.slug`, code: problem.code, message: `${label}: ${problem.message}` })
+      errors.push({
+        path: `${label}.slug`,
+        code: problem.code,
+        message: `${label}: ${problem.message}`,
+      })
     }
     if (slugProblems.length > 0) continue
 
     if (change.op === 'set_fields' || change.op === 'add_element') {
-      const problems = change.op === 'set_fields' ? setFieldsProblems(change) : addElementFieldsProblems(change)
+      const problems =
+        change.op === 'set_fields' ? setFieldsProblems(change) : addElementFieldsProblems(change)
       for (const problem of problems) {
         errors.push({ path: label, code: problem.code, message: `${label}: ${problem.message}` })
       }
@@ -378,9 +422,17 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
     const key = modelId.toLowerCase()
     if (change.op === 'add_model') {
       if (created.has(key)) {
-        errors.push({ path: label, code: 'ADD_MODEL_DUPLICATE', message: `${label}: add_model for "${modelId}" appears more than once` })
+        errors.push({
+          path: label,
+          code: 'ADD_MODEL_DUPLICATE',
+          message: `${label}: add_model for "${modelId}" appears more than once`,
+        })
       } else if (await modelExists(rootDir, modelId)) {
-        errors.push({ path: label, code: 'MODEL_EXISTS', message: `MODEL_EXISTS: ${label}: model "${modelId}" already exists; add_model never overwrites a model` })
+        errors.push({
+          path: label,
+          code: 'MODEL_EXISTS',
+          message: `MODEL_EXISTS: ${label}: model "${modelId}" already exists; add_model never overwrites a model`,
+        })
       }
       created.add(key)
       continue
@@ -390,13 +442,21 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
     if (change.op === 'produce_artifact') continue
     if (created.has(key)) continue
     if ((createdLater.get(key) ?? -1) > index) {
-      errors.push({ path: label, code: 'ADD_MODEL_ORDER', message: `ADD_MODEL_ORDER: ${label} targets "${modelId}" before the add_model that creates it` })
+      errors.push({
+        path: label,
+        code: 'ADD_MODEL_ORDER',
+        message: `ADD_MODEL_ORDER: ${label} targets "${modelId}" before the add_model that creates it`,
+      })
     } else {
       const status = await checkModelTarget(rootDir, modelId)
       if (status instanceof ModelIdError) {
         errors.push({ path: label, code: status.code, message: `${label}: ${status.message}` })
       } else if (status === 'NOT_FOUND') {
-        errors.push({ path: label, code: 'MODEL_NOT_FOUND', message: `MODEL_NOT_FOUND: ${label}: no model "${modelId}" in this domain` })
+        errors.push({
+          path: label,
+          code: 'MODEL_NOT_FOUND',
+          message: `MODEL_NOT_FOUND: ${label}: no model "${modelId}" in this domain`,
+        })
       }
     }
   }
@@ -439,7 +499,11 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
         continue
       }
       const resolved = resolveCitation(item, 'evidence', citationResolver, futureChangesetPath)
-      if (!resolved.exists || resolved.error === 'UNKNOWN_ANCHOR' || resolved.error === 'MALFORMED') {
+      if (
+        !resolved.exists ||
+        resolved.error === 'UNKNOWN_ANCHOR' ||
+        resolved.error === 'MALFORMED'
+      ) {
         errors.push({
           path: `operations[${index}].evidence`,
           code: 'CITATION_UNRESOLVED',
@@ -466,10 +530,20 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
       if (!fromPath) continue
       const removing = change.op === 'remove_model'
       const dangling = removing
-        ? await findDanglingReferrersForRemoval(rootDir, { id: change.target, path: fromPath }, retargets)
-        : await findDanglingReferrers(rootDir, { fromId: change.target, toId: change.to!, fromPath }, retargets)
+        ? await findDanglingReferrersForRemoval(
+            rootDir,
+            { id: change.target, path: fromPath },
+            retargets,
+          )
+        : await findDanglingReferrers(
+            rootDir,
+            { fromId: change.target, toId: change.to!, fromPath },
+            retargets,
+          )
       if (dangling.length === 0) continue
-      const code = removing ? 'REMOVE_LEAVES_DANGLING_REFERENCES' : 'MOVE_LEAVES_DANGLING_REFERENCES'
+      const code = removing
+        ? 'REMOVE_LEAVES_DANGLING_REFERENCES'
+        : 'MOVE_LEAVES_DANGLING_REFERENCES'
       const what = removing
         ? `removing "${change.target}" leaves`
         : `moving "${change.target}" to "${change.to}" leaves`
@@ -483,15 +557,13 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
           `${code}: ${what} ` +
           `${dangling.length} reference(s) ${removing ? 'addressing it' : 'pointing at the old id'} (` +
           `${dangling.map((d) => d.unit).join(', ')}); ${fix}`,
-        missing_referrer_updates: dangling.map(
-          (d): ChangeItem => ({
-            id: '',
-            op: 'update_field',
-            target: d.unit,
-            to: d.suggested,
-            evidence: 'unknown',
-          }),
-        ),
+        missing_referrer_updates: dangling.map((d): ChangeItem => ({
+          id: '',
+          op: 'update_field',
+          target: d.unit,
+          to: d.suggested,
+          evidence: 'unknown',
+        })),
       })
     }
   }
@@ -523,13 +595,21 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
     }
     const problem = await artifactTargetProblem(rootDir, rel)
     if (problem) {
-      errors.push({ path: label, code: problem.code, message: `${problem.code}: ${problem.message}` })
+      errors.push({
+        path: label,
+        code: problem.code,
+        message: `${problem.code}: ${problem.message}`,
+      })
     }
   }
   if (errors.length > 0) return errors
 
   // The document that would be written must round-trip and validate as a Level-3 changeset.
-  const document = buildProposedChangeset(operations, { title: 'Proposal', author: 'agent', workspaceId: 'domain' })
+  const document = buildProposedChangeset(operations, {
+    title: 'Proposal',
+    author: 'agent',
+    workspaceId: 'domain',
+  })
   const text = serializeChangeset(document)
   try {
     const reparsed = parseChangeset(text)
@@ -539,19 +619,35 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
       computeProposalSha(reparsed.changes) !== computeProposalSha(document.changes) ||
       !verifyProposalSha(reparsed)
     ) {
-      errors.push({ path: 'operations', code: 'ROUNDTRIP_MISMATCH', message: 'The serialized proposal does not parse back to the same changes' })
+      errors.push({
+        path: 'operations',
+        code: 'ROUNDTRIP_MISMATCH',
+        message: 'The serialized proposal does not parse back to the same changes',
+      })
     }
   } catch (err) {
-    errors.push({ path: 'operations', code: 'INVALID_OPERATION', message: err instanceof Error ? err.message : String(err) })
+    errors.push({
+      path: 'operations',
+      code: 'INVALID_OPERATION',
+      message: err instanceof Error ? err.message : String(err),
+    })
   }
   const template = changesTemplate()
   if (template) {
-    const result = validateDocument(text, { fileName: 'proposal_changes_NN.md', template, resolveInclude: () => null })
+    const result = validateDocument(text, {
+      fileName: 'proposal_changes_NN.md',
+      template,
+      resolveInclude: () => null,
+    })
     for (const e of result.errors) {
       // A changeset is versioned by `blueprint_version` and identified by its seal; the
       // generic Level-3 `knowledge_version` identity check does not apply to it.
       if (e.path === 'format.fm-version' || e.path === 'frontmatter.knowledge_version') continue
-      errors.push({ path: e.path, code: 'CHANGESET_INVALID', message: `The proposal is not a valid changes document: ${e.message}` })
+      errors.push({
+        path: e.path,
+        code: 'CHANGESET_INVALID',
+        message: `The proposal is not a valid changes document: ${e.message}`,
+      })
     }
   }
   return errors
@@ -578,18 +674,31 @@ const STRING_KEYS = [
  * Narrows the agent's loosely typed `operations` to changeset items. Unknown keys are
  * dropped (the agent cannot smuggle execution annotations into a sealed proposal).
  */
-export function normalizeOperations(raw: unknown): { operations: ChangeItem[]; errors: ProposalError[] } {
+export function normalizeOperations(raw: unknown): {
+  operations: ChangeItem[]
+  errors: ProposalError[]
+} {
   const errors: ProposalError[] = []
   if (!Array.isArray(raw)) {
     return {
       operations: [],
-      errors: [{ path: 'operations', code: 'INVALID_OPERATION', message: 'operations must be an array of change objects' }],
+      errors: [
+        {
+          path: 'operations',
+          code: 'INVALID_OPERATION',
+          message: 'operations must be an array of change objects',
+        },
+      ],
     }
   }
   const operations: ChangeItem[] = []
   raw.forEach((entry, index) => {
     if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
-      errors.push({ path: `operations[${index}]`, code: 'INVALID_OPERATION', message: `operations[${index}] must be an object` })
+      errors.push({
+        path: `operations[${index}]`,
+        code: 'INVALID_OPERATION',
+        message: `operations[${index}] must be an object`,
+      })
       return
     }
     const source = entry as Record<string, unknown>
@@ -611,12 +720,17 @@ export function normalizeOperations(raw: unknown): { operations: ChangeItem[]; e
       // object (or a stray array); it is sealed as its one-line JSON text, and its
       // shape is validated afterwards.
       const fieldMapKey =
-        (source['op'] === 'set_fields' && (key === 'to' || key === 'from')) || (source['op'] === 'add_element' && key === 'to')
+        (source['op'] === 'set_fields' && (key === 'to' || key === 'from')) ||
+        (source['op'] === 'add_element' && key === 'to')
       if (fieldMapKey && typeof value === 'object') {
         value = JSON.stringify(value)
       }
       if (typeof value !== 'string') {
-        errors.push({ path: `operations[${index}]`, code: 'INVALID_OPERATION', message: `operations[${index}].${key} must be a string` })
+        errors.push({
+          path: `operations[${index}]`,
+          code: 'INVALID_OPERATION',
+          message: `operations[${index}].${key} must be a string`,
+        })
         continue
       }
       item[key] = value
@@ -712,7 +826,10 @@ export async function proposeChangeset(
     title: args.title,
     author: args.author,
   })
-  const outcome = await regenerateConsole(rootDir, { ...regenerate, open: args.open ?? regenerate.open ?? false })
+  const outcome = await regenerateConsole(rootDir, {
+    ...regenerate,
+    open: args.open ?? regenerate.open ?? false,
+  })
   return {
     success: true,
     changeset: written.path,

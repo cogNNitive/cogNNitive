@@ -103,7 +103,9 @@ export function changesetLikeOf(path: string, doc: ChangesetDocument): Changeset
     author: fm.author,
     appliedAt: fm.applied_at,
     ...(typeof fm.batch === 'string' ? { batch: fm.batch } : {}),
-    ...(fm.evidence_sha256 && typeof fm.evidence_sha256 === 'object' ? { evidenceSha256: fm.evidence_sha256 } : {}),
+    ...(fm.evidence_sha256 && typeof fm.evidence_sha256 === 'object'
+      ? { evidenceSha256: fm.evidence_sha256 }
+      : {}),
     changes: doc.changes,
   }
 }
@@ -126,12 +128,16 @@ export interface ResolvedChangeFacts {
  * changeset, compact or per-change, names the address it wrote. Every reader of these
  * facts (the log, the console records) goes through this function.
  */
-export function resolveChangeFacts(change: ChangeLike, cs: Omit<ChangesetLike, 'changes' | 'path'>): ResolvedChangeFacts {
+export function resolveChangeFacts(
+  change: ChangeLike,
+  cs: Omit<ChangesetLike, 'changes' | 'path'>,
+): ResolvedChangeFacts {
   const status = (change.status ?? cs.status ?? 'proposed') as ChangeStatus
   const resolvedTarget =
     change.resolved_target ?? (status === 'applied' ? change.target : undefined)
   const evidenceSha256 =
-    change.evidence_sha256 ?? (status === 'applied' ? inheritedEvidenceShas(change.evidence, cs.evidenceSha256) : undefined)
+    change.evidence_sha256 ??
+    (status === 'applied' ? inheritedEvidenceShas(change.evidence, cs.evidenceSha256) : undefined)
   const facts: ResolvedChangeFacts = { status }
   const appliedAt = change.applied_at ?? cs.appliedAt
   const batch = change.batch ?? cs.batch
@@ -183,7 +189,8 @@ function expandAddElementFields(change: LoggedChange): LoggedChange[] {
   if (entries.length === 0) return [change]
   const model = change.target.split('@')[0] ?? ''
   const element =
-    change.resolvedTarget ?? `${model}@${change.resolvedSlug ?? slugifyHeading(change.name ?? change.slug ?? '')}`
+    change.resolvedTarget ??
+    `${model}@${change.resolvedSlug ?? slugifyHeading(change.name ?? change.slug ?? '')}`
   const fields = entries.map((entry, subIndex): LoggedChange => {
     const { from: _from, resolvedSlug: _slug, ...rest } = change
     return {

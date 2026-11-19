@@ -73,8 +73,12 @@ describe('applyMutation transactionality', () => {
 
   it('accumulates across sequential successful ops', () => {
     const model = parseKnowledge(TEMPLATE)
-    expect(applyMutation(model, 'add_concept', { conceptName: 'A', type: 'list' }).success).toBe(true)
-    expect(applyMutation(model, 'add_concept', { conceptName: 'B', type: 'list' }).success).toBe(true)
+    expect(applyMutation(model, 'add_concept', { conceptName: 'A', type: 'list' }).success).toBe(
+      true,
+    )
+    expect(applyMutation(model, 'add_concept', { conceptName: 'B', type: 'list' }).success).toBe(
+      true,
+    )
     const names = (model.elements.get('Concept Definition') ?? []).map((c) => c.name)
     expect(names).toEqual(expect.arrayContaining(['Phase', 'A', 'B']))
   })
@@ -111,7 +115,10 @@ describe('level gate for template-authoring mutations (H5)', () => {
 
   it('does not gate other mutation handlers (add_element) on a level: 3 model', () => {
     const model = parseKnowledge(LEVEL3_MODEL)
-    const result = applyMutation(model, 'add_element', { conceptName: 'Phase', elementName: 'Second' })
+    const result = applyMutation(model, 'add_element', {
+      conceptName: 'Phase',
+      elementName: 'Second',
+    })
     expect(result.success).toBe(true)
   })
 })
@@ -190,7 +197,12 @@ describe('add_element sets its initial fields from "to" in the same mutation (S3
 
   it('accepts "to" as an object on the direct mutation API', () => {
     const model = parseKnowledge(LEVEL3_MODEL)
-    const result = applyMutation(model, 'add_element', { conceptName: 'Phase', elementName: 'Second', to: { estado: 'done' } }, SCHEMA)
+    const result = applyMutation(
+      model,
+      'add_element',
+      { conceptName: 'Phase', elementName: 'Second', to: { estado: 'done' } },
+      SCHEMA,
+    )
     expect(result.success).toBe(true)
     expect(second(model)?.fields).toEqual({ estado: 'done' })
   })
@@ -211,7 +223,12 @@ describe('add_element sets its initial fields from "to" in the same mutation (S3
 
   it('rejects a malformed "to" with the set_fields shape rules', () => {
     const model = parseKnowledge(LEVEL3_MODEL)
-    const result = applyMutation(model, 'add_element', { conceptName: 'Phase', elementName: 'Second', to: '[1]' }, SCHEMA)
+    const result = applyMutation(
+      model,
+      'add_element',
+      { conceptName: 'Phase', elementName: 'Second', to: '[1]' },
+      SCHEMA,
+    )
     expect(result.success).toBe(false)
     expect(result.errors?.[0]?.message).toContain('must be a JSON object of field -> value')
     expect(second(model)).toBeUndefined()
@@ -219,7 +236,12 @@ describe('add_element sets its initial fields from "to" in the same mutation (S3
 
   it('without "to" adds the element exactly as before', () => {
     const model = parseKnowledge(LEVEL3_MODEL)
-    const result = applyMutation(model, 'add_element', { conceptName: 'Phase', elementName: 'Second' }, SCHEMA)
+    const result = applyMutation(
+      model,
+      'add_element',
+      { conceptName: 'Phase', elementName: 'Second' },
+      SCHEMA,
+    )
     expect(result.success).toBe(true)
     expect(second(model)?.fields).toEqual({})
     expect(second(model)?.slug).toBe('second')

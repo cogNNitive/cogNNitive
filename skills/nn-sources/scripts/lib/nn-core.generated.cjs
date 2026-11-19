@@ -9598,8 +9598,10 @@ function extractInstanceProblems(change) {
   if (change.fields !== void 0 || change.slug !== void 0) {
     problems.push(`change "${id}": extract_instance must not carry element payload (slug, fields)`);
   }
-  if (!change.blueprint_name) problems.push(`change "${id}": extract_instance requires "blueprint_name"`);
-  if (!change.blueprint_url) problems.push(`change "${id}": extract_instance requires "blueprint_url"`);
+  if (!change.blueprint_name)
+    problems.push(`change "${id}": extract_instance requires "blueprint_name"`);
+  if (!change.blueprint_url)
+    problems.push(`change "${id}": extract_instance requires "blueprint_url"`);
   const target = String(change.target ?? "").trim();
   const at = target.indexOf("@");
   const modelPart = at === -1 ? target : target.slice(0, at);
@@ -9611,7 +9613,8 @@ function extractInstanceProblems(change) {
     );
   }
   const to = String(change.to ?? "").trim();
-  if (!to) problems.push(`change "${id}": extract_instance requires "to" (the new instance model id)`);
+  if (!to)
+    problems.push(`change "${id}": extract_instance requires "to" (the new instance model id)`);
   else if (unsafe(to) || to.startsWith("/") || to.endsWith("/") || to.includes("//")) {
     problems.push(`change "${id}": extract_instance "to" must be a valid instance model id`);
   }
@@ -9668,8 +9671,10 @@ function parseFieldMap(raw, key, op = "set_fields") {
     }
     const value = parsed[field];
     if (typeof value === "string") values.set(field, value);
-    else if (typeof value === "number" || typeof value === "boolean") values.set(field, String(value));
-    else return { ok: false, reason: `${op} "${key}".${field} must be a serialized value (a string)` };
+    else if (typeof value === "number" || typeof value === "boolean")
+      values.set(field, String(value));
+    else
+      return { ok: false, reason: `${op} "${key}".${field} must be a serialized value (a string)` };
   }
   return { ok: true, values };
 }

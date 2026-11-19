@@ -12,7 +12,7 @@ archive/**
 **/fixtures/**
 **/*.golden
 docs/app/**
-packages/nn-mcp/bin/**
+iNNfo/packages/nn-mcp/bin/**
 
 # Generated artifacts. Their bytes belong to their generator: `npm run regen`
 # rewrites them, and `check:regen` fails when the committed bytes differ from
@@ -21,3 +21,5 @@ packages/nn-mcp/bin/**
 iNNfo/specs/bluepriNNts/catalog.json
 docs/innfo/blueprints/catalog.json
 **/*.generated.json
+iNNfo/packages/nn-core/src/schema/canonical-registry.ts
+iNNfo/specs/bluepriNNts/console/nn-console.bundle.js

@@ -22212,8 +22212,10 @@ function extractInstanceProblems(change) {
   if (change.fields !== void 0 || change.slug !== void 0) {
     problems.push(`change "${id}": extract_instance must not carry element payload (slug, fields)`);
   }
-  if (!change.blueprint_name) problems.push(`change "${id}": extract_instance requires "blueprint_name"`);
-  if (!change.blueprint_url) problems.push(`change "${id}": extract_instance requires "blueprint_url"`);
+  if (!change.blueprint_name)
+    problems.push(`change "${id}": extract_instance requires "blueprint_name"`);
+  if (!change.blueprint_url)
+    problems.push(`change "${id}": extract_instance requires "blueprint_url"`);
   const target = String(change.target ?? "").trim();
   const at = target.indexOf("@");
   const modelPart = at === -1 ? target : target.slice(0, at);
@@ -22225,7 +22227,8 @@ function extractInstanceProblems(change) {
     );
   }
   const to = String(change.to ?? "").trim();
-  if (!to) problems.push(`change "${id}": extract_instance requires "to" (the new instance model id)`);
+  if (!to)
+    problems.push(`change "${id}": extract_instance requires "to" (the new instance model id)`);
   else if (unsafe(to) || to.startsWith("/") || to.endsWith("/") || to.includes("//")) {
     problems.push(`change "${id}": extract_instance "to" must be a valid instance model id`);
   }
@@ -22652,7 +22655,13 @@ function parseChangeset(rawContent) {
 
 // iNNfo/packages/nn-core/src/changeset/serializer.ts
 var import_yaml7 = __toESM(require_dist(), 1);
-var ANNOTATION_KEYS = ["status", "resolution", "applied_at", "batch", ...EXECUTION_FACT_KEYS];
+var ANNOTATION_KEYS = [
+  "status",
+  "resolution",
+  "applied_at",
+  "batch",
+  ...EXECUTION_FACT_KEYS
+];
 var ANNOTATION_RE = new RegExp(`^(${ANNOTATION_KEYS.join("|")})::`);
 var CHANGE_HEADING_RE = /^##\s+NN\s+Change:\s*(.+)$/i;
 function formatShaList(shas) {
@@ -22775,10 +22784,7 @@ function rewriteFrontmatter(yamlText, fm, eol) {
     "resolution",
     fm.resolution !== void 0 ? [`resolution: ${JSON.stringify(fm.resolution)}`] : null
   );
-  upsert(
-    "applied_at",
-    fm.applied_at !== void 0 ? [`applied_at: ${fm.applied_at}`] : null
-  );
+  upsert("applied_at", fm.applied_at !== void 0 ? [`applied_at: ${fm.applied_at}`] : null);
   upsert("batch", fm.batch !== void 0 ? [`batch: ${fm.batch}`] : null);
   upsert(
     "evidence_sha256",
@@ -23263,7 +23269,11 @@ function buildProposedChangeset(changes, meta) {
 async function writeProposedChangeset(rootDir, input) {
   const author = input.author?.trim() || "agent";
   const workspaceId = input.workspaceId?.trim() || await resolveWorkspaceId(rootDir);
-  const document = buildProposedChangeset(input.changes, { title: input.title, author, workspaceId });
+  const document = buildProposedChangeset(input.changes, {
+    title: input.title,
+    author,
+    workspaceId
+  });
   const text = serializeChangeset2(document);
   const changesDir = (0, import_node_path19.join)(rootDir, "changes");
   await (0, import_promises10.mkdir)(changesDir, { recursive: true });
@@ -23363,13 +23373,15 @@ async function findAllWorkspaceModelFiles(dir, ignore, rootDir) {
   for (const entry of entries) {
     if (entry.isDirectory()) {
       const lowerDir = entry.name.toLowerCase();
-      if (entry.name.startsWith(".") || ignore.has(lowerDir) || lowerDir === "changes" || lowerDir === "archive") continue;
+      if (entry.name.startsWith(".") || ignore.has(lowerDir) || lowerDir === "changes" || lowerDir === "archive")
+        continue;
       const sub = await findAllWorkspaceModelFiles((0, import_node_path20.join)(dir, entry.name), ignore, rootDir);
       results.push(...sub);
     } else if (entry.isFile() && isNNName2(entry.name) && entry.name.toLowerCase() !== "index.md" && !entry.name.endsWith("_changes_NN.md")) {
       const filePath = (0, import_node_path20.join)(dir, entry.name);
       const relPath = (0, import_node_path20.relative)(rootDir, filePath).split("\\").join("/");
-      if (isExcludedPath(relPath) || relPath.startsWith("changes/") || relPath.includes("/archive/") || relPath.startsWith("archive/")) continue;
+      if (isExcludedPath(relPath) || relPath.startsWith("changes/") || relPath.includes("/archive/") || relPath.startsWith("archive/"))
+        continue;
       results.push(filePath);
     }
   }
@@ -23511,7 +23523,8 @@ async function artifactAlreadyRecorded(rootDir, rel) {
     }
     const changeset = changesetLikeOf2(`changes/${name}`, doc);
     for (const change of doc.changes) {
-      if (change.op !== "produce_artifact" || resolveChangeFacts(change, changeset).status !== "applied") continue;
+      if (change.op !== "produce_artifact" || resolveChangeFacts(change, changeset).status !== "applied")
+        continue;
       if (change.target.replace(/\\/g, "/") === rel) return true;
     }
   }
@@ -23636,7 +23649,12 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       status: "rejected",
       models: {},
       appliedCount: 0,
-      errors: [{ path: changesetPathInput, message: "Changeset path must resolve inside the workspace root" }]
+      errors: [
+        {
+          path: changesetPathInput,
+          message: "Changeset path must resolve inside the workspace root"
+        }
+      ]
     };
   }
   const changesetStem = displayStem2((0, import_node_path20.basename)(resolvedChangesetPath));
@@ -23674,7 +23692,9 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
     const parentOf3 = /* @__PURE__ */ new Map();
     const recordedIdOf = (id) => parentOf3.get(id) ?? id;
     const recordRejection = async (errors, changeId, warnings, persist = true) => {
-      const reason = errors.map((e) => e.code && !e.message.startsWith(e.code) ? `${e.code}: ${e.message}` : e.message).join("; ");
+      const reason = errors.map(
+        (e) => e.code && !e.message.startsWith(e.code) ? `${e.code}: ${e.message}` : e.message
+      ).join("; ");
       try {
         if (!persist) throw new Error("not persisted");
         const fresh = parseChangeset2(rawChangeset);
@@ -23692,7 +23712,10 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
           await (0, import_promises12.writeFile)(resolvedChangesetPath, text, "utf-8");
         }
       } catch (err) {
-        if (persist) console.warn(`[apply-change] Could not persist the rejection of ${relChangesetPath}: ${err}`);
+        if (persist)
+          console.warn(
+            `[apply-change] Could not persist the rejection of ${relChangesetPath}: ${err}`
+          );
       }
       return {
         success: false,
@@ -23714,7 +23737,13 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         status: "rejected",
         models: {},
         appliedCount: 0,
-        errors: [{ path: relChangesetPath, message: `CHANGESET_REJECTED: ${recorded}`, code: "CHANGESET_REJECTED" }]
+        errors: [
+          {
+            path: relChangesetPath,
+            message: `CHANGESET_REJECTED: ${recorded}`,
+            code: "CHANGESET_REJECTED"
+          }
+        ]
       };
     }
     const gateShapeProblems = csDoc.changes.flatMap(reviewGateProblems3);
@@ -23810,7 +23839,12 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
           models: recordedModels,
           appliedCount: 0,
           conflictedCount: csDoc.changes.filter((c) => c.status === "conflict").length,
-          warnings: [{ path: "", message: "Idempotent replay: changeset already applied with matching model versions" }]
+          warnings: [
+            {
+              path: "",
+              message: "Idempotent replay: changeset already applied with matching model versions"
+            }
+          ]
         };
       } else {
         return {
@@ -23921,10 +23955,20 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       const key = change.target.toLowerCase();
       const hierarchical = typeof change.concept === "string" && change.concept.trim() !== "";
       if (!isSafeRelativeId(change.target) || (hierarchical ? change.target.includes("\\") : /[\\/]/.test(change.target))) {
-        return rejectProposal("ADD_MODEL_INVALID_TARGET", change.target, `change "${change.id}" has an unsafe model id "${change.target}"`, change.id);
+        return rejectProposal(
+          "ADD_MODEL_INVALID_TARGET",
+          change.target,
+          `change "${change.id}" has an unsafe model id "${change.target}"`,
+          change.id
+        );
       }
       if (addModelIndex.has(key)) {
-        return rejectProposal("ADD_MODEL_DUPLICATE", change.target, `more than one add_model change targets "${change.target}"`, change.id);
+        return rejectProposal(
+          "ADD_MODEL_DUPLICATE",
+          change.target,
+          `more than one add_model change targets "${change.target}"`,
+          change.id
+        );
       }
       addModelIndex.set(key, index);
     }
@@ -23958,12 +24002,22 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
             change.id
           );
         }
-        return rejectProposal("ADD_MODEL_INVALID_TARGET", change.target, `change "${change.id}": ${placed.message}`, change.id);
+        return rejectProposal(
+          "ADD_MODEL_INVALID_TARGET",
+          change.target,
+          `change "${change.id}": ${placed.message}`,
+          change.id
+        );
       }
       if (placed.folder === "kNNowledge/") continue;
       const filePath = (0, import_node_path20.join)(rootDir, placed.folder, placed.file);
       if (!isInsideRoot(rootDir, filePath)) {
-        return rejectProposal("ADD_MODEL_INVALID_TARGET", change.target, `model id "${change.target}" resolves outside the domain`, change.id);
+        return rejectProposal(
+          "ADD_MODEL_INVALID_TARGET",
+          change.target,
+          `model id "${change.target}" resolves outside the domain`,
+          change.id
+        );
       }
       const segments = change.target.split("/");
       const slug = segments[segments.length - 1];
@@ -24027,7 +24081,11 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       const { index: domainIndex, pathOf: pathOf2 } = await nodeIndex();
       const source = domainIndex.byId(sourceId);
       if (!source) {
-        return rejectPhase1("MODEL_NOT_FOUND", sourceId, `extract_instance source "${sourceId}" does not exist`);
+        return rejectPhase1(
+          "MODEL_NOT_FOUND",
+          sourceId,
+          `extract_instance source "${sourceId}" does not exist`
+        );
       }
       if (source.storage.kind !== "compact") {
         return rejectProposal(
@@ -24039,7 +24097,11 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       }
       const sourcePath = pathOf2(sourceId);
       if (!sourcePath) {
-        return rejectPhase1("MODEL_NOT_FOUND", sourceId, `extract_instance source "${sourceId}" has no file`);
+        return rejectPhase1(
+          "MODEL_NOT_FOUND",
+          sourceId,
+          `extract_instance source "${sourceId}" has no file`
+        );
       }
       const sourceModel = await loadKnowledge(sourcePath);
       const subtree = subtreeOf(sourceModel, slug);
@@ -24098,14 +24160,30 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       }
       const placed = domainIndex.placementFor(subtree.concept, toId, blueprintName);
       if (!("folder" in placed)) {
-        return rejectProposal("EXTRACT_INVALID_TARGET", toId, `change "${change.id}": ${placed.message}`, change.id);
+        return rejectProposal(
+          "EXTRACT_INVALID_TARGET",
+          toId,
+          `change "${change.id}": ${placed.message}`,
+          change.id
+        );
       }
       const path = (0, import_node_path20.join)(rootDir, placed.folder, placed.file);
       if (!isInsideRoot(rootDir, path)) {
-        return rejectProposal("EXTRACT_INVALID_TARGET", toId, `model id "${toId}" resolves outside the domain`, change.id);
+        return rejectProposal(
+          "EXTRACT_INVALID_TARGET",
+          toId,
+          `model id "${toId}" resolves outside the domain`,
+          change.id
+        );
       }
-      const occupiedById = domainIndex.byId(toId) !== void 0 || await (0, import_promises12.stat)(path).then((s) => s.isFile(), () => false);
-      const occupiedFolder = await (0, import_promises12.stat)((0, import_node_path20.dirname)(path)).then((s) => s.isDirectory(), () => false);
+      const occupiedById = domainIndex.byId(toId) !== void 0 || await (0, import_promises12.stat)(path).then(
+        (s) => s.isFile(),
+        () => false
+      );
+      const occupiedFolder = await (0, import_promises12.stat)((0, import_node_path20.dirname)(path)).then(
+        (s) => s.isDirectory(),
+        () => false
+      );
       if (occupiedById || occupiedFolder) {
         const where = occupiedById ? `instance "${toId}" already exists` : `"${(0, import_node_path20.relative)(rootDir, (0, import_node_path20.dirname)(path)).replace(/\\/g, "/")}/" already exists`;
         blockedChanges.set(change.id, {
@@ -24136,7 +24214,8 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       plannedConcepts.set(toId.toLowerCase(), subtree.concept);
     }
     for (const [index, change] of csDoc.changes.entries()) {
-      if (isNonMutating(change.op) || change.op === "add_model" || change.op === "produce_artifact") continue;
+      if (isNonMutating(change.op) || change.op === "add_model" || change.op === "produce_artifact")
+        continue;
       const targetModel = parseTargetAddress(change.target).modelSlug;
       const createdAt = addModelIndex.get(targetModel.toLowerCase());
       if (createdAt !== void 0 && createdAt > index) {
@@ -24183,7 +24262,12 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
     for (const change of csDoc.changes) {
       const problem = setFieldsProblems(change)[0] ?? addElementFieldsProblems(change)[0];
       if (problem) {
-        return rejectProposal(problem.code, change.target, `change "${change.id}": ${problem.message}`, change.id);
+        return rejectProposal(
+          problem.code,
+          change.target,
+          `change "${change.id}": ${problem.message}`,
+          change.id
+        );
       }
     }
     for (const change of csDoc.changes) {
@@ -24209,7 +24293,10 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
           evidence: change.evidence
         };
       });
-      setFieldsParts.set(change.id, subs.map((sub) => sub.id));
+      setFieldsParts.set(
+        change.id,
+        subs.map((sub) => sub.id)
+      );
       return subs;
     });
     const recordedDocument = () => {
@@ -24219,7 +24306,14 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         if (!subIds) return current.get(recorded.id) ?? recorded;
         const subs = subIds.map((id) => current.get(id)).filter((c) => c !== void 0);
         const folded = { ...recorded };
-        for (const key of ["status", "resolution", "resolved_target", "evidence_sha256", "applied_at", "batch"]) {
+        for (const key of [
+          "status",
+          "resolution",
+          "resolved_target",
+          "evidence_sha256",
+          "applied_at",
+          "batch"
+        ]) {
           delete folded[key];
         }
         const failed3 = subs.find((c) => c.status !== void 0 && c.status !== "applied");
@@ -24263,7 +24357,11 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       }
       const artifactProblem = await artifactTargetProblem(rootDir, rel);
       if (artifactProblem) {
-        return rejectPhase1(artifactProblem.code, rel, `change "${change.id}": ${artifactProblem.message}`);
+        return rejectPhase1(
+          artifactProblem.code,
+          rel,
+          `change "${change.id}": ${artifactProblem.message}`
+        );
       }
       if (await artifactAlreadyRecorded(rootDir, rel)) {
         blockedChanges.set(change.id, {
@@ -24285,7 +24383,10 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         else throw err;
       }
       if (!exists && plan) {
-        exists = await (0, import_promises12.stat)(plan.path).then((s) => s.isFile(), () => false);
+        exists = await (0, import_promises12.stat)(plan.path).then(
+          (s) => s.isFile(),
+          () => false
+        );
       }
       if (exists) {
         existingAddModelIds.add(key);
@@ -24294,7 +24395,8 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
           message: `MODEL_EXISTS: model "${change.target}" already exists; add_model never overwrites or repairs a model`
         });
         for (const other of csDoc.changes) {
-          if (other.id === change.id || isNonMutating(other.op) || other.op === "produce_artifact") continue;
+          if (other.id === change.id || isNonMutating(other.op) || other.op === "produce_artifact")
+            continue;
           if (parseTargetAddress(other.target).modelSlug.toLowerCase() !== key) continue;
           blockedChanges.set(other.id, {
             code: "DEPENDS_ON_CONFLICTED_CHANGE",
@@ -24308,7 +24410,11 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
     if (needsKnowledgeDir) {
       const kDir = await (0, import_promises12.stat)((0, import_node_path20.join)(rootDir, "kNNowledge")).catch(() => null);
       if (!kDir || !kDir.isDirectory()) {
-        return rejectPhase1("DOMAIN_LAYOUT_INVALID", "kNNowledge", "the domain has no kNNowledge/ directory to create models in");
+        return rejectPhase1(
+          "DOMAIN_LAYOUT_INVALID",
+          "kNNowledge",
+          "the domain has no kNNowledge/ directory to create models in"
+        );
       }
     }
     const movePlans = /* @__PURE__ */ new Map();
@@ -24327,7 +24433,11 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       const { index: domainIndex, pathOf: pathOf2 } = await nodeIndex();
       const from = domainIndex.byId(fromId);
       if (!from) {
-        return rejectPhase1("MODEL_NOT_FOUND", fromId, `move_model target "${fromId}" does not exist`);
+        return rejectPhase1(
+          "MODEL_NOT_FOUND",
+          fromId,
+          `move_model target "${fromId}" does not exist`
+        );
       }
       const fromStorage = from.storage;
       if (fromStorage.kind !== "instance") {
@@ -24369,23 +24479,39 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       const blueprintName = parent?.name ?? from.blueprint.name;
       const placed = domainIndex.placementFor(concept, toId, blueprintName);
       if (!("folder" in placed)) {
-        return rejectProposal("MOVE_INVALID_TARGET", toId, `change "${change.id}": ${placed.message}`, change.id);
+        return rejectProposal(
+          "MOVE_INVALID_TARGET",
+          toId,
+          `change "${change.id}": ${placed.message}`,
+          change.id
+        );
       }
       const toPath = (0, import_node_path20.join)(rootDir, placed.folder, placed.file);
       if (!isInsideRoot(rootDir, toPath)) {
-        return rejectProposal("MOVE_INVALID_TARGET", toId, `model id "${toId}" resolves outside the domain`, change.id);
+        return rejectProposal(
+          "MOVE_INVALID_TARGET",
+          toId,
+          `model id "${toId}" resolves outside the domain`,
+          change.id
+        );
       }
       const fromDir = (0, import_node_path20.dirname)(fromPath);
       const toDir = (0, import_node_path20.dirname)(toPath);
       if (toDir !== fromDir) {
-        if (await (0, import_promises12.stat)(toDir).then(() => true, () => false)) {
+        if (await (0, import_promises12.stat)(toDir).then(
+          () => true,
+          () => false
+        )) {
           return rejectPhase1(
             "MOVE_DESTINATION_OCCUPIED",
             toId,
             `moving "${fromId}" to "${toId}" would write into "${(0, import_node_path20.relative)(rootDir, toDir)}", which already exists`
           );
         }
-      } else if (toPath !== fromPath && await (0, import_promises12.stat)(toPath).then(() => true, () => false)) {
+      } else if (toPath !== fromPath && await (0, import_promises12.stat)(toPath).then(
+        () => true,
+        () => false
+      )) {
         return rejectPhase1("MODEL_EXISTS", toId, `MODEL_EXISTS: "${toId}" already has a file`);
       }
       movePlans.set(change.id, {
@@ -24479,9 +24605,16 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
           concept: declared2?.writePolicy,
           scopes: scopes.scopes
         });
-        const violation = writePolicyViolation(effective.policy, change.op, declared2?.name ?? (conceptName || modelSlug));
+        const violation = writePolicyViolation(
+          effective.policy,
+          change.op,
+          declared2?.name ?? (conceptName || modelSlug)
+        );
         if (violation) {
-          return recordRejection([{ path: change.target, message: violation.message, code: violation.code }], change.id);
+          return recordRejection(
+            [{ path: change.target, message: violation.message, code: violation.code }],
+            change.id
+          );
         }
       }
       return null;
@@ -24511,7 +24644,10 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
             `change "${change.id}": bluepriNNt "${blueprintName}" could not be resolved from "${blueprintUrl}"${detail}`
           );
         }
-        const composed = resolveBlueprintSchema(resolvedBlueprint.template.rawContent, resolvedBlueprint.resolveInclude);
+        const composed = resolveBlueprintSchema(
+          resolvedBlueprint.template.rawContent,
+          resolvedBlueprint.resolveInclude
+        );
         if (composed.errors.length > 0) {
           const detail = composed.errors.map((e) => `${e.path}: ${e.message}`).join("; ");
           return rejectPhase1(
@@ -24543,7 +24679,11 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         });
         const filePath = plan ? plan.path : (0, import_node_path20.join)(rootDir, "kNNowledge", `${cleanId}_NN.md`);
         if (!isInsideRoot(rootDir, filePath)) {
-          return rejectPhase1("ADD_MODEL_INVALID_TARGET", change.target, `model id "${change.target}" resolves outside the domain`);
+          return rejectPhase1(
+            "ADD_MODEL_INVALID_TARGET",
+            change.target,
+            `model id "${change.target}" resolves outside the domain`
+          );
         }
         const created = parseKnowledge2(content);
         const initialVersion = String(created.frontmatter.knowledge_version ?? "V_0-1-0");
@@ -24882,7 +25022,11 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       if (change.op === "move_model") {
         const plan = movePlans.get(change.id);
         if (!plan) {
-          return rejectPhase1("MOVE_INVALID_TARGET", change.target, `change "${change.id}" has no move plan`);
+          return rejectPhase1(
+            "MOVE_INVALID_TARGET",
+            change.target,
+            `change "${change.id}" has no move plan`
+          );
         }
         change.status = "applied";
         change.resolution = `Moved model "${plan.fromId}" to "${plan.toId}"`;
@@ -24891,7 +25035,11 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       if (change.op === "remove_model") {
         const plan = removePlans.get(change.id);
         if (!plan) {
-          return rejectPhase1("REMOVE_INVALID_TARGET", change.target, `change "${change.id}" has no removal plan`);
+          return rejectPhase1(
+            "REMOVE_INVALID_TARGET",
+            change.target,
+            `change "${change.id}" has no removal plan`
+          );
         }
         entry.removed = true;
         change.status = "applied";
@@ -24901,7 +25049,11 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       if (change.op === "extract_instance") {
         const plan = extractPlans.get(change.id);
         if (!plan) {
-          return rejectPhase1("EXTRACT_INVALID_TARGET", change.target, `change "${change.id}" has no extract plan`);
+          return rejectPhase1(
+            "EXTRACT_INVALID_TARGET",
+            change.target,
+            `change "${change.id}" has no extract plan`
+          );
         }
         const mutRes2 = applyMutation(entry.model, "extract_instance", {
           elementName: plan.slug,
@@ -24920,7 +25072,11 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         }
         let extractedBlueprint = null;
         try {
-          extractedBlueprint = await resolveBlueprintWithCache(rootDir, plan.blueprintUrl, plan.blueprintName);
+          extractedBlueprint = await resolveBlueprintWithCache(
+            rootDir,
+            plan.blueprintUrl,
+            plan.blueprintName
+          );
         } catch {
           extractedBlueprint = null;
         }
@@ -24978,7 +25134,13 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       }
       if (change.op === "bump_version" || change.op === "freeze_slugs" || change.op === "close_model") {
         const problem = maintenanceChangeProblem(change, entry.model, entry.created);
-        if (problem) return rejectProposal(problem.code, change.target, `change "${change.id}": ${problem.message}`, change.id);
+        if (problem)
+          return rejectProposal(
+            problem.code,
+            change.target,
+            `change "${change.id}": ${problem.message}`,
+            change.id
+          );
       }
       if (change.op === "freeze_slugs" && !hasUnfrozenElements(entry.model)) {
         change.status = "applied";
@@ -25016,7 +25178,11 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       if (writeOperation !== null) {
         const policySchema = renameSchema ?? await schemaFor(entry);
         const elementIdent = String(mutationArgs.elementName ?? "") || parseTargetAddress(change.target).remainder.split("&")[0].trim();
-        const found = findElementInModel(entry.model, String(mutationArgs.conceptName ?? "") || void 0, elementIdent);
+        const found = findElementInModel(
+          entry.model,
+          String(mutationArgs.conceptName ?? "") || void 0,
+          elementIdent
+        );
         const conceptName = String(mutationArgs.conceptName ?? "") || found?.concept || "";
         const fillsEmpty = writeOperation === "update" && found !== null && writesOnlyEmptyValues(change, found.element);
         const rejected = await writePolicyRejection({
@@ -25039,7 +25205,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       }
       change.status = "applied";
       if (change.op === "remove_element") {
-        const cascadedCount = mutRes.cascadedMatrixCells ?? (matrixCascades.get(change.id)?.length ?? 0);
+        const cascadedCount = mutRes.cascadedMatrixCells ?? matrixCascades.get(change.id)?.length ?? 0;
         change.resolution = cascadedCount > 0 ? `Removed element and cascaded ${cascadedCount} matrix cell(s)` : "Removed element successfully";
       } else {
         change.resolution = "Applied successfully";
@@ -25062,15 +25228,13 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         if (entry.bumpLevel) {
           const requested = computeNewVersion(entry.baseVersion, { bump: entry.bumpLevel });
           if (!requested) {
-            return recordRejection(
-              [
-                {
-                  path: entry.modelSlug,
-                  code: "INVALID_VERSION",
-                  message: `INVALID_VERSION: cannot bump "${entry.baseVersion}" of model "${entry.modelSlug}" by ${entry.bumpLevel}`
-                }
-              ]
-            );
+            return recordRejection([
+              {
+                path: entry.modelSlug,
+                code: "INVALID_VERSION",
+                message: `INVALID_VERSION: cannot bump "${entry.baseVersion}" of model "${entry.modelSlug}" by ${entry.bumpLevel}`
+              }
+            ]);
           }
           entry.nextVersion = requested.version;
         }
@@ -25148,8 +25312,15 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
     const modelsTransitionMap = {};
     for (const [, entry] of loadedModels) {
       if (!entry.created) continue;
-      if (await (0, import_promises12.stat)(entry.filePath).then(() => true, () => false)) {
-        return rejectPhase1("MODEL_EXISTS", entry.modelSlug, `model "${entry.modelSlug}" appeared while the changeset was being applied`);
+      if (await (0, import_promises12.stat)(entry.filePath).then(
+        () => true,
+        () => false
+      )) {
+        return rejectPhase1(
+          "MODEL_EXISTS",
+          entry.modelSlug,
+          `model "${entry.modelSlug}" appeared while the changeset was being applied`
+        );
       }
     }
     const originalModelsBackup = /* @__PURE__ */ new Map();
@@ -25159,7 +25330,10 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       const missing = [];
       let current = dir;
       for (; ; ) {
-        const present = await (0, import_promises12.stat)(current).then((s) => s.isDirectory(), () => false);
+        const present = await (0, import_promises12.stat)(current).then(
+          (s) => s.isDirectory(),
+          () => false
+        );
         if (present) break;
         missing.push(current);
         const parent = (0, import_node_path20.dirname)(current);
@@ -25190,7 +25364,9 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
           const movedFile = oldDir === newDir ? move.toPath : (0, import_node_path20.join)(oldDir, (0, import_node_path20.basename)(move.toPath));
           if (movedFile !== move.fromPath) await (0, import_promises12.rename)(movedFile, move.fromPath);
         } catch (rollbackErr) {
-          console.warn(`[apply-change] Failed to reverse the move of "${move.fromPath}": ${rollbackErr}`);
+          console.warn(
+            `[apply-change] Failed to reverse the move of "${move.fromPath}": ${rollbackErr}`
+          );
         }
       }
       for (const [, entry] of loadedModels) {
@@ -25266,7 +25442,11 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         while (dir !== rootDir && dir !== knowledgeRoot && isInsideRoot(rootDir, dir)) {
           const left = await (0, import_promises12.readdir)(dir).catch(() => null);
           if (!left || left.length > 0) break;
-          if (!await (0, import_promises12.rmdir)(dir).then(() => true, () => false)) break;
+          if (!await (0, import_promises12.rmdir)(dir).then(
+            () => true,
+            () => false
+          ))
+            break;
           dir = (0, import_node_path20.dirname)(dir);
         }
       }
@@ -25305,7 +25485,11 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       }
       const entry = loadedModels.get(modelSlug.toLowerCase());
       if (entry) {
-        const target = resolvedTargetForChange(change, entry.model, canonicalUnitModelId(entry.modelSlug || modelSlug));
+        const target = resolvedTargetForChange(
+          change,
+          entry.model,
+          canonicalUnitModelId(entry.modelSlug || modelSlug)
+        );
         if (target) change.resolved_target = target;
         else delete change.resolved_target;
       }
@@ -25321,7 +25505,10 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
     else delete csDoc.frontmatter.evidence_sha256;
     const serializedCs = writeBack(recordedDocument());
     try {
-      const csStaging = (0, import_node_path20.join)((0, import_node_path20.dirname)(resolvedChangesetPath), `${(0, import_node_path20.basename)(resolvedChangesetPath)}.tmp`);
+      const csStaging = (0, import_node_path20.join)(
+        (0, import_node_path20.dirname)(resolvedChangesetPath),
+        `${(0, import_node_path20.basename)(resolvedChangesetPath)}.tmp`
+      );
       await writeAndSync(csStaging, serializedCs);
       await persistAtomic(csStaging, resolvedChangesetPath);
     } catch (err) {

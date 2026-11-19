@@ -42,12 +42,7 @@ export function isBumpLevel(val: unknown): val is BumpLevel {
 
 export type ChangeOp = (typeof CHANGE_OPS)[number]
 
-export type ChangeStatus =
-  | 'proposed'
-  | 'applied'
-  | 'partially_applied'
-  | 'rejected'
-  | 'conflict'
+export type ChangeStatus = 'proposed' | 'applied' | 'partially_applied' | 'rejected' | 'conflict'
 
 export interface ChangeItem {
   id: string
@@ -328,8 +323,10 @@ export function extractInstanceProblems(change: ChangeItem): string[] {
   if (change.fields !== undefined || change.slug !== undefined) {
     problems.push(`change "${id}": extract_instance must not carry element payload (slug, fields)`)
   }
-  if (!change.blueprint_name) problems.push(`change "${id}": extract_instance requires "blueprint_name"`)
-  if (!change.blueprint_url) problems.push(`change "${id}": extract_instance requires "blueprint_url"`)
+  if (!change.blueprint_name)
+    problems.push(`change "${id}": extract_instance requires "blueprint_name"`)
+  if (!change.blueprint_url)
+    problems.push(`change "${id}": extract_instance requires "blueprint_url"`)
   const target = String(change.target ?? '').trim()
   const at = target.indexOf('@')
   const modelPart = at === -1 ? target : target.slice(0, at)
@@ -346,7 +343,8 @@ export function extractInstanceProblems(change: ChangeItem): string[] {
     )
   }
   const to = String(change.to ?? '').trim()
-  if (!to) problems.push(`change "${id}": extract_instance requires "to" (the new instance model id)`)
+  if (!to)
+    problems.push(`change "${id}": extract_instance requires "to" (the new instance model id)`)
   // A distributed concept with no `container::` has a one-segment id, so the
   // shape is decided by the concept, not here: only reject a malformed id.
   else if (unsafe(to) || to.startsWith('/') || to.endsWith('/') || to.includes('//')) {
@@ -375,14 +373,16 @@ export function lineageChangeProblems(change: ChangeItem): string[] {
   }
 
   if (op === 'repin_blueprint') {
-    if (!change.to) problems.push(`change "${id}": repin_blueprint requires "to" (the target parent_spec.name)`)
+    if (!change.to)
+      problems.push(`change "${id}": repin_blueprint requires "to" (the target parent_spec.name)`)
     if (!change.blueprint_url) {
       problems.push(`change "${id}": repin_blueprint requires "blueprint_url"`)
     }
   }
 
   if (op === 'rename_field') {
-    if (!change.from) problems.push(`change "${id}": rename_field requires "from" (the current field name)`)
+    if (!change.from)
+      problems.push(`change "${id}": rename_field requires "from" (the current field name)`)
     if (!change.to) problems.push(`change "${id}": rename_field requires "to" (the new field name)`)
     if (change.from && change.to && change.from.toLowerCase() === change.to.toLowerCase()) {
       problems.push(`change "${id}": rename_field "from" and "to" are the same field`)
@@ -390,7 +390,8 @@ export function lineageChangeProblems(change: ChangeItem): string[] {
   }
 
   if (op === 'set_field_default') {
-    if (!change.name) problems.push(`change "${id}": set_field_default requires "name" (the field name)`)
+    if (!change.name)
+      problems.push(`change "${id}": set_field_default requires "name" (the field name)`)
     if (change.to === undefined) {
       problems.push(`change "${id}": set_field_default requires "to" (the default value)`)
     }
@@ -446,9 +447,7 @@ function jsonObjectKeys(text: string): string[] {
   return keys
 }
 
-type ParsedFieldMap =
-  | { ok: true; values: Map<string, string> }
-  | { ok: false; reason: string }
+type ParsedFieldMap = { ok: true; values: Map<string, string> } | { ok: false; reason: string }
 
 /**
  * Parses a `set_fields` `to` / `from` payload: a non-empty JSON object whose keys are
@@ -483,8 +482,10 @@ function parseFieldMap(
     }
     const value = (parsed as Record<string, unknown>)[field]
     if (typeof value === 'string') values.set(field, value)
-    else if (typeof value === 'number' || typeof value === 'boolean') values.set(field, String(value))
-    else return { ok: false, reason: `${op} "${key}".${field} must be a serialized value (a string)` }
+    else if (typeof value === 'number' || typeof value === 'boolean')
+      values.set(field, String(value))
+    else
+      return { ok: false, reason: `${op} "${key}".${field} must be a serialized value (a string)` }
   }
   return { ok: true, values }
 }
@@ -496,13 +497,18 @@ function parseFieldMap(
  * value of a subset of the keys of `to`. A malformed payload is `INVALID_OPERATION`; the
  * key `description` is `USE_UPDATE_ELEMENT_TEXT` (the prose body is not a field).
  */
-export function setFieldsProblems(change: Pick<ChangeItem, 'op' | 'target' | 'to' | 'from'>): SetFieldsProblem[] {
+export function setFieldsProblems(
+  change: Pick<ChangeItem, 'op' | 'target' | 'to' | 'from'>,
+): SetFieldsProblem[] {
   if (change.op !== 'set_fields') return []
   const problems: SetFieldsProblem[] = []
   const target = String(change.target ?? '')
   const at = target.indexOf('@')
   if (at <= 0 || target.slice(at + 1).trim() === '' || target.includes('&')) {
-    problems.push({ code: 'INVALID_OPERATION', message: 'set_fields target must be model@element (no &field)' })
+    problems.push({
+      code: 'INVALID_OPERATION',
+      message: 'set_fields target must be model@element (no &field)',
+    })
   }
   const to = parseFieldMap(change.to, 'to')
   if (!to.ok) {
@@ -515,7 +521,10 @@ export function setFieldsProblems(change: Pick<ChangeItem, 'op' | 'target' | 'to
     else {
       for (const field of from.values.keys()) {
         if (!to.values.has(field)) {
-          problems.push({ code: 'INVALID_OPERATION', message: `set_fields "from" names "${field}", which "to" does not set` })
+          problems.push({
+            code: 'INVALID_OPERATION',
+            message: `set_fields "from" names "${field}", which "to" does not set`,
+          })
         }
       }
     }
@@ -524,7 +533,8 @@ export function setFieldsProblems(change: Pick<ChangeItem, 'op' | 'target' | 'to
     if (field.toLowerCase() === 'description') {
       problems.push({
         code: 'USE_UPDATE_ELEMENT_TEXT',
-        message: 'the element prose is not a field; use update_element_text on the bare element target',
+        message:
+          'the element prose is not a field; use update_element_text on the bare element target',
       })
     }
   }
@@ -553,7 +563,9 @@ export function setFieldsEntries(change: Pick<ChangeItem, 'op' | 'to' | 'from'>)
  * non-empty one-line JSON object field -> serialized value), and the key
  * `description` is `USE_UPDATE_ELEMENT_TEXT`. An `add_element` without `to` has none.
  */
-export function addElementFieldsProblems(change: Pick<ChangeItem, 'op' | 'to'>): SetFieldsProblem[] {
+export function addElementFieldsProblems(
+  change: Pick<ChangeItem, 'op' | 'to'>,
+): SetFieldsProblem[] {
   if (change.op !== 'add_element' || change.to === undefined) return []
   const to = parseFieldMap(change.to, 'to', 'add_element')
   if (!to.ok) return [{ code: 'INVALID_OPERATION', message: to.reason }]
@@ -561,7 +573,8 @@ export function addElementFieldsProblems(change: Pick<ChangeItem, 'op' | 'to'>):
     .filter((field) => field.toLowerCase() === 'description')
     .map(() => ({
       code: 'USE_UPDATE_ELEMENT_TEXT' as const,
-      message: 'the element prose is not a field; use update_element_text on the bare element target',
+      message:
+        'the element prose is not a field; use update_element_text on the bare element target',
     }))
 }
 
@@ -605,9 +618,14 @@ export function reviewGateProblems(change: ChangeItem): string[] {
     )
   }
   if (typeof change.reviewed_hash !== 'string' || !HEX64.test(change.reviewed_hash)) {
-    problems.push(`change "${id}": review_gate requires "reviewed_hash" as a 64-char lowercase hex sha256`)
+    problems.push(
+      `change "${id}": review_gate requires "reviewed_hash" as a 64-char lowercase hex sha256`,
+    )
   }
-  if (change.plan_hash !== undefined && (typeof change.plan_hash !== 'string' || !HEX64.test(change.plan_hash))) {
+  if (
+    change.plan_hash !== undefined &&
+    (typeof change.plan_hash !== 'string' || !HEX64.test(change.plan_hash))
+  ) {
     problems.push(`change "${id}": review_gate "plan_hash" must be a 64-char lowercase hex sha256`)
   }
   const allowed = new Set(['gate', 'verdict', 'reviewed_hash', 'plan_hash', 'notes'])
@@ -616,7 +634,16 @@ export function reviewGateProblems(change: ChangeItem): string[] {
       problems.push(`change "${id}": review_gate declares undeclared key "${key}"`)
     }
   }
-  for (const key of ['from', 'to', 'base_hash', 'fields', 'slug', 'concept', 'name', 'evidence'] as const) {
+  for (const key of [
+    'from',
+    'to',
+    'base_hash',
+    'fields',
+    'slug',
+    'concept',
+    'name',
+    'evidence',
+  ] as const) {
     if (change[key] !== undefined) {
       problems.push(`change "${id}": review_gate must not carry "${key}"`)
     }
