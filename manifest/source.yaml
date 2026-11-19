@@ -36,12 +36,6 @@ skills:
     ref_key: skills
     requires: [nn-preflight]
     description: Guided, consent-gated Blueprint Lineage Reconciliation of a domaiNN to the latest adopted iNNfo Level-2 bluepriNNts.
-  - name: nn-upgrade
-    repo: cogNNitive/cogNNitive-web
-    path: skills/nn-upgrade
-    ref_key: skills
-    requires: [nn-update]
-    description: Deprecated alias of nn-update; forwards to it and logs a notice.
   - name: nn-site-generator
     repo: cogNNitive/cogNNitive-web
     path: skills/nn-site-generator

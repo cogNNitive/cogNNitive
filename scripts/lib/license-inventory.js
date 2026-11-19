@@ -14,12 +14,7 @@ const crypto = require('node:crypto')
 const { classifyExpression, declaredLicense } = require('./license-policy.js')
 
 /** Workspace roots whose production dependency trees are inventoried. */
-const WORKSPACE_DIRS = [
-  'iNNfo/packages/nn-core',
-  'iNNfo/packages/nn-mcp',
-  'skills/nn-sources',
-  'skills/nn-upgrade',
-]
+const WORKSPACE_DIRS = ['iNNfo/packages/nn-core', 'iNNfo/packages/nn-mcp', 'skills/nn-sources']
 
 const LICENSE_FILE_RE = /^(licen[cs]e|copying)(\.[a-z]+)?$/i
 // A copyright line states a year (or a (c)/copyright sign); prose such as "copyright license" does not.
@@ -157,7 +152,8 @@ function validatePolicy(policy) {
   ;(policy.packageOverrides || []).forEach((o, i) => {
     const label = `packageOverrides[${i}] (${o && o.package})`
     if (!o || blank(o.package)) errors.push(`${label}: "package" is required`)
-    if (!o || blank(o.version)) errors.push(`${label}: "version" is required (overrides are per exact release)`)
+    if (!o || blank(o.version))
+      errors.push(`${label}: "version" is required (overrides are per exact release)`)
     if (!o || blank(o.license)) errors.push(`${label}: "license" is required`)
     if (!o || blank(o.reason)) errors.push(`${label}: "reason" is required`)
   })
@@ -185,7 +181,8 @@ function policyProblems(classified, policy) {
   /** @type {string[]} */
   const problems = []
   for (const p of classified) {
-    if (p.verdict === 'deny') problems.push(`denied license: ${p.name}@${p.version} is ${p.license}`)
+    if (p.verdict === 'deny')
+      problems.push(`denied license: ${p.name}@${p.version} is ${p.license}`)
     else if (p.verdict === 'unknown')
       problems.push(
         `unknown license: ${p.name}@${p.version} is ${p.license}${p.note ? ` (${p.note})` : ''}`,
@@ -356,9 +353,7 @@ function renderThirdParty({ classified, policy, projectLicense }) {
   lines.push('')
   lines.push('## npm production dependencies')
   lines.push('')
-  lines.push(
-    'Production dependency trees of `nn-core`, `nn-mcp`, `nn-sources` and `nn-upgrade`. Development',
-  )
+  lines.push('Production dependency trees of `nn-core`, `nn-mcp` and `nn-sources`. Development')
   lines.push('tooling is not distributed and is not listed.')
   lines.push('')
   lines.push('| Package | Version | License | Policy | Used by | Copyright |')
