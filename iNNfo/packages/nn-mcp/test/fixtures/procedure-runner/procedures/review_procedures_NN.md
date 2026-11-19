@@ -21,23 +21,23 @@ slug:: review-procedure
 slug:: draft
 step_type:: task
 executor:: agent
-next:: [[review]]
-output:: [[draft-doc]]
+next:: @review
+output:: @draft-doc
 
 ## NN Work: Review
 slug:: review
 step_type:: decision
 executor:: human
 decision:: Approve {doc}?
-input:: [[draft-doc]]
-next:: [ [[publish]], [[rework]] ]
+input:: @draft-doc
+next:: [@publish, @rework]
 
 ## NN Work: Publish
 slug:: publish
 step_type:: task
 executor:: agent
 condition:: outcome == approve
-input:: [[draft-doc]]
+input:: @draft-doc
 
 ## NN Work: Rework
 slug:: rework

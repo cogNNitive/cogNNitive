@@ -21,7 +21,7 @@ slug:: build-procedure
 slug:: build
 executor:: engine
 command:: node -e "require('fs').writeFileSync('out-{name}.txt', 'built'); process.exit({code})"
-output:: [[bundle]]
+output:: @bundle
 
 # NN Artifact
 

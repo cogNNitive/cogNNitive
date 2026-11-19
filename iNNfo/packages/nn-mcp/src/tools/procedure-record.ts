@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { formatUtcStamp } from '@cognnitive/nn-core'
+import { formatUtcStamp, procedureIdOf } from '@cognnitive/nn-core'
 import type { ChangeItem, RunEvent, RunState, Transition } from '@cognnitive/nn-core'
 import { applyChange } from './apply-change.js'
 import { writeProposedChangeset } from './propose-changeset.js'
@@ -123,10 +123,7 @@ export async function procedureStart(
       missing,
     })
 
-  const procId = ref
-    .replace(/^.*\//, '')
-    .replace(/_procedures_NN\.md$/i, '')
-    .replace(/_/g, '-')
+  const procId = procedureIdOf(ref)
   const run = text(args['run']) ?? `${procId}-${formatUtcStamp(new Date()).toLowerCase()}`
   if (!RUN_ID.test(run)) return fail('INVALID_ARGUMENT', `run "${run}" must be a lowercase slug.`)
   let taken = existsSync(join(root, 'executions', run))
