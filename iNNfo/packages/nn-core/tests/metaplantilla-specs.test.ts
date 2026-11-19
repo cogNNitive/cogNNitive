@@ -75,6 +75,10 @@ describe('Metaplantilla Nivel 1 (specs/)', () => {
       'parent',
       'next',
       'condition',
+      'decision',
+      'command',
+      'produces',
+      'executor',
       'input',
       'output',
       'output_status',
@@ -86,6 +90,13 @@ describe('Metaplantilla Nivel 1 (specs/)', () => {
       'event',
     ])
     expect(work.fields!.find((f) => f.name === 'input')!.target_concepts).toEqual(['Artifact'])
+    expect(work.fields!.find((f) => f.name === 'executor')!.options).toEqual([
+      'human',
+      'agent',
+      'engine',
+    ])
+    const artifact = schema.concepts.find((c) => c.name === 'Artifact')!
+    expect(artifact.fields!.map((f) => f.name)).toEqual(['verify', 'required'])
     expect(schema.matrices.map((m) => m.name)).toEqual([
       'work-roles matrix',
       'work-tools matrix',
