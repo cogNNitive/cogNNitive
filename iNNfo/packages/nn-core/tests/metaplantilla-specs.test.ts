@@ -2,10 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseKnowledge, parseFrontmatter, validateKnowledge } from '../src/index'
-import {
-  extractBlueprintSchema,
-  extractBlueprintSchemaFromContent,
-} from '../src/index'
+import { extractBlueprintSchema, extractBlueprintSchemaFromContent } from '../src/index'
 import type { SpecDocument } from '../src/types'
 import { decomposedTemplateNames } from './fixtures/decomposed'
 
@@ -262,7 +259,9 @@ Reviews the pull request.
   })
 
   it('parses the migrated Ghostbusters organization sample with scope properties', () => {
-    const content = readSpec('bluepriNNts/organization/samples/Ghostbusters_V_0-4-1_organization_NN.md')
+    const content = readSpec(
+      'bluepriNNts/organization/samples/Ghostbusters_V_0-4-1_organization_NN.md',
+    )
     const parsed = parseKnowledge(content)
     const roles = parsed.elements.get('Roles')!
     expect(roles).toHaveLength(5)
