@@ -92,7 +92,7 @@ export function versionSkew(models: readonly SkewModel[]): LayoutDiagnostic[] {
     findings.push(
       layoutDiagnostic(
         'BLUEPRINT_VERSION_SKEW',
-        `bluepriNNt "${blueprint}"${named} - pinned at ${versions.length} versions across ${members.length} models: ${listed}; a domaiNN uses one version per bluepriNNt, run nn-upgrade`,
+        `bluepriNNt "${blueprint}"${named} - pinned at ${versions.length} versions across ${members.length} models: ${listed}; a domaiNN uses one version per bluepriNNt, run nn-update`,
         members.map((m) => m.path).sort(byText),
         {
           meta: {

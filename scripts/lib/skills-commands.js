@@ -55,7 +55,7 @@ const RETIRED_REPO_NOTICE =
   'Your install points at the retired repo cogNNitive/cogNNitive (404). ' +
   'Back up ~/.agents/bootstrap-state.json and ~/.agents/skills/, then re-bootstrap: ' +
   'tell your agent "I want to use https://cognnitive.com/use". ' +
-  'Do NOT downgrade to older public pins — they lack nn-upgrade and skills-manager.js.';
+  'Do NOT downgrade to older public pins — they lack skills-manager.js.';
 const DEFAULT_SKILLS_DIR = path.join(os.homedir(), '.agents', 'skills');
 const DEFAULT_BLUEPRINTS_DIR = path.join(os.homedir(), '.agents', 'bluepriNNts');
 const DEFAULT_MCP_DIR = path.join(os.homedir(), '.agents', 'mcp');

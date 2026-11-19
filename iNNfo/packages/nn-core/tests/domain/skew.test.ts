@@ -46,7 +46,7 @@ describe('versionSkew (version-uniformity-check; design A14, A-16)', () => {
     const models = [...pinned(3, 'coNNtent_V_0-14-1'), at(3, 'coNNtent_V_0-13-6')]
     const [d] = versionSkew(models)
     expect(d.message).toBe(
-      'BLUEPRINT_VERSION_SKEW: bluepriNNt "coNNtent" - pinned at 2 versions across 4 models: V_0-14-1 (3: kNNowledge/m00_NN.md, kNNowledge/m01_NN.md, kNNowledge/m02_NN.md), V_0-13-6 (1: kNNowledge/m03_NN.md); a domaiNN uses one version per bluepriNNt, run nn-upgrade',
+      'BLUEPRINT_VERSION_SKEW: bluepriNNt "coNNtent" - pinned at 2 versions across 4 models: V_0-14-1 (3: kNNowledge/m00_NN.md, kNNowledge/m01_NN.md, kNNowledge/m02_NN.md), V_0-13-6 (1: kNNowledge/m03_NN.md); a domaiNN uses one version per bluepriNNt, run nn-update',
     )
   })
 

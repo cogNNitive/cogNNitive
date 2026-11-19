@@ -320,7 +320,7 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
       `UNFROZEN_MODEL: model "${modelId}" has ${unfrozen.length} element(s) without a frozen slug ` +
         `(${shown}${unfrozen.length > 3 ? '; …' : ''}). ` +
         `Freeze the model's slugs first (freeze_slugs, or ` +
-        `node skills/nn-upgrade/scripts/migrate-domain.js --domain-dir <dir> --freeze-slugs).`,
+        `node skills/nn-update/scripts/migrate-domain.js --domain-dir <dir> --freeze-slugs).`,
     )
   }
 
