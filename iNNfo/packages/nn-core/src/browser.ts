@@ -151,3 +151,18 @@ export * from './lineage/index.js'
 export * from './naming/index.js'
 export * from './writeOnce/plan.js'
 export type { Normalizer } from './cognitivize/sidecar.js'
+
+// The procedure fold, for a console that projects a run's state from drafts it has not
+// applied yet. `foldRun` is pure (graph + events + options), so the browser gets the same
+// answer the exporter computes.
+export { foldRun, procedureGraph } from './procedure/index.js'
+export type {
+  FoldOptions,
+  Guard,
+  ProcedureGraph,
+  RunEvent,
+  RunState,
+  RunStatus,
+  StepState,
+  StepStatus,
+} from './procedure/index.js'
