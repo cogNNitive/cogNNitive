@@ -98,6 +98,9 @@ describe('procedure_start', SLOW, () => {
     expect(text).toContain('## NN Execution Event: e-001')
     expect(text).toContain('kind:: started')
     expect(text).toContain('actor:: ana')
+    // The scaffold seeds no placeholder event: the log holds only what was recorded.
+    expect(text).not.toContain('Example')
+    expect(text.match(/^## NN Execution Event:/gm)).toHaveLength(1)
     const [cs] = await changesets()
     expect(await readFile(join(root, 'changes', cs!), 'utf-8')).toMatch(/^author_kind: agent$/m)
   })
