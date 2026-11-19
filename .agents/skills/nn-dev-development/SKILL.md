@@ -161,9 +161,10 @@ gate on every PR to provide it. The cheap fix is arithmetic, not machinery.
 
 **The ruleset is two rules.** `main` (repo ruleset 27391067) forbids force-push and deletion and
 nothing else: no required checks, no pull request rule, no merge queue. `ci.yml` still carries
-the `merge_group` trigger and the `claims` gate (`release-claim.mjs --check`) so re-enabling a
-queue is a ruleset change and not a PR; today they never fire because nothing creates a
-`merge_group` event.
+the `merge_group` trigger so re-enabling a queue stays a ruleset change and not a PR; today it
+never fires because nothing creates a `merge_group` event. The claims gate it used to carry
+(`release-claim.mjs --check`) was deleted on 2026-11-19: with no queue it could never run, and a
+check that cannot run is upkeep pretending to be a guard.
 
 **Claims are a convention again.** The PR that lands the work deletes `openspec/claims/<id>.md`
 in its last commit. Nothing enforces that without a queue, so `npm run check:claims -- --prs
