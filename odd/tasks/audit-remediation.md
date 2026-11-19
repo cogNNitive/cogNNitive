@@ -32,7 +32,7 @@ maintainer's call. Test runner: `node --test`, `npm run verify:fast`.
 |---|---|---|---|---|
 | A1 | S1 | inline | complete | `ci-session-tooling`: `release-claim` deleted, `merge_group` step gone, doc/skill text aligned |
 | A2 | — | inline | complete | same PR: `build:dist` in CI, full-history format check with `set -e`, `release-bump` on `main` |
-| A3 | — | inline | pending | session tooling: `neverCommitted` reflog, `sweep` real path (#721), `claim-check` UTF-16 loader, skill/hook wording, `skills status --json` |
+| A3 | — | inline | complete | `session-tooling`: `neverCommitted` counts only commits, `sweep` uses the path git reports (#721), `claim-check` shares one loose JSON reader, skill/hook wording corrected. `skills status --json` dropped, see L2 |
 | B1 | — | blocked | pending | `remove-model-hardening`: waits for #730 → #731 → T5 to merge (all rewrite `apply-change.ts`) |
 | C1 | S2 S6 | inline | pending | console: history cap + notice, decompressed payload in the gate, changeset-aware freshness, dead code, one `nn-model` reader, CSP hashes, deep link, output name, "QA passed" |
 | D1 | — | inline | pending | coNNtent: avatar resolutions by `api_id` + #657 |
@@ -61,3 +61,12 @@ Dropped from the audit after verification (evidence, not opinion):
 - **D4** (MCP tools): user answered `a` — no consolidation, fix descriptions.
 - **D5** (coNNtent animation): user answered `a` — T1 + T2 now, T3 later. History cap: 12 hops.
 - **D6** (console history): user answered `a` — per-element cap with a notice.
+- **L2** (A3 scope): `skills status --json` was dropped. `scripts/skills-manager.js` is a
+  shipped CLI whose output is part of the install contract, and the flag would have been a
+  new public surface for a convenience nobody asked for twice. It is noted here so it is not
+  lost; adding it later is a small, isolated change with its own release bump.
+- **L3** (A3 verification): each of the three fixes was proven by reverting it and watching
+  its new test go red — `neverCommitted` (a rebase with main ahead), the reported worktree
+  path, and the UTF-16 `--prs` reader. The first fixture was vacuous twice (a rebase onto the
+  commit the branch already sat on writes no reflog entry, and a `reset --soft` to the same
+  commit does the same), which is why the tests now assert their own precondition.

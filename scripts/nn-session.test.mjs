@@ -344,6 +344,59 @@ test('sweep skips a dirty merged worktree and still removes the clean ones', () 
   }
 })
 
+test('sweep refuses a session that only rebased and never committed', () => {
+  // A rebase moves the ref without creating work, so the branch is still an ancestor of
+  // main and reads as merged. Counting those entries as commits made the "no commits yet"
+  // guard answer "may have work", and sweep removed a worktree whose agent was still
+  // writing. main has to move first: rebasing onto the commit a branch already sits on is
+  // a no-op that writes no reflog entry at all.
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  const target = join(dirname(repo), 'cogNNitive-r1')
+  try {
+    run(['start', '--id', 'r1', '--root', repo, '--no-install'])
+    writeFileSync(join(repo, 'main-moves.txt'), 'z')
+    git(['add', '-A'], repo)
+    git(['commit', '-q', '-m', 'main moves'], repo)
+    git(['rebase', '-q', 'main'], target)
+
+    // Precondition: the reflog proves a move and no commit, or this test proves nothing.
+    const subjects = git(['reflog', 'show', '--format=%gs', 'refs/heads/session/r1'], repo)
+    assert.match(subjects, /^rebase/m, `expected a rebase entry, got: ${subjects}`)
+    assert.doesNotMatch(subjects, /^commit/m, `expected no commit entry, got: ${subjects}`)
+
+    const sw = runAll(['sweep', '--root', repo])
+
+    assert.equal(sw.code, 0, sw.out)
+    assert.ok(sw.out.includes('skipped session/r1'), `refused: ${sw.out}`)
+    assert.ok(existsSync(target), 'worktree kept')
+    assert.notEqual(git(['branch', '--list', 'session/r1'], repo), '', 'branch kept')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('sweep removes a merged worktree by the path git reports, not a guessed one', () => {
+  // #721: sweep rebuilt the path as `<parent>/cogNNitive-<id>`. A worktree created
+  // anywhere else left the directory behind and the branch undeletable, because git
+  // refuses to delete a branch that a live worktree has checked out.
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  const odd = join(base, 'a-name-nothing-derives')
+  try {
+    git(['worktree', 'add', '-q', '--no-track', '-b', 'session/x1', odd, 'main'], repo)
+    landCommit(repo, odd, 'x1.txt')
+
+    const sw = runAll(['sweep', '--root', repo])
+
+    assert.equal(sw.code, 0, sw.out)
+    assert.ok(!existsSync(odd), `removed the reported path: ${sw.out}`)
+    assert.equal(git(['branch', '--list', 'session/x1'], repo), '', 'branch deleted')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('sweep deletes a branch merged into main even when the primary is on another branch', () => {
   const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
   const repo = makeRepo(base)

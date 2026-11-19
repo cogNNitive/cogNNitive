@@ -170,3 +170,21 @@ test('** crosses segments and also matches zero of them', () => {
   assert.strictEqual(re.test('openspec/x/y/claims/a.md'), true)
   assert.strictEqual(re.test('openspec/x/y/claims/a.txt'), false)
 })
+
+test('reads the --prs file a Windows shell writes (UTF-16 with a BOM)', () => {
+  // The documented collector is `gh pr list ... > prs.json`, and PowerShell's `>`
+  // emits UTF-16. Reading it as UTF-8 threw "Unexpected token" and exited 2, so the
+  // checker failed on the shell its own README documents.
+  const { root, args } = fixture({ claims: {} })
+  const prs = path.join(root, 'prs16.json')
+  fs.writeFileSync(
+    prs,
+    `\uFEFF${JSON.stringify([{ number: 7, headRefName: 'session/other', files: [{ path: 'scripts/x.mjs' }] }])}`,
+    'utf16le',
+  )
+
+  const { code, out } = run([...args, '--prs', prs], ['scripts/unrelated.mjs'])
+
+  assert.strictEqual(code, 0, out)
+  assert.match(out, /area is free/)
+})

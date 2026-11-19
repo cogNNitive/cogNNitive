@@ -169,10 +169,25 @@ export function normalizePullRequests(input) {
   }))
 }
 
+/**
+ * Reads a JSON file the way a Windows shell writes it. PowerShell's `>` emits
+ * UTF-16 with a BOM, so `gh pr list ... > prs.json` — the command this repo
+ * documents — produces a file a plain `JSON.parse` rejects. A checker that
+ * fails on the shell it documents is a checker nobody runs.
+ */
+export function readJsonLoose(file) {
+  const buffer = fs.readFileSync(file)
+  const text =
+    buffer.length > 1 && buffer[0] === 0xff && buffer[1] === 0xfe
+      ? buffer.toString('utf16le')
+      : buffer.toString('utf8')
+  return JSON.parse(text.replace(/^\uFEFF/, ''))
+}
+
 function loadPullRequests(root, explicit) {
   if (!explicit) return null
   const file = path.isAbsolute(explicit) ? explicit : path.join(root, explicit)
-  return normalizePullRequests(JSON.parse(fs.readFileSync(file, 'utf8')))
+  return normalizePullRequests(readJsonLoose(file))
 }
 
 /**
