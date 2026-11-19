@@ -214,7 +214,11 @@ describe('procedure view (bluepriNNt)', () => {
     assert.ok(container.querySelector('.dag-node[data-step="publish"]').classList.contains('current'))
     container.querySelector('.dag-node[data-step="review"]').dispatchEvent(new doc.defaultView.Event('click'))
     assert.match(container.querySelector('.exec-step-card').textContent, /Outcome: approve → Publish/)
-    assert.match(container.querySelector('.proc-run-artifacts').textContent, /Draft Doc: validated/)
+    // The artifact is a chip now: its name, its state and the file, not one flat string.
+    const artifact = container.querySelector('.proc-run-artifacts [data-proc-artifact]')
+    assert.ok(artifact, 'the artifact has a chip')
+    assert.match(artifact.querySelector('.proc-artifact-name').textContent, /Draft Doc/)
+    assert.match(artifact.querySelector('.proc-artifact-state').textContent, /validated/)
     assert.deepEqual(texts('.proc-run-events .audit-item .audit-kind').slice(0, 2), ['started', 'step_started'])
   })
 

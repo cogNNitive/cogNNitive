@@ -18717,11 +18717,174 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       return guard.text
     }
 
-    function artifactLine(slug) {
-      var def = active.graph.artifacts[slug]
-      var name = def ? def.name : slug
+    /**
+     * One artifact as a chip: its name, the state the fold gave it, and the file it lives in.
+     * The chip is what a person can act on — the artifact is a file, not a model element, so
+     * the useful affordances are "which step produced it" and "open the file".
+     */
+    function artifactChip(slug) {
+      var def = active.graph.artifacts[slug] || {}
       var st = activeRun && activeRun.state ? activeRun.state.artifacts[slug] : null
-      return name + (st ? ': ' + st.status + (st.rev ? ' (rev ' + st.rev + ')' : '') : '')
+      var chip = make('div', 'proc-artifact')
+      chip.setAttribute('data-proc-artifact', slug)
+      if (st) chip.setAttribute('data-status', st.status)
+      chip.appendChild(make('span', 'proc-artifact-name', def.name || slug))
+
+      var producer = (def.producers || [])[0] || (st && st.step) || null
+      if (producer && stepsOf(active)[producer]) {
+        var jump = make('button', 'proc-artifact-producer', 'produced by ' + stepName(producer))
+        jump.setAttribute('type', 'button')
+        jump.addEventListener('click', function () {
+          selectedStep = producer
+          render()
+        })
+        chip.appendChild(jump)
+      }
+      if (st) {
+        chip.appendChild(
+          make('span', 'proc-artifact-state', st.status + (st.rev ? ' · rev ' + st.rev : '')),
+        )
+      }
+      var path = verifyPathOf(def)
+      if (path) {
+        var open = make('button', 'proc-artifact-open', 'Open ' + path)
+        open.setAttribute('type', 'button')
+        open.setAttribute('title', 'Open ' + path + ' from the domain folder')
+        open.addEventListener('click', function () {
+          openArtifactFile(path, open)
+        })
+        chip.appendChild(open)
+      }
+      return chip
+    }
+
+    /** The file an artifact names, when its `verify` points at one. */
+    function verifyPathOf(def) {
+      if (!def || typeof def.verify !== 'string') return ''
+      var m = /^file:\s*(.+)$/.exec(def.verify.trim())
+      return m ? m[1].trim() : ''
+    }
+
+    /**
+     * Opens the artifact's file. The console is static HTML, so it cannot read a local path on
+     * its own: it opens the domain folder once through the same picker the changeset writer
+     * uses, then reads and shows that one file. Nothing is written, and a refused permission
+     * leaves the chip saying so.
+     */
+    function openArtifactFile(path, button) {
+      // The page this view is mounted in owns the picker, not whatever global the module was
+      // first loaded under: a view can be mounted into a different document.
+      var host = (document && document.defaultView) || GLOBAL
+      var fsa = host.nnFsa
+      var rt = host.nnConsole
+      var writer = null
+      if (fsa && typeof fsa.createWriter === 'function') {
+        writer = fsa.createWriter({ win: host })
+      } else if (rt && typeof rt.fsaWriter === 'function') {
+        writer = rt.fsaWriter()
+      }
+      if (!writer || typeof writer.connect !== 'function') {
+        button.textContent = 'Open ' + path + ' — folder access is not available in this browser'
+        button.disabled = true
+        return
+      }
+      button.disabled = true
+      button.textContent = 'Opening ' + path + '…'
+      writer
+        .connect(meta.domainId)
+        .then(function (res) {
+          if (!res || !res.ok) {
+            button.textContent = 'Open ' + path + ' — ' + ((res && res.reason) || 'failed')
+            button.disabled = false
+            return
+          }
+          return readDomainFile(res.handle, path).then(function (text) {
+            // The chip already knows which artifact this is; deriving it from the file name
+            // would guess (a file `draft.md` can back an artifact named `draft-doc`).
+            showArtifact(defOfArtifact(button) || null, path, text)
+            button.textContent = 'Open ' + path
+            button.disabled = false
+          })
+        })
+        .catch(function () {
+          button.textContent = 'Open ' + path + ' — could not read it'
+          button.disabled = false
+        })
+    }
+
+    /** The artifact definition the chip that owns this button was built for. */
+    function defOfArtifact(button) {
+      var chip = button.parentNode
+      while (chip && chip.getAttribute && !chip.getAttribute('data-proc-artifact')) chip = chip.parentNode
+      var slug = chip && chip.getAttribute('data-proc-artifact')
+      return slug && active.graph.artifacts ? active.graph.artifacts[slug] : null
+    }
+
+    /** Reads one file under the connected domain folder, by its `/`-separated path. */
+    function readDomainFile(handle, path) {
+      var parts = String(path)
+        .split('/')
+        .filter(function (p) {
+          return p && p !== '.'
+        })
+      var name = parts.pop()
+      // The chain must thread the resolved directory through, not close over a mutated var:
+      // a `var` in a `.then` callback reads its final value, so every hop would look at the
+      // last path segment.
+      var dir = parts.reduce(function (p, segment) {
+        return p.then(function (d) {
+          return d.getDirectoryHandle(segment)
+        })
+      }, Promise.resolve(handle))
+      return dir
+        .then(function (d) {
+          return d.getFileHandle(name)
+        })
+        .then(function (f) {
+          return f.getFile()
+        })
+        .then(function (file) {
+          return file.text()
+        })
+    }
+
+    /** Shows the file's content in a panel inside the view: it reads, it never writes. */
+    function showArtifact(def, path, text) {
+      var host = container.querySelector('.proc-artifact-view')
+      if (!host) {
+        host = make('div', 'proc-artifact-view')
+        root.appendChild(host)
+      }
+      host.innerHTML = ''
+      var head = make('div', 'proc-artifact-view-head')
+      head.appendChild(make('span', 'proc-artifact-view-title', (def && def.name) || path))
+      var close = make('button', 'proc-artifact-view-close', 'Close')
+      close.setAttribute('type', 'button')
+      close.addEventListener('click', function () {
+        host.remove()
+      })
+      head.appendChild(close)
+      host.appendChild(head)
+      host.appendChild(make('div', 'proc-artifact-view-path', path))
+      var body = make('pre', 'proc-artifact-view-body', text === '' ? '(empty file)' : text)
+      host.appendChild(body)
+    }
+
+    /**
+     * A labeled row of artifact chips. A step with no artifacts prints nothing, so the card
+     * never shows an empty "Inputs:" line that reads like a missing value.
+     */
+    function renderArtifactRow(host, label, slugs) {
+      if (!Array.isArray(slugs) || !slugs.length) return
+      var row = make('div', 'proc-artifact-row')
+      row.setAttribute('data-proc-artifact-row', label.toLowerCase())
+      row.appendChild(make('div', 'proc-artifact-row-label', label))
+      var list = make('div', 'proc-artifact-list')
+      slugs.forEach(function (slug) {
+        list.appendChild(artifactChip(slug))
+      })
+      row.appendChild(list)
+      host.appendChild(row)
     }
 
     function renderStepCard(host, projection) {
@@ -18763,8 +18926,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       fact('Decision', step.decision)
       fact('Command', step.command)
       fact('Produces', step.produces)
-      fact('Inputs', step.inputs.map(artifactLine).join(', '))
-      fact('Outputs', step.outputs.map(artifactLine).join(', '))
+      renderArtifactRow(facts, 'Inputs', step.inputs)
+      renderArtifactRow(facts, 'Outputs', step.outputs)
       if (st) {
         fact('Attempt', st.attempt ? String(st.attempt) : '')
         fact('Waiting on', st.waitingOn)
@@ -19077,7 +19240,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         )
       }
       var artifactSlugs = Object.keys(state.artifacts)
-      if (artifactSlugs.length) panel.appendChild(make('div', 'proc-run-artifacts', 'Artifacts: ' + artifactSlugs.map(artifactLine).join(', ')))
+      if (artifactSlugs.length) {
+        var artBox = make('div', 'proc-run-artifacts')
+        artBox.appendChild(make('div', 'proc-run-artifacts-label', 'Artifacts'))
+        var artList = make('div', 'proc-artifact-list')
+        artifactSlugs.forEach(function (slug) {
+          artList.appendChild(artifactChip(slug))
+        })
+        artBox.appendChild(artList)
+        panel.appendChild(artBox)
+      }
       if (!activeRun.closed && !TERMINAL_RUN[state.status]) {
         var ref = JSON.stringify({ run: activeRun.id })
         panel.appendChild(
