@@ -20,6 +20,7 @@ title: "Multimodal Video Source Import & Processing Procedure"
 # NN Work
 
 ## NN Work: Import and Process Multimodal Video
+slug:: import-and-process-multimodal-video
 step_type:: task
 parent:: -
 next:: -
@@ -32,6 +33,7 @@ scope:: internal
 Ingest video sources, orchestrate audio extraction/ASR and keyframe slide OCR via external tooling, consolidate into multimodal Markdown under sources/nn/ with companion media linking, bind to domain model elements, and validate integrity.
 
 ## NN Work: Discover Raw Video Files
+slug:: discover-raw-video-files
 parent:: @import-and-process-multimodal-video
 step_type:: task
 next:: @verify-and-deduplicate-video-sources
@@ -44,6 +46,7 @@ scope:: internal
 Scan sources/import/ or drop directories for video files (.mp4, .mkv, .webm, .mov) lacking transcription or visual summary.
 
 ## NN Work: Verify and Deduplicate Video Sources
+slug:: verify-and-deduplicate-video-sources
 parent:: @import-and-process-multimodal-video
 step_type:: decision
 next:: @extract-audio-and-key-visual-slides
@@ -56,6 +59,7 @@ scope:: internal
 Compute SHA-256 hashes for video files and verify against existing normalized sources in sources/nn/ to avoid duplicate compute.
 
 ## NN Work: Extract Audio and Key Visual Slides
+slug:: extract-audio-and-key-visual-slides
 parent:: @import-and-process-multimodal-video
 step_type:: task
 next:: @transcribe-speech-and-ocr-slides
@@ -68,6 +72,7 @@ scope:: external
 Extract audio track to 16 kHz mono WAV and extract key visual slides or chapter scene changes using ffmpeg.
 
 ## NN Work: Transcribe Speech and OCR Slides
+slug:: transcribe-speech-and-ocr-slides
 parent:: @import-and-process-multimodal-video
 step_type:: task
 next:: @stage-consolidated-multimodal-document
@@ -80,6 +85,7 @@ scope:: external
 Run speech-to-text on the audio track and OCR on extracted keyframes to generate aligned speech transcripts with embedded slide summaries.
 
 ## NN Work: Stage Consolidated Multimodal Document
+slug:: stage-consolidated-multimodal-document
 parent:: @import-and-process-multimodal-video
 step_type:: task
 next:: @normalize-multimodal-source-with-media-link
@@ -92,6 +98,7 @@ scope:: internal
 Stage generated Markdown document in sources/import/ matching the base name of the source video for companion media pairing.
 
 ## NN Work: Normalize Multimodal Source with Media Link
+slug:: normalize-multimodal-source-with-media-link
 parent:: @import-and-process-multimodal-video
 step_type:: task
 next:: @bind-video-source-to-target-entity
@@ -104,6 +111,7 @@ scope:: internal
 Run nn-sources scanner to produce sources/nn/ Markdown with media_file companion linking and provenance frontmatter.
 
 ## NN Work: Bind Video Source to Target Entity
+slug:: bind-video-source-to-target-entity
 parent:: @import-and-process-multimodal-video
 step_type:: task
 next:: @validate-target-model
@@ -116,6 +124,7 @@ scope:: internal
 Update the sources:: field of the target Element (e.g. Procedures, Training, Documentation) in the active domain model.
 
 ## NN Work: Validate Target Model
+slug:: validate-target-model
 parent:: @import-and-process-multimodal-video
 step_type:: task
 next:: -
@@ -130,76 +139,92 @@ Validate updated domain model via nn-mcp to ensure reference integrity.
 # NN Tools
 
 ## NN Tools: AI Agent
+slug:: ai-agent
 scope:: internal
 LLM agent orchestrating the multimodal video processing pipeline.
 
 ## NN Tools: Command Line Interface
+slug:: command-line-interface
 scope:: internal
 Terminal environment for directory inspection and hash calculations.
 
 ## NN Tools: Media Processing Tool
+slug:: media-processing-tool
 scope:: external
 External ffmpeg utility for demuxing audio and extracting keyframes.
 
 ## NN Tools: Multimodal Extraction Engine
+slug:: multimodal-extraction-engine
 scope:: external
 Speech-to-text (Whisper) and OCR / Vision tools for extracting transcripts and slide text.
 
 ## NN Tools: nn-sources Scanner
+slug:: nn-sources-scanner
 scope:: internal
 Scanner script converting staged text to normalized Markdown with media linking.
 
 ## NN Tools: File Editor
+slug:: file-editor
 scope:: internal
 Tool for writing staged summaries and updating domain models.
 
 ## NN Tools: nn-mcp
+slug:: nn-mcp
 scope:: internal
 Deterministic validation tool for iNNfo models.
 
 # NN Artifact
 
 ## NN Artifact: Raw Video Recordings Directory
+slug:: raw-video-recordings-directory
 type:: spec
 format:: directory
 Input directory containing video files (.mp4, .mkv, .mov).
 
 ## NN Artifact: Unprocessed Video List
+slug:: unprocessed-video-list
 type:: data
 format:: json
 List of discovered video recordings pending processing.
 
 ## NN Artifact: Verified Video Ingestion Queue
+slug:: verified-video-ingestion-queue
 type:: data
 format:: json
 Deduplicated queue of video recordings.
 
 ## NN Artifact: Extracted Audio and Keyframe Images
+slug:: extracted-audio-and-keyframe-images
 type:: deliverable
 format:: directory
 Intermediate WAV audio files and PNG keyframe slides.
 
 ## NN Artifact: Consolidated Transcript and Visual Text
+slug:: consolidated-transcript-and-visual-text
 type:: deliverable
 format:: markdown
 Synthesized document combining timestamped speech and slide OCR content.
 
 ## NN Artifact: Staged Multimodal Import Files
+slug:: staged-multimodal-import-files
 type:: data
 format:: directory
 Files staged in sources/import/ ready for normalization.
 
 ## NN Artifact: Normalized Markdown Sources
+slug:: normalized-markdown-sources
 type:: spec
 format:: markdown
 Traceable Markdown files in sources/nn/ with video media_file companion links.
 
 ## NN Artifact: Updated Domain Model
+slug:: updated-domain-model
 type:: spec
 format:: markdown
 Domain model file enriched with video source citations.
 
 ## NN Artifact: Verified Target Domain Model
+slug:: verified-target-domain-model
 type:: report
 format:: status
 Validation confirmation from nn-mcp.
@@ -207,10 +232,12 @@ Validation confirmation from nn-mcp.
 # NN Roles
 
 ## NN Roles: iNNfo Agent
+slug:: innfo-agent
 scope:: internal
 AI agent executing multimodal procedural steps and updating models.
 
 ## NN Roles: Workspace Maintainer
+slug:: workspace-maintainer
 scope:: external
 Human maintainer reviewing synthesized video summaries and approving model updates.
 
