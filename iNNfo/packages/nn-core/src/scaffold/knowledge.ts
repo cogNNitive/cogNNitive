@@ -8,6 +8,8 @@ export interface ScaffoldSchema {
     type: string
     /** Declared storage (design A1). A distributed concept is stored as its own model. */
     storage?: { mode: string }
+    /** Declared write policy. Any policy but `mutable` (an unknown one fails closed) gets no placeholder element. */
+    writePolicy?: { policy?: string; unknown?: string }
     fields?: Array<{ name: string; type: string; options?: string[] }>
   }>
   matrices: Array<{ name: string; source?: string; target?: string }>
@@ -83,6 +85,12 @@ export function scaffoldBodyFromSchema(schema: ScaffoldSchema, root?: ScaffoldRo
         lines.push(`slug:: ${slugify(ex)}`)
       }
       lines.push(`_Describe ${c.name} here._`, '')
+      continue
+    }
+    // A placeholder in a write-once or frozen concept is a fact nobody recorded, and its
+    // policy forbids removing it: an append-only run log would fold it as a real event.
+    if (c.writePolicy && c.writePolicy.policy !== 'mutable') {
+      lines.push('')
       continue
     }
     const ex = exampleFor(c.name)

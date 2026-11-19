@@ -19,7 +19,10 @@ export type { ChangeLog, LoggedChange } from '../changelog/index.js'
 // The recordless-model audit (#587): a model no applied change names was written
 // as a raw file, so its elements carry no history. The exporter reports it.
 export { auditModelRecords, type RecordedModel } from '../changelog/audit.js'
-export { parseFrontmatter, parseYaml } from '../parser/index.js'
+export { parseFrontmatter, parseKnowledge, parseYaml } from '../parser/index.js'
+// The procedure graph and run fold: the export folds each run of the domaiNN so the
+// console stepper shows real runs without a second implementation in the browser.
+export { foldRun, procedureGraph, runRecordOf } from '../procedure/index.js'
 // The sources catalog's Synchronization elements feed the exporter's origins.
 export { readSynchronizations } from '../sync/declarations.js'
 // Naming-contract predicates for scripts that load only the console payload mirror.
