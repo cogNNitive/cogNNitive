@@ -1,6 +1,6 @@
 # claim: procedure-runner
 
-branch: feat/procedure-runner (slice 1); session/add-element-fields (PR 739); session/procedure-blueprints (PR 738)
+branch: feat/procedure-runner-tools
 opened: 2026-11-19
 thread: procedure-runner handoff (T3 Code), tracker odd/tasks/procedure-runner.md
 

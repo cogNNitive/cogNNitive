@@ -87,6 +87,8 @@ export interface WriteProposedChangesetInput {
   author?: string
   /** Overrides the manifest / folder derived `workspace_id`. */
   workspaceId?: string
+  /** Provenance of every change in the file (`human`, `agent` or `engine`); sealed with the proposal. */
+  authorKind?: 'human' | 'agent' | 'engine'
   now?: Date
 }
 
@@ -112,9 +114,10 @@ function numberChanges(changes: ChangeItem[], author: string): ChangeItem[] {
 /** Builds the sealed, unwritten Level-3 changeset document for `changes`. */
 export function buildProposedChangeset(
   changes: ChangeItem[],
-  meta: { title?: string; author: string; workspaceId: string },
+  meta: { title?: string; author: string; workspaceId: string; authorKind?: string },
 ): ChangesetDocument {
   const numbered = numberChanges(changes, meta.author)
+  const provenance = meta.authorKind ? { author_kind: meta.authorKind } : undefined
   return {
     frontmatter: {
       spec_version: CHANGESET_SPEC_VERSION,
@@ -122,9 +125,10 @@ export function buildProposedChangeset(
       parent_spec: { name: 'changes', url: CHANGES_SPEC_URL },
       blueprint_version: changesBlueprintVersion(),
       status: 'proposed',
-      proposal_sha: computeProposalSha(numbered),
+      proposal_sha: computeProposalSha(numbered, provenance),
       ...(meta.title ? { title: meta.title } : {}),
       author: meta.author,
+      ...provenance,
       workspace_id: meta.workspaceId,
     },
     changes: numbered,
@@ -141,6 +145,7 @@ export async function writeProposedChangeset(
     title: input.title,
     author,
     workspaceId,
+    authorKind: input.authorKind,
   })
   const text = serializeChangeset(document)
 

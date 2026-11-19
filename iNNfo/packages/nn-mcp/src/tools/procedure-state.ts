@@ -1,0 +1,328 @@
+import { existsSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
+import { dirname, join, posix, relative, resolve } from 'node:path'
+import { foldRun, loadChangeLog, parseKnowledge, procedureGraph } from '@cognnitive/nn-core'
+import type {
+  GraphDiagnostic,
+  ProcedureGraph,
+  RunEvent,
+  RunEventKind,
+  RunState,
+  SlotDecl,
+} from '@cognnitive/nn-core'
+import { findKnowledgeFile } from './spec.js'
+import { listScopedProcedures } from './scoped-procedures.js'
+import { locateChain } from './resolve-effective.js'
+import { locateFloorProcedures } from './floor-procedures.js'
+
+/**
+ * Reading side of the procedure runner (design §2, §5, §6): a run is an `executions` instance
+ * model; its state is never stored, it is folded from its events by nn-core `foldRun` against
+ * the graph nn-core `procedureGraph` reads from the procedure model. Nothing here writes.
+ */
+
+export interface ToolError {
+  ok: false
+  code: string
+  detail: string
+  [key: string]: unknown
+}
+
+export const fail = (
+  code: string,
+  detail: string,
+  extra: Record<string, unknown> = {},
+): ToolError => ({
+  ok: false,
+  code,
+  detail,
+  ...extra,
+})
+
+const FLOOR_PREFIX = 'bluepriNNt:'
+
+export interface ResolvedProcedure {
+  /** What the run header records: a domain-relative document path, or `bluepriNNt:<package>/<doc>` for the floor. */
+  address: string
+  slots: readonly SlotDecl[]
+  graph: ProcedureGraph
+}
+
+/** Reads a procedure document by the address a run header records. */
+export async function loadProcedure(
+  root: string,
+  address: string,
+): Promise<{ ok: true; graph: ProcedureGraph } | ToolError> {
+  let abs: string
+  if (address.startsWith(FLOOR_PREFIX)) {
+    const located = locateChain(root, '.')
+    if (!located.ok) return fail(located.code, located.detail)
+    const floor = await locateFloorProcedures(located.chain)
+    if (!floor.ok || !floor.packageDir)
+      return fail('PROCEDURE_NOT_FOUND', `No bluepriNNt package holds ${address}.`)
+    abs = join(floor.packageDir, address.slice(address.indexOf('/') + 1))
+  } else {
+    abs = resolve(root, address)
+    if (relative(root, abs).startsWith('..'))
+      return fail('PROCEDURE_NOT_FOUND', `${address} is outside the domain root.`)
+  }
+  let text: string
+  try {
+    text = await readFile(abs, 'utf-8')
+  } catch {
+    return fail('PROCEDURE_NOT_FOUND', `The procedure document ${address} cannot be read.`)
+  }
+  return { ok: true, graph: procedureGraph(parseKnowledge(text)) }
+}
+
+/**
+ * Resolves a procedure with the existing precedence (`list_blueprint_procedures` with a path):
+ * an id is the selected definition visible from `scope`; a `.md` path is that domain document.
+ */
+export async function resolveProcedure(
+  root: string,
+  ref: string,
+  scope = '.',
+): Promise<{ ok: true; procedure: ResolvedProcedure } | ToolError> {
+  const byPath = ref.endsWith('.md')
+  const doc = byPath ? posix.normalize(ref.replace(/\\/g, '/')) : undefined
+  const listing = await listScopedProcedures(root, doc ? dirname(dirname(doc)) : scope)
+  if (!listing.ok) return fail(listing.code, listing.detail)
+  const entry = listing.procedures.find((p) =>
+    doc ? p.doc === doc && p.source_kind === 'scope' : p.id === ref && p.status === 'selected',
+  )
+  if (!entry)
+    return fail('PROCEDURE_NOT_FOUND', `No procedure "${ref}" is visible from "${scope}".`)
+  const address = entry.source_kind === 'blueprint' ? `${entry.source}/${entry.doc}` : entry.doc
+  const loaded = await loadProcedure(root, address)
+  if (!loaded.ok) return loaded
+  return { ok: true, procedure: { address, slots: entry.slots, graph: loaded.graph } }
+}
+
+export interface RunRecord {
+  id: string
+  closed: boolean
+  procedure: string
+  defRev: string | null
+  params: Record<string, unknown>
+  events: RunEvent[]
+}
+
+const str = (v: unknown): string | undefined =>
+  v === undefined || v === null || v === '' ? undefined : String(v)
+
+function json(v: unknown): Record<string, unknown> | undefined {
+  if (v !== null && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>
+  const text = str(v)
+  if (text === undefined) return undefined
+  try {
+    const parsed: unknown = JSON.parse(text)
+    return parsed !== null && typeof parsed === 'object'
+      ? (parsed as Record<string, unknown>)
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function eventOf(fields: Record<string, unknown>): RunEvent {
+  const e: RunEvent = { kind: String(fields['kind']) as RunEventKind }
+  for (const key of ['step', 'outcome', 'next', 'field', 'value', 'rev', 'actor', 'at'] as const) {
+    const v = str(fields[key])
+    if (v !== undefined) e[key] = v
+  }
+  const attempt = Number(fields['attempt'])
+  if (str(fields['attempt']) !== undefined && Number.isFinite(attempt)) e.attempt = attempt
+  const inputs = json(fields['inputs'])
+  if (inputs) e.inputs = Object.fromEntries(Object.entries(inputs).map(([k, v]) => [k, String(v)]))
+  return e
+}
+
+/** Reads a run instance model: its header and its events in file order. */
+export async function readRun(
+  root: string,
+  run: unknown,
+): Promise<{ ok: true; run: RunRecord } | ToolError> {
+  if (typeof run !== 'string' || run.trim() === '')
+    return fail('INVALID_ARGUMENT', 'run must be a non-empty run id.')
+  let file: string | null
+  try {
+    file = await findKnowledgeFile(root, run.trim())
+  } catch {
+    file = null
+  }
+  if (!file) return fail('RUN_NOT_FOUND', `No run "${run}" exists in this domaiNN.`)
+  const model = parseKnowledge(await readFile(file, 'utf-8'))
+  const header = model.elements.get('Procedure Execution')?.[0]
+  if (!header) return fail('RUN_NOT_FOUND', `"${run}" is not a Procedure Execution.`)
+  return {
+    ok: true,
+    run: {
+      id: run.trim(),
+      closed: (model.frontmatter as Record<string, unknown>)['closed'] === true,
+      procedure: str(header.fields['procedure']) ?? '',
+      defRev: str(header.fields['def_rev']) ?? null,
+      params: json(header.fields['params']) ?? {},
+      events: (model.elements.get('Execution Event') ?? []).map((el) => eventOf(el.fields)),
+    },
+  }
+}
+
+/** `{slot}` placeholders replaced by the run parameters; unknown placeholders are kept. */
+export const substitute = (
+  text: string | undefined,
+  params: Record<string, unknown>,
+): string | undefined =>
+  text?.replace(/\{([\w-]+)\}/g, (m, k: string) =>
+    params[k] === undefined ? m : String(params[k]),
+  )
+
+/** Whether the apply lock (`changes/.lock`, held by every apply) is free: the crash derivation needs it. */
+export const isLockFree = (root: string): boolean => !existsSync(join(root, 'changes', '.lock'))
+
+export interface FoldedRun {
+  run: RunRecord
+  graph: ProcedureGraph
+  state: RunState
+  lockFree: boolean
+}
+
+/** Folds a run against its procedure. Recorded inputs addressed `model@unit` are compared to their last change (design §7). */
+export async function foldStoredRun(
+  root: string,
+  run: RunRecord,
+): Promise<{ ok: true; folded: FoldedRun } | ToolError> {
+  const loaded = await loadProcedure(root, run.procedure)
+  if (!loaded.ok) return loaded
+  const addressed = run.events.filter((e) => e.kind === 'input_recorded' && e.field?.includes('@'))
+  const currentRevs: Record<string, string> = {}
+  if (addressed.length > 0) {
+    const log = loadChangeLog(root)
+    for (const e of addressed) {
+      const id = log.origin(e.field!)?.id
+      if (id !== undefined) currentRevs[e.field!] = id
+    }
+  }
+  const lockFree = isLockFree(root)
+  const state = foldRun(loaded.graph, run.events, { defRev: run.defRev, lockFree, currentRevs })
+  return { ok: true, folded: { run, graph: loaded.graph, state, lockFree } }
+}
+
+export type RecordAction =
+  | 'start'
+  | 'run'
+  | 'wait'
+  | 'complete'
+  | 'fail'
+  | 'artifact'
+  | 'input'
+  | 'pause'
+  | 'resume'
+  | 'rebase'
+  | 'cancel'
+  | 'finish'
+
+/** The `procedure_record` actions the fold allows now, in a stable order. */
+export function allowedActions({ run, graph, state }: FoldedRun): RecordAction[] {
+  if (run.closed || ['completed', 'failed', 'cancelled'].includes(state.status)) return []
+  const tail: RecordAction[] = [
+    'input',
+    'artifact',
+    state.paused ? 'resume' : 'pause',
+    'cancel',
+    'finish',
+  ]
+  if (state.drift) return ['rebase', ...tail]
+  if (state.paused) return tail
+  const actions: RecordAction[] = []
+  const current = state.currentStep
+  if (current) {
+    const status = state.steps[current]!.status
+    const def = graph.steps[current]!
+    if (status === 'active' || status === 'waiting') {
+      if (status === 'active') actions.push('wait')
+      actions.push('complete', 'fail')
+    }
+    if (!(status === 'active' || status === 'waiting') || state.crashed) {
+      actions.push('start')
+      if (def.executor === 'engine' && def.command) actions.push('run')
+    }
+  }
+  return [...actions, ...tail]
+}
+
+/** What the current step needs: its executor, the decision it asks, its command, its inputs and outputs. */
+export function currentStepNeeds({ run, graph, state }: FoldedRun): Record<string, unknown> | null {
+  const slug = state.currentStep
+  if (!slug) return null
+  const def = graph.steps[slug]!
+  const artifact = (a: string) => ({
+    status: state.artifacts[a]?.status ?? 'expected',
+    ...(state.artifacts[a]?.rev ? { rev: state.artifacts[a]!.rev } : {}),
+    ...(graph.artifacts[a]?.verify
+      ? { verify: substitute(graph.artifacts[a]!.verify, run.params) }
+      : {}),
+  })
+  const optional = {
+    stepType: def.stepType,
+    executor: def.executor,
+    condition: def.condition,
+    decision: substitute(def.decision, run.params),
+    command: substitute(def.command, run.params),
+    produces: substitute(def.produces, run.params),
+  }
+  return {
+    slug,
+    name: def.name,
+    status: state.steps[slug]!.status,
+    attempt: state.steps[slug]!.attempt,
+    ...Object.fromEntries(Object.entries(optional).filter(([, v]) => v !== undefined)),
+    inputs: Object.fromEntries(def.inputs.map((a) => [a, artifact(a)])),
+    outputs: Object.fromEntries(def.outputs.map((a) => [a, artifact(a)])),
+  }
+}
+
+export interface ProcedureStateResult {
+  ok: true
+  run: string
+  procedure: string
+  def_rev: string | null
+  params: Record<string, unknown>
+  closed: boolean
+  lockFree: boolean
+  diagnostics: GraphDiagnostic[]
+  state: RunState
+  step: Record<string, unknown> | null
+  allowedNext: RunState['allowedNext']
+  actions: RecordAction[]
+}
+
+export function describeRun(folded: FoldedRun): ProcedureStateResult {
+  const { run, graph, state, lockFree } = folded
+  return {
+    ok: true,
+    run: run.id,
+    procedure: run.procedure,
+    def_rev: run.defRev,
+    params: run.params,
+    closed: run.closed,
+    lockFree,
+    diagnostics: graph.diagnostics,
+    state,
+    step: currentStepNeeds(folded),
+    allowedNext: state.allowedNext,
+    actions: allowedActions(folded),
+  }
+}
+
+/** `procedure_state`: read-only. */
+export async function procedureState(
+  root: string,
+  args: Record<string, unknown>,
+): Promise<ProcedureStateResult | ToolError> {
+  const read = await readRun(root, args['run'])
+  if (!read.ok) return read
+  const folded = await foldStoredRun(root, read.run)
+  if (!folded.ok) return folded
+  return describeRun(folded.folded)
+}
