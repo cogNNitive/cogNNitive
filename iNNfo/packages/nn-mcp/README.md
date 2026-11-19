@@ -52,7 +52,7 @@ Model Context Protocol (MCP) server wrapping `@cognnitive/nn-core` for the `cogN
 3. The user reviews the proposed changes in the console. The console is a static file and cannot call the server.
 4. The user replies **OK** and the agent calls `apply_change` with `next_steps.approve.changeset`. The console is regenerated again to show the result.
 
-New models enter through an `add_model` change. Migration recipe: `init_domain` for a new domain, import the old domain as a source (`skills/nn-upgrade/scripts/migrate-domain.js --import-as-source`), derive `add_model` / `add_element` changes that cite it through `sources::`, `propose_changeset`, review, `apply_change`.
+New models enter through an `add_model` change. Migration recipe: `init_domain` for a new domain, import the old domain as a source (`skills/nn-update/scripts/migrate-domain.js --import-as-source`), derive `add_model` / `add_element` changes that cite it through `sources::`, `propose_changeset`, review, `apply_change`.
 
 The console directory is resolved from `INNFO_CONSOLE_DIR`, then the repository checkout, then `~/.agents/console`; when no asset set is found the result carries `console.status: failed` with `CONSOLE_ASSETS_NOT_FOUND` and the change itself is unaffected.
 
