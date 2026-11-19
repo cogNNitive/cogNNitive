@@ -81,6 +81,10 @@ blueprints:
     path: iNNfo/specs/bluepriNNts/procedures/spec_NN.md
     version: "V_0-3-2"
     ref_key: blueprints
+  - name: executions
+    repo: cogNNitive/cogNNitive-web
+    path: iNNfo/specs/bluepriNNts/executions/spec_NN.md
+    ref_key: blueprints
   - name: blank
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/blank/spec_NN.md

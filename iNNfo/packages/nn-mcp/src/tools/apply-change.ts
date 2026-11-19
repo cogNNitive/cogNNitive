@@ -53,6 +53,7 @@ import {
   writeOperationOf,
   writePolicyViolation,
   WRITE_POLICY_KEY,
+  placementForDeclarations,
   isModelClosed,
 } from '@cognnitive/nn-core'
 import type {
@@ -1000,7 +1001,13 @@ export async function executeChangesetApply(
         ? [...declared].find(([name]) => name.toLowerCase() === concept.toLowerCase())?.[1]
         : undefined
       const { index: domainIndex } = await nodeIndex()
-      const placed = domainIndex.placementFor(concept, change.target, blueprintName)
+      // The domain index learns a bluepriNNt's storage from the models that already use
+      // it, so the first instance of a distributed concept is placed from the
+      // declarations this change resolved itself.
+      const placed =
+        declared && declaredStorage?.mode === 'distributed'
+          ? placementForDeclarations(declared, concept, change.target, blueprintName)
+          : domainIndex.placementFor(concept, change.target, blueprintName)
       if (!('folder' in placed)) {
         // No declarations means the bluepriNNt itself never resolved: report that
         // cause (the same code and wording the load phase uses) rather than the

@@ -32,7 +32,7 @@ import type {
 } from './types.js'
 
 export type * from './types.js'
-export { fileLocalDiagnostics } from './placement.js'
+export { fileLocalDiagnostics, placementFor as placementForDeclarations } from './placement.js'
 export { versionSkew } from './skew.js'
 
 export interface DomainIndex {
