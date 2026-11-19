@@ -1,17 +1,124 @@
 import { describe, it, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { JSDOM } from 'jsdom'
+import { collectProcedureRuns } from '../scripts/export-console.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
+const consoleDir = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console')
 const viewPath = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'procedures', 'assets', 'console-view-procedure.js')
-const stepperPath = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', 'render-procedure-stepper.js')
-const runtimePath = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', 'nn-runtime.js')
-const runtime = createRequire(import.meta.url)(runtimePath)
+const stepperPath = join(consoleDir, 'render-procedure-stepper.js')
+const runtimePath = join(consoleDir, 'nn-runtime.js')
+const require = createRequire(import.meta.url)
+const runtime = require(runtimePath)
+// The graph and the run state come from nn-core (the payload mirror the exporter loads), never
+// from a browser re-implementation: the fixtures below are built with the same functions.
+const core = require(join(consoleDir, 'console-payload.generated.cjs'))
+
+const FILE = 'kNNowledge/review_procedures_NN.md'
+const REVIEW = `---
+level: 3
+parent_spec:
+  name: "procedures_V_0-6-1"
+  url: "https://example.invalid/procedures/spec_NN.md"
+knowledge_version: "V_1-0-0"
+title: "Review"
+---
+
+# NN Procedure
+
+## NN Procedure: Review
+slug:: review-procedure
+summary:: Reviews a draft before it is published.
+procedure_model:: ${FILE}
+
+# NN Work
+
+## NN Work: Draft
+slug:: draft
+step_type:: task
+executor:: agent
+next:: @review
+output:: @draft-doc
+Write the draft of **Publish**.
+
+## NN Work: Review
+slug:: review
+step_type:: decision
+executor:: human
+decision:: Approve the draft?
+input:: @draft-doc
+next:: [@publish, @rework]
+
+## NN Work: Publish
+slug:: publish
+step_type:: task
+condition:: outcome == approve
+
+## NN Work: Rework
+slug:: rework
+step_type:: task
+condition:: outcome == decline
+
+# NN Artifact
+
+## NN Artifact: Draft Doc
+slug:: draft-doc
+verify:: file:draft.md
+`
+
+const graphOf = (text) => core.procedureGraph(core.parseKnowledge(text))
+
+/** Payload elements of the review model, as the exporter flattens them (modelFile + slug). */
+function elementsOf(text, file) {
+  const parsed = core.parseKnowledge(text)
+  const out = []
+  for (const [concept, nodes] of parsed.elements) {
+    for (const n of nodes) {
+      out.push({
+        id: `review@${n.slug}`,
+        slug: n.slug,
+        concept,
+        name: n.name,
+        description: n.description || '',
+        fields: Object.fromEntries(Object.entries(n.fields).map(([k, v]) => [k, String(v)])),
+        modelFile: file,
+      })
+    }
+  }
+  return out
+}
+
+function runOf(id, graph, events, defRev = 'V_1-0-0') {
+  return { id, file: `executions/${id}/${id}_executions_NN.md`, closed: false, defRev, params: {}, events, state: core.foldRun(graph, events, { defRev, lockFree: true }) }
+}
+
+const APPROVED = [
+  { kind: 'started', actor: 'ana' },
+  { kind: 'step_started', step: 'draft', attempt: 1 },
+  { kind: 'artifact_validated', step: 'draft', field: 'draft-doc', value: 'draft.md', rev: 'd1' },
+  { kind: 'step_completed', step: 'draft', next: 'review' },
+  { kind: 'step_started', step: 'review', attempt: 1 },
+  { kind: 'step_completed', step: 'review', outcome: 'approve', next: 'publish' },
+]
+
+function payload({ runs = [], text = REVIEW, procedures } = {}) {
+  const graph = graphOf(text)
+  return {
+    schema: { concepts: [{ name: 'Work', weight: 100 }], ...(procedures ? { procedures } : {}) },
+    model: {
+      meta: { title: 'Review Domain' },
+      elements: elementsOf(text, FILE),
+      matrices: [],
+      procedureGraphs: [{ file: FILE, title: 'Review', graph, runs: runs.map((r) => r(graph)) }],
+    },
+  }
+}
 
 function loadView() {
   const code = readFileSync(viewPath, 'utf8')
@@ -22,29 +129,25 @@ function loadView() {
   return captured
 }
 
-const payload = () => ({
-  schema: { concepts: [{ name: 'Work', weight: 100 }] },
-  model: {
-    meta: { title: 'Test Procedures', modelVersion: 'V_0-1-0' },
-    elements: [
-      { id: 'work-p', concept: 'Work', name: 'Main Procedure', fields: { step_type: 'task' }, relations: [], description: 'root' },
-      { id: 'work-s1', concept: 'Work', name: 'Step One', fields: { step_type: 'task', parent: 'Main Procedure' }, relations: [], description: 's1' },
-      { id: 'work-s2', concept: 'Work', name: 'Step Two', fields: { step_type: 'task', parent: 'Main Procedure' }, relations: [], description: 's2' },
-    ],
-    matrices: [],
-  },
-})
-
 describe('procedure view (bluepriNNt)', () => {
   let doc
   let container
+  let stepper
 
   beforeEach(() => {
     const dom = new JSDOM('<!doctype html><html><body><div id="c"></div></body></html>')
     doc = dom.window.document
     container = doc.getElementById('c')
     global.nnConsole = runtime
+    stepper = require(stepperPath)
   })
+
+  const mount = (p, context) => {
+    const handle = stepper.mount(container, p)
+    if (context) context.after(() => handle.unmount())
+    return handle
+  }
+  const texts = (selector) => [...container.querySelectorAll(selector)].map((n) => n.textContent)
 
   it('declares an editable view with order 20 and no self-declared id', () => {
     const def = loadView()
@@ -66,395 +169,222 @@ describe('procedure view (bluepriNNt)', () => {
     }
     assert.equal(calls.length, 1)
     assert.equal(calls[0].c, container)
-    assert.equal(calls[0].p.model.meta.title, 'Test Procedures')
+    assert.equal(calls[0].p.model.meta.title, 'Review Domain')
   })
 
   it('shows an empty state when the stepper runtime is absent', () => {
-    const def = loadView()
-    def.mount({ container, payload: payload() })
+    loadView().mount({ container, payload: payload() })
     assert.match(container.textContent, /Procedure runtime is not available/)
   })
 
-  it('renders into its own container with no global ids and a container-scoped log dialog', () => {
-    const stepper = createRequire(import.meta.url)(stepperPath)
-    const handle = stepper.mount(container, payload())
+  it('renders the procedure graph from procedureGraph, decision branches included, when there is no run', (context) => {
+    const handle = mount(payload(), context)
     assert.equal(handle.ok, true)
-    assert.ok(container.querySelector('.nn-procedure-view'), 'built inside the container')
+    assert.equal(handle.steps, 4, 'the container-less graph has four steps')
+    assert.deepEqual(texts('.dag-node .node-title'), ['Draft', 'Review', 'Publish', 'Rework'])
+    // The decision forks: one edge per target, the two targets side by side in one layer.
+    assert.equal(container.querySelectorAll('.dag-edge').length, 3)
+    const [publish, rework] = ['publish', 'rework'].map((s) => container.querySelector(`.dag-node[data-step="${s}"]`))
+    assert.equal(publish.getAttribute('data-layer'), rework.getAttribute('data-layer'))
+    assert.match(container.querySelector('.proc-run-state').textContent, /No run/)
+    // The decision step lists each branch with its guard.
+    container.querySelector('.dag-node[data-step="review"]').dispatchEvent(new doc.defaultView.Event('click'))
+    const branches = texts('.exec-step-card .branch-outcome')
+    assert.deepEqual(branches, ['Publish — outcome == approve', 'Rework — outcome == decline'])
+    assert.match(container.querySelector('.exec-step-card').textContent, /Approve the draft\?/)
+  })
 
-    // No global shell ids / no collision with the runtime's feedback modal, and
-    // no id at all inside the mounted view (container-scoped DOM only).
-    for (const id of ['nn-export-modal', 'audit-log-container', 'run-timer', 'doc-title', 'proc-tabs']) {
-      assert.equal(doc.getElementById(id), null, `must not create the global id #${id}`)
+  it('shows the graph diagnostics instead of hiding them', (context) => {
+    const broken = REVIEW.replace('next:: [@publish, @rework]', 'next:: [@publish, @ghost]')
+    mount(payload({ text: broken }), context)
+    const items = [...container.querySelectorAll('.proc-defect-item')]
+    assert.ok(items.some((i) => i.getAttribute('data-defect-kind') === 'UNKNOWN_NEXT' && /ghost/.test(i.textContent)))
+  })
+
+  it("shows a run's folded state: current step, done steps and the decision outcome taken", (context) => {
+    mount(payload({ runs: [(g) => runOf('r1', g, APPROVED)] }), context)
+    const run = container.querySelector('.proc-run[data-run-id="r1"]')
+    assert.ok(run, 'the run is listed')
+    assert.match(run.textContent, /r1 · open/)
+    const state = container.querySelector('.proc-run-state').textContent
+    assert.match(state, /Current step: Publish/)
+    assert.match(state, /Path: Draft → Review → Publish/)
+    const statusOf = (s) => container.querySelector(`.dag-node[data-step="${s}"]`).getAttribute('data-status')
+    assert.deepEqual(['draft', 'review', 'publish', 'rework'].map(statusOf), ['done', 'done', 'pending', 'off_path'])
+    assert.ok(container.querySelector('.dag-node[data-step="publish"]').classList.contains('current'))
+    container.querySelector('.dag-node[data-step="review"]').dispatchEvent(new doc.defaultView.Event('click'))
+    assert.match(container.querySelector('.exec-step-card').textContent, /Outcome: approve → Publish/)
+    assert.match(container.querySelector('.proc-run-artifacts').textContent, /Draft Doc: validated/)
+    assert.deepEqual(texts('.proc-run-events .audit-item .audit-kind').slice(0, 2), ['started', 'step_started'])
+  })
+
+  it('shows the drift of a run pinned to another definition revision', (context) => {
+    mount(payload({ runs: [(g) => runOf('old', g, APPROVED.slice(0, 2), 'V_0-9-0')] }), context)
+    const drift = container.querySelector('.proc-run-drift')
+    assert.ok(drift, 'drift rendered')
+    assert.match(drift.textContent, /V_0-9-0/)
+    assert.match(drift.textContent, /V_1-0-0/)
+    assert.match(container.querySelector('.proc-run[data-run-id="old"]').textContent, /drifted/)
+  })
+
+  it('shows the next action as the runner tool call an agent makes, never a CLI', (context) => {
+    mount(payload({ runs: [(g) => runOf('r1', g, APPROVED)] }), context)
+    const next = container.querySelector('.proc-run-next').textContent
+    assert.match(next, /procedure_state \{"run":"r1"\}/)
+    assert.match(next, /procedure_record \{"run":"r1"/)
+    assert.doesNotMatch(container.textContent, /nn-cli/)
+  })
+
+  it('carries no hardcoded decision gate, fake CLI snippet or write controls', (context) => {
+    mount(payload({ runs: [(g) => runOf('r1', g, APPROVED)] }), context)
+    container.querySelector('.dag-node[data-step="review"]').dispatchEvent(new doc.defaultView.Event('click'))
+    for (const selector of ['.exec-decision-box', '.btn-branch', '.exec-cli-snippet', '.exec-actions-row', '.btn-export-log', '[data-nn-timer]']) {
+      assert.equal(container.querySelector(selector), null, `${selector} must not render`)
     }
+    const code = readFileSync(stepperPath, 'utf8')
+    assert.doesNotMatch(code, /nn-cli|Decision Gate|Proceed Path|Rework \/ Alternate/)
+  })
+
+  it('lists a run whose procedure definition is not in the export, without state', (context) => {
+    const p = payload()
+    p.model.procedureGraphs.push({
+      file: 'bluepriNNt:procedures/x_procedures_NN.md',
+      title: 'bluepriNNt:procedures/x_procedures_NN.md',
+      graph: null,
+      runs: [{ id: 'floor-1', file: 'executions/floor-1/floor-1_executions_NN.md', closed: false, defRev: 'V_1-0-0', params: {}, events: [], state: null }],
+    })
+    mount(p, context)
+    const tab = [...container.querySelectorAll('.proc-tab')].find((t) => /bluepriNNt:/.test(t.textContent))
+    tab.click()
+    assert.match(container.textContent, /not in this export/)
+    assert.ok(container.querySelector('.proc-run[data-run-id="floor-1"]'))
+  })
+
+  it('shows an empty state when the export carries no procedure graph', (context) => {
+    mount({ schema: {}, model: { elements: [], matrices: [] } }, context)
+    assert.match(container.textContent, /No procedures in this export/)
+  })
+
+  it('renders into its own container with no global ids', () => {
+    const handle = stepper.mount(container, payload({ runs: [(g) => runOf('r1', g, APPROVED)] }))
+    assert.ok(container.querySelector('.nn-procedure-view'), 'built inside the container')
     assert.equal(container.querySelectorAll('[id]').length, 0, 'no element in the view carries an id')
-
-    // The execution-log dialog is created inside the container, not as #nn-export-modal.
-    const exportBtn = container.querySelector('.btn-export-log')
-    assert.ok(exportBtn, 'export-log button rendered')
-    exportBtn.click()
-    const dialog = container.querySelector('dialog.export-dialog')
-    assert.ok(dialog, 'a scoped dialog was created inside the container')
-    assert.notEqual(dialog.id, 'nn-export-modal')
-
     handle.unmount()
     assert.equal(container.innerHTML, '')
   })
 
-  it('renders Markdown descriptions while keeping references out of code and links', (context) => {
-    const require = createRequire(import.meta.url)
-    global.nnUI = require(join(repoRoot, 'iNNfo/specs/bluepriNNts/console/ui-kit.js'))
+  it('renders Markdown descriptions with references as pills', (context) => {
+    global.nnUI = require(join(consoleDir, 'ui-kit.js'))
     context.after(() => { delete global.nnUI })
     const opened = []
     global.nnConsole = { ...runtime, renderRefDialog: (_doc, element) => opened.push(element.id) }
-    const model = payload()
-    model.model.elements[0].description = [
-      '**Owner:** Step One',
-      '## Instructions',
-      'First paragraph.',
-      'Second paragraph with `Step One`.',
-      '[Step One](https://example.com/docs)',
-      '```yaml\nStep One: **literal**\nfb-42\n```',
-    ].join('\n\n')
-    const handle = require(stepperPath).mount(container, model)
-    context.after(() => handle.unmount())
+    mount(payload(), context)
     const description = container.querySelector('.exec-step-desc')
-    assert.equal(description.tagName, 'DIV')
-    assert.equal(description.querySelector('strong')?.textContent, 'Owner:')
-    assert.equal(description.querySelector('h2')?.textContent, 'Instructions')
-    assert.equal(description.querySelectorAll('p').length, 4)
+    assert.equal(description.querySelector('strong')?.textContent, 'Publish')
     const reference = description.querySelector('[data-nn-component=ku-unit]')
     assert.ok(reference, 'prose reference remains a pill')
     reference.click()
-    assert.deepEqual(opened, ['work-s1'])
-    const inline = description.querySelector('p code')
-    assert.equal(inline.textContent, 'Step One')
-    assert.equal(inline.children.length, 0)
-    const code = description.querySelector('pre > code')
-    assert.equal(code.textContent, 'Step One: **literal**\nfb-42')
-    assert.equal(code.children.length, 0)
-    const link = description.querySelector('a')
-    assert.equal(link.textContent, 'Step One')
-    assert.equal(link.children.length, 0)
-    assert.equal(link.getAttribute('href'), 'https://example.com/docs')
-    assert.equal(link.getAttribute('rel'), 'noopener noreferrer')
+    assert.deepEqual(opened, ['review@publish'])
   })
 
   it('keeps HTML and unsafe URLs inert in Markdown descriptions', (context) => {
-    const require = createRequire(import.meta.url)
-    global.nnUI = require(join(repoRoot, 'iNNfo/specs/bluepriNNts/console/ui-kit.js'))
+    global.nnUI = require(join(consoleDir, 'ui-kit.js'))
     context.after(() => { delete global.nnUI })
-    const model = payload()
-    model.model.elements[0].description = '**Safe**\n\n<img src=x onerror=1><script>alert(1)</script>\n\n[bad](javascript:alert)\n\n[bad](data:text/html,test)'
-    const handle = require(stepperPath).mount(container, model)
-    context.after(() => handle.unmount())
+    const p = payload()
+    p.model.elements.find((e) => e.slug === 'draft').description =
+      '**Safe**\n\n<img src=x onerror=1><script>alert(1)</script>\n\n[bad](javascript:alert)'
+    mount(p, context)
     const description = container.querySelector('.exec-step-desc')
     assert.equal(description.querySelector('strong')?.textContent, 'Safe')
     assert.equal(description.querySelector('img, script, a'), null)
     assert.match(description.textContent, /<img src=x onerror=1>/)
   })
 
-  it('lists the blueprint procedures with usage first as "Getting started"', () => {
-    const stepper = createRequire(import.meta.url)(stepperPath)
-    const p = payload()
-    p.schema.procedures = [
-      {
-        id: 'generate-docsify-suite',
-        name: 'Generate Docsify Suite',
-        path: 'procedures/generate_docsify_suite_procedures_NN.md',
-      },
-      { id: 'usage', name: 'Getting started', path: 'procedures/usage_procedures_NN.md' },
-    ]
-    const handle = stepper.mount(container, p)
-    const list = container.querySelector('[data-nn-procedures="blueprint"]')
-    assert.ok(list, 'blueprint procedures list rendered')
-    const items = [...list.querySelectorAll('.proc-blueprint-item')]
-    assert.equal(items.length, 2)
-    assert.equal(items[0].getAttribute('data-procedure-id'), 'usage', 'usage reads first')
-    assert.equal(items[0].textContent, 'Getting started')
-    assert.equal(items[1].getAttribute('data-procedure-id'), 'generate-docsify-suite')
-    handle.unmount()
-  })
-
-  it('lists only selected blueprint procedures, never a shadowed one (L2.5.3)', () => {
-    const stepper = createRequire(import.meta.url)(stepperPath)
-    const p = payload()
-    p.schema.procedures = [
-      { id: 'check', name: 'Alpha check', path: 'procedures/check_alpha_NN.md', status: 'selected' },
-      { id: 'check', name: 'Beta check', path: 'procedures/check_beta_NN.md', status: 'shadowed', shadowed_by: 'alpha' },
-    ]
-    const handle = stepper.mount(container, p)
-    const items = [...container.querySelectorAll('[data-nn-procedures="blueprint"] .proc-blueprint-item')]
-    assert.deepEqual(items.map((i) => i.textContent), ['Alpha check'])
-    handle.unmount()
-  })
-
-  it('renders no blueprint list when the schema carries no procedures', () => {
-    const stepper = createRequire(import.meta.url)(stepperPath)
-    const handle = stepper.mount(container, payload())
-    assert.equal(container.querySelector('[data-nn-procedures="blueprint"]'), null)
-    handle.unmount()
-  })
-
-  it('starts chain at declared head and drops no steps when head is not alphabetically first', () => {
-    const stepper = createRequire(import.meta.url)(stepperPath)
-    const p = {
-      schema: { concepts: [{ name: 'Work', weight: 100 }] },
-      model: {
-        meta: { title: 'Video Production', modelVersion: 'V_0-1-0' },
-        elements: [
-          { id: 'proc', concept: 'Work', name: 'Crear Video', fields: { step_type: 'task' }, relations: [] },
-          { id: 's4', concept: 'Work', name: 'Aprobar', fields: { step_type: 'task', parent: 'Crear Video' }, relations: [] },
-          { id: 's3', concept: 'Work', name: 'Redactar', fields: { step_type: 'task', parent: 'Crear Video', next: '[[Aprobar]]' }, relations: [] },
-          { id: 's2', concept: 'Work', name: 'Elegir imágenes', fields: { step_type: 'task', parent: 'Crear Video', next: '[[Redactar]]' }, relations: [] },
-          { id: 's1', concept: 'Work', name: 'Configurar el vídeo', fields: { step_type: 'task', parent: 'Crear Video', next: '[[Elegir imágenes]]' }, relations: [] },
-        ],
-      },
-    }
-    const tree = runtime.buildTree(p.model.elements)
-    const chain = runtime.chainOf(tree.roots[0], tree.nodes)
-    assert.deepEqual(chain.map(n => n.el.name), [
-      'Crear Video',
-      'Configurar el vídeo',
-      'Elegir imágenes',
-      'Redactar',
-      'Aprobar',
-    ])
-
-    const handle = stepper.mount(container, p)
-    const renderedTitles = [...container.querySelectorAll('.dag-node .node-title')].map(el => el.textContent)
-    assert.deepEqual(renderedTitles, [
-      'Crear Video',
-      'Configurar el vídeo',
-      'Elegir imágenes',
-      'Redactar',
-      'Aprobar',
-    ])
-    handle.unmount()
-  })
-
-  it('derives canonical ingest_visual_catalog order without dropping steps (#360)', () => {
-    const p = {
-      schema: { concepts: [{ name: 'Work', weight: 100 }] },
-      model: {
-        meta: { title: 'Ingest Visual Catalog', modelVersion: 'V_0-1-0' },
-        elements: [
-          { id: 'proc', concept: 'Work', name: 'Ingest Visual Catalog Workflow', fields: {} },
-          { id: 's1', concept: 'Work', name: 'Normalize Source', fields: { parent: 'Ingest Visual Catalog Workflow', next: '[[Derive and Optimize Derivative]]' } },
-          { id: 's2', concept: 'Work', name: 'Derive and Optimize Derivative', fields: { parent: 'Ingest Visual Catalog Workflow', next: '[[Extract Entities]]' } },
-          { id: 's3', concept: 'Work', name: 'Extract Entities', fields: { parent: 'Ingest Visual Catalog Workflow', next: '[[Resolve and Deduplicate]]' } },
-          { id: 's4', concept: 'Work', name: 'Resolve and Deduplicate', fields: { parent: 'Ingest Visual Catalog Workflow', next: '[[Upsert Idempotently]]' } },
-          { id: 's5', concept: 'Work', name: 'Upsert Idempotently', fields: { parent: 'Ingest Visual Catalog Workflow', next: '[[Wire Matrix Cells]]' } },
-          { id: 's6', concept: 'Work', name: 'Wire Matrix Cells', fields: { parent: 'Ingest Visual Catalog Workflow', next: '[[Validate and Report Ingestion]]' } },
-          { id: 's7', concept: 'Work', name: 'Validate and Report Ingestion', fields: { parent: 'Ingest Visual Catalog Workflow' } },
-        ],
-      },
-    }
-    const tree = runtime.buildTree(p.model.elements)
-    const chain = runtime.chainOf(tree.roots[0], tree.nodes)
-    assert.deepEqual(chain.map(n => n.el.name), [
-      'Ingest Visual Catalog Workflow',
-      'Normalize Source',
-      'Derive and Optimize Derivative',
-      'Extract Entities',
-      'Resolve and Deduplicate',
-      'Upsert Idempotently',
-      'Wire Matrix Cells',
-      'Validate and Report Ingestion',
-    ])
-  })
-
-  it('breaks ties between unordered siblings using document order, never localeCompare', () => {
-    const p = {
-      schema: { concepts: [{ name: 'Work', weight: 100 }] },
-      model: {
-        meta: { title: 'Unordered Siblings', modelVersion: 'V_0-1-0' },
-        elements: [
-          { id: 'proc', concept: 'Work', name: 'Root Process', fields: {} },
-          // Zeta appears before Alpha in document order, with no next between them
-          { id: 's1', concept: 'Work', name: 'Zeta Step', fields: { parent: 'Root Process' } },
-          { id: 's2', concept: 'Work', name: 'Alpha Step', fields: { parent: 'Root Process' } },
-        ],
-      },
-    }
-    const tree = runtime.buildTree(p.model.elements)
-    assert.deepEqual(tree.roots[0].children.map(c => c.el.name), ['Zeta Step', 'Alpha Step'])
-  })
-
-  it('contains no duplicated tree semantics definitions in render-procedure-stepper.js', () => {
-    const stepperCode = readFileSync(stepperPath, 'utf8')
-    const forbidden = [
-      /function\s+sortChildren\b/,
-      /function\s+chainOf\b/,
-      /function\s+firstChild\b/,
-      /function\s+nextStep\b/,
-      /function\s+resolveParentId\b/,
-      /function\s+cleanRef\b/,
-    ]
-    for (const pattern of forbidden) {
-      assert.equal(pattern.test(stepperCode), false, `render-procedure-stepper.js must not define ${pattern}`)
-    }
-  })
-
-  it('reports StructuralDefects for cycle, fork, external target, and unreachable step', () => {
-    // 1. Cycle
-    const pCycle = {
-      model: {
-        elements: [
-          { id: 'p', concept: 'Work', name: 'Proc Cycle' },
-          { id: 's1', concept: 'Work', name: 'Step 1', fields: { parent: 'Proc Cycle', next: '[[Step 2]]' } },
-          { id: 's2', concept: 'Work', name: 'Step 2', fields: { parent: 'Proc Cycle', next: '[[Step 1]]' } },
-        ],
-      },
-    }
-    const treeCycle = runtime.buildTree(pCycle.model.elements)
-    assert.ok(treeCycle.defects.some(d => d.kind === 'cycle'), 'cycle detected')
-
-    // 2. Fork (two heads)
-    const pFork = {
-      model: {
-        elements: [
-          { id: 'p', concept: 'Work', name: 'Proc Fork' },
-          { id: 'h1', concept: 'Work', name: 'Head 1', fields: { parent: 'Proc Fork', next: '[[Tail]]' } },
-          { id: 'h2', concept: 'Work', name: 'Head 2', fields: { parent: 'Proc Fork', next: '[[Tail]]' } },
-          { id: 'tail', concept: 'Work', name: 'Tail', fields: { parent: 'Proc Fork' } },
-        ],
-      },
-    }
-    const treeFork = runtime.buildTree(pFork.model.elements)
-    assert.ok(treeFork.defects.some(d => d.kind === 'fork'), 'fork detected')
-
-    // 3. External target
-    const pExt = {
-      model: {
-        elements: [
-          { id: 'p1', concept: 'Work', name: 'Proc 1' },
-          { id: 's1', concept: 'Work', name: 'Step 1', fields: { parent: 'Proc 1', next: '[[Step 2]]' } },
-          { id: 'p2', concept: 'Work', name: 'Proc 2' },
-          { id: 's2', concept: 'Work', name: 'Step 2', fields: { parent: 'Proc 2' } },
-        ],
-      },
-    }
-    const treeExt = runtime.buildTree(pExt.model.elements)
-    assert.ok(treeExt.defects.some(d => d.kind === 'external_target'), 'external target detected')
-
-    // 4. Unreachable step
-    const pUnreach = {
-      model: {
-        elements: [
-          { id: 'p', concept: 'Work', name: 'Proc Unreach' },
-          { id: 's1', concept: 'Work', name: 'Head', fields: { parent: 'Proc Unreach', next: '[[Tail]]' } },
-          { id: 'tail', concept: 'Work', name: 'Tail', fields: { parent: 'Proc Unreach' } },
-          { id: 'iso1', concept: 'Work', name: 'Island 1', fields: { parent: 'Proc Unreach', next: '[[Island 2]]' } },
-          { id: 'iso2', concept: 'Work', name: 'Island 2', fields: { parent: 'Proc Unreach', next: '[[Island 1]]' } },
-        ],
-      },
-    }
-    const treeUnreach = runtime.buildTree(pUnreach.model.elements)
-    assert.ok(treeUnreach.defects.some(d => d.kind === 'unreachable'), 'unreachable detected')
-  })
-
-  it('renders structure summary strip with counts and defects, and counts ungrouped steps', () => {
-    const stepper = createRequire(import.meta.url)(stepperPath)
-    const p = {
-      schema: { concepts: [{ name: 'Work', weight: 100 }] },
-      model: {
-        meta: { title: 'Ungrouped Doc' },
-        elements: [
-          { id: 'u1', concept: 'Work', name: 'Ungrouped One', fields: { step_type: 'task' } },
-          { id: 'u2', concept: 'Work', name: 'Ungrouped Two', fields: { step_type: 'task' } },
-        ],
-      },
-    }
-    const handle = stepper.mount(container, p)
-    const summary = container.querySelector('.proc-structure-summary')
-    assert.ok(summary, 'structure summary rendered')
-    assert.match(summary.textContent, /0 procedures · 0 steps · 2 ungrouped/)
-    const defectLines = [...container.querySelectorAll('.proc-defect-item')]
-    assert.equal(defectLines.length, 2)
-    assert.equal(container.querySelectorAll('.proc-tab').length, 0, 'no tabs rendered for ungrouped steps')
-    handle.unmount()
-  })
-
-  it('renders decision step with >=2 next targets as a branch listing each outcome', () => {
-    const stepper = createRequire(import.meta.url)(stepperPath)
-    const p = {
-      schema: { concepts: [{ name: 'Work', weight: 100 }] },
-      model: {
-        meta: { title: 'Branching Proc' },
-        elements: [
-          { id: 'p', concept: 'Work', name: 'Review Process' },
-          { id: 's1', concept: 'Work', name: 'Review Quality', fields: { parent: 'Review Process', step_type: 'decision', next: '[[Approve]], [[Revise]]' } },
-          { id: 's2', concept: 'Work', name: 'Approve', fields: { parent: 'Review Process', condition: 'passes check' } },
-          { id: 's3', concept: 'Work', name: 'Revise', fields: { parent: 'Review Process', condition: 'fails check' } },
-        ],
-      },
-    }
-    const handle = stepper.mount(container, p)
-    const branchOutcomes = container.querySelectorAll('.branch-outcome')
-    assert.equal(branchOutcomes.length, 2, 'two outcomes rendered')
-    const outcomeText = [...branchOutcomes].map(el => el.textContent)
-    assert.ok(outcomeText.some(t => t.includes('Approve')), 'Approve outcome rendered')
-    assert.ok(outcomeText.some(t => t.includes('Revise')), 'Revise outcome rendered')
-    handle.unmount()
-  })
-
-  it('renders decision step with 1 next target as a normal step without branch list', () => {
-    const stepper = createRequire(import.meta.url)(stepperPath)
-    const p = {
-      schema: { concepts: [{ name: 'Work', weight: 100 }] },
-      model: {
-        meta: { title: 'Linear Proc' },
-        elements: [
-          { id: 'p', concept: 'Work', name: 'Linear Process' },
-          { id: 's1', concept: 'Work', name: 'Single Decision', fields: { parent: 'Linear Process', step_type: 'decision', next: '[[Approve]]' } },
-          { id: 's2', concept: 'Work', name: 'Approve', fields: { parent: 'Linear Process' } },
-        ],
-      },
-    }
-    const handle = stepper.mount(container, p)
-    const branchOutcomes = container.querySelectorAll('.branch-outcome')
-    assert.equal(branchOutcomes.length, 0, 'no branch outcomes rendered for single target')
-    handle.unmount()
-  })
-
-  it('renders procedure metadata in the tab header from linked Procedure or document fields', () => {
-    const stepper = createRequire(import.meta.url)(stepperPath)
-    const p = {
-      schema: {
-        concepts: [{ name: 'Work', weight: 100 }, { name: 'Procedure', weight: 90 }],
+  it('lists the blueprint procedures with usage first as "Getting started", never a shadowed one', (context) => {
+    mount(
+      payload({
         procedures: [
-          { id: 'proc-1', name: 'Onboarding Flow', summary: 'Onboards a new customer', category: 'Customer Ops', executed_by: 'Support Lead', inputs_required: 'Account ID', outputs_expected: 'Active Workspace' },
-          { id: 'shadowed-proc', name: 'Shadowed', status: 'shadowed', shadowed_by: 'outer' }
-        ]
-      },
-      model: {
-        meta: { title: 'Proc With Ficha' },
-        elements: [
-          {
-            id: 'work-root',
-            concept: 'Work',
-            name: 'Onboarding Flow',
-            fields: {
-              summary: 'Onboards a new customer',
-              category: 'Customer Ops',
-              executed_by: 'Support Lead',
-              inputs_required: 'Account ID',
-              outputs_expected: 'Active Workspace',
-            },
-            relations: [],
-          },
-          { id: 'work-step', concept: 'Work', name: 'Verify ID', fields: { parent: 'Onboarding Flow' } },
+          { id: 'generate-docsify-suite', name: 'Generate Docsify Suite' },
+          { id: 'usage', name: 'Getting started' },
+          { id: 'check', name: 'Beta check', status: 'shadowed', shadowed_by: 'alpha' },
         ],
-      },
-    }
-    const handle = stepper.mount(container, p)
-    const ficha = container.querySelector('.proc-ficha')
-    assert.ok(ficha, 'procedure ficha header rendered')
-    assert.ok(ficha.textContent.includes('Onboards a new customer'), 'summary rendered')
-    assert.ok(ficha.textContent.includes('Customer Ops'), 'category rendered')
-    assert.ok(ficha.textContent.includes('Support Lead'), 'executed_by rendered')
-    assert.ok(ficha.textContent.includes('Account ID'), 'inputs_required rendered')
-    assert.ok(ficha.textContent.includes('Active Workspace'), 'outputs_expected rendered')
-    handle.unmount()
+      }),
+      context,
+    )
+    const items = [...container.querySelectorAll('[data-nn-procedures="blueprint"] .proc-blueprint-item')]
+    assert.deepEqual(items.map((i) => i.getAttribute('data-procedure-id')), ['usage', 'generate-docsify-suite'])
+    assert.equal(items[0].textContent, 'Getting started')
+  })
+
+  it('renders the procedure ficha from the linked Procedure element', (context) => {
+    mount(payload(), context)
+    assert.match(container.querySelector('.proc-ficha').textContent, /Reviews a draft before it is published/)
+  })
+})
+
+describe('collectProcedureRuns (export)', () => {
+  const runText = (procedure) => `---
+level: 3
+parent_spec:
+  name: "executions"
+  url: "specs/bluepriNNts/executions/spec_NN.md"
+knowledge_version: "V_0-1-0"
+title: "r1"
+---
+
+# NN Procedure Execution
+## NN Procedure Execution: r1
+slug:: r1
+def_rev:: V_1-0-0
+params:: "{}"
+procedure:: ${procedure}
+
+# NN Execution Event
+## NN Execution Event: e-001
+slug:: e-001
+kind:: started
+actor:: ana
+
+## NN Execution Event: e-002
+slug:: e-002
+kind:: step_started
+step:: draft
+attempt:: 1
+`
+
+  it('carries each procedure graph and its runs folded by nn-core', (context) => {
+    const root = mkdtempSync(join(tmpdir(), 'nn-proc-export-'))
+    context.after(() => rmSync(root, { recursive: true, force: true }))
+    const model = (rel, content) => ({ filePath: join(root, rel), content, fm: core.parseFrontmatter(content) })
+    const procedure = model(FILE, REVIEW)
+    const run = model('executions/r1/r1_executions_NN.md', runText(FILE))
+    const out = collectProcedureRuns({
+      root,
+      models: [procedure, run],
+      payloadModels: [procedure, run],
+      wholeDomain: true,
+      helper: core,
+      compare: (a, b) => (a < b ? -1 : a > b ? 1 : 0),
+    })
+    assert.equal(out.length, 1)
+    assert.equal(out[0].file, FILE)
+    assert.deepEqual(out[0].graph, graphOf(REVIEW))
+    assert.equal(out[0].runs.length, 1)
+    const [r1] = out[0].runs
+    assert.equal(r1.id, 'r1')
+    assert.deepEqual(r1.events.map((e) => e.kind), ['started', 'step_started'])
+    assert.deepEqual(r1.state, core.foldRun(graphOf(REVIEW), r1.events, { defRev: 'V_1-0-0', lockFree: true }))
+    assert.equal(r1.state.currentStep, 'draft')
+  })
+
+  it('keeps a run whose procedure is a bluepriNNt package document, with no graph and no state', (context) => {
+    const root = mkdtempSync(join(tmpdir(), 'nn-proc-export-'))
+    context.after(() => rmSync(root, { recursive: true, force: true }))
+    const content = runText('bluepriNNt:procedures/x_procedures_NN.md')
+    const run = { filePath: join(root, 'executions/r1/r1_executions_NN.md'), content, fm: core.parseFrontmatter(content) }
+    const out = collectProcedureRuns({ root, models: [run], payloadModels: [run], wholeDomain: true, helper: core, compare: (a, b) => (a < b ? -1 : a > b ? 1 : 0) })
+    assert.equal(out.length, 1)
+    assert.equal(out[0].graph, null)
+    assert.equal(out[0].runs[0].state, null)
   })
 })

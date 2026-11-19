@@ -1,5 +1,7 @@
 export { procedureGraph } from './graph.js'
 export { foldRun } from './fold.js'
+export { runRecordOf } from './run.js'
+export type { RunRecord } from './run.js'
 export type {
   ArtifactState,
   ArtifactStatus,

@@ -1,12 +1,17 @@
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { dirname, join, posix, relative, resolve } from 'node:path'
-import { foldRun, loadChangeLog, parseKnowledge, procedureGraph } from '@cognnitive/nn-core'
+import {
+  foldRun,
+  loadChangeLog,
+  parseKnowledge,
+  procedureGraph,
+  runRecordOf,
+} from '@cognnitive/nn-core'
 import type {
   GraphDiagnostic,
   ProcedureGraph,
-  RunEvent,
-  RunEventKind,
+  RunRecord as CoreRunRecord,
   RunState,
   SlotDecl,
 } from '@cognnitive/nn-core'
@@ -99,43 +104,8 @@ export async function resolveProcedure(
   return { ok: true, procedure: { address, slots: entry.slots, graph: loaded.graph } }
 }
 
-export interface RunRecord {
+export interface RunRecord extends CoreRunRecord {
   id: string
-  closed: boolean
-  procedure: string
-  defRev: string | null
-  params: Record<string, unknown>
-  events: RunEvent[]
-}
-
-const str = (v: unknown): string | undefined =>
-  v === undefined || v === null || v === '' ? undefined : String(v)
-
-function json(v: unknown): Record<string, unknown> | undefined {
-  if (v !== null && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>
-  const text = str(v)
-  if (text === undefined) return undefined
-  try {
-    const parsed: unknown = JSON.parse(text)
-    return parsed !== null && typeof parsed === 'object'
-      ? (parsed as Record<string, unknown>)
-      : undefined
-  } catch {
-    return undefined
-  }
-}
-
-function eventOf(fields: Record<string, unknown>): RunEvent {
-  const e: RunEvent = { kind: String(fields['kind']) as RunEventKind }
-  for (const key of ['step', 'outcome', 'next', 'field', 'value', 'rev', 'actor', 'at'] as const) {
-    const v = str(fields[key])
-    if (v !== undefined) e[key] = v
-  }
-  const attempt = Number(fields['attempt'])
-  if (str(fields['attempt']) !== undefined && Number.isFinite(attempt)) e.attempt = attempt
-  const inputs = json(fields['inputs'])
-  if (inputs) e.inputs = Object.fromEntries(Object.entries(inputs).map(([k, v]) => [k, String(v)]))
-  return e
 }
 
 /** Reads a run instance model: its header and its events in file order. */
@@ -153,19 +123,9 @@ export async function readRun(
   }
   if (!file) return fail('RUN_NOT_FOUND', `No run "${run}" exists in this domaiNN.`)
   const model = parseKnowledge(await readFile(file, 'utf-8'))
-  const header = model.elements.get('Procedure Execution')?.[0]
-  if (!header) return fail('RUN_NOT_FOUND', `"${run}" is not a Procedure Execution.`)
-  return {
-    ok: true,
-    run: {
-      id: run.trim(),
-      closed: (model.frontmatter as Record<string, unknown>)['closed'] === true,
-      procedure: str(header.fields['procedure']) ?? '',
-      defRev: str(header.fields['def_rev']) ?? null,
-      params: json(header.fields['params']) ?? {},
-      events: (model.elements.get('Execution Event') ?? []).map((el) => eventOf(el.fields)),
-    },
-  }
+  const record = runRecordOf(model)
+  if (!record) return fail('RUN_NOT_FOUND', `"${run}" is not a Procedure Execution.`)
+  return { ok: true, run: { id: run.trim(), ...record } }
 }
 
 /** `{slot}` placeholders replaced by the run parameters; unknown placeholders are kept. */

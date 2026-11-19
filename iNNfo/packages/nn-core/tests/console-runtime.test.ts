@@ -191,7 +191,7 @@ describe('buildTree / chainOf (generic tree + sequence helpers)', () => {
     ])
   })
 
-  it('chains a root through its steps in next order', () => {
+  it('chains a root through its children in document order', () => {
     const core = loadCore()
     const tree = core.buildTree(treeElements as never)
     const rootA = tree.nodes['work-root-a']
@@ -201,6 +201,19 @@ describe('buildTree / chainOf (generic tree + sequence helpers)', () => {
       'work-step-1',
       'work-step-2',
     ])
+  })
+
+  it('never reorders by next:: and ships no step walker: the procedure graph comes from nn-core', () => {
+    const core = loadCore() as unknown as Record<string, unknown> & RuntimeCore
+    const tree = core.buildTree([
+      { id: 'root', concept: 'Work', name: 'Root', fields: {} },
+      { id: 'late', concept: 'Work', name: 'Late', fields: { parent: '@root' } },
+      { id: 'early', concept: 'Work', name: 'Early', fields: { parent: '@root', next: '@late' } },
+    ] as never)
+    expect(core.chainOf(tree.nodes['root'], tree.nodes).map((n) => n.el.id)).toEqual(['root', 'late', 'early'])
+    for (const name of ['deriveStepChain', 'sortChildren', 'nextStep', 'nextSteps', 'firstChild']) {
+      expect(core[name]).toBeUndefined()
+    }
   })
 
   it('resolves parent via name field or parent relation', () => {
@@ -252,7 +265,7 @@ describe('buildTree / chainOf (generic tree + sequence helpers)', () => {
       expect(tree.nodes['domain-setup-changeset'].parentId).toBe(null)
     })
 
-    it('chains the steps in next:: address order', () => {
+    it('chains the steps in document order', () => {
       const core = loadCore()
       const tree = core.buildTree(addressElements as never)
       const chain = core.chainOf(tree.nodes['set-up-the-domain'], tree.nodes)
