@@ -105,7 +105,8 @@ describe('procedure view projects a run from its pending drafts', () => {
       clearDrafts: (ids) => {
         // Same contract as review.js: no argument clears everything, ids clear a subset.
         if (Array.isArray(ids)) {
-          for (let i = added.length - 1; i >= 0; i--) if (ids.indexOf(added[i].id) !== -1) added.splice(i, 1)
+          for (let i = added.length - 1; i >= 0; i--)
+            if (ids.indexOf(added[i].id) !== -1) added.splice(i, 1)
         } else {
           added.length = 0
         }
@@ -160,7 +161,11 @@ describe('procedure view projects a run from its pending drafts', () => {
     stepper.mount(container, payload(), {
       store: {
         drafts: () => store.drafts(),
-        propose: (p) => controller.propose({ elementId: p.elementId, field: p.field, knowledge_id: p.knowledge_id }, p),
+        propose: (p) =>
+          controller.propose(
+            { elementId: p.elementId, field: p.field, knowledge_id: p.knowledge_id },
+            p,
+          ),
       },
     })
 
@@ -177,7 +182,9 @@ describe('procedure view projects a run from its pending drafts', () => {
     // Record it the way the view does: complete review with approve.
     const select = container.querySelector('[data-proc-outcome]')
     select.value = 'approve'
-    container.querySelector('[data-proc-action="complete"]').dispatchEvent(new doc.defaultView.Event('click'))
+    container
+      .querySelector('[data-proc-action="complete"]')
+      .dispatchEvent(new doc.defaultView.Event('click'))
 
     const review = container.querySelector('.dag-node[data-step="review"]')
     assert.equal(review.getAttribute('data-status'), 'active', 'the applied state is unchanged')
@@ -195,9 +202,13 @@ describe('procedure view projects a run from its pending drafts', () => {
     mount()
     const select = container.querySelector('[data-proc-outcome]')
     select.value = 'approve'
-    container.querySelector('[data-proc-action="complete"]').dispatchEvent(new doc.defaultView.Event('click'))
+    container
+      .querySelector('[data-proc-action="complete"]')
+      .dispatchEvent(new doc.defaultView.Event('click'))
 
-    container.querySelector('.dag-node[data-step="review"]').dispatchEvent(new doc.defaultView.Event('click'))
+    container
+      .querySelector('.dag-node[data-step="review"]')
+      .dispatchEvent(new doc.defaultView.Event('click'))
     const box = container.querySelector('[data-proc-projection="review"]')
     assert.ok(box, 'the card carries the pending change')
     assert.match(box.textContent, /active/, 'the value it has now')
@@ -210,13 +221,21 @@ describe('procedure view projects a run from its pending drafts', () => {
     const handle = mount()
     const select = container.querySelector('[data-proc-outcome]')
     select.value = 'approve'
-    container.querySelector('[data-proc-action="complete"]').dispatchEvent(new doc.defaultView.Event('click'))
-    assert.ok(container.querySelector('.dag-node[data-step="review"]').classList.contains('projected'))
+    container
+      .querySelector('[data-proc-action="complete"]')
+      .dispatchEvent(new doc.defaultView.Event('click'))
+    assert.ok(
+      container.querySelector('.dag-node[data-step="review"]').classList.contains('projected'),
+    )
 
     store.clearDrafts()
     handle.unmount()
     mount()
-    assert.equal(container.querySelector('.proc-projection'), null, 'nothing pending, nothing claimed')
+    assert.equal(
+      container.querySelector('.proc-projection'),
+      null,
+      'nothing pending, nothing claimed',
+    )
   })
 
   it('never folds another run\u2019s drafts into this one', () => {
@@ -227,11 +246,23 @@ describe('procedure view projects a run from its pending drafts', () => {
       concept: 'Execution Event',
       element: 'e-001',
       element_slug: 'e-001',
-      proposed: JSON.stringify({ kind: 'step_completed', step: 'review', outcome: 'approve', next: 'publish' }),
+      proposed: JSON.stringify({
+        kind: 'step_completed',
+        step: 'review',
+        outcome: 'approve',
+        next: 'publish',
+      }),
     })
     handle.unmount()
     mount()
-    assert.equal(container.querySelector('.proc-projection'), null, 'a foreign draft is not this run')
-    assert.equal(container.querySelector('.dag-node[data-step="review"]').getAttribute('data-status'), 'active')
+    assert.equal(
+      container.querySelector('.proc-projection'),
+      null,
+      'a foreign draft is not this run',
+    )
+    assert.equal(
+      container.querySelector('.dag-node[data-step="review"]').getAttribute('data-status'),
+      'active',
+    )
   })
 })
