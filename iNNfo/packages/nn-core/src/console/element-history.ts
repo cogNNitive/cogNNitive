@@ -136,6 +136,8 @@ interface HistoryBearingElement {
   name: string
   slug?: string
   history?: ElementHistoryItem[]
+  /** Total hops before the cap, present only when `history` was truncated. */
+  historyTotal?: number
 }
 
 /** A `changes/` document: an `_NN.md` file (not a sidecar) whose stem ends in `_changes`. */
@@ -251,6 +253,16 @@ function historyItem(change: LoggedChange, resolveEvidence?: (evidence: string) 
 }
 
 /**
+ * How many hops of an element's change history the console payload carries.
+ *
+ * `history` repeats the change log on every element and measured about half of a real
+ * payload (9.27 MB of ~18 MB). The modal shows the recent hops; the full lineage lives
+ * in the `changes` model, and the payload says when it truncated (`historyTotal`) so the
+ * modal can point there instead of quietly showing less.
+ */
+export const CONSOLE_HISTORY_LIMIT = 12
+
+/**
  * Attaches `history` (every status, for the Changes tab) to every element whose
  * slug, id or name matches the element part of a change's unit address. Matching
  * is exact on the element part, so `a-b` and `ab` never collide. Mutates
@@ -280,5 +292,16 @@ export function attachChangesetHistory(
       if (!el.history) el.history = []
       el.history.push(historyItem(change, resolveEvidence))
     }
+  }
+
+  // Cap after collecting: `log.all` order is not a promise, so sort by each change's own
+  // timestamp and keep the newest. `historyTotal` is what lets the modal say it truncated
+  // instead of showing fewer hops and letting the reader believe that is all there is.
+  for (const el of elements) {
+    if (!el.history || el.history.length <= CONSOLE_HISTORY_LIMIT) continue
+    el.historyTotal = el.history.length
+    el.history = el.history
+      .sort((a, b) => String(a.timestamp ?? '').localeCompare(String(b.timestamp ?? '')))
+      .slice(-CONSOLE_HISTORY_LIMIT)
   }
 }
