@@ -10,7 +10,7 @@ import {
   type ReferenceDiagnostic,
   type SpecCache,
 } from '@cognnitive/nn-core'
-import { collectWorkspaceDiagnostics } from '../src/tools/validate.js'
+import { collectWorkspaceDiagnostics, collectDriftDiagnostics } from '../src/tools/validate.js'
 
 /**
  * End to end: an Organization-like domaiNN is synchronized into a Procedures-like one
@@ -221,5 +221,103 @@ describe('domain synchronization end to end', () => {
       'sources/import/org/org_agent_20261010T120000Z_changes_NN.md',
     ])
     expect(buildChangeLog(snapshot).all).toEqual([])
+  })
+})
+
+describe('evidence drift end to end', () => {
+  const EVIDENCE = 'sources/import/report.md'
+  const ORIGINAL = '# Report\n\nRevenue grew.\n'
+  const BUILD_DATE = '2026-10-10T12:00:00.000Z'
+
+  /** A changeset whose one applied change cites EVIDENCE, stamped with ORIGINAL's hash. */
+  const evidenceChangeset = (stampedSha: string): string => `---
+spec_version: "V_0-5-0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://example.test/changes/spec_NN.md"
+blueprint_version: "0.1.0"
+status: applied
+author: "lucas"
+applied_at: "${BUILD_DATE}"
+evidence_sha256:
+  ${EVIDENCE}: ${stampedSha}
+---
+
+# NN Change
+
+## NN Change: cites-report
+op:: update_field
+target:: procedures@approve&responsable
+to:: Ana
+evidence:: ${EVIDENCE}
+`
+
+  beforeEach(() => {
+    put(root, EVIDENCE, ORIGINAL)
+    put(root, 'changes/cites-report_changes_NN.md', evidenceChangeset(sha256(ORIGINAL)))
+  })
+
+  it('wires the sha256 resolver so an edited evidence file reports EVIDENCE_SOURCE_CHANGED', async () => {
+    const clean = await collectDriftDiagnostics(root)
+    expect(clean.map((d) => d.code)).not.toContain('EVIDENCE_SOURCE_CHANGED')
+
+    put(root, EVIDENCE, '# Report\n\nRevenue fell.\n')
+
+    const drifted = await collectDriftDiagnostics(root)
+    const found = drifted.filter((d) => d.code === 'EVIDENCE_SOURCE_CHANGED')
+    expect(found).toHaveLength(1)
+    expect(found[0]!.message).toContain('cites-report')
+    expect(found[0]!.message).toContain(EVIDENCE)
+  })
+
+  it('stays silent when the evidence file is unchanged', async () => {
+    expect((await collectDriftDiagnostics(root)).map((d) => d.code)).not.toContain('EVIDENCE_SOURCE_CHANGED')
+  })
+})
+
+describe('federated evidence end to end', () => {
+  const MIRROR_EVIDENCE = 'sources/sync/org/organization_NN.md@gerente'
+
+  /** A changeset whose applied change cites a mirrored element as its evidence. */
+  const mirrorEvidenceChangeset = (evidence: string): string => `---
+spec_version: "V_0-5-0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://example.test/changes/spec_NN.md"
+blueprint_version: "0.1.0"
+status: applied
+author: "lucas"
+applied_at: "2026-10-10T12:00:00.000Z"
+---
+
+# NN Change
+
+## NN Change: cites-mirror
+op:: update_field
+target:: procedures@approve&responsable
+to:: Ana
+evidence:: ${evidence}
+`
+
+  const evidenceCodes = async (): Promise<ReferenceDiagnostic[]> =>
+    (await collectWorkspaceDiagnostics(root, cache)).filter((d) =>
+      ['KU_MALFORMED', 'KU_DANGLING_FILE', 'KU_UNKNOWN_ELEMENT_SLUG'].includes(d.code ?? ''),
+    )
+
+  it('accepts a mirrored element as the evidence of a consumer unit', async () => {
+    expect(sync().status).toBe(0)
+    put(root, 'changes/cites-mirror_changes_NN.md', mirrorEvidenceChangeset(MIRROR_EVIDENCE))
+
+    expect(await evidenceCodes()).toEqual([])
+  })
+
+  it('reports a mirrored element that the origin does not declare', async () => {
+    expect(sync().status).toBe(0)
+    put(root, 'changes/cites-mirror_changes_NN.md', mirrorEvidenceChangeset('sources/sync/org/organization_NN.md@nobody'))
+
+    const codes = (await evidenceCodes()).map((d) => d.code)
+    expect(codes).toEqual(['KU_UNKNOWN_ELEMENT_SLUG'])
   })
 })
