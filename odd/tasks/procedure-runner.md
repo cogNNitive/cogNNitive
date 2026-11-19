@@ -1,0 +1,35 @@
+# procedure-runner
+
+Objective: a code runner for procedures: runs are `executions` instance models, state is derived by a pure fold, agents drive runs through three nn-mcp tools.
+Design: `odd/designs/procedure-runner.md` (read it whole before any task). Delivery: one PR per slice against `main` (slices 1-3 independent, not stacked); slice 4 rebases on them. Runner: vitest (`npx vitest run <file>` in `iNNfo/packages/nn-core` or `iNNfo/packages/nn-mcp`).
+
+## Specs
+
+- **S1** - Runs follow rules R1-R6 of the design (facts only, state derived; never writes the definition; opaque params; slug references; pinned `def_rev`, drift detected; run = `executions` instance, `append-only` events, closed with `close_model`, citable once closed).
+- **S2** - nn-core pure functions `procedureGraph(model)` and `foldRun(graph, events)` (design §2, §5); first slice covers DAGs with branches, loops out; tests are the four fixtures of the earlier design (approve, retry+stale, crash, decline).
+- **S3** - Write cost: option (a). User (2026-11-19): "a" in answer to "¿Vamos con (a)?" -> `add_element` carries initial fields (`to:: {json}`), one change per event, one changeset per `procedure_record` call (design §8).
+- **S4** - executions V_0-2-0 and procedures V_0-6-0 declarations (design §3, §4); reuse existing frontmatter `slots` as run parameters.
+- **S5** - nn-mcp tools `procedure_start`, `procedure_state` (read-only), `procedure_record` (design §6).
+- **S6** - `skills/nn-innfo/SKILL.md` §16-bis rewritten to use the tools.
+- **S7** - Computed values are runs (design §7).
+- **S8** - Execution plan agreed with the user: fresh session; slices 1, 2, 3 in parallel (1 and 2 by bounded writers, 3 inline by the parent); the parent owns `nn-core/src/index.ts` exports, version bumps (`package.json`, lockfile, `sync:versions`, `regen`) and git; slice 2 owns `nn-mcp/test/procedure-execution.test.ts` (2 changesets per event -> 1).
+
+## Tasks
+
+| ID | Specs | What | Route | Status | Evidence |
+|---|---|---|---|---|---|
+| T1 | S1 S2 S7 | Slice 1: nn-core `procedureGraph` + `foldRun` + 4 fixtures | delegated writer (parallel with T2; trigger: Writer (a), disjoint surface nn-core/src/procedure/**) | PR open | branch `feat/procedure-runner`; 16 new tests, nn-core 2702/2702; exported from `src/index.ts`; nn-mcp 0.43.0 |
+| T2 | S3 | Slice 2: `add_element` with initial fields (nn-core mutate + nn-mcp apply-change, propose-changeset) | delegated writer (parallel with T1; trigger: Writer (a), disjoint surface mutate/apply-change/propose-changeset) | merged | PR #739 merged (c9c56f72), branch `session/add-element-fields`; nn-core 2691/2691, nn-mcp 838/838, verify:fast green; delta spec `openspec/changes/procedure-runner/specs/add-element-initial-fields/spec.md`; nn-mcp + nn-console 0.43.0 |
+| T3 | S4 | Slice 3: blueprint bumps executions V_0-2-0, procedures V_0-6-0 | inline | merged | PR #738 merged (c873b845), rebased on c9c56f72, nn-mcp 0.44.0; pinned-fields test fixed (86ad0237); verify:fast green; every shipped procedure repinned to procedures_V_0-6-0; nn-mcp 0.43.0 |
+| T4 | S5 | Slice 4: nn-mcp tools (state, then start/record) | inline | pending (after T1-T3 merged) | |
+| T5 | S6 | Slice 5: rewrite nn-innfo §16-bis | inline | pending (after T4) | |
+| T6 | S2 | Slice 6 (wave D, after T5): console stepper (`render-procedure-stepper.js`, `nn-runtime.js`) uses `foldRun`/`procedureGraph` instead of `deriveStepChain`, reads real runs from `executions/`, drops the hardcoded decision gate and the fake `nn-cli` snippet; console/nn-mcp bump + `npm run regen` | inline | pending (after T5) | |
+
+## Log
+
+- **L1** (2026-11-19) User: "Diseño del runner" -> design written; write-cost decision "a".
+- **L2** (2026-11-19) User: "Es posible que sea mejor idea que, para esta rama nueva, para la implementación de la rama nueva, generes una sesión de handoff desde cero. [...] también quiero que estudies si los slices podrían ir en paralelo". Answer: waves A (1 ∥ 2 ∥ 3), B (4), C (5); 6 later.
+- **L3** (2026-11-19) User: "Bien, creo que lo tenemos muy claro. Comienza la ejecución y la implementación". Handoff thread launched on worktree `cogNNitive-procedure-runner`, branch `feat/procedure-runner` (holds this document and the design; the first slice PR carries them).
+- **L4** (2026-11-19) Execution started. `check:openspec` rejects anything but `specs/` in an active change, so the design moved to `odd/designs/procedure-runner.md`. Claim `openspec/claims/procedure-runner.md` written (claim-check: area free). Branches: slice 1 `feat/procedure-runner`, slice 2 `session/add-element-fields`, slice 3 `session/procedure-blueprints`, all cut from `origin/main`.
+- **L5** (2026-11-19) User: "Sí, yo la agregaría al slide 6, a la sesión nueva". T6 (console stepper) moves into this session as wave D, after T5, route inline. T4 (direct write channel) and T7 (video ledger migration) of the write-policy tracker stay out of scope.
+- **L6** (2026-11-19) Wave A written. T1 fold decisions (writer, accepted): no `now` argument (options object `{defRev, lockFree, currentRevs}`); pinned `def_rev` passed by the caller; crash needs `lockFree`; the fold never completes a run by itself (`canComplete`), `procedure_record` appends `completed`; a failed step makes the run `blocked` until a `failed` event; container Work is not a step, so several root procedures report `MULTIPLE_STARTS`; staleness is one level deep. T2 kept the console draft export as add_element + set_fields (valid; the single-change form can follow in T6). All three slices bump nn-mcp to 0.43.0: each later landing rebases and re-bumps. Local verify:fast in this worktree fails only on environment (no `skills/nn-sources/node_modules`, untracked `.atl/skill-registry.md`).

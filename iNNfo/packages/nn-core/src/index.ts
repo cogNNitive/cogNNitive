@@ -96,7 +96,12 @@ export type {
 
 export { parseAddress, formatAddress, isAddressError } from './address/index.js'
 export type { Address, AddressError, AddressErrorCode, ModelId, Unit } from './address/index.js'
-export { buildDomainIndex, fileLocalDiagnostics, placementForDeclarations, versionSkew } from './domain/index.js'
+export {
+  buildDomainIndex,
+  fileLocalDiagnostics,
+  placementForDeclarations,
+  versionSkew,
+} from './domain/index.js'
 export type {
   AddressResolution,
   CollectionMember,
@@ -118,7 +123,14 @@ export {
   extractHeadings,
   resolveHeadingSection,
 } from './sourceRef.js'
-export type { Citation, CitationResult, UnitPathResult, SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
+export type {
+  Citation,
+  CitationResult,
+  UnitPathResult,
+  SourceRef,
+  HeadingInfo,
+  ResolvedHeadingSection,
+} from './sourceRef.js'
 export { serializeKnowledgeUnitRef, slugifyUnitHeading, normalizeName } from './sourceRef.js'
 export type { KnowledgeUnit, HeaderUnit, RowUnit, PointerUnit } from './sourceRef.js'
 export { unitLabel } from './sourceRef.js'
@@ -144,7 +156,11 @@ export * from './metamodel.js'
 export * from './recursiveParser/index.js'
 export * from './fs-types.js'
 export { OWNERSHIP_MARKER, reconcileManifest } from './workspace/reconcileManifest.js'
-export type { DiscoveredCatalog, DiscoveredModel, ManifestChange } from './workspace/reconcileManifest.js'
+export type {
+  DiscoveredCatalog,
+  DiscoveredModel,
+  ManifestChange,
+} from './workspace/reconcileManifest.js'
 export { CATALOG_KINDS, catalogKindOf, isReconcilableModel } from './workspace/discoverModels.js'
 export type { CandidateFile, CatalogKind } from './workspace/discoverModels.js'
 export {
@@ -219,4 +235,5 @@ export * from './cognitivize/index.js'
 export * from './changeset/index.js'
 export * from './scaffold/index.js'
 export * from './scope/index.js'
+export * from './procedure/index.js'
 export * from './sync/index.js'
