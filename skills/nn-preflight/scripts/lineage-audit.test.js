@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-preflight/scripts/upgrade-check.test.js
+ * skills/nn-preflight/scripts/lineage-audit.test.js
  *
- * Unit tests for upgrade-check.js. Zero external test framework dependencies
+ * Unit tests for lineage-audit.js. Zero external test framework dependencies
  * (runs with plain node), matching preflight-check.test.js.
  */
 
@@ -21,9 +21,9 @@ const {
   planUpgrade,
   isPlanFresh,
   describePlan,
-} = require('./upgrade-check');
+} = require('./lineage-audit');
 
-const script = path.join(__dirname, 'upgrade-check.js');
+const script = path.join(__dirname, 'lineage-audit.js');
 
 function runScriptAsync(args) {
   return new Promise((resolve) => {
@@ -71,7 +71,7 @@ function buildWorkspace() {
 }
 
 async function runTests() {
-  console.log('Running upgrade-check unit tests...');
+  console.log('Running lineage-audit unit tests...');
 
   // Test 1: gapKind + compareVersions
   {

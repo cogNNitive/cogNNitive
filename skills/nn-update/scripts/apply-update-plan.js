@@ -32,7 +32,7 @@
 const fs = require('fs');
 const path = require('path');
 const { backupWorkspace } = require('./backup-workspace');
-const upgrade = require('../../nn-preflight/scripts/upgrade-check');
+const upgrade = require('../../nn-preflight/scripts/lineage-audit');
 const core = require('./lib/nn-core.generated.cjs');
 
 /** The pinned version segment inside a blueprint url, if any. */
@@ -221,7 +221,4 @@ if (require.main === module) {
 module.exports = {
   applyUpdatePlan,
   reconcileContent,
-  // Deprecated aliases kept for one release.
-  applyUpgradePlan: applyUpdatePlan,
-  repinContent: reconcileContent,
 };

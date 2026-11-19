@@ -10,7 +10,7 @@ import {
 
 /**
  * Fixtures lifted verbatim from
- * `skills/nn-preflight/scripts/upgrade-check.test.js` so the ported
+ * `skills/nn-preflight/scripts/lineage-audit.test.js` so the ported
  * `nn-core` primitives keep provable parity with the CLI classifier.
  */
 const CATALOG: TemplateCatalog = {

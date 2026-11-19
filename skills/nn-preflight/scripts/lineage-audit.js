@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-preflight/scripts/upgrade-check.js
+ * skills/nn-preflight/scripts/lineage-audit.js
  *
  * Tier-3 workspace template upgrade detection for the cogNNitive ecosystem.
  * Read-only: it inspects a workspace, classifies every Level-3 model against the
@@ -20,7 +20,7 @@
  * informational and NEVER flip the preflight exit code to a blocker.
  *
  * CLI:
- *   node upgrade-check.js --workspace-dir <dir> --catalog-file <catalog.json> [--json]
+ *   node lineage-audit.js --workspace-dir <dir> --catalog-file <catalog.json> [--json]
  */
 
 const fs = require('fs');

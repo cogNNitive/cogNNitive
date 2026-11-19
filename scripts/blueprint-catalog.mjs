@@ -5,7 +5,7 @@
  *
  * Generates iNNfo/specs/bluepriNNts/catalog.json — the machine-readable Level-2
  * blueprint catalog consumed by the nn-preflight Tier-3 upgrade detection scan
- * (skills/nn-preflight/scripts/upgrade-check.js).
+ * (skills/nn-preflight/scripts/lineage-audit.js).
  *
  * Discovery rules:
  *   - Walks the bluepriNNts tree for level-2 documents only (skips samples/).
@@ -48,7 +48,7 @@ const SKIP_DIRS = new Set(['samples', 'node_modules', '.git', 'dist', '.spec-cac
 /**
  * Retired templates that are frozen byte-identical for legacy resolution but no
  * longer part of ACTIVE distribution. They are emitted under a top-level
- * `frozen` object and dropped from `blueprints` (so nn-preflight upgrade-check —
+ * `frozen` object and dropped from `blueprints` (so nn-preflight lineage-audit —
  * which reads only `catalog.blueprints` — gives them no upgrade notices).
  */
 const FROZEN_NAMES = ['workspace'];

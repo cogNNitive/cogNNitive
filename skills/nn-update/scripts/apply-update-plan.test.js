@@ -12,7 +12,7 @@ const os = require('os');
 const path = require('path');
 const assert = require('assert');
 const { applyUpdatePlan, reconcileContent } = require('./apply-update-plan');
-const upgrade = require('../../nn-preflight/scripts/upgrade-check');
+const upgrade = require('../../nn-preflight/scripts/lineage-audit');
 
 const CATALOG = {
   blueprints: {

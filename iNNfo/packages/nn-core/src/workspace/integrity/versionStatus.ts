@@ -2,7 +2,7 @@
  * Platform-neutral template-version classification primitives.
  *
  * Ported verbatim (behaviour-for-behaviour) from
- * `skills/nn-preflight/scripts/upgrade-check.js:37-215` so the whole
+ * `skills/nn-preflight/scripts/lineage-audit.js:37-215` so the whole
  * cogNNitive ecosystem - the preflight CLI and `nn-mcp` -
  * classifies template versions through ONE implementation with no private copy.
  *
@@ -19,7 +19,7 @@ export interface SemVerTriple {
 /**
  * The five published classification values kept in exact parity with the
  * preflight CLI, plus the additive `unknown` — reachable ONLY when the catalog
- * is offline (`catalog === null`). `upgrade-check.js` skips its scan entirely
+ * is offline (`catalog === null`). `lineage-audit.js` skips its scan entirely
  * when the catalog is unreachable, so the CLI can never emit `unknown`.
  */
 export type VersionStatus =
@@ -145,7 +145,7 @@ export function parseUnversionedBlueprintName(url: string): string | null {
 /**
  * Classify a Level-3 model's pinned template URL against the resolved catalog.
  *
- * Mirrors the `scanWorkspaceUpgrades` decision tree in `upgrade-check.js`
+ * Mirrors the `scanWorkspaceUpgrades` decision tree in `lineage-audit.js`
  * exactly for the five published statuses. `catalog === null` (offline) short
  * circuits to `unknown` with `gap: 'none'` — informational `template` / `pinned`
  * fields are still parsed from the URL when possible.
