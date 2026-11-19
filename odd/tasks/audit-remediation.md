@@ -80,3 +80,11 @@ Dropped from the audit after verification (evidence, not opinion):
   rejects them anywhere else in engine code. p-video/avatar lists 720p only, on purpose: the
   `avatar_resolution` select is 480p/720p/768p, so 1080p is unreachable from a model and
   advertising it would offer a value the schema refuses.
+- **L6** (format gate, follow-up to #735): the format check only started running when
+  #735 removed the swallow, and the repo is not prettier-formatted, so any PR that touches
+  an old file was blamed for its debt. Generated artifacts (`catalog.json`,
+  `**/*.generated.json`) are now in `.prettierignore`: `npm run regen` owns their bytes and
+  `check:regen` fails when they differ from its output, so prettier would fight it. A
+  hand-written file a PR touches is formatted in its own commit, and churn stays out of the
+  fix. The repo-wide debt is still there; paying it is one `prettier --write` PR with no
+  other change in it.

@@ -16,7 +16,9 @@ const CONNTENT = read('bluepriNNts/coNNtent/spec_NN.md')
 /** The declarations the SHIPPED `coNNtent` bluepriNNt carries, not a test double. */
 const declared = ((): ReadonlyMap<string, ConceptStorage> => {
   const schema = extractBlueprintSchemaFromContent(CONNTENT)
-  return new Map<string, ConceptStorage>(schema.concepts.map((c) => [c.name, c.storage ?? { mode: 'compact' }]))
+  return new Map<string, ConceptStorage>(
+    schema.concepts.map((c) => [c.name, c.storage ?? { mode: 'compact' }]),
+  )
 })()
 
 const storageOf = (concept: string): ConceptStorage | undefined => declared.get(concept)
@@ -32,7 +34,10 @@ function model(
 ): DomainModelInput {
   return {
     path,
-    frontmatter: { level: 3, parent_spec: { name: pin, url: 'specs/bluepriNNts/coNNtent/spec_NN.md' } },
+    frontmatter: {
+      level: 3,
+      parent_spec: { name: pin, url: 'specs/bluepriNNts/coNNtent/spec_NN.md' },
+    },
     elements: elements.map(([concept, slug]) => ({ concept, slug })),
   }
 }
@@ -44,7 +49,12 @@ const episodeModel = (
   slug: string,
   extra: ReadonlyArray<[string, string]> = [],
   pin?: string,
-) => model(`series/${series}/episodes/${slug}/${slug}_coNNtent_NN.md`, [['Video', slug], ...extra], pin)
+) =>
+  model(
+    `series/${series}/episodes/${slug}/${slug}_coNNtent_NN.md`,
+    [['Video', slug], ...extra],
+    pin,
+  )
 
 const codesOf = (...inputs: DomainModelInput[]) =>
   buildDomainIndex(inputs, resolver).diagnostics.map((d) => d.code)
@@ -93,17 +103,26 @@ describe('episodes follow the declared placement (placement-validation)', () => 
   })
 
   it('reports PLACEMENT_MISMATCH for an episode under kNNowledge/', () => {
-    const misplaced = model('kNNowledge/pepper-mapache_coNNtent_NN.md', [['Video', 'pepper-mapache']])
+    const misplaced = model('kNNowledge/pepper-mapache_coNNtent_NN.md', [
+      ['Video', 'pepper-mapache'],
+    ])
     const [finding] = buildDomainIndex([misplaced], resolver).diagnostics
     expect(finding.code).toBe('PLACEMENT_MISMATCH')
     expect(finding.severity).toBe('error')
-    expect(finding.message).toContain('Video instances live at series/{slug}/episodes/pepper-mapache/')
+    expect(finding.message).toContain(
+      'Video instances live at series/{slug}/episodes/pepper-mapache/',
+    )
   })
 
   it('reports double storage when the same Video is also a registry element', () => {
     const instance = episodeModel('villabotijos-today', 'pepper-mapache')
-    const registry = model('kNNowledge/VillabotijosToday_coNNtent_NN.md', [['Video', 'pepper-mapache']])
-    const [finding] = buildDomainIndex([seriesModel('villabotijos-today'), instance, registry], resolver).diagnostics
+    const registry = model('kNNowledge/VillabotijosToday_coNNtent_NN.md', [
+      ['Video', 'pepper-mapache'],
+    ])
+    const [finding] = buildDomainIndex(
+      [seriesModel('villabotijos-today'), instance, registry],
+      resolver,
+    ).diagnostics
     expect(finding.code).toBe('DISTRIBUTED_CONCEPT_IN_COMPACT_MODEL')
     expect(finding.paths).toEqual([registry.path, instance.path])
     expect(finding.message).toContain(`also stored as instance model ${instance.path}`)
@@ -150,7 +169,10 @@ describe('Scenes and Layers are elements, not models (coNNtent-model)', () => {
       ['Video', 'intro'],
       ['Video', 'outro'],
     ])
-    const [finding] = buildDomainIndex([seriesModel('villabotijos-today'), two], resolver).diagnostics
+    const [finding] = buildDomainIndex(
+      [seriesModel('villabotijos-today'), two],
+      resolver,
+    ).diagnostics
     expect(finding.code).toBe('DISTRIBUTED_CONCEPT_IN_COMPACT_MODEL')
     expect(finding.message).toContain('holds 2 Video elements (intro, outro)')
     expect(finding.meta).toMatchObject({ concept: 'Video', slugs: ['intro', 'outro'] })
@@ -218,7 +240,11 @@ describe('changes regression (changes-collection)', () => {
     const parsed = parseChangeset(changeset)
     expect(`${batch}#${parsed.changes[0].id}`).toBe('testlab_lucas_20261012T173127Z#c-01')
     const path = `changes/${batch}_changes_NN.md`
-    expect(roleOf({ path: 'batch_changes_NN.md', parentSpecName: 'changes_V_0-7-0' })).toBe('changeset')
-    expect(buildDomainIndex([model(path, [['Change', 'c-01']], 'changes_V_0-7-0')], resolver).models).toEqual([])
+    expect(roleOf({ path: 'batch_changes_NN.md', parentSpecName: 'changes_V_0-7-0' })).toBe(
+      'changeset',
+    )
+    expect(
+      buildDomainIndex([model(path, [['Change', 'c-01']], 'changes_V_0-7-0')], resolver).models,
+    ).toEqual([])
   })
 })
