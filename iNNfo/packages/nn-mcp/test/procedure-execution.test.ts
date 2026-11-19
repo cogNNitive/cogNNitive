@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
 import { mkdir, writeFile, readFile, readdir, rm, copyFile } from 'node:fs/promises'
 import { applyChange } from '../src/tools/apply-change.js'
+import { validateProposal } from '../src/tools/propose-changeset.js'
 
 /**
  * A run of a procedure recorded with the canonical `executions` bluepriNNt: a
@@ -135,5 +136,56 @@ describe('a procedure run is an append-only record', () => {
     const late = await apply(addEvent(2))
     expect(late.errors?.map((e) => e.code)).toContain('MODEL_CLOSED')
     expect(await readFile(await runFile(), 'utf-8')).toBe(text)
+  })
+})
+
+/* ── a closed run is a citable record ───────────────────────────────────────── */
+
+const CREATE_SECOND = CREATE_RUN.replace('c-01', 'c-20').replace('onboard-acme', 'kpi-run').replace('Onboard ACME', 'KPI Run')
+
+/** A change on the second run whose evidence cites the first one. */
+const citing = (evidence: string) =>
+  change('c-21', 'op:: update_field\ntarget:: kpi-run@KPI Run&params\nto:: {"source": "onboard-acme"}\n').replace(
+    'evidence:: decision',
+    `evidence:: ${evidence}`,
+  )
+
+describe('a model is citable as evidence only once it is closed', () => {
+  it('refuses citing a run that is still open', async () => {
+    await apply(CREATE_RUN)
+    await event(1, 'started')
+    await apply(CREATE_SECOND)
+    const res = await apply(citing('onboard-acme@e-001'))
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('CITATION_NOT_CLOSED')
+  })
+
+  it('accepts citing a closed run and stamps its file hash', async () => {
+    await apply(CREATE_RUN)
+    await event(1, 'completed')
+    await apply(change('c-99', 'op:: close_model\ntarget:: onboard-acme\n'))
+    await apply(CREATE_SECOND)
+    const res = await apply(citing('onboard-acme@e-001'))
+    expect(res.errors ?? []).toEqual([])
+    expect(res.success).toBe(true)
+    const recorded = await readFile(join(root, res.changesetPath!), 'utf-8')
+    expect(recorded).toMatch(/evidence_sha256/)
+  })
+
+  it('refuses citing an element the closed run does not hold', async () => {
+    await apply(CREATE_RUN)
+    await apply(change('c-99', 'op:: close_model\ntarget:: onboard-acme\n'))
+    await apply(CREATE_SECOND)
+    const res = await apply(citing('onboard-acme@e-404'))
+    expect(res.errors?.map((e) => e.code)).toContain('CITATION_UNRESOLVED')
+  })
+
+  it('propose_changeset applies the same rule', async () => {
+    await apply(CREATE_RUN)
+    await event(1, 'started')
+    const errors = await validateProposal(root, [
+      { id: 'c-01', op: 'update_field', target: 'onboard-acme@Onboard ACME&params', to: '{}', evidence: 'onboard-acme@e-001' },
+    ])
+    expect(errors.map((e) => e.code)).toContain('CITATION_NOT_CLOSED')
   })
 })

@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, join, resolve } from 'node:path'
 import {
+  parseCitation,
   ENTRYPOINT_FILENAME,
   computeProposalSha,
   verifyProposalSha,
@@ -31,6 +32,8 @@ import { canonicalizeTarget, modelIdAliases, modelIdOfTarget } from './model-id.
 import { artifactTargetProblem } from './produce-artifact.js'
 import { buildNextSteps, regenerateConsole, type ConsoleOutcome, type NextSteps, type RegenerateOptions } from './console-regeneration.js'
 import { findDanglingReferrers, findDanglingReferrersForRemoval } from './move-referrers.js'
+import { buildNodeDomainIndex } from './domain-index.js'
+import { resolveModelCitation } from './model-citation.js'
 
 /**
  * The single writer of proposed changesets. Every code path that leaves a sealed
@@ -401,6 +404,7 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
   // The changeset will live in `changes/`, so relative anchors resolve from there.
   const citationResolver = createFsSourceResolver(rootDir)
   const futureChangesetPath = join(rootDir, 'changes', 'proposal_changes_NN.md')
+  let citationIndex: Awaited<ReturnType<typeof buildNodeDomainIndex>> | null = null
   for (const [index, change] of operations.entries()) {
     if (!change.evidence) continue
     // `decision` and `unknown` are not citations: accepted without resolution, and
@@ -419,6 +423,20 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
     if (items.length === 0) continue
     if (items.length === 1 && (items[0] === 'decision' || items[0] === 'unknown')) continue
     for (const item of items) {
+      // A model is citable only once closed (the same rule apply_change enforces).
+      const ref = parseCitation(item)
+      if (ref?.kind === 'model') {
+        citationIndex ??= await buildNodeDomainIndex(rootDir)
+        const cited = await resolveModelCitation(citationIndex, ref.filePath, ref.slug)
+        if (!cited.ok) {
+          errors.push({
+            path: `operations[${index}].evidence`,
+            code: cited.code,
+            message: `${cited.code}: operations[${index}] cites "${item}", ${cited.detail}`,
+          })
+        }
+        continue
+      }
       const resolved = resolveCitation(item, 'evidence', citationResolver, futureChangesetPath)
       if (!resolved.exists || resolved.error === 'UNKNOWN_ANCHOR' || resolved.error === 'MALFORMED') {
         errors.push({

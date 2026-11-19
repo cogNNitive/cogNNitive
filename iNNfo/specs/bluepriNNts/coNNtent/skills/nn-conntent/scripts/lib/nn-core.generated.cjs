@@ -10271,7 +10271,7 @@ function compareDottedVersions(a, b) {
   return 0;
 }
 async function matchSpecPath(reqParsed, filePath) {
-  const { readFile: readFile10 } = await import("node:fs/promises");
+  const { readFile: readFile11 } = await import("node:fs/promises");
   const { basename: basename9 } = await import("node:path");
   const fileParsed = parseSpecName(basename9(filePath));
   if (fileParsed.base !== reqParsed.base)
@@ -10281,7 +10281,7 @@ async function matchSpecPath(reqParsed, filePath) {
   if (fileParsed.version)
     return fileParsed.version === reqParsed.version;
   try {
-    const content = await readFile10(filePath, "utf-8");
+    const content = await readFile11(filePath, "utf-8");
     const fmVersion = versionFromFrontmatter(content);
     return fmVersion !== void 0 && fmVersion === reqParsed.version;
   } catch (err) {
@@ -10294,13 +10294,13 @@ async function matchSpecPath(reqParsed, filePath) {
 async function preferHighestVersion(matches) {
   if (matches.length === 0)
     return null;
-  const { readFile: readFile10 } = await import("node:fs/promises");
+  const { readFile: readFile11 } = await import("node:fs/promises");
   const { basename: basename9 } = await import("node:path");
   let best = matches[0];
   let bestVersion;
   for (const m of matches) {
     const nameVersion = parseSpecName(basename9(m)).version;
-    const v = nameVersion ?? versionFromFrontmatter(await readFile10(m, "utf-8").catch(() => ""));
+    const v = nameVersion ?? versionFromFrontmatter(await readFile11(m, "utf-8").catch(() => ""));
     if (!bestVersion && v) {
       best = m;
       bestVersion = v;
@@ -10372,7 +10372,7 @@ async function packageDirOf(rootDir, base) {
   }
 }
 async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
-  const { readdir: readdir6, readFile: readFile10 } = await import("node:fs/promises");
+  const { readdir: readdir6, readFile: readFile11 } = await import("node:fs/promises");
   const { join: join19 } = await import("node:path");
   const { homedir: homedir3 } = await import("node:os");
   const globalDir = options?.globalDir ?? process.env.INNFO_GLOBAL_DIR ?? join19(homedir3(), ".agents", "bluepriNNts");
@@ -10383,7 +10383,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
   const wsPackageBaseDir = await packageDirOf(rootDir, base);
   const unversionedSpecFile = await findSpecInPackageDir(wsPackageBaseDir, base);
   if (unversionedSpecFile && isDirectSpecEntryName(unversionedSpecFile, base)) {
-    const content = await readFile10(unversionedSpecFile, "utf-8").catch(() => "");
+    const content = await readFile11(unversionedSpecFile, "utf-8").catch(() => "");
     const fmVersion = versionFromFrontmatter(content);
     const bpVersion = blueprintVersionFromFrontmatter(content);
     return {
@@ -10441,7 +10441,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
   for (const dir of flatSearchDirs) {
     const matchFile = await findLocalSpec(dir, reqName);
     if (matchFile) {
-      const content = await readFile10(matchFile, "utf-8").catch(() => "");
+      const content = await readFile11(matchFile, "utf-8").catch(() => "");
       const v = targetVersion || versionFromFrontmatter(content) || "0.1.0";
       return {
         name: base,
@@ -10493,7 +10493,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
     } else if (verDirs.length === 0) {
       const specFile = await findSpecInPackageDir(globalBaseDir, base);
       if (specFile) {
-        const specContent = await readFile10(specFile, "utf-8").catch(() => "");
+        const specContent = await readFile11(specFile, "utf-8").catch(() => "");
         const fmVersion = versionFromFrontmatter(specContent);
         const bpVersion = blueprintVersionFromFrontmatter(specContent);
         if (!targetVersion || fmVersion === targetVersion || bpVersion === targetVersion) {
@@ -10511,7 +10511,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
   } catch {
     const matchFile = await findLocalSpec(globalDir, reqName);
     if (matchFile) {
-      const content = await readFile10(matchFile, "utf-8").catch(() => "");
+      const content = await readFile11(matchFile, "utf-8").catch(() => "");
       const v = targetVersion || versionFromFrontmatter(content) || "0.1.0";
       return {
         name: base,
@@ -10568,7 +10568,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
       } catch {
         const matchFile = await findLocalSpec(join19(skillsDir, skillName, "bluepriNNts"), reqName) || await findLocalSpec(join19(skillsDir, skillName), reqName);
         if (matchFile) {
-          const content = await readFile10(matchFile, "utf-8").catch(() => "");
+          const content = await readFile11(matchFile, "utf-8").catch(() => "");
           const v = targetVersion || versionFromFrontmatter(content) || "0.1.0";
           return {
             name: base,
@@ -22808,60 +22808,16 @@ function serializeChangeset(doc) {
 }
 
 // iNNfo/packages/nn-mcp/src/tools/apply-change.ts
-var import_promises11 = require("node:fs/promises");
+var import_promises12 = require("node:fs/promises");
 var import_node_crypto4 = require("node:crypto");
 var import_node_path20 = require("node:path");
 init_dist();
 init_spec();
 init_domain_index();
 
-// iNNfo/packages/nn-mcp/src/tools/model-id.ts
-init_dist();
-function modelIdAliases(changes) {
-  const aliases = /* @__PURE__ */ new Map();
-  const created = [];
-  for (const change of changes) {
-    if (change.op !== "add_model" || !change.target || !change.blueprint_name) continue;
-    if (change.concept !== void 0 && change.concept.trim() !== "") continue;
-    const original = change.target.trim();
-    if (original.includes("/")) continue;
-    created.push({ original, canonical: canonicalModelId(original, change.blueprint_name) });
-  }
-  for (const { canonical } of created) aliases.set(canonical.toLowerCase(), canonical);
-  for (const { original, canonical } of created) {
-    if (!aliases.has(original.toLowerCase())) aliases.set(original.toLowerCase(), canonical);
-  }
-  return aliases;
-}
-function modelIdOfTarget(target) {
-  const at = target.indexOf("@");
-  return (at === -1 ? target : target.slice(0, at)).trim();
-}
-function canonicalizeTarget(target, aliases) {
-  const modelId = modelIdOfTarget(target);
-  const canonical = aliases.get(modelId.toLowerCase());
-  if (!canonical || canonical === modelId) return target;
-  const at = target.indexOf("@");
-  return at === -1 ? canonical : `${canonical}${target.slice(at)}`;
-}
-
-// iNNfo/packages/nn-mcp/src/tools/produce-artifact.ts
+// iNNfo/packages/nn-mcp/src/tools/model-citation.ts
 var import_promises7 = require("node:fs/promises");
-var import_node_path17 = require("node:path");
-async function artifactTargetProblem(rootDir, rel) {
-  const info = await (0, import_promises7.stat)((0, import_node_path17.join)(rootDir, rel)).catch(() => null);
-  if (info?.isFile()) return null;
-  if (info?.isDirectory()) {
-    return {
-      code: "ARTIFACT_NOT_A_FILE",
-      message: `"${rel}" is a directory; produce_artifact records one file. Record each file of the folder with its own produce_artifact, or record a manifest file inside it.`
-    };
-  }
-  return {
-    code: "ARTIFACT_NOT_FOUND",
-    message: `"${rel}" does not exist in this domain. produce_artifact records a file that is already written inside the domain, addressed by its path relative to the domain root; no artifact registry or bluepriNNt declaration is involved. Write the file first (into this domain, not another one), then propose produce_artifact with that relative path.`
-  };
-}
+init_dist();
 
 // iNNfo/packages/nn-mcp/src/tools/change-args.ts
 init_dist();
@@ -23025,8 +22981,79 @@ function mutationArgsForChange(change, model, schema) {
   return { target: change.target, value: change.to, to: change.to };
 }
 
+// iNNfo/packages/nn-mcp/src/tools/model-citation.ts
+async function resolveModelCitation(index, modelId, elementSlug) {
+  const path = index.pathOf(modelId);
+  if (!path) return { ok: false, code: "CITATION_UNRESOLVED", detail: `which does not resolve (MODEL_NOT_FOUND)` };
+  let model;
+  try {
+    model = parseKnowledge2(await (0, import_promises7.readFile)(path, "utf-8"));
+  } catch {
+    return { ok: false, code: "CITATION_UNRESOLVED", detail: "which does not resolve (UNREADABLE)" };
+  }
+  if (elementSlug && !findElementInModel(model, void 0, elementSlug)) {
+    return { ok: false, code: "CITATION_UNRESOLVED", detail: "which does not resolve (UNKNOWN_ANCHOR)" };
+  }
+  if (!isModelClosed(model.frontmatter)) {
+    return {
+      ok: false,
+      code: "CITATION_NOT_CLOSED",
+      detail: `but model "${modelId}" has no closing event; only a closed model (close_model) is a citable record`
+    };
+  }
+  return { ok: true, path };
+}
+
+// iNNfo/packages/nn-mcp/src/tools/model-id.ts
+init_dist();
+function modelIdAliases(changes) {
+  const aliases = /* @__PURE__ */ new Map();
+  const created = [];
+  for (const change of changes) {
+    if (change.op !== "add_model" || !change.target || !change.blueprint_name) continue;
+    if (change.concept !== void 0 && change.concept.trim() !== "") continue;
+    const original = change.target.trim();
+    if (original.includes("/")) continue;
+    created.push({ original, canonical: canonicalModelId(original, change.blueprint_name) });
+  }
+  for (const { canonical } of created) aliases.set(canonical.toLowerCase(), canonical);
+  for (const { original, canonical } of created) {
+    if (!aliases.has(original.toLowerCase())) aliases.set(original.toLowerCase(), canonical);
+  }
+  return aliases;
+}
+function modelIdOfTarget(target) {
+  const at = target.indexOf("@");
+  return (at === -1 ? target : target.slice(0, at)).trim();
+}
+function canonicalizeTarget(target, aliases) {
+  const modelId = modelIdOfTarget(target);
+  const canonical = aliases.get(modelId.toLowerCase());
+  if (!canonical || canonical === modelId) return target;
+  const at = target.indexOf("@");
+  return at === -1 ? canonical : `${canonical}${target.slice(at)}`;
+}
+
+// iNNfo/packages/nn-mcp/src/tools/produce-artifact.ts
+var import_promises8 = require("node:fs/promises");
+var import_node_path17 = require("node:path");
+async function artifactTargetProblem(rootDir, rel) {
+  const info = await (0, import_promises8.stat)((0, import_node_path17.join)(rootDir, rel)).catch(() => null);
+  if (info?.isFile()) return null;
+  if (info?.isDirectory()) {
+    return {
+      code: "ARTIFACT_NOT_A_FILE",
+      message: `"${rel}" is a directory; produce_artifact records one file. Record each file of the folder with its own produce_artifact, or record a manifest file inside it.`
+    };
+  }
+  return {
+    code: "ARTIFACT_NOT_FOUND",
+    message: `"${rel}" does not exist in this domain. produce_artifact records a file that is already written inside the domain, addressed by its path relative to the domain root; no artifact registry or bluepriNNt declaration is involved. Write the file first (into this domain, not another one), then propose produce_artifact with that relative path.`
+  };
+}
+
 // iNNfo/packages/nn-mcp/src/tools/propose-changeset.ts
-var import_promises9 = require("node:fs/promises");
+var import_promises10 = require("node:fs/promises");
 var import_node_path19 = require("node:path");
 init_dist();
 init_spec();
@@ -23039,7 +23066,7 @@ init_dist();
 init_domain_index();
 
 // iNNfo/packages/nn-mcp/src/tools/move-referrers.ts
-var import_promises8 = require("node:fs/promises");
+var import_promises9 = require("node:fs/promises");
 var import_node_path18 = require("node:path");
 init_dist();
 init_domain_index();
@@ -23104,7 +23131,7 @@ async function scanAddressingReferences(rootDir, id, exclude) {
     if (!modelId) continue;
     let parsed;
     try {
-      parsed = parseKnowledge2(await (0, import_promises8.readFile)(model.path, "utf-8"));
+      parsed = parseKnowledge2(await (0, import_promises9.readFile)(model.path, "utf-8"));
     } catch {
       continue;
     }
@@ -23127,6 +23154,7 @@ function clearedBy(hit, id, retargets) {
 }
 
 // iNNfo/packages/nn-mcp/src/tools/propose-changeset.ts
+init_domain_index();
 var CHANGES_SPEC_URL = "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md";
 var CHANGESET_SPEC_VERSION = "V_0-4-0";
 function changesBlueprintVersion() {
@@ -23138,7 +23166,7 @@ function fileSegment(value, fallback) {
 }
 async function resolveWorkspaceId(rootDir) {
   try {
-    const manifest = await (0, import_promises9.readFile)((0, import_node_path19.join)(rootDir, ENTRYPOINT_FILENAME2), "utf-8");
+    const manifest = await (0, import_promises10.readFile)((0, import_node_path19.join)(rootDir, ENTRYPOINT_FILENAME2), "utf-8");
     const frontmatter = parseFrontmatter2(manifest) ?? {};
     const declared2 = frontmatter["workspace_id"];
     if (typeof declared2 === "string" && declared2.trim() !== "") return declared2.trim();
@@ -23179,14 +23207,14 @@ async function writeProposedChangeset(rootDir, input) {
   const document = buildProposedChangeset(input.changes, { title: input.title, author, workspaceId });
   const text = serializeChangeset2(document);
   const changesDir = (0, import_node_path19.join)(rootDir, "changes");
-  await (0, import_promises9.mkdir)(changesDir, { recursive: true });
+  await (0, import_promises10.mkdir)(changesDir, { recursive: true });
   const base = input.now ?? /* @__PURE__ */ new Date();
   for (let attempt = 0; attempt < 60; attempt++) {
     const stamp = formatUtcStamp(new Date(base.getTime() + attempt * 1e3));
     const fileName = `${fileSegment(workspaceId, "domain")}_${fileSegment(author, "agent")}_${stamp}_changes_NN.md`;
     const absolutePath = (0, import_node_path19.join)(changesDir, fileName);
     try {
-      await (0, import_promises9.writeFile)(absolutePath, text, { encoding: "utf-8", flag: "wx" });
+      await (0, import_promises10.writeFile)(absolutePath, text, { encoding: "utf-8", flag: "wx" });
       return { path: `changes/${fileName}`, absolutePath, document };
     } catch (err) {
       if (err?.code !== "EEXIST") throw err;
@@ -23199,7 +23227,7 @@ async function writeProposedChangeset(rootDir, input) {
 init_path_guard();
 
 // iNNfo/packages/nn-mcp/src/tools/knowledge-io.ts
-var import_promises10 = require("node:fs/promises");
+var import_promises11 = require("node:fs/promises");
 init_dist();
 init_spec();
 async function resolveBlueprintForKnowledge(rootDir, model) {
@@ -23211,7 +23239,7 @@ async function resolveBlueprintForKnowledge(rootDir, model) {
   return { template: null, resolveInclude: () => null };
 }
 async function loadKnowledge(filePath) {
-  const content = await (0, import_promises10.readFile)(filePath, "utf-8");
+  const content = await (0, import_promises11.readFile)(filePath, "utf-8");
   return parseKnowledge2(content);
 }
 
@@ -23272,7 +23300,7 @@ function computeNewVersion(current, args) {
 }
 async function findAllWorkspaceModelFiles(dir, ignore, rootDir) {
   const results = [];
-  const entries = await (0, import_promises11.readdir)(dir, { withFileTypes: true }).catch(() => []);
+  const entries = await (0, import_promises12.readdir)(dir, { withFileTypes: true }).catch(() => []);
   for (const entry of entries) {
     if (entry.isDirectory()) {
       const lowerDir = entry.name.toLowerCase();
@@ -23289,7 +23317,7 @@ async function findAllWorkspaceModelFiles(dir, ignore, rootDir) {
   return results;
 }
 async function writeAndSync(filePath, data) {
-  const handle = await (0, import_promises11.open)(filePath, "w");
+  const handle = await (0, import_promises12.open)(filePath, "w");
   try {
     await handle.writeFile(data, "utf-8");
     await handle.sync();
@@ -23302,7 +23330,7 @@ async function persistAtomic(stagingPath, livePath) {
   let attempt = 0;
   while (true) {
     try {
-      await (0, import_promises11.rename)(stagingPath, livePath);
+      await (0, import_promises12.rename)(stagingPath, livePath);
       return;
     } catch (err) {
       const isLockError = err.code === "EPERM" || err.code === "EBUSY" || err.code === "EACCES";
@@ -23311,7 +23339,7 @@ async function persistAtomic(stagingPath, livePath) {
         await new Promise((r) => setTimeout(r, attempt * 25));
         continue;
       }
-      await (0, import_promises11.rm)(stagingPath, { force: true }).catch(() => {
+      await (0, import_promises12.rm)(stagingPath, { force: true }).catch(() => {
       });
       throw err;
     }
@@ -23410,7 +23438,7 @@ async function artifactAlreadyRecorded(rootDir, rel) {
   const dir = (0, import_node_path20.join)(rootDir, "changes");
   let names;
   try {
-    names = await (0, import_promises11.readdir)(dir);
+    names = await (0, import_promises12.readdir)(dir);
   } catch {
     return false;
   }
@@ -23418,7 +23446,7 @@ async function artifactAlreadyRecorded(rootDir, rel) {
     if (!isNNName2(name)) continue;
     let doc;
     try {
-      doc = parseChangeset2(await (0, import_promises11.readFile)((0, import_node_path20.join)(dir, name), "utf-8"));
+      doc = parseChangeset2(await (0, import_promises12.readFile)((0, import_node_path20.join)(dir, name), "utf-8"));
     } catch {
       continue;
     }
@@ -23497,16 +23525,17 @@ function resolvedTargetForChange(change, model, modelId) {
       return void 0;
   }
 }
-async function evidenceShas(rootDir, evidence) {
+async function evidenceShas(rootDir, evidence, modelFiles = /* @__PURE__ */ new Map()) {
   const items = splitEvidence2(evidence);
   if (items.length === 0) return void 0;
   const shas = [];
   for (const item of items) {
     const lower = item.toLowerCase();
     if (lower === "decision" || lower === "unknown") return void 0;
+    const modelFile = modelFiles.get(item);
     const filePath = evidencePath(item) ?? item;
     try {
-      const bytes = await (0, import_promises11.readFile)((0, import_node_path20.join)(rootDir, filePath));
+      const bytes = await (0, import_promises12.readFile)(modelFile ?? (0, import_node_path20.join)(rootDir, filePath));
       shas.push((0, import_node_crypto4.createHash)("sha256").update(bytes).digest("hex"));
     } catch {
       return void 0;
@@ -23517,7 +23546,7 @@ async function evidenceShas(rootDir, evidence) {
 async function latestAppliedAt(changesDir) {
   let names;
   try {
-    names = await (0, import_promises11.readdir)(changesDir);
+    names = await (0, import_promises12.readdir)(changesDir);
   } catch {
     return void 0;
   }
@@ -23526,7 +23555,7 @@ async function latestAppliedAt(changesDir) {
     if (!isNNName2(name)) continue;
     let doc;
     try {
-      doc = parseChangeset2(await (0, import_promises11.readFile)((0, import_node_path20.join)(changesDir, name), "utf-8"));
+      doc = parseChangeset2(await (0, import_promises12.readFile)((0, import_node_path20.join)(changesDir, name), "utf-8"));
     } catch {
       continue;
     }
@@ -23557,7 +23586,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
   try {
     let rawChangeset;
     try {
-      rawChangeset = await (0, import_promises11.readFile)(resolvedChangesetPath, "utf-8");
+      rawChangeset = await (0, import_promises12.readFile)(resolvedChangesetPath, "utf-8");
     } catch (err) {
       return {
         success: false,
@@ -23601,7 +23630,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         }
         const text = writeBack(fresh);
         if (!altersNormativeLines(rawChangeset, text)) {
-          await (0, import_promises11.writeFile)(resolvedChangesetPath, text, "utf-8");
+          await (0, import_promises12.writeFile)(resolvedChangesetPath, text, "utf-8");
         }
       } catch (err) {
         if (persist) console.warn(`[apply-change] Could not persist the rejection of ${relChangesetPath}: ${err}`);
@@ -23699,7 +23728,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
           break;
         }
         try {
-          const liveRaw = await (0, import_promises11.readFile)(modelFile, "utf-8");
+          const liveRaw = await (0, import_promises12.readFile)(modelFile, "utf-8");
           const liveModel = parseKnowledge2(liveRaw);
           const liveVersion = String(
             liveModel.frontmatter.knowledge_version ?? liveModel.frontmatter.blueprint_version ?? ""
@@ -23737,6 +23766,8 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       }
     }
     const citationResolver = createFsSourceResolver(rootDir);
+    const citedModelFiles = /* @__PURE__ */ new Map();
+    let citationIndex = null;
     for (const change of csDoc.changes) {
       if (change.op === "review_gate") continue;
       if (!change.evidence) {
@@ -23773,6 +23804,27 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       }
       for (const item of evidenceItems) {
         if (item === "decision" || item === "unknown") continue;
+        const ref = parseCitation2(item);
+        if (ref?.kind === "model") {
+          citationIndex ??= await buildNodeDomainIndex(rootDir);
+          const cited = await resolveModelCitation(citationIndex, ref.filePath, ref.slug);
+          if (!cited.ok) {
+            return recordRejection(
+              [
+                {
+                  path: `changes.${change.id}.evidence`,
+                  message: `${cited.code}: change "${change.id}" cites "${item}", ${cited.detail}`,
+                  code: cited.code
+                }
+              ],
+              change.id,
+              void 0,
+              false
+            );
+          }
+          citedModelFiles.set(item, cited.path);
+          continue;
+        }
         const resolved = resolveCitation(item, "evidence", citationResolver, resolvedChangesetPath);
         if (!resolved.exists || resolved.error === "UNKNOWN_ANCHOR" || resolved.error === "MALFORMED") {
           return recordRejection(
@@ -23993,8 +24045,8 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       if (!isInsideRoot(rootDir, path)) {
         return rejectProposal("EXTRACT_INVALID_TARGET", toId, `model id "${toId}" resolves outside the domain`, change.id);
       }
-      const occupiedById = domainIndex.byId(toId) !== void 0 || await (0, import_promises11.stat)(path).then((s) => s.isFile(), () => false);
-      const occupiedFolder = await (0, import_promises11.stat)((0, import_node_path20.dirname)(path)).then((s) => s.isDirectory(), () => false);
+      const occupiedById = domainIndex.byId(toId) !== void 0 || await (0, import_promises12.stat)(path).then((s) => s.isFile(), () => false);
+      const occupiedFolder = await (0, import_promises12.stat)((0, import_node_path20.dirname)(path)).then((s) => s.isDirectory(), () => false);
       if (occupiedById || occupiedFolder) {
         const where = occupiedById ? `instance "${toId}" already exists` : `"${(0, import_node_path20.relative)(rootDir, (0, import_node_path20.dirname)(path)).replace(/\\/g, "/")}/" already exists`;
         blockedChanges.set(change.id, {
@@ -24174,7 +24226,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         else throw err;
       }
       if (!exists && plan) {
-        exists = await (0, import_promises11.stat)(plan.path).then((s) => s.isFile(), () => false);
+        exists = await (0, import_promises12.stat)(plan.path).then((s) => s.isFile(), () => false);
       }
       if (exists) {
         existingAddModelIds.add(key);
@@ -24195,7 +24247,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       }
     }
     if (needsKnowledgeDir) {
-      const kDir = await (0, import_promises11.stat)((0, import_node_path20.join)(rootDir, "kNNowledge")).catch(() => null);
+      const kDir = await (0, import_promises12.stat)((0, import_node_path20.join)(rootDir, "kNNowledge")).catch(() => null);
       if (!kDir || !kDir.isDirectory()) {
         return rejectPhase1("DOMAIN_LAYOUT_INVALID", "kNNowledge", "the domain has no kNNowledge/ directory to create models in");
       }
@@ -24267,14 +24319,14 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       const fromDir = (0, import_node_path20.dirname)(fromPath);
       const toDir = (0, import_node_path20.dirname)(toPath);
       if (toDir !== fromDir) {
-        if (await (0, import_promises11.stat)(toDir).then(() => true, () => false)) {
+        if (await (0, import_promises12.stat)(toDir).then(() => true, () => false)) {
           return rejectPhase1(
             "MOVE_DESTINATION_OCCUPIED",
             toId,
             `moving "${fromId}" to "${toId}" would write into "${(0, import_node_path20.relative)(rootDir, toDir)}", which already exists`
           );
         }
-      } else if (toPath !== fromPath && await (0, import_promises11.stat)(toPath).then(() => true, () => false)) {
+      } else if (toPath !== fromPath && await (0, import_promises12.stat)(toPath).then(() => true, () => false)) {
         return rejectPhase1("MODEL_EXISTS", toId, `MODEL_EXISTS: "${toId}" already has a file`);
       }
       movePlans.set(change.id, {
@@ -24667,7 +24719,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
           ]
         };
       }
-      await (0, import_promises11.writeFile)(resolvedChangesetPath, serializedCs2, "utf-8");
+      await (0, import_promises12.writeFile)(resolvedChangesetPath, serializedCs2, "utf-8");
       return {
         success: false,
         changesetPath: relChangesetPath,
@@ -25036,7 +25088,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
     const modelsTransitionMap = {};
     for (const [, entry] of loadedModels) {
       if (!entry.created) continue;
-      if (await (0, import_promises11.stat)(entry.filePath).then(() => true, () => false)) {
+      if (await (0, import_promises12.stat)(entry.filePath).then(() => true, () => false)) {
         return rejectPhase1("MODEL_EXISTS", entry.modelSlug, `model "${entry.modelSlug}" appeared while the changeset was being applied`);
       }
     }
@@ -25047,7 +25099,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       const missing = [];
       let current = dir;
       for (; ; ) {
-        const present = await (0, import_promises11.stat)(current).then((s) => s.isDirectory(), () => false);
+        const present = await (0, import_promises12.stat)(current).then((s) => s.isDirectory(), () => false);
         if (present) break;
         missing.push(current);
         const parent = (0, import_node_path20.dirname)(current);
@@ -25055,14 +25107,14 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         current = parent;
       }
       for (const path of missing.reverse()) {
-        await (0, import_promises11.mkdir)(path);
+        await (0, import_promises12.mkdir)(path);
         createdDirectories.push(path);
       }
     };
     for (const [, entry] of loadedModels) {
       if ((entry.mutated || entry.removed) && !entry.created) {
         try {
-          const content = await (0, import_promises11.readFile)(entry.filePath, "utf-8");
+          const content = await (0, import_promises12.readFile)(entry.filePath, "utf-8");
           originalModelsBackup.set(entry.filePath, content);
         } catch {
         }
@@ -25074,9 +25126,9 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         const oldDir = (0, import_node_path20.dirname)(move.fromPath);
         const newDir = (0, import_node_path20.dirname)(move.toPath);
         try {
-          if (oldDir !== newDir) await (0, import_promises11.rename)(newDir, oldDir);
+          if (oldDir !== newDir) await (0, import_promises12.rename)(newDir, oldDir);
           const movedFile = oldDir === newDir ? move.toPath : (0, import_node_path20.join)(oldDir, (0, import_node_path20.basename)(move.toPath));
-          if (movedFile !== move.fromPath) await (0, import_promises11.rename)(movedFile, move.fromPath);
+          if (movedFile !== move.fromPath) await (0, import_promises12.rename)(movedFile, move.fromPath);
         } catch (rollbackErr) {
           console.warn(`[apply-change] Failed to reverse the move of "${move.fromPath}": ${rollbackErr}`);
         }
@@ -25084,9 +25136,9 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       for (const [, entry] of loadedModels) {
         if (!entry.created) continue;
         const stem = displayStem2((0, import_node_path20.basename)(entry.filePath));
-        await (0, import_promises11.rm)(entry.filePath, { force: true }).catch(() => {
+        await (0, import_promises12.rm)(entry.filePath, { force: true }).catch(() => {
         });
-        await (0, import_promises11.rm)((0, import_node_path20.join)((0, import_node_path20.dirname)(entry.filePath), `${stem}.tmp`), { force: true }).catch(() => {
+        await (0, import_promises12.rm)((0, import_node_path20.join)((0, import_node_path20.dirname)(entry.filePath), `${stem}.tmp`), { force: true }).catch(() => {
         });
       }
       for (const [filePath, originalText] of originalModelsBackup) {
@@ -25104,14 +25156,14 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         for (const filePath of [entry.filePath, entry.movedFrom, entry.plannedPath]) {
           if (!filePath) continue;
           const stem = displayStem2((0, import_node_path20.basename)(filePath));
-          await (0, import_promises11.rm)((0, import_node_path20.join)((0, import_node_path20.dirname)(filePath), `${stem}.tmp`), { force: true }).catch(() => {
+          await (0, import_promises12.rm)((0, import_node_path20.join)((0, import_node_path20.dirname)(filePath), `${stem}.tmp`), { force: true }).catch(() => {
           });
-          await (0, import_promises11.rm)((0, import_node_path20.join)((0, import_node_path20.dirname)(filePath), `${stem}.rollback.tmp`), { force: true }).catch(() => {
+          await (0, import_promises12.rm)((0, import_node_path20.join)((0, import_node_path20.dirname)(filePath), `${stem}.rollback.tmp`), { force: true }).catch(() => {
           });
         }
       }
       for (const path of [...createdDirectories].sort((a, b) => b.length - a.length)) {
-        await (0, import_promises11.rmdir)(path).catch(() => {
+        await (0, import_promises12.rmdir)(path).catch(() => {
         });
       }
     };
@@ -25124,10 +25176,10 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         const newDir = (0, import_node_path20.dirname)(plan.toPath);
         if (oldDir !== newDir) {
           await ensureDirectory((0, import_node_path20.dirname)(newDir));
-          await (0, import_promises11.rename)(oldDir, newDir);
+          await (0, import_promises12.rename)(oldDir, newDir);
         }
         const relocated = oldDir === newDir ? oldPath : (0, import_node_path20.join)(newDir, (0, import_node_path20.basename)(oldPath));
-        if (relocated !== plan.toPath) await (0, import_promises11.rename)(relocated, plan.toPath);
+        if (relocated !== plan.toPath) await (0, import_promises12.rename)(relocated, plan.toPath);
         performedMoves.push({ fromPath: oldPath, toPath: plan.toPath });
         entry.filePath = plan.toPath;
         entry.movedFrom = oldPath;
@@ -25147,14 +25199,14 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
       }
       for (const [, entry] of loadedModels) {
         if (!entry.removed) continue;
-        await (0, import_promises11.rm)(entry.filePath, { force: true });
+        await (0, import_promises12.rm)(entry.filePath, { force: true });
         persistedFiles.add(entry.filePath);
         const knowledgeRoot = (0, import_node_path20.join)(rootDir, "kNNowledge");
         let dir = (0, import_node_path20.dirname)(entry.filePath);
         while (dir !== rootDir && dir !== knowledgeRoot && isInsideRoot(rootDir, dir)) {
-          const left = await (0, import_promises11.readdir)(dir).catch(() => null);
+          const left = await (0, import_promises12.readdir)(dir).catch(() => null);
           if (!left || left.length > 0) break;
-          if (!await (0, import_promises11.rmdir)(dir).then(() => true, () => false)) break;
+          if (!await (0, import_promises12.rmdir)(dir).then(() => true, () => false)) break;
           dir = (0, import_node_path20.dirname)(dir);
         }
       }
@@ -25197,7 +25249,7 @@ async function executeChangesetApply(rootDir, changesetPathInput) {
         if (target) change.resolved_target = target;
         else delete change.resolved_target;
       }
-      const shas = await evidenceShas(rootDir, change.evidence);
+      const shas = await evidenceShas(rootDir, change.evidence, citedModelFiles);
       if (shas) {
         change.evidence_sha256 = shas;
         evidencePaths(change.evidence)?.forEach((path, i) => {
