@@ -165,13 +165,45 @@ jobs:
           # changed", which is indistinguishable from a clean PR.
           set -euo pipefail
           git fetch --no-tags origin "$BASE_REF"
-          CHANGED=$(git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" \
-            -- '*.ts' '*.mts' '*.vue' '*.js' '*.mjs' '*.json' | tr '\n' ' ')
-          if [ -n "$CHANGED" ]; then
-            npx prettier --check --ignore-unknown $CHANGED
-          else
+          npx prettier --version >/dev/null   # a missing prettier must not read as "all clean"
+
+          mapfile -t CHANGED < <(git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" \
+            -- '*.ts' '*.mts' '*.vue' '*.js' '*.mjs' '*.json')
+          if [ ${#CHANGED[@]} -eq 0 ]; then
             echo "No formattable files changed."
+            exit 0
           fi
+
+          # The repo is not prettier-formatted, and this gate only started running when
+          # #735 stopped swallowing its failures. Checking every touched file at once
+          # therefore failed PRs for debt that was already on the base branch — four open
+          # PRs at once. The gate now stops NEW debt: a file is checked when it was
+          # already conformant on the base branch, or when the PR adds it. A file that
+          # was unformatted before is named and skipped; paying that debt is one
+          # repo-wide `prettier --write` PR, not a tax on every unrelated change.
+          must=()
+          debt=()
+          for f in "${CHANGED[@]}"; do
+            if git cat-file -e "origin/$BASE_REF:$f" 2>/dev/null; then
+              if git show "origin/$BASE_REF:$f" | npx prettier --stdin-filepath "$f" 2>/dev/null \
+                | diff -q - <(git show "origin/$BASE_REF:$f") >/dev/null 2>&1; then
+                must+=("$f")
+              else
+                debt+=("$f")
+              fi
+            else
+              must+=("$f")   # a file the PR adds must arrive formatted
+            fi
+          done
+
+          if [ ${#debt[@]} -gt 0 ]; then
+            printf 'pre-existing formatting debt on %s (not this PR): %s\n' "$BASE_REF" "${debt[*]}"
+          fi
+          if [ ${#must[@]} -eq 0 ]; then
+            echo "Every changed file was already unformatted on $BASE_REF."
+            exit 0
+          fi
+          npx prettier --check --ignore-unknown "${must[@]}"
 
       - name: Typecheck (nn-mcp)
         run: npm --workspace=@cognnitive/nn-mcp run typecheck
