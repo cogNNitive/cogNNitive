@@ -53,6 +53,7 @@ import {
   writeOperationOf,
   writePolicyViolation,
   WRITE_POLICY_KEY,
+  isModelClosed,
 } from '@cognnitive/nn-core'
 import type {
   ScopeNode,
@@ -64,6 +65,7 @@ import type {
   ModelVersionTransition,
   ChangeStatus,
   BumpLevel,
+  ChangeOp,
 } from '@cognnitive/nn-core'
 import { findKnowledgeFile, resolveBlueprintWithCache, normalizeId, ModelIdError } from './spec.js'
 import { buildNodeDomainIndex, loadDeclarations } from './domain-index.js'
@@ -323,8 +325,59 @@ function altersNormativeLines(input: string, writeBack: string): boolean {
   return before.some((line, i) => line !== after[i])
 }
 
+/** The domaiNN scope chain above a path, for the write-policy cascade. */
+type WriteScopes = { ok: true; scopes: ScopeNode[] } | { ok: false; detail: string }
+
 /**
- * Preconditions of the model-level maintenance changes (`bump_version`, `freeze_slugs`):
+ * No domaiNN root means nothing at Level 3 can restrict the policy; any other chain
+ * failure fails closed, because a scope we cannot read might tighten it.
+ */
+function writeScopesAt(filePath: string): WriteScopes {
+  const found = findScopeChain(filePath)
+  if (!found.ok) {
+    if (found.code === 'NO_DOMAIN_ROOT') return { ok: true, scopes: [] }
+    return { ok: false, detail: found.code }
+  }
+  const loaded = loadChain(found.chain)
+  if (!loaded.ok) return { ok: false, detail: `${loaded.code}: ${loaded.path}` }
+  return { ok: true, scopes: [...loaded.loaded.nodes] }
+}
+
+const isEmptyValue = (value: unknown): boolean =>
+  value === undefined || value === null || (typeof value === 'string' && value.trim() === '') || (Array.isArray(value) && value.length === 0)
+
+/**
+ * True when an update only writes values the element does not have yet: the
+ * fields an `update_field` or `set_fields` sets are all empty, or the text an
+ * `update_element_text` sets is empty. Anything else (a rename, an overwrite) is
+ * a real update.
+ */
+function writesOnlyEmptyValues(change: ChangeItem, element: Record<string, any>): boolean {
+  const fields = (element.fields ?? {}) as Record<string, unknown>
+  if (change.op === 'update_field') {
+    const field = change.target.slice(change.target.lastIndexOf('&') + 1).trim()
+    return change.target.includes('&') && field !== '' && isEmptyValue(fields[field])
+  }
+  if (change.op === 'set_fields') {
+    let keys: string[]
+    try {
+      keys = Object.keys(JSON.parse(String(change.to ?? '')) as Record<string, unknown>)
+    } catch {
+      return false
+    }
+    return keys.length > 0 && keys.every((key) => isEmptyValue(fields[key]))
+  }
+  if (change.op === 'update_element_text') return isEmptyValue(element.description)
+  return false
+}
+
+/** The concepts that have at least one instance in a model. */
+function conceptsIn(model: ParsedKnowledge): string[] {
+  return [...model.elements.entries()].filter(([, list]) => list.length > 0).map(([concept]) => concept)
+}
+
+/**
+ * Preconditions of the model-level maintenance changes (`bump_version`, `freeze_slugs`, `close_model`):
  * they target a Level-3 kNNowledge model, never the unversioned lineage record, and a
  * bump names a valid level.
  */
@@ -1594,21 +1647,53 @@ export async function executeChangesetApply(
      * model). No domaiNN root means nothing at Level 3 can restrict the policy; any
      * other chain failure fails closed, because a scope we cannot read might tighten it.
      */
-    const writeScopesFor = (entry: LoadedModelEntry): { ok: true; scopes: ScopeNode[] } | { ok: false; detail: string } => {
+
+    const writeScopesFor = (entry: LoadedModelEntry): WriteScopes => {
       if (entry.writeScopes !== undefined) return { ok: true, scopes: entry.writeScopes }
-      const found = findScopeChain(entry.filePath)
-      if (!found.ok) {
-        if (found.code === 'NO_DOMAIN_ROOT') {
-          entry.writeScopes = []
-          return { ok: true, scopes: [] }
-        }
-        return { ok: false, detail: found.code }
-      }
-      const loaded = loadChain(found.chain)
-      if (!loaded.ok) return { ok: false, detail: `${loaded.code}: ${loaded.path}` }
-      entry.writeScopes = [...loaded.loaded.nodes]
-      return { ok: true, scopes: entry.writeScopes }
+      const result = writeScopesAt(entry.filePath)
+      if (result.ok) entry.writeScopes = result.scopes
+      return result
     }
+
+    /**
+     * Checks one change against the write policy of every concept it writes. An empty
+     * concept list still applies the bluepriNNt and domaiNN levels. Returns the
+     * rejection to send, or null when the change is allowed.
+     */
+    const writePolicyRejection = async (args: {
+      change: { id: string; op: ChangeOp; target: string }
+      concepts: string[]
+      schema: BlueprintSchema | undefined
+      blueprintPolicy: unknown
+      scopes: WriteScopes
+      modelSlug: string
+    }) => {
+      const { change, schema, scopes, modelSlug } = args
+      if (!scopes.ok) {
+        return rejectPhase1(
+          'WRITE_POLICY_UNRESOLVED',
+          change.target,
+          `change "${change.id}": the domaiNN scope chain of model "${modelSlug}" could not be read (${scopes.detail}), so its write policy cannot be resolved`,
+        )
+      }
+      const names = args.concepts.length > 0 ? [...new Set(args.concepts)] : ['']
+      for (const conceptName of names) {
+        const declared = conceptName
+          ? schema?.concepts.find((c) => c.name.toLowerCase() === conceptName.toLowerCase())
+          : undefined
+        const effective = resolveWritePolicy({
+          blueprint: args.blueprintPolicy,
+          concept: declared?.writePolicy,
+          scopes: scopes.scopes,
+        })
+        const violation = writePolicyViolation(effective.policy, change.op, declared?.name ?? (conceptName || modelSlug))
+        if (violation) {
+          return recordRejection([{ path: change.target, message: violation.message, code: violation.code }], change.id)
+        }
+      }
+      return null
+    }
+
 
     for (const change of csDoc.changes) {
       if (change.op === 'comment' || change.op === 'produce_artifact') continue
@@ -1645,6 +1730,20 @@ export async function executeChangesetApply(
             change.target,
             `change "${change.id}": bluepriNNt "${blueprintName}" does not compose: ${detail}`,
           )
+        }
+        // A distributed instance model is the addition of its root element.
+        if (plan?.root) {
+          const rejected = await writePolicyRejection({
+            change,
+            concepts: [plan.root.concept],
+            schema: composed.schema,
+            blueprintPolicy: (resolvedBlueprint.template.frontmatter as unknown as Record<string, unknown>)?.[
+              WRITE_POLICY_KEY
+            ],
+            scopes: writeScopesAt(plan.path),
+            modelSlug: cleanId,
+          })
+          if (rejected) return rejected
         }
         const content = scaffoldKnowledgeDocument({
           id: cleanId,
@@ -2033,6 +2132,37 @@ export async function executeChangesetApply(
       const entry = loadedModels.get(modelSlug.toLowerCase())
       if (!entry) continue
 
+      // A closed model accepts nothing after its closing event, whatever its write
+      // policy, including a second close.
+      if ((writeOperationOf(change.op) !== null || change.op === 'close_model') && isModelClosed(entry.model.frontmatter as Record<string, unknown>)) {
+        return recordRejection(
+          [
+            {
+              path: change.target,
+              message: `MODEL_CLOSED: model "${entry.modelSlug}" has a closing event; "${change.op}" cannot write to it`,
+              code: 'MODEL_CLOSED',
+            },
+          ],
+          change.id,
+        )
+      }
+
+      // Write policy on whole models: a removal removes every instance the model
+      // holds, a move updates their address, an extraction removes the element
+      // from this model.
+      if (change.op === 'move_model' || change.op === 'remove_model' || change.op === 'extract_instance') {
+        const extracted = change.op === 'extract_instance' ? extractPlans.get(change.id)?.concept : undefined
+        const rejected = await writePolicyRejection({
+          change,
+          concepts: change.op === 'extract_instance' ? (extracted ? [extracted] : []) : conceptsIn(entry.model),
+          schema: await schemaFor(entry),
+          blueprintPolicy: entry.blueprintWritePolicy,
+          scopes: writeScopesFor(entry),
+          modelSlug: entry.modelSlug,
+        })
+        if (rejected) return rejected
+      }
+
       // A move carries no element mutation: the slug rewrite (if any) ran at load,
       // and Phase 2 relocates the folder and file inside the atomic persist.
       if (change.op === 'move_model') {
@@ -2145,7 +2275,7 @@ export async function executeChangesetApply(
         continue
       }
 
-      if (change.op === 'bump_version' || change.op === 'freeze_slugs') {
+      if (change.op === 'bump_version' || change.op === 'freeze_slugs' || change.op === 'close_model') {
         const problem = maintenanceChangeProblem(change, entry.model, entry.created)
         if (problem) return rejectProposal(problem.code, change.target, `change "${change.id}": ${problem.message}`, change.id)
       }
@@ -2206,28 +2336,20 @@ export async function executeChangesetApply(
         const policySchema = renameSchema ?? (await schemaFor(entry))
         const elementIdent =
           String(mutationArgs.elementName ?? '') || parseTargetAddress(change.target).remainder.split('&')[0].trim()
-        const conceptName =
-          String(mutationArgs.conceptName ?? '') || findElementInModel(entry.model, undefined, elementIdent)?.concept || ''
-        const declared = conceptName
-          ? policySchema?.concepts.find((c) => c.name.toLowerCase() === conceptName.toLowerCase())
-          : undefined
-        const scopes = writeScopesFor(entry)
-        if (!scopes.ok) {
-          return rejectPhase1(
-            'WRITE_POLICY_UNRESOLVED',
-            change.target,
-            `change "${change.id}": the domaiNN scope chain of model "${entry.modelSlug}" could not be read (${scopes.detail}), so its write policy cannot be resolved`,
-          )
-        }
-        const effective = resolveWritePolicy({
-          blueprint: entry.blueprintWritePolicy,
-          concept: declared?.writePolicy,
-          scopes: scopes.scopes,
+        const found = findElementInModel(entry.model, String(mutationArgs.conceptName ?? '') || undefined, elementIdent)
+        const conceptName = String(mutationArgs.conceptName ?? '') || found?.concept || ''
+        // Filling a value that is still empty writes something new, so it is checked
+        // as an add: an append-only instance is written once, never overwritten.
+        const fillsEmpty = writeOperation === 'update' && found !== null && writesOnlyEmptyValues(change, found.element)
+        const rejected = await writePolicyRejection({
+          change: fillsEmpty ? { ...change, op: 'add_element' } : change,
+          concepts: conceptName ? [conceptName] : [],
+          schema: policySchema,
+          blueprintPolicy: entry.blueprintWritePolicy,
+          scopes: writeScopesFor(entry),
+          modelSlug: entry.modelSlug,
         })
-        const violation = writePolicyViolation(effective.policy, change.op, declared?.name ?? (conceptName || entry.modelSlug))
-        if (violation) {
-          return recordRejection([{ path: change.target, message: violation.message, code: violation.code }], change.id)
-        }
+        if (rejected) return rejected
       }
 
       const mutRes = coreApplyMutation(entry.model, change.op, mutationArgs, renameSchema)

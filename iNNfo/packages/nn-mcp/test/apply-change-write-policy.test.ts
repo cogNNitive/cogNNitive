@@ -223,3 +223,186 @@ describe('apply_change enforces the concept write policy', () => {
     expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
   })
 })
+
+/* ── whole-model operations on distributed instances ───────────────────────── */
+
+const RUNS_BLUEPRINT = (runPolicy: string) => `---
+spec_version: "V_0-1-0"
+level: 2
+title: "Runs"
+parent_spec:
+  name: "iNNfo_V_0-7-0"
+  url: "specs/iNNfo_V_0-7-0_NN.md"
+---
+
+# NN Concept Definition
+
+## NN Concept Definition: Run
+type:: list
+storage:: distributed
+placement:: runs/{slug}/
+${runPolicy ? `write_policy:: ${runPolicy}\n` : ''}
+## NN Concept Definition: Note
+type:: list
+
+# NN Field Definition
+
+## NN Field Definition: text
+concept:: Note
+type:: string
+`
+
+/** Distributed storage is read from bluepriNNts under iNNfo V_0-7-0 or later. */
+const L1_V07 = `---
+spec_version: "V_0-7-0"
+level: 1
+title: "iNNfo"
+parent_spec:
+  name: "defiNNition_V_0-1-0"
+  url: "specs/defiNNition_V_0-1-0_NN.md"
+---
+`
+
+const ADD_RUN =
+  'op:: add_model\ntarget:: first-run\nconcept:: Run\nblueprint_name:: runs_V_0-1-0\nblueprint_url:: specs/bluepriNNts/runs_V_0-1-0_NN.md\nname:: First Run\n'
+
+async function setupRuns(runPolicy: string): Promise<void> {
+  await mkdir(join(specsDir, 'bluepriNNts'), { recursive: true })
+  await writeFile(join(specsDir, 'iNNfo_V_0-7-0_NN.md'), L1_V07, 'utf-8')
+  // The domain index learns a bluepriNNt's storage from the models that already use it.
+  await writeFile(
+    join(knowledgeDir, 'notes_NN.md'),
+    '---\nlevel: 3\ntitle: "Notes"\nknowledge_version: "V_0-1-0"\nparent_spec:\n  name: "runs_V_0-1-0"\n  url: "specs/bluepriNNts/runs_V_0-1-0_NN.md"\n---\n\n# NN Note\n\n## NN Note: First\ntext:: hello\n',
+    'utf-8',
+  )
+  await writeFile(join(specsDir, 'bluepriNNts', 'runs_V_0-1-0_NN.md'), RUNS_BLUEPRINT(runPolicy), 'utf-8')
+}
+
+/** Creates the instance under a mutable Run, then switches the declaration. */
+async function createRunThenDeclare(runPolicy: string): Promise<string> {
+  await setupRuns('')
+  const created = await apply(ADD_RUN)
+  expect(created.errors ?? []).toEqual([])
+  await setupRuns(runPolicy)
+  return readFile(join(root, 'runs', 'first-run', 'first-run_runs_NN.md'), 'utf-8')
+}
+
+describe('apply_change enforces the write policy on whole models', () => {
+  it('accepts creating an instance of an append-only distributed concept', async () => {
+    await setupRuns('append-only')
+    const res = await apply(ADD_RUN)
+    expect(res.errors ?? []).toEqual([])
+    expect(res.success).toBe(true)
+  })
+
+  it('refuses creating an instance of a read-only distributed concept', async () => {
+    await setupRuns('read-only')
+    const res = await apply(ADD_RUN)
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
+    expect(res.errors?.map((e) => e.message).join(' ')).toContain('"Run" is read-only')
+  })
+
+  it('refuses removing an append-only instance and keeps its file', async () => {
+    const before = await createRunThenDeclare('append-only')
+    const res = await apply('op:: remove_model\ntarget:: first-run\n')
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
+    expect(await readFile(join(root, 'runs', 'first-run', 'first-run_runs_NN.md'), 'utf-8')).toBe(before)
+  })
+
+  it('refuses moving an append-only instance', async () => {
+    await createRunThenDeclare('append-only')
+    const res = await apply('op:: move_model\ntarget:: first-run\nto:: second-run\n')
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
+  })
+
+  it('still removes an instance whose concept declares nothing', async () => {
+    await createRunThenDeclare('')
+    const res = await apply('op:: remove_model\ntarget:: first-run\n')
+    expect(res.errors ?? []).toEqual([])
+    expect(res.success).toBe(true)
+  })
+})
+
+/* ── closing event ─────────────────────────────────────────────────────────── */
+
+describe('close_model records a closing event after which nothing is written', () => {
+  it('closes the model by setting closed: true in its frontmatter', async () => {
+    await setup()
+    const res = await apply('op:: close_model\ntarget:: ops\n')
+    expect(res.errors ?? []).toEqual([])
+    expect(res.success).toBe(true)
+    expect(await modelText()).toMatch(/^closed: true$/m)
+  })
+
+  it('refuses an addition to a closed model, even on an append-only concept', async () => {
+    await setup()
+    await apply('op:: close_model\ntarget:: ops\n')
+    const closed = await modelText()
+    const res = await apply(ADD_LOG)
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('MODEL_CLOSED')
+    expect(await modelText()).toBe(closed)
+  })
+
+  it('refuses a write placed after the closing event in the same changeset', async () => {
+    await setup()
+    const rel = 'changes/policy_changes_NN.md'
+    const text = changeset('op:: close_model\ntarget:: ops\n').replace(
+      'evidence:: decision\n',
+      'evidence:: decision\n\n## NN Change: c-02\n' + ADD_LOG + 'evidence:: decision\n',
+    )
+    await writeFile(join(root, rel), text, 'utf-8')
+    const res = await applyChange(root, rel)
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('MODEL_CLOSED')
+    expect(await modelText()).toBe(MODEL)
+  })
+
+  it('refuses closing a model twice', async () => {
+    await setup()
+    await apply('op:: close_model\ntarget:: ops\n')
+    const res = await apply('op:: close_model\ntarget:: ops\n')
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('MODEL_CLOSED')
+  })
+})
+
+describe('an append-only instance is written once', () => {
+  it('fills a field the instance does not have yet', async () => {
+    await setup()
+    await apply(ADD_LOG)
+    const res = await apply('op:: update_field\ntarget:: ops@Entry Two&note\nto:: second\n')
+    expect(res.errors ?? []).toEqual([])
+    expect(res.success).toBe(true)
+    expect(await modelText()).toMatch(/## NN Log: Entry Two\n(?:.*\n)*?note:: second/)
+  })
+
+  it('fills several empty fields at once with set_fields', async () => {
+    await setup()
+    await apply(ADD_LOG)
+    const res = await apply('op:: set_fields\ntarget:: ops@Entry Two\nto:: {"note": "second"}\n')
+    expect(res.errors ?? []).toEqual([])
+    expect(await modelText()).toMatch(/## NN Log: Entry Two\n(?:.*\n)*?note:: second/)
+  })
+
+  it('refuses overwriting a value once it is written', async () => {
+    await setup()
+    await apply(ADD_LOG)
+    await apply('op:: update_field\ntarget:: ops@Entry Two&note\nto:: second\n')
+    const written = await modelText()
+    const res = await apply('op:: update_field\ntarget:: ops@Entry Two&note\nto:: changed\n')
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
+    expect(await modelText()).toBe(written)
+  })
+
+  it('still refuses filling an empty field of a read-only concept', async () => {
+    await setup({ blueprintFm: 'write_policy: read-only\n' })
+    const res = await apply('op:: update_field\ntarget:: ops@Vision&owner\nto:: Ana\n')
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
+  })
+})

@@ -35,6 +35,17 @@ export const WRITE_POLICY_KEY = 'write_policy'
 /** The policy of a concept that declares none, under a bluepriNNt that declares none. */
 export const DEFAULT_WRITE_POLICY: WritePolicy = 'mutable'
 
+/**
+ * Model frontmatter key the closing event (`close_model`) sets. A closed model
+ * accepts no further instance write; the changeset that closed it is the record.
+ */
+export const MODEL_CLOSED_KEY = 'closed'
+
+/** True when a model's frontmatter records its closing event. */
+export function isModelClosed(frontmatter: Record<string, unknown> | undefined): boolean {
+  return frontmatter?.[MODEL_CLOSED_KEY] === true
+}
+
 /** The kinds of write a change performs on concept instances. */
 export type WriteOperation = 'add' | 'update' | 'remove'
 

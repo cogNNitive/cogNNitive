@@ -31,6 +31,8 @@ export {
   findDeclaredField,
   WRITE_POLICIES,
   WRITE_POLICY_KEY,
+  MODEL_CLOSED_KEY,
+  isModelClosed,
   resolveWritePolicy,
   writeOperationOf,
   writePolicyViolation,

@@ -320,6 +320,49 @@ describe('Canonical Template Registry & Offline Fallback', () => {
     })
   })
 
+  describe('iNNfo V_0-8-0 (write policy)', () => {
+    const l1 = (v: string) => readFileSync(join(specsRoot, `iNNfo_V_${v}_NN.md`), 'utf-8')
+    const v08 = () => l1('0-8-0')
+    const asTemplate = (content: string) =>
+      ['---', 'level: 2', 'title: Metaschema', '---', '', extractMetaschema(content)!, ''].join('\n')
+    const l2 = (props: string) =>
+      ['---', 'level: 2', 'title: "Policy L2"', '---', '', '# NN Concept Definition', '## NN Concept Definition: Log', 'type:: list', props, ''].join('\n')
+    const unknown = (content: string) =>
+      validateBlueprintAgainstMetaschema(l2('write_policy:: append-only'), content)
+        .filter((d) => /not declared on Concept Definition/.test(d.message))
+        .map((d) => d.path)
+
+    it('is published as spec_version V_0-8-0 and keeps V_0-7-0 as a separate file', () => {
+      expect(v08()).toMatch(/^spec_version: "V_0-8-0"$/m)
+      expect(v08()).toContain('iNNfo_V_0-8-0_NN.md')
+      expect(l1('0-7-0')).toMatch(/^spec_version: "V_0-7-0"$/m)
+    })
+
+    it('resolves offline from the canonical registry with the published content', () => {
+      const entry = findCanonicalBlueprint(
+        'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-8-0_NN.md',
+      )
+      expect(entry?.version).toBe('V_0-8-0')
+      expect(entry?.specContent).toBe(v08())
+    })
+
+    it('declares and documents write_policy on Concept Definition', () => {
+      expect(unknown(v08())).toEqual([])
+      expect(unknown(l1('0-7-0'))).toEqual(['Concept Definition.Log.write_policy'])
+      expect(v08()).toContain('#### Write Policy')
+    })
+
+    it('rejects a write_policy value outside the three policies', () => {
+      const diags = validateBlueprintAgainstMetaschema(l2('write_policy:: sometimes'), v08())
+      expect(diags.some((d) => d.severity === 'error' && d.path === 'Concept Definition.Log.write_policy')).toBe(true)
+    })
+
+    it('stays a fixpoint: the metaschema validates against itself', () => {
+      const diags = validateBlueprintAgainstMetaschema(asTemplate(v08()), v08())
+      expect(diags.filter((d) => d.severity === 'error')).toEqual([])
+    })
+  })
+
   it('resolves iNNfo V_0-5-0 offline from canonical registry and validates against itself', () => {
     const innfoUrl =
       'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-5-0_NN.md'
