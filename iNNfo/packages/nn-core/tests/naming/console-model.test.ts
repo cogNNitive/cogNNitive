@@ -22,12 +22,37 @@ describe('isConsoleModel (console model notion)', () => {
     expect(isModelCandidate(proceduresModel)).toBe(false)
   })
 
-  it('rejects a procedures/ submodel (execution stepper)', () => {
+  it('surfaces a user-authored procedure whose file lives under procedures/ when no link set is passed only conservatively', () => {
     const submodel = {
       path: 'procedures/import_and_transcribe_audio_procedures_NN.md',
       frontmatter: fm('procedures_V_0-2-0'),
     }
+    // Historical conservative default: no link set, so a `procedures/` file stays out.
     expect(isConsoleModel(submodel)).toBe(false)
+  })
+
+  it('distinguishes a linked stepper from a user-authored procedure in procedures/ by its procedure_model link', () => {
+    const userProcedure = {
+      path: 'procedures/export_bundle_procedures_NN.md',
+      frontmatter: fm('procedures'),
+    }
+    const linkedStepper = {
+      path: 'procedures/workflow_procedures_NN.md',
+      frontmatter: fm('procedures'),
+    }
+    // No procedure_model points at the user procedure: it is a definition, so it surfaces.
+    const linked = new Set(['procedures/workflow_procedures_NN.md'])
+    expect(isConsoleModel({ ...userProcedure, linkedProcedureModels: linked })).toBe(true)
+    // The catalog's procedure_model points at the stepper: that one stays out.
+    expect(isConsoleModel({ ...linkedStepper, linkedProcedureModels: linked })).toBe(false)
+    // A procedure outside procedures/ surfaces under either reading.
+    expect(
+      isConsoleModel({
+        path: 'kNNowledge/Custom_procedures_NN.md',
+        frontmatter: fm('procedures'),
+        linkedProcedureModels: linked,
+      }),
+    ).toBe(true)
   })
 
   it('rejects non-model roles (workspace catalogs, changesets, sidecars) and excluded paths', () => {
