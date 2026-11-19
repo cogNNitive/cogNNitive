@@ -37,7 +37,7 @@ maintainer's call. Test runner: `node --test`, `npm run verify:fast`.
 | C1 | S2 S6 | inline | pending | console: history cap + notice, decompressed payload in the gate, changeset-aware freshness, dead code, one `nn-model` reader, CSP hashes, deep link, output name, "QA passed" |
 | D1 | — | complete | `conntent-avatar`: avatar resolutions keyed by exact `api_id` in `video-guard.mjs`. #657 is a different bug (`output_formats master`) and is untouched here |
 | E1 | S5 | inline | pending | coNNtent animation T1 + T2 (heavy: published spec change, needs a delta spec) |
-| F1 | S4 | inline | pending | MCP tool descriptions |
+| F1 | S4 | verified, no change | Read all 24 tool definitions: each names its inputs and its mode. `list_knowledge` (documents/collection) vs `read_knowledge` (one document, slices) vs `query_units` (query DSL returning URIs); `resolve_sources` (citations → files) vs `resolve_effective` (cascade fold); `get_spec` (level 1) vs `get_blueprint`. None is ambiguous enough to justify a text change that would force a version bump and a bundle regen. |
 | G1 | — | inline | pending | docs: D8–D10 wording + the `master.md` fenced-block generator bug |
 
 Dropped from the audit after verification (evidence, not opinion):
