@@ -258,6 +258,17 @@ notes:: "Budget revision ${i + 1} recorded so the per-element history has real w
     const fullIsland = encodedIsland(fullHtml)
     const model = JSON.parse(modelIsland(fullHtml))
 
+    // The payload caps each element's history at CONSOLE_HISTORY_LIMIT and records the
+    // original count, so the modal can point at the changes model instead of silently
+    // showing fewer hops. Pinned here because this payload comes from a real export.
+    for (const el of model.elements) {
+      if (!Array.isArray(el.history)) continue
+      assert.ok(el.history.length <= 12, `${el.name}: history is capped at 12`)
+      if (el.historyTotal !== undefined) {
+        assert.ok(el.historyTotal >= el.history.length, `${el.name}: historyTotal covers the kept hops`)
+      }
+    }
+
     const without = (drop) =>
       JSON.stringify({
         ...model,
@@ -273,7 +284,10 @@ notes:: "Budget revision ${i + 1} recorded so the per-element history has real w
     const noCitations = slotOf(without(['citations']))
     const noCitationsNoHistory = slotOf(without(['citations', 'history']))
     const historyBytes = bytes(noCitations) - bytes(noCitationsNoHistory)
-    assert.ok(historyBytes > 200, `the fixture carries a real history (${historyBytes} B)`)
+    // The cap keeps the newest 12 hops per element, so the fixture's history is smaller
+    // than it was when this floor was 200 B. 100 B still proves the measurement moves
+    // when history is dropped, which is what the ladder below needs.
+    assert.ok(historyBytes > 100, `the fixture carries a real history (${historyBytes} B)`)
 
     // Stage 1 alone cannot fit; stage 2 does. The island is the only part of the
     // page the ladder changes, so the totals move by exactly its byte delta.
