@@ -156,7 +156,11 @@ describe('procedure view writes through the console controller (no mock store)',
     const viewCtx = {
       store: {
         drafts: () => store.drafts(),
-        propose: (p) => controller.propose({ elementId: p.elementId, field: p.field, knowledge_id: p.knowledge_id }, p),
+        propose: (p) =>
+          controller.propose(
+            { elementId: p.elementId, field: p.field, knowledge_id: p.knowledge_id },
+            p,
+          ),
       },
     }
     return stepper.mount(container, payload(), viewCtx)
