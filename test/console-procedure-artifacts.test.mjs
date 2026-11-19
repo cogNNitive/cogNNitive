@@ -57,6 +57,10 @@ condition:: outcome == approve
 ## NN Artifact: Draft Document
 slug:: draft-doc
 verify:: file:draft.md
+
+## NN Artifact: Published File
+slug:: published-file
+verify:: file:published.txt
 `
 
 const EVENTS = [
@@ -143,6 +147,14 @@ describe('procedure artifacts are files with a way in', () => {
     const open = container.querySelector('[data-proc-artifact="draft-doc"] .proc-artifact-open')
     assert.ok(open, 'the chip offers the file')
     assert.match(open.textContent, /draft\.md/)
+  })
+
+  it('offers no file for an artifact the run has not produced', () => {
+    mount()
+    const expected = container.querySelector('[data-proc-artifact="published-file"]')
+    assert.ok(expected, 'the pending artifact still shows')
+    assert.equal(expected.querySelector('.proc-artifact-open'), null, 'no file to open yet')
+    assert.match(expected.querySelector('.proc-artifact-pending').textContent, /not produced yet/)
   })
 
   it('reads the file through the connected folder and shows it, without writing', async () => {

@@ -18746,7 +18746,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         )
       }
       var path = verifyPathOf(def)
-      if (path) {
+      // An artifact the run has not produced yet has no file to open: offering one invites a
+      // click that can only fail. The name and the state already say it is still expected.
+      var exists = st && st.status !== 'expected' && st.status !== 'not_required'
+      if (path && exists) {
         var open = make('button', 'proc-artifact-open', 'Open ' + path)
         open.setAttribute('type', 'button')
         open.setAttribute('title', 'Open ' + path + ' from the domain folder')
@@ -18754,6 +18757,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           openArtifactFile(path, open)
         })
         chip.appendChild(open)
+      } else if (path) {
+        chip.appendChild(make('span', 'proc-artifact-pending', 'not produced yet'))
       }
       return chip
     }
@@ -19225,7 +19230,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
       if (state.stale.length) panel.appendChild(make('div', 'proc-run-stale', 'Stale artifacts: ' + state.stale.join(', ')))
       if (state.reopened.length) panel.appendChild(make('div', 'proc-run-reopened', 'Reopened steps: ' + state.reopened.map(stepName).join(', ')))
-      if (state.allowedNext.length) {
+      // "Allowed next" is what the step's guards permit, which is meaningless when the fold
+      // says the run cannot advance. A blocked step would read as if its branches were open.
+      if (state.allowedNext.length && !state.blockedBy && !state.drift && !TERMINAL_RUN[state.status]) {
         panel.appendChild(
           make(
             'div',

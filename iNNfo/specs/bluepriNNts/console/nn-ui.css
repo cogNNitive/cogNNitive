@@ -6198,6 +6198,7 @@ details.collapse summary {
     .proc-artifact[data-status='stale'] { border-color: var(--warning); }
     .proc-artifact-name { font-weight: 600; }
     .proc-artifact-state { color: var(--muted); font-family: var(--mono); font-size: 0.72rem; }
+    .proc-artifact-pending { color: var(--muted); font-size: 0.72rem; font-style: italic; }
     button.proc-artifact-producer,
     button.proc-artifact-open {
       appearance: none;
