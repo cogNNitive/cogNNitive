@@ -312,17 +312,23 @@ function status(argv) {
 }
 
 /**
- * True when the branch's reflog proves nothing was ever committed on it. Such a
+ * True when the branch's reflog proves no commit was ever authored on it. Such a
  * branch still points at the commit it was cut from, so `merge-base --is-ancestor`
- * reads it as merged while its agent may be writing files right now. A fast-forward
- * from main moves the ref without being work, so only commit-like entries count.
+ * reads it as merged while its agent may be writing files right now.
+ *
+ * Only `commit` counts. A `rebase` or a `reset` moves the ref without creating any
+ * work: a session that rebased onto main and had not committed yet is exactly the
+ * case this function exists to protect, and counting those entries as commits made
+ * it answer "may have work", so `sweep` went ahead. Branches that really carry
+ * commits are already excluded by the ancestry check in the caller.
+ *
  * An empty or unreadable reflog proves nothing and returns false.
  */
 function neverCommitted(root, branch) {
   const log = tryGit(['reflog', 'show', '--format=%gs', `refs/heads/${branch}`], root)
   const entries = log.ok ? log.out.split(/\r?\n/).filter(Boolean) : []
   if (entries.length === 0) return false
-  return !entries.some((subject) => /^(commit|cherry-pick|rebase|reset)/.test(subject))
+  return !entries.some((subject) => /^commit/.test(subject))
 }
 
 function stop(argv) {
@@ -338,10 +344,16 @@ function stop(argv) {
 /**
  * Removes one session worktree and its branch. Returns a refusal message instead
  * of exiting, so `sweep` can skip one session and carry on with the rest.
+ * @param {string} root - repository root
+ * @param {string} id - session id (branch suffix)
+ * @param {{ force?: boolean, registeredPath?: string|null }} [options] -
+ *   `registeredPath` is the worktree path git reports. Guessing it as
+ *   `<parent>/cogNNitive-<id>` deletes the wrong directory the moment a worktree
+ *   was created anywhere else, which is what #721 reported.
  * @returns {string | null}
  */
-function stopSession(root, id, { force = false } = {}) {
-  const target = worktreePath(root, id)
+function stopSession(root, id, { force = false, registeredPath = null } = {}) {
+  const target = registeredPath || worktreePath(root, id)
   const branch = `session/${id}`
 
   const branchExists = tryGit(['rev-parse', '--verify', '--quiet', branch], root).ok
@@ -417,7 +429,8 @@ function sweep(argv) {
       const id = branch.replace(/^session\//, '')
       if (INTEGRATION_REFS.some((ref) => isAncestor(branch, ref))) {
         console.log(`sweeping merged session worktree: ${branch} (${target})`)
-        const refusal = stopSession(root, id)
+        // The path git reports, not a reconstructed one (#721).
+        const refusal = stopSession(root, id, { registeredPath: target })
         if (refusal) console.error(`skipped ${branch}: ${refusal}`)
       }
     }

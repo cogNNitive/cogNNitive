@@ -288,10 +288,11 @@ Sweeping a genuinely finished set stays a one-liner. The rule is only that git s
 ## Git rules
 
 - Blocked by `.claude/hooks/block-dangerous-git.mjs`: `reset --hard`, `clean`, `stash`,
-  `branch -D`, `checkout`/`restore .`, and `checkout <ref> -- <path>`. This applies under
-  Claude Code and Antigravity only; OpenCode reads neither hook config, so there the list
-  is a rule you follow, not a guard that stops you. To restore one
-  file: `git show <ref>:<path> > <path>`. To drop a commit and keep the tree:
+  `branch -D`, and `checkout`/`restore` of the whole tree (`.`). Naming a file is allowed,
+  and is the recommended way to revert one: `git checkout HEAD -- <explicit/path>` (the
+  hook's own refusal message says so; this paragraph used to claim otherwise). This applies
+  under Claude Code and Antigravity only; OpenCode reads neither hook config, so there the
+  list is a rule you follow, not a guard that stops you. To drop a commit and keep the tree:
   `git reset --soft HEAD~1`.
 - PowerShell `>` writes UTF-16. For a byte-exact patch: `cmd /c "git diff -- <path> > out.patch"`.
 - In PowerShell, quote any `@{...}` ref: `git stash show "stash@{0}"`, `git stash drop "stash@{2}"`.

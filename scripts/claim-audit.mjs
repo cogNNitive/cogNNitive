@@ -35,10 +35,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { normalizePullRequests, readClaims } from './claim-check.mjs'
+import { normalizePullRequests, readClaims, readJsonLoose } from './claim-check.mjs'
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
-const COLLECT = 'gh pr list --state all --limit 5000 --json number,headRefName,state > temp/prs.json'
+const COLLECT =
+  'gh pr list --state all --limit 5000 --json number,headRefName,state > temp/prs.json'
 
 /**
  * Splits the claims folder into the three states that decide the exit code. A
@@ -57,9 +58,7 @@ export function auditClaims({ claims, pullRequests }) {
     if (!claim.pr) {
       // A claim written before its PR opened never learns its number. Judge it
       // by its branch instead, or it reads as "no PR yet" forever after it lands.
-      const byBranch = claim.branch
-        ? pullRequests.filter((pr) => pr.branch === claim.branch)
-        : []
+      const byBranch = claim.branch ? pullRequests.filter((pr) => pr.branch === claim.branch) : []
       if (byBranch.some(isOpen)) live.push(claim)
       else if (byBranch.length > 0) {
         const landed = Math.max(...byBranch.map((pr) => pr.number))
@@ -98,20 +97,6 @@ function loadPullRequests(root, explicit) {
   const raw = readJsonLoose(file)
   const states = Array.isArray(raw) ? raw.map((pr) => String(pr.state ?? '')) : []
   return normalizePullRequests(raw).map((pr, index) => ({ ...pr, state: states[index] }))
-}
-
-/**
- * Reads the PR list the way a Windows shell writes it. PowerShell's `>` emits
- * UTF-16 with a BOM, so the documented collector command produces a file that a
- * plain JSON.parse rejects; the audit must not fail on the shell it documents.
- */
-export function readJsonLoose(file) {
-  const buffer = fs.readFileSync(file)
-  const text =
-    buffer.length > 1 && buffer[0] === 0xff && buffer[1] === 0xfe
-      ? buffer.toString('utf16le')
-      : buffer.toString('utf8')
-  return JSON.parse(text.replace(/^\uFEFF/, ''))
 }
 
 function report(result) {
