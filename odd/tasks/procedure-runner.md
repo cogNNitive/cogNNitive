@@ -1,7 +1,7 @@
 # procedure-runner
 
 Objective: a code runner for procedures: runs are `executions` instance models, state is derived by a pure fold, agents drive runs through three nn-mcp tools.
-Design: `openspec/changes/procedure-runner/design.md` (read it whole before any task). Delivery: one PR per slice against `main` (slices 1-3 independent, not stacked); slice 4 rebases on them. Runner: vitest (`npx vitest run <file>` in `iNNfo/packages/nn-core` or `iNNfo/packages/nn-mcp`).
+Design: `odd/designs/procedure-runner.md` (read it whole before any task). Delivery: one PR per slice against `main` (slices 1-3 independent, not stacked); slice 4 rebases on them. Runner: vitest (`npx vitest run <file>` in `iNNfo/packages/nn-core` or `iNNfo/packages/nn-mcp`).
 
 ## Specs
 
@@ -18,9 +18,9 @@ Design: `openspec/changes/procedure-runner/design.md` (read it whole before any 
 
 | ID | Specs | What | Route | Status | Evidence |
 |---|---|---|---|---|---|
-| T1 | S1 S2 S7 | Slice 1: nn-core `procedureGraph` + `foldRun` + 4 fixtures | delegated writer (parallel with T2) | pending | |
-| T2 | S3 | Slice 2: `add_element` with initial fields (nn-core mutate + nn-mcp apply-change, propose-changeset) | delegated writer (parallel with T1) | pending | |
-| T3 | S4 | Slice 3: blueprint bumps executions V_0-2-0, procedures V_0-6-0 | inline | pending | |
+| T1 | S1 S2 S7 | Slice 1: nn-core `procedureGraph` + `foldRun` + 4 fixtures | delegated writer (parallel with T2; trigger: Writer (a), disjoint surface nn-core/src/procedure/**) | in progress | |
+| T2 | S3 | Slice 2: `add_element` with initial fields (nn-core mutate + nn-mcp apply-change, propose-changeset) | delegated writer (parallel with T1; trigger: Writer (a), disjoint surface mutate/apply-change/propose-changeset) | in progress | |
+| T3 | S4 | Slice 3: blueprint bumps executions V_0-2-0, procedures V_0-6-0 | inline | in progress | |
 | T4 | S5 | Slice 4: nn-mcp tools (state, then start/record) | inline | pending (after T1-T3 merged) | |
 | T5 | S6 | Slice 5: rewrite nn-innfo §16-bis | inline | pending (after T4) | |
 | T6 | S2 | Slice 6: console stepper reads `foldRun` | - | later | |
@@ -30,3 +30,4 @@ Design: `openspec/changes/procedure-runner/design.md` (read it whole before any 
 - **L1** (2026-11-19) User: "Diseño del runner" -> design written; write-cost decision "a".
 - **L2** (2026-11-19) User: "Es posible que sea mejor idea que, para esta rama nueva, para la implementación de la rama nueva, generes una sesión de handoff desde cero. [...] también quiero que estudies si los slices podrían ir en paralelo". Answer: waves A (1 ∥ 2 ∥ 3), B (4), C (5); 6 later.
 - **L3** (2026-11-19) User: "Bien, creo que lo tenemos muy claro. Comienza la ejecución y la implementación". Handoff thread launched on worktree `cogNNitive-procedure-runner`, branch `feat/procedure-runner` (holds this document and the design; the first slice PR carries them).
+- **L4** (2026-11-19) Execution started. `check:openspec` rejects anything but `specs/` in an active change, so the design moved to `odd/designs/procedure-runner.md`. Claim `openspec/claims/procedure-runner.md` written (claim-check: area free). Branches: slice 1 `feat/procedure-runner`, slice 2 `feat/add-element-initial-fields`, slice 3 `feat/procedure-blueprints`, all cut from `origin/main`.
