@@ -116,8 +116,8 @@ describe('level gate for template-authoring mutations (H5)', () => {
   })
 })
 
-describe('addElement carries no inline fields and no sources (changeset-document-model)', () => {
-  it('rejects a fields key, pointing at update_field', () => {
+describe('addElement carries its initial fields in "to", never in "fields" (changeset-document-model)', () => {
+  it('rejects a fields key, pointing at "to"', () => {
     const model = parseKnowledge(LEVEL3_MODEL)
     const result = applyMutation(model, 'add_element', {
       conceptName: 'Phase',
@@ -125,7 +125,7 @@ describe('addElement carries no inline fields and no sources (changeset-document
       fields: { note: 'keep' },
     })
     expect(result.success).toBe(false)
-    expect(result.errors?.[0].message).toContain('update_field')
+    expect(result.errors?.[0].message).toContain('"to"')
     expect((model.elements.get('Phase') ?? []).some((e) => e.name === 'Second')).toBe(false)
   })
 
@@ -153,6 +153,76 @@ describe('addElement carries no inline fields and no sources (changeset-document
     const el = (model.elements.get('Phase') ?? []).find((e) => e.name === 'Second')
     expect(el?.fields).toEqual({ note: 'keep' })
     expect(el?.fields.sources).toBeUndefined()
+  })
+})
+
+describe('add_element sets its initial fields from "to" in the same mutation (S3)', () => {
+  const SCHEMA: BlueprintSchema = {
+    concepts: [
+      {
+        name: 'Phase',
+        type: 'list',
+        fields: [
+          { name: 'peso', type: 'number' },
+          { name: 'estado', type: 'select', options: ['open', 'done'] },
+        ],
+      },
+    ],
+    markers: [],
+    matrices: [],
+    taxonomy: [],
+  }
+  const second = (model: ReturnType<typeof parseKnowledge>) =>
+    (model.elements.get('Phase') ?? []).find((e) => e.name === 'Second')
+
+  it('creates the element with every field of "to", typed by the declared field', () => {
+    const model = parseKnowledge(LEVEL3_MODEL)
+    const result = applyMutation(
+      model,
+      'add_element',
+      { conceptName: 'Phase', elementName: 'Second', to: '{"peso":"5","estado":"open"}' },
+      SCHEMA,
+    )
+    expect(result.success).toBe(true)
+    expect(second(model)?.fields).toEqual({ peso: 5, estado: 'open' })
+    expect(second(model)?.slug).toBe('second')
+  })
+
+  it('accepts "to" as an object on the direct mutation API', () => {
+    const model = parseKnowledge(LEVEL3_MODEL)
+    const result = applyMutation(model, 'add_element', { conceptName: 'Phase', elementName: 'Second', to: { estado: 'done' } }, SCHEMA)
+    expect(result.success).toBe(true)
+    expect(second(model)?.fields).toEqual({ estado: 'done' })
+  })
+
+  it('rejects an invalid field value with the update_field message and adds no element', () => {
+    const model = parseKnowledge(LEVEL3_MODEL)
+    const before = JSON.stringify(model)
+    const result = applyMutation(
+      model,
+      'add_element',
+      { conceptName: 'Phase', elementName: 'Second', to: '{"peso":"cinco"}' },
+      SCHEMA,
+    )
+    expect(result.success).toBe(false)
+    expect(result.errors?.[0]?.message).toContain('Invalid numeric value')
+    expect(JSON.stringify(model)).toBe(before)
+  })
+
+  it('rejects a malformed "to" with the set_fields shape rules', () => {
+    const model = parseKnowledge(LEVEL3_MODEL)
+    const result = applyMutation(model, 'add_element', { conceptName: 'Phase', elementName: 'Second', to: '[1]' }, SCHEMA)
+    expect(result.success).toBe(false)
+    expect(result.errors?.[0]?.message).toContain('must be a JSON object of field -> value')
+    expect(second(model)).toBeUndefined()
+  })
+
+  it('without "to" adds the element exactly as before', () => {
+    const model = parseKnowledge(LEVEL3_MODEL)
+    const result = applyMutation(model, 'add_element', { conceptName: 'Phase', elementName: 'Second' }, SCHEMA)
+    expect(result.success).toBe(true)
+    expect(second(model)?.fields).toEqual({})
+    expect(second(model)?.slug).toBe('second')
   })
 })
 

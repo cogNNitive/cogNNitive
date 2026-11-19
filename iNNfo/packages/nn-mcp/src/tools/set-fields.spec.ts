@@ -280,19 +280,18 @@ describe('set_fields as a bare operation', () => {
   })
 })
 
-describe('inline fields point to set_fields and update_field', () => {
-  it('propose_changeset rejects inline fields and writes no file', async () => {
+describe('add_element carries its initial fields in "to", never in "fields"', () => {
+  it('propose_changeset rejects a fields key, pointing at "to", and writes no file', async () => {
     const result = await propose([
       { op: 'add_element', target: 'm@grow', concept: 'Alert', name: 'Grow', fields: { owner: 'Ana' }, evidence: 'decision' },
     ])
     expect(result.success).toBe(false)
     const error = result.errors!.find((e) => e.code === 'INVALID_OPERATION')!
-    expect(error.message).toContain('set_fields')
-    expect(error.message).toContain('update_field')
+    expect(error.message).toContain('"to"')
     expect(await changesetFiles()).toEqual([])
   })
 
-  it('apply_change records a hand-written add_element with inline fields as rejected', async () => {
+  it('apply_change records a hand-written add_element with a fields key as rejected', async () => {
     const before = await readFile(join(root, 'kNNowledge', 'm_NN.md'), 'utf-8')
     const cs = await writeHandCs([
       { id: 'c-01', op: 'add_element', target: 'm@grow', concept: 'Alert', name: 'Grow', fields: { owner: 'Ana' }, evidence: 'decision' },
@@ -300,15 +299,95 @@ describe('inline fields point to set_fields and update_field', () => {
     const applied = await applyChange(root, cs)
     expect(applied.success).toBe(false)
     const error = applied.errors!.find((e) => e.code === 'INVALID_OPERATION')!
-    expect(error.message).toContain('set_fields')
-    expect(error.message).toContain('update_field')
+    expect(error.message).toContain('"to"')
     expect(await readFile(join(root, 'kNNowledge', 'm_NN.md'), 'utf-8')).toBe(before)
     expect(parseChangeset(await readFile(join(root, cs), 'utf-8')).frontmatter.status).toBe('rejected')
   })
 
-  it('the bare add_element refusal points to set_fields and update_field', async () => {
+  it('the bare add_element refusal of a fields key points to "to"', async () => {
     const res = await applyChange(root, 'm', 'add_element', { conceptName: 'Alert', elementName: 'Grow', fields: { owner: 'Ana' } })
     expect(res.success).toBe(false)
-    expect(res.errors?.[0]?.message).toContain('set_fields')
+    expect(res.errors?.[0]?.message).toContain('"to"')
+  })
+
+  it('one add_element change creates the element with its fields, each field originating in it', async () => {
+    const proposed = await propose([
+      {
+        op: 'add_element',
+        target: 'm',
+        concept: 'Alert',
+        name: 'Grow',
+        to: { owner: 'Ana', topics: 'ai' },
+        evidence: 'sources/import/r.md@## Row 12',
+      },
+    ])
+    expect(proposed.success, JSON.stringify(proposed.errors)).toBe(true)
+    const applied = await applyChange(root, proposed.changeset!)
+    expect(applied.errors ?? []).toEqual([])
+    expect(applied.appliedCount).toBe(1)
+    expect(fieldsOf(await readModel(), 'grow')).toEqual({ owner: 'Ana', topics: 'ai' })
+
+    const doc = parseChangeset(await readFile(join(root, proposed.changeset!), 'utf-8'))
+    expect(doc.changes).toHaveLength(1)
+    expect(doc.changes[0]!.to).toBe('{"owner":"Ana","topics":"ai"}')
+    expect(verifyProposalSha(doc)).toBe(true)
+
+    const log = loadChangeLog(root)
+    for (const unit of ['m@grow&owner', 'm@grow&topics']) {
+      expect(log.origin(unit)?.id).toBe('c-01')
+      expect(log.origin(unit)?.evidence).toBe('sources/import/r.md@## Row 12')
+    }
+  })
+
+  it('the bare add_element op accepts "to" and records it on the change', async () => {
+    const res = await applyChange(root, 'm', 'add_element', { conceptName: 'Alert', elementName: 'Grow', to: { owner: 'Ana' } })
+    expect(res.errors ?? []).toEqual([])
+    expect(fieldsOf(await readModel(), 'grow')).toEqual({ owner: 'Ana' })
+    expect(loadChangeLog(root).origin('m@grow&owner')?.op).toBe('update_field')
+  })
+
+  it('a field the bluepriNNt does not accept in "to" rejects the change and writes nothing', async () => {
+    const before = await readFile(join(root, 'kNNowledge', 'm_NN.md'), 'utf-8')
+    const cs = await writeHandCs([
+      { id: 'c-01', op: 'add_element', target: 'm', concept: 'Alert', name: 'Grow', to: '{"owner":"Ana","description":"x"}', evidence: 'decision' },
+    ])
+    const applied = await applyChange(root, cs)
+    expect(applied.success).toBe(false)
+    expect(applied.errors?.map((e) => e.code)).toContain('USE_UPDATE_ELEMENT_TEXT')
+    expect(await readFile(join(root, 'kNNowledge', 'm_NN.md'), 'utf-8')).toBe(before)
+  })
+
+  it('an undeclared field in "to" gets the same verdict set_fields gives it', async () => {
+    const viaSetFields = await applyChange(
+      root,
+      (await propose([{ op: 'set_fields', target: 'm@alerta', to: { nope: 'x' }, evidence: 'decision' }])).changeset!,
+    )
+    const viaAddElement = await applyChange(
+      root,
+      (await propose([{ op: 'add_element', target: 'm', concept: 'Alert', name: 'Grow', to: { nope: 'x' }, evidence: 'decision' }]))
+        .changeset!,
+    )
+    expect(viaAddElement.success).toBe(viaSetFields.success)
+    expect((viaAddElement.errors ?? []).map((e) => e.code)).toEqual((viaSetFields.errors ?? []).map((e) => e.code))
+  })
+
+  it('propose_changeset refuses a malformed "to" on add_element', async () => {
+    const result = await propose([
+      { op: 'add_element', target: 'm', concept: 'Alert', name: 'Grow', to: '[1]', evidence: 'decision' },
+    ])
+    expect(result.success).toBe(false)
+    expect(result.errors?.map((e) => e.message).join(' ')).toContain('add_element "to" must be a JSON object of field -> value')
+    expect(await changesetFiles()).toEqual([])
+  })
+
+  it('add_element without "to" adds an empty element exactly as before', async () => {
+    const proposed = await propose([{ op: 'add_element', target: 'm', concept: 'Alert', name: 'Grow', evidence: 'decision' }])
+    const applied = await applyChange(root, proposed.changeset!)
+    expect(applied.errors ?? []).toEqual([])
+    expect(fieldsOf(await readModel(), 'grow')).toEqual({})
+    const doc = parseChangeset(await readFile(join(root, proposed.changeset!), 'utf-8'))
+    expect(doc.changes[0]!.to).toBeUndefined()
+    const log = loadChangeLog(root)
+    expect(log.all.filter((c) => c.id === 'c-01').map((c) => c.op)).toEqual(['add_element'])
   })
 })

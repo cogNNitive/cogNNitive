@@ -14,6 +14,7 @@ import { RESERVED_CONCEPT_NAMES, WIDGET_CONFIG_KEYS } from './validator/constant
 import { levenshteinDistance, slugifyHeading } from './sourceRef.js'
 import { updateReferenceString, updateWikiLinks } from './references.js'
 import { validateFieldValue } from './schema/field-values.js'
+import { addElementFieldsEntries, addElementFieldsProblems } from './changeset/types.js'
 
 // The reference-rewriting helpers live in `sourceRef.ts` (pure string helpers, so
 // the browser-safe changelog can relink without importing the mutation engine).
@@ -727,8 +728,8 @@ function addElement(
     }
   }
 
-  // A change carries no inline fields (`changeset-document-model`): each field is
-  // its own `update_field`. Reject the key loudly instead of silently dropping it.
+  // The initial fields travel in `to` (`changeset-document-model`), the JSON object
+  // `set_fields` uses, never in a `fields` key: reject it loudly instead of dropping it.
   if (args.fields !== undefined && args.fields !== null) {
     return {
       success: false,
@@ -736,9 +737,23 @@ function addElement(
         {
           path: 'fields',
           message:
-            'INVALID_OPERATION: add_element must not carry inline fields; emit one set_fields change (target model@element) for the fields that share one evidence, or one update_field per field (target model@element&field)',
+            'INVALID_OPERATION: add_element carries its initial fields in "to" (a JSON object of field -> value, the shape set_fields uses), never in "fields"',
         },
       ],
+    }
+  }
+  // `to` arrives as the changeset's one-line JSON text, or as an object on the direct API.
+  const initialTo =
+    args.to === undefined || args.to === null
+      ? undefined
+      : typeof args.to === 'string'
+        ? args.to
+        : JSON.stringify(args.to)
+  const toProblem = addElementFieldsProblems({ op: 'add_element', to: initialTo })[0]
+  if (toProblem) {
+    return {
+      success: false,
+      errors: [{ path: 'to', message: `${toProblem.code}: ${toProblem.message}` }],
     }
   }
 
@@ -749,6 +764,7 @@ function addElement(
     'slug',
     'description',
     'fields',
+    'to',
     // Not a field: a change derives from `evidence`. Accepted here only so the
     // generic copy below does not smuggle it into the element's fields.
     'sources',
@@ -765,11 +781,6 @@ function addElement(
     if (!reservedArgsKeys.has(k) && v !== undefined) {
       fields[k] = v
     }
-  }
-
-  if (existingElements.length > 0) {
-    const prevLast = existingElements[existingElements.length - 1]
-    prevLast.trailingBlankLine = true
   }
 
   let elementSlug: string
@@ -800,6 +811,17 @@ function addElement(
     slug: elementSlug,
     slugExplicit: true,
     trailingBlankLine: true,
+  }
+  // The initial fields are written before the element joins the model, so a value
+  // that fails validation leaves the model untouched.
+  for (const entry of addElementFieldsEntries({ op: 'add_element', to: initialTo })) {
+    const written = writeFieldValue(newElement, conceptName, entry.field, entry.to, schema)
+    if (!written.success) return written
+  }
+
+  if (existingElements.length > 0) {
+    const prevLast = existingElements[existingElements.length - 1]
+    prevLast.trailingBlankLine = true
   }
   existingElements.push(newElement)
   model.elements.set(conceptName, existingElements)
@@ -945,6 +967,22 @@ function updateField(
     }
   }
 
+  return writeFieldValue(foundElement, foundConcept, fieldName, val, schema)
+}
+
+/**
+ * Writes one field value on an element, the way `update_field` does: an empty value
+ * clears the field, a `[...]` string is parsed as a list, the declared field type
+ * coerces the value and validates it. `add_element` reuses it for the initial fields
+ * it carries in `to`, so both writes are checked by the same rules.
+ */
+function writeFieldValue(
+  foundElement: ElementNode,
+  foundConcept: string,
+  fieldName: string,
+  val: unknown,
+  schema?: BlueprintSchema,
+): MutationResult {
   // An empty value clears the field: the line is removed and the type check is
   // skipped, since "no value" cannot be expressed by any declared field type.
   // An absent field is a no-op success.

@@ -8691,6 +8691,78 @@ function updateWikiLinks(text, oldName, newName) {
   });
 }
 
+// iNNfo/packages/nn-core/src/changeset/types.ts
+function jsonObjectKeys(text) {
+  const keys = [];
+  let depth = 0;
+  let expectKey = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      let j = i + 1;
+      while (j < text.length && text[j] !== '"') j += text[j] === "\\" ? 2 : 1;
+      if (depth === 1 && expectKey) {
+        keys.push(JSON.parse(text.slice(i, j + 1)));
+        expectKey = false;
+      }
+      i = j;
+      continue;
+    }
+    if (ch === "{" || ch === "[") {
+      depth++;
+      if (ch === "{" && depth === 1) expectKey = true;
+    } else if (ch === "}" || ch === "]") {
+      depth--;
+    } else if (ch === "," && depth === 1) {
+      expectKey = true;
+    }
+  }
+  return keys;
+}
+function parseFieldMap(raw, key, op = "set_fields") {
+  if (raw === void 0) return { ok: false, reason: `${op} requires "${key}"` };
+  const text = String(raw).trim();
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return { ok: false, reason: `${op} "${key}" must be a JSON object of field -> value` };
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return { ok: false, reason: `${op} "${key}" must be a JSON object of field -> value` };
+  }
+  const keys = jsonObjectKeys(text);
+  if (keys.length === 0) return { ok: false, reason: `${op} "${key}" must set at least one field` };
+  const seen = /* @__PURE__ */ new Set();
+  const values = /* @__PURE__ */ new Map();
+  for (const field of keys) {
+    if (seen.has(field)) return { ok: false, reason: `${op} "${key}" repeats the field "${field}"` };
+    seen.add(field);
+    if (field.trim() === "" || field !== field.trim() || /[&@]/.test(field)) {
+      return { ok: false, reason: `${op} "${key}" has an invalid field name "${field}"` };
+    }
+    const value = parsed[field];
+    if (typeof value === "string") values.set(field, value);
+    else if (typeof value === "number" || typeof value === "boolean") values.set(field, String(value));
+    else return { ok: false, reason: `${op} "${key}".${field} must be a serialized value (a string)` };
+  }
+  return { ok: true, values };
+}
+function addElementFieldsProblems(change) {
+  if (change.op !== "add_element" || change.to === void 0) return [];
+  const to = parseFieldMap(change.to, "to", "add_element");
+  if (!to.ok) return [{ code: "INVALID_OPERATION", message: to.reason }];
+  return [...to.values.keys()].filter((field) => field.toLowerCase() === "description").map(() => ({
+    code: "USE_UPDATE_ELEMENT_TEXT",
+    message: "the element prose is not a field; use update_element_text on the bare element target"
+  }));
+}
+function addElementFieldsEntries(change) {
+  if (change.op !== "add_element" || change.to === void 0) return [];
+  const to = parseFieldMap(change.to, "to", "add_element");
+  return to.ok ? [...to.values].map(([field, value]) => ({ field, to: value })) : [];
+}
+
 // iNNfo/packages/nn-core/src/mutate.ts
 function requireArgs(args, keys) {
   const values = {};
@@ -9178,9 +9250,17 @@ function addElement(model, args, schema) {
       errors: [
         {
           path: "fields",
-          message: "INVALID_OPERATION: add_element must not carry inline fields; emit one set_fields change (target model@element) for the fields that share one evidence, or one update_field per field (target model@element&field)"
+          message: 'INVALID_OPERATION: add_element carries its initial fields in "to" (a JSON object of field -> value, the shape set_fields uses), never in "fields"'
         }
       ]
+    };
+  }
+  const initialTo = args.to === void 0 || args.to === null ? void 0 : typeof args.to === "string" ? args.to : JSON.stringify(args.to);
+  const toProblem = addElementFieldsProblems({ op: "add_element", to: initialTo })[0];
+  if (toProblem) {
+    return {
+      success: false,
+      errors: [{ path: "to", message: `${toProblem.code}: ${toProblem.message}` }]
     };
   }
   const reservedArgsKeys = /* @__PURE__ */ new Set([
@@ -9189,6 +9269,7 @@ function addElement(model, args, schema) {
     "slug",
     "description",
     "fields",
+    "to",
     // Not a field: a change derives from `evidence`. Accepted here only so the
     // generic copy below does not smuggle it into the element's fields.
     "sources",
@@ -9205,10 +9286,6 @@ function addElement(model, args, schema) {
     if (!reservedArgsKeys.has(k) && v !== void 0) {
       fields[k] = v;
     }
-  }
-  if (existingElements.length > 0) {
-    const prevLast = existingElements[existingElements.length - 1];
-    prevLast.trailingBlankLine = true;
   }
   let elementSlug;
   if (requestedSlug) {
@@ -9238,6 +9315,14 @@ function addElement(model, args, schema) {
     slugExplicit: true,
     trailingBlankLine: true
   };
+  for (const entry of addElementFieldsEntries({ op: "add_element", to: initialTo })) {
+    const written = writeFieldValue(newElement, conceptName, entry.field, entry.to, schema);
+    if (!written.success) return written;
+  }
+  if (existingElements.length > 0) {
+    const prevLast = existingElements[existingElements.length - 1];
+    prevLast.trailingBlankLine = true;
+  }
   existingElements.push(newElement);
   model.elements.set(conceptName, existingElements);
   return { success: true };
@@ -9345,6 +9430,9 @@ function updateField(model, args, schema) {
       ]
     };
   }
+  return writeFieldValue(foundElement, foundConcept, fieldName, val, schema);
+}
+function writeFieldValue(foundElement, foundConcept, fieldName, val, schema) {
   if (val === "") {
     delete foundElement.fields[fieldName];
     if (foundElement.rawFields) {

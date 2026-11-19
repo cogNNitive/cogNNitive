@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
 import { mkdir, writeFile, readFile, readdir, rm, copyFile } from 'node:fs/promises'
+import { loadChangeLog } from '@cognnitive/nn-core'
 import { applyChange } from '../src/tools/apply-change.js'
 import { validateProposal } from '../src/tools/propose-changeset.js'
 
@@ -44,21 +45,19 @@ const CREATE_RUN = change(
   `op:: add_model\ntarget:: onboard-acme\nconcept:: Procedure Execution\nblueprint_name:: executions\nblueprint_url:: ${EXECUTIONS_URL}\nname:: Onboard ACME\n`,
 )
 
-/** An event is added, then its empty values are filled once (append-only is write-once). */
-const addEvent = (n: number) =>
-  change(`c-${n}a`, `op:: add_element\ntarget:: onboard-acme\nconcept:: Execution Event\nname:: e-00${n}\n`)
-
-const fillEvent = (n: number, kind: string, extra = '') =>
+/** One event is ONE change: add_element carries its initial fields in `to` (append-only is write-once). */
+const addEvent = (n: number, kind = 'started', extra = '') =>
   change(
-    `c-${n}b`,
-    `op:: set_fields\ntarget:: onboard-acme@e-00${n}\nto:: {"kind": "${kind}", "actor": "ana", "at": "2026-11-18T09:0${n}:00Z"${extra}}\n`,
+    `c-${n}`,
+    `op:: add_element\ntarget:: onboard-acme\nconcept:: Execution Event\nname:: e-00${n}\nto:: {"kind": "${kind}", "actor": "ana", "at": "2026-11-18T09:0${n}:00Z"${extra}}\n`,
   )
 
-async function event(n: number, kind: string, extra = ''): Promise<void> {
-  const added = await apply(addEvent(n))
+/** Appends one event as one changeset with one change. */
+async function event(n: number, kind: string, extra = ''): Promise<Awaited<ReturnType<typeof applyChange>>> {
+  const added = await apply(addEvent(n, kind, extra))
   expect(added.errors ?? []).toEqual([])
-  const filled = await apply(fillEvent(n, kind, extra))
-  expect(filled.errors ?? []).toEqual([])
+  expect(added.appliedCount).toBe(1)
+  return added
 }
 
 async function runFile(): Promise<string> {
@@ -97,13 +96,30 @@ describe('a procedure run is an append-only record', () => {
     expect(await readFile(await runFile(), 'utf-8')).toContain('def_rev:: V_1-2-0')
   })
 
-  it('appends events and fills each one once', async () => {
+  it('appends each event with its fields as one changeset of one change', async () => {
     await apply(CREATE_RUN)
     await event(1, 'started')
     await event(2, 'input_recorded', ', "field": "tax_id", "value": "B12345678"')
     const text = await readFile(await runFile(), 'utf-8')
     expect(text).toContain('## NN Execution Event: e-002')
+    expect(text).toContain('kind:: input_recorded')
     expect(text).toContain('value:: B12345678')
+    // One changeset per event (plus the run's own).
+    expect((await readdir(join(root, 'changes'))).filter((f) => f.endsWith('_NN.md'))).toHaveLength(3)
+    // Every initial field is attributed to the add_element that wrote it.
+    const log = loadChangeLog(root)
+    for (const field of ['kind', 'actor', 'at', 'field', 'value']) {
+      expect(log.origin(`onboard-acme@e-002&${field}`)?.id).toBe('c-2')
+      expect(log.origin(`onboard-acme@e-002&${field}`)?.op).toBe('update_field')
+    }
+  })
+
+  it('still fills an empty value of an event once', async () => {
+    await apply(CREATE_RUN)
+    await event(1, 'started')
+    const filled = await apply(change('c-08', 'op:: update_field\ntarget:: onboard-acme@e-001&value\nto:: late\n'))
+    expect(filled.errors ?? []).toEqual([])
+    expect(await readFile(await runFile(), 'utf-8')).toContain('value:: late')
   })
 
   it('refuses changing a value an event already holds', async () => {
@@ -133,7 +149,7 @@ describe('a procedure run is an append-only record', () => {
     expect(closed.errors ?? []).toEqual([])
     const text = await readFile(await runFile(), 'utf-8')
     expect(text).toMatch(/^closed: true$/m)
-    const late = await apply(addEvent(2))
+    const late = await apply(addEvent(2, 'started'))
     expect(late.errors?.map((e) => e.code)).toContain('MODEL_CLOSED')
     expect(await readFile(await runFile(), 'utf-8')).toBe(text)
   })

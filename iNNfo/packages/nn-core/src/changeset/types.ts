@@ -455,32 +455,36 @@ type ParsedFieldMap =
  * field names (unique, no `&`/`@`) and whose values are serialized field values
  * (a string, or a number or boolean written as its text).
  */
-function parseFieldMap(raw: string | undefined, key: 'to' | 'from'): ParsedFieldMap {
-  if (raw === undefined) return { ok: false, reason: `set_fields requires "${key}"` }
+function parseFieldMap(
+  raw: string | undefined,
+  key: 'to' | 'from',
+  op: 'set_fields' | 'add_element' = 'set_fields',
+): ParsedFieldMap {
+  if (raw === undefined) return { ok: false, reason: `${op} requires "${key}"` }
   const text = String(raw).trim()
   let parsed: unknown
   try {
     parsed = JSON.parse(text)
   } catch {
-    return { ok: false, reason: `set_fields "${key}" must be a JSON object of field -> value` }
+    return { ok: false, reason: `${op} "${key}" must be a JSON object of field -> value` }
   }
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    return { ok: false, reason: `set_fields "${key}" must be a JSON object of field -> value` }
+    return { ok: false, reason: `${op} "${key}" must be a JSON object of field -> value` }
   }
   const keys = jsonObjectKeys(text)
-  if (keys.length === 0) return { ok: false, reason: `set_fields "${key}" must set at least one field` }
+  if (keys.length === 0) return { ok: false, reason: `${op} "${key}" must set at least one field` }
   const seen = new Set<string>()
   const values = new Map<string, string>()
   for (const field of keys) {
-    if (seen.has(field)) return { ok: false, reason: `set_fields "${key}" repeats the field "${field}"` }
+    if (seen.has(field)) return { ok: false, reason: `${op} "${key}" repeats the field "${field}"` }
     seen.add(field)
     if (field.trim() === '' || field !== field.trim() || /[&@]/.test(field)) {
-      return { ok: false, reason: `set_fields "${key}" has an invalid field name "${field}"` }
+      return { ok: false, reason: `${op} "${key}" has an invalid field name "${field}"` }
     }
     const value = (parsed as Record<string, unknown>)[field]
     if (typeof value === 'string') values.set(field, value)
     else if (typeof value === 'number' || typeof value === 'boolean') values.set(field, String(value))
-    else return { ok: false, reason: `set_fields "${key}".${field} must be a serialized value (a string)` }
+    else return { ok: false, reason: `${op} "${key}".${field} must be a serialized value (a string)` }
   }
   return { ok: true, values }
 }
@@ -541,6 +545,34 @@ export function setFieldsEntries(change: Pick<ChangeItem, 'op' | 'to' | 'from'>)
     const expected = from?.ok ? from.values.get(field) : undefined
     return expected === undefined ? { field, to: value } : { field, to: value, from: expected }
   })
+}
+
+/**
+ * Structural problems of the initial field values an `add_element` carries. `to` is
+ * optional on `add_element`; when present it has exactly the `set_fields` shape (a
+ * non-empty one-line JSON object field -> serialized value), and the key
+ * `description` is `USE_UPDATE_ELEMENT_TEXT`. An `add_element` without `to` has none.
+ */
+export function addElementFieldsProblems(change: Pick<ChangeItem, 'op' | 'to'>): SetFieldsProblem[] {
+  if (change.op !== 'add_element' || change.to === undefined) return []
+  const to = parseFieldMap(change.to, 'to', 'add_element')
+  if (!to.ok) return [{ code: 'INVALID_OPERATION', message: to.reason }]
+  return [...to.values.keys()]
+    .filter((field) => field.toLowerCase() === 'description')
+    .map(() => ({
+      code: 'USE_UPDATE_ELEMENT_TEXT' as const,
+      message: 'the element prose is not a field; use update_element_text on the bare element target',
+    }))
+}
+
+/**
+ * The initial fields an `add_element` sets, in the order `to` writes them. Empty
+ * when it carries no `to` or a malformed one (see `addElementFieldsProblems`).
+ */
+export function addElementFieldsEntries(change: Pick<ChangeItem, 'op' | 'to'>): SetFieldsEntry[] {
+  if (change.op !== 'add_element' || change.to === undefined) return []
+  const to = parseFieldMap(change.to, 'to', 'add_element')
+  return to.ok ? [...to.values].map(([field, value]) => ({ field, to: value })) : []
 }
 
 /** The closed verdict values of a `review_gate` change (changeset-review-gate). */

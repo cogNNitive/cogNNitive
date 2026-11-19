@@ -40,6 +40,7 @@ import {
   gateDeclarationProblems,
   reviewGateProvenanceProblems,
   setFieldsProblems,
+  addElementFieldsProblems,
   elementSlugProblems,
   setFieldsEntries,
   compactExecutionFacts,
@@ -1311,14 +1312,14 @@ export async function executeChangesetApply(
       }
     }
 
-    // `fields` is not a key of the Change concept: a change carries no inline field
-    // values. Reject a proposal that still carries one, defensively.
+    // `fields` is not a key of the Change concept: an add_element carries its initial
+    // fields in `to`. Reject a proposal that still carries one, defensively.
     for (const change of csDoc.changes) {
       if (change.fields !== undefined) {
         return rejectProposal(
           'INVALID_OPERATION',
           change.target,
-          `change "${change.id}": a change must not carry inline fields; set them with one set_fields change for the fields that share one evidence, or one update_field change per field whose evidence differs`,
+          `change "${change.id}": fields is not a change key; an add_element carries its initial fields in "to" (a JSON object of field -> value), an existing element takes one set_fields change for the fields that share one evidence, or one update_field change per field whose evidence differs`,
           change.id,
         )
       }
@@ -1340,7 +1341,7 @@ export async function executeChangesetApply(
     // set_fields: the payload is checked defensively (propose_changeset already did),
     // then the change is expanded into one update_field sub-item per field.
     for (const change of csDoc.changes) {
-      const problem = setFieldsProblems(change)[0]
+      const problem = setFieldsProblems(change)[0] ?? addElementFieldsProblems(change)[0]
       if (problem) {
         return rejectProposal(problem.code, change.target, `change "${change.id}": ${problem.message}`, change.id)
       }
@@ -2368,6 +2369,9 @@ export async function executeChangesetApply(
       }
 
       const mutationArgs = mutationArgsForChange(change, entry.model, renameSchema)
+      // An add_element writes its initial fields (`to`) in the same mutation, so the
+      // element and its values are one change (and one write for an append-only concept).
+      if (change.op === 'add_element' && change.to !== undefined) mutationArgs.to = change.to
 
       // Write policy (write-policy): the concept's declaration, its bluepriNNt default and
       // the domaiNN chain decide which kinds of write the concept's instances accept.
@@ -2857,7 +2861,7 @@ async function synthesizeAndExecuteChangeset(
       }
     : undefined
 
-  // A change carries no inline fields: the direct add_element op cannot express them.
+  // `fields` is not a change key: add_element carries its initial fields in `to`.
   if (!isAddMatrix && op === 'add_element' && opArgs.fields !== undefined) {
     return {
       success: false,
@@ -2866,11 +2870,15 @@ async function synthesizeAndExecuteChangeset(
           path: 'fields',
           code: 'INVALID_OPERATION',
           message:
-            'INVALID_OPERATION: add_element must not carry inline fields; call update_field once per field, or propose a changeset with one set_fields change for the fields that share one evidence',
+            'INVALID_OPERATION: add_element carries its initial fields in "to" (a JSON object of field -> value, the shape set_fields uses), never in "fields"',
         },
       ],
     }
   }
+  // The initial fields of an add_element may arrive as an object: the change records
+  // them as their one-line JSON text.
+  const directTo =
+    op === 'add_element' && opArgs.to !== null && typeof opArgs.to === 'object' ? JSON.stringify(opArgs.to) : undefined
 
   const changeItem: ChangeItem = {
     id: 'c-01',
@@ -2884,7 +2892,7 @@ async function synthesizeAndExecuteChangeset(
         : opArgs.value !== undefined
           ? String(opArgs.value)
           : opArgs.to !== undefined
-            ? String(opArgs.to)
+            ? (directTo ?? String(opArgs.to))
             : opArgs.text !== undefined
               ? String(opArgs.text)
               : (opArgs.newName as string | undefined),

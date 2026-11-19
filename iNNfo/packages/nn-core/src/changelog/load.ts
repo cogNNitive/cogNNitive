@@ -3,6 +3,7 @@
  * snapshots and never touches the filesystem (that is `node.ts`).
  */
 import {
+  addElementFieldsEntries,
   setFieldsEntries,
   type ChangeItem,
   type ChangeOp,
@@ -14,6 +15,7 @@ import type { FileSnapshot } from '../queryUnits.js'
 import { isNNName, isSidecarName, isUnderRootSources, parseName } from '../naming/contract.js'
 import { parseChangeset } from '../changeset/parser.js'
 import { splitEvidence } from '../changeset/evidence.js'
+import { slugifyHeading } from '../sourceRef.js'
 import { createChangeLog, type ChangeLog, type LoggedChange } from './index.js'
 
 export type { ChangeLog, LoggedChange } from './index.js'
@@ -150,6 +152,7 @@ export function resolveChangeFacts(change: ChangeLike, cs: Omit<ChangesetLike, '
  * expanded; every consumer reads plain field units.
  */
 function expandSetFields(change: LoggedChange): LoggedChange[] {
+  if (change.op === 'add_element') return expandAddElementFields(change)
   if (change.op !== 'set_fields' || !change.applied) return [change]
   const entries = setFieldsEntries(change)
   if (entries.length === 0) return [change]
@@ -166,6 +169,33 @@ function expandSetFields(change: LoggedChange): LoggedChange[] {
       subIndex,
     }
   })
+}
+
+/**
+ * An applied `add_element` that carries initial fields in `to` is logged as the
+ * element entry followed by one `update_field` entry per field (same id, hop,
+ * evidence and document index, `subIndex` after the element), so every field's
+ * origin is the change that created the element with it.
+ */
+function expandAddElementFields(change: LoggedChange): LoggedChange[] {
+  if (!change.applied) return [change]
+  const entries = addElementFieldsEntries(change)
+  if (entries.length === 0) return [change]
+  const model = change.target.split('@')[0] ?? ''
+  const element =
+    change.resolvedTarget ?? `${model}@${change.resolvedSlug ?? slugifyHeading(change.name ?? change.slug ?? '')}`
+  const fields = entries.map((entry, subIndex): LoggedChange => {
+    const { from: _from, resolvedSlug: _slug, ...rest } = change
+    return {
+      ...rest,
+      op: 'update_field' as ChangeOp,
+      target: `${element}&${entry.field}`,
+      resolvedTarget: `${element}&${entry.field}`,
+      to: entry.to,
+      subIndex,
+    }
+  })
+  return [change, ...fields]
 }
 
 function loggedChanges(cs: ChangesetLike): LoggedChange[] {

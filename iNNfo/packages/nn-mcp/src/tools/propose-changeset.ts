@@ -24,6 +24,7 @@ import {
   isSidecarName,
   resolveCitation,
   setFieldsProblems,
+  addElementFieldsProblems,
   elementSlugProblems,
 } from '@cognnitive/nn-core'
 import type { ChangeItem, ChangesetDocument, SpecDocument } from '@cognnitive/nn-core'
@@ -179,7 +180,7 @@ function requiredKeyProblems(change: ChangeItem, label: string): string[] {
       if (!target.includes('&')) {
         problems.push(
           `${label}: update_field needs target "model@element&field" plus "to". ` +
-            `The {concept, name, fields} shape belongs to add_element; for update_field use ` +
+            `The {concept, name, to} shape belongs to add_element; for update_field use ` +
             `target: "<model>@<element>&<field>", to: "<value>".`,
         )
       }
@@ -353,8 +354,8 @@ export async function validateProposal(rootDir: string, operations: ChangeItem[]
     }
     if (slugProblems.length > 0) continue
 
-    if (change.op === 'set_fields') {
-      const problems = setFieldsProblems(change)
+    if (change.op === 'set_fields' || change.op === 'add_element') {
+      const problems = change.op === 'set_fields' ? setFieldsProblems(change) : addElementFieldsProblems(change)
       for (const problem of problems) {
         errors.push({ path: label, code: problem.code, message: `${label}: ${problem.message}` })
       }
@@ -606,9 +607,12 @@ export function normalizeOperations(raw: unknown): { operations: ChangeItem[]; e
     for (const key of STRING_KEYS) {
       let value = source[key]
       if (value === undefined || value === null) continue
-      // A set_fields payload may arrive as an object (or a stray array); it is
-      // sealed as its one-line JSON text, and its shape is validated afterwards.
-      if (source['op'] === 'set_fields' && (key === 'to' || key === 'from') && typeof value === 'object') {
+      // A set_fields payload, or the initial fields of an add_element, may arrive as an
+      // object (or a stray array); it is sealed as its one-line JSON text, and its
+      // shape is validated afterwards.
+      const fieldMapKey =
+        (source['op'] === 'set_fields' && (key === 'to' || key === 'from')) || (source['op'] === 'add_element' && key === 'to')
+      if (fieldMapKey && typeof value === 'object') {
         value = JSON.stringify(value)
       }
       if (typeof value !== 'string') {
@@ -619,13 +623,14 @@ export function normalizeOperations(raw: unknown): { operations: ChangeItem[]; e
     }
     const fields = source['fields']
     if (fields !== undefined && fields !== null) {
-      // A change carries no inline field values: each field is its own update_field.
+      // `fields` is not a change key: initial fields travel in add_element's `to`.
       errors.push({
         path: `operations[${index}]`,
         code: 'INVALID_OPERATION',
         message:
-          `operations[${index}].fields is not a change key: a change carries no inline fields. ` +
-          `Set the fields afterwards with one "set_fields" change (target model@element, to {field: value}) ` +
+          `operations[${index}].fields is not a change key. ` +
+          `An add_element carries its initial fields in "to" ({field: value}, the shape set_fields uses); ` +
+          `an existing element takes one "set_fields" change (target model@element, to {field: value}) ` +
           `for the fields that share one evidence, or one "update_field" change per field whose evidence differs`,
       })
       return
