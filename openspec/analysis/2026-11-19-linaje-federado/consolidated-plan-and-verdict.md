@@ -113,8 +113,41 @@ Three questions this round could not settle from code alone:
 - Should the evidence stamp record the consumer's copy or the origin revision (deepseek N2)? Today it records the consumer's copy, and the meaning silently changes if mirror evidence becomes legal.
 - Is the byte-transfer requirement in scope for this feature at all, or a separate one?
 
+## NN Decisions: D10 Scope correction from the maintainer (post-panel)
+covers:: [luna:F1, deepseek:F8]
+decision:: adopt
+consensus:: unanimous
+priority:: P1
+
+The maintainer's requirement is narrower than the scenario as written in `SUMMARY.md`, and
+the narrowing is decisive:
+
+> "Lo que me importa es que el modelo content pueda rastrear el artículo original de intake
+> y llegar a él. El pantallazo lo saca content."
+
+So **asset transport is out of scope for this feature**. The requirement is traceability: the
+coNNtent model must be able to walk from its own unit back to the intake article. How
+coNNtent obtains the image bytes is a separate concern the maintainer owns, not a gap this
+feature must close.
+
+Consequences:
+
+- D3 stands as a finding about the *scenario as previously written*, not as a requirement on
+  this feature. It is downgraded from "the feature fails the scenario" to "a stated example
+  of the scenario needs asset transport, which this feature does not provide and does not
+  need to".
+- The traceability requirement is met by D7 steps 1 and 2 alone. `domain_id`, the revision
+  lock and the lineage bundle are not required to close the chain
+  `video → produce_artifact → mirrored AI_stack element → its evidence → intake resource`.
+- D5 (bundle export) stays deferred with its existing trigger; this correction does not
+  reopen it.
+
 # Verdict
 
-The design's central conclusion — extend, do not rewrite — is **correct and now better evidenced than when it was written**. Its supporting facts were partly wrong: the cause of the evidence hole, the nature of the lock, the status of `origin_uri`, the role of `workspace_id`, and the claim that sidecar provenance is a lineage edge. The corrected order puts the cheapest real work first (wire the dormant resolver), then the actual contract change (one mirror parser/resolver), and moves identity and bundles off the critical path with named triggers. The scenario's screenshot requirement is not solved by any of this and must be specified as a separate asset-transport requirement.
+The design's central conclusion — extend, do not rewrite — is **correct and now better evidenced than when it was written**. Its supporting facts were partly wrong: the cause of the evidence hole, the nature of the lock, the status of `origin_uri`, the role of `workspace_id`, and the claim that sidecar provenance is a lineage edge. The corrected order puts the cheapest real work first (wire the dormant resolver), then the actual contract change (one mirror parser/resolver), and moves identity and bundles off the critical path with named triggers.
+
+**Scope, after the maintainer's D10 correction:** the requirement is that a coNNtent unit can
+trace back to the intake article. Asset transport (getting the image bytes into coNNtent) is
+out of scope. That makes the feature smaller and achievable in the two steps of D7.
 
 Panel honesty: all four reports ran on one provider (`opencode-go`). Unanimity here is not independent corroboration; a shared-serving premise error cannot be ruled out.
