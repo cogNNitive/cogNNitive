@@ -320,6 +320,49 @@ describe('procedure view (bluepriNNt)', () => {
     mount(payload(), context)
     assert.match(container.querySelector('.proc-ficha').textContent, /Reviews a draft before it is published/)
   })
+
+  it('draws the step icon through nnIcons, the sprite the console actually provides', (context) => {
+    global.nnIcons = require(join(consoleDir, 'nn-icons.js'))
+    context.after(() => {
+      delete global.nnIcons
+    })
+    mount(payload(), context)
+    // Before this, the view read `nnVisuals.iconSvg`, which the console no longer sets:
+    // the pill rendered as a bare " TASK" with no icon at all.
+    const pill = container.querySelector('.step-type-pill')
+    assert.ok(pill.querySelector('svg'), 'the type pill carries an icon')
+    assert.ok(container.querySelector('.exec-col-header svg'), 'the workflow header carries one too')
+  })
+
+  it('reads the icon module the way nn-runtime does, and never the retired nnVisuals', () => {
+    const code = readFileSync(stepperPath, 'utf8')
+    assert.match(code, /typeof nnIcons !== 'undefined'/, 'same lookup as the shell')
+    // No executable reference to the retired global survives (comments may explain it).
+    const executable = code
+      .split('\n')
+      .filter((l) => !/^\s*\/\//.test(l))
+      .join('\n')
+    assert.doesNotMatch(executable, /nnVisuals/, 'the retired global is gone from the code')
+  })
+
+  it('states every class the run panel relies on, so nothing renders unstyled', () => {
+    // The panel is built from these classes; a missing rule leaves it browser-default,
+    // which is what shipped: the run panel had no shape at all.
+    const css = readFileSync(join(consoleDir, 'nn-ui.css'), 'utf8')
+    const missing = [
+      '.proc-runs',
+      '.proc-runs-label',
+      '.proc-ficha',
+      '.proc-ficha-summary',
+      '.proc-run-state',
+      '.proc-run-next',
+      '.proc-run-drift',
+      '.proc-structure-summary',
+      '.dag-node.current',
+      '.dag-node.selected',
+    ].filter((sel) => !css.includes(sel))
+    assert.deepEqual(missing, [], 'every class the panel builds has a rule')
+  })
 })
 
 describe('collectProcedureRuns (export)', () => {
