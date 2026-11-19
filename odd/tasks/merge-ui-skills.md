@@ -70,7 +70,8 @@ description). Bump the surviving skill's `version` and `last_updated`.
 | `openspec/changes/merge-ui-skills/specs/skill-catalog/spec.md` | the delta spec |
 
 Search for the old name before finishing: `git grep -n "nn-design-presets"` must return
-nothing outside `openspec/changes/archive/**` and the review analysis folder.
+nothing outside `openspec/changes/archive/**`, the review analysis folder, and the published
+blueprint prose noted under **Out of scope** below.
 
 ## Delta spec
 
@@ -118,3 +119,43 @@ not start a 12-file contract change in a long thread; hand off with this map ins
 L2: #724 landed items 6 and 7 (remove_model + the D7 doc fixes) and released
 `nn-mcp 0.39.0` / `nn-console 0.39.0`. #726 archived the landed changes. #728 fixed
 `auto-tag` (atomic tag push, issue #725).
+
+L3 (2026-11-18, `session/merge-ui-skills`, base `origin/main` 367413c7): executed. The plan's
+file table was incomplete — the doc set is wider than the six documentation files listed:
+`docs/documentation/_sidebar.md`, `llms.txt`, `ai-index.yaml` and `master.md` are generated
+by `generate-docsify-suite.mjs` / `generate-docs-master.mjs`, `docs/use/manifest-next.md`
+(and its `docs/update/` copy) is generated from `manifest/source.yaml`, and eight published
+`docs/*.html` pages carried `nn-design-presets` in their `generator` meta (one, `docs/index.html`,
+as a skills-grid card). All of them moved with this change. `checkSkillPageSet` turned out to
+have no production caller — the doc/model parity is held by the docs generators and by review,
+not by that unit-tested helper.
+
+L4: the surviving skill keeps `disable-model-invocation: true`, as decided. To avoid losing the
+`nn-design-presets` auto-discovery that `nn` used to rely on, `nn/SKILL.md` now points at the
+token files directly (`skills/nn-site-generator/presets/`) instead of naming a skill to load.
+
+L5 (out of scope): `iNNfo/specs/bluepriNNts/design-presets/spec_NN.md:106` still names
+`skills/nn-design-presets` as its data-foundation consumer. Fixing prose in that published spec
+is not free: `Template Immutability Guard` requires a `blueprint_version` bump, which requires
+refreshing both sample copies and ships a `blueprints` release that then claims a schema change
+that did not happen. Left for a deliberate blueprints change; the reference there is stale but
+harmless.
+
+## Executed
+
+| Item | Evidence |
+|---|---|
+| Presets body absorbed into `nn-site-generator/SKILL.md`; version `V_0-3-0` | `skills/nn-site-generator/SKILL.md` |
+| `presets/` and `demo/` moved; `nn-design-presets/` deleted | `git mv` renames in the PR diff |
+| Manifest entry dropped, surviving description carries the preset trigger | `manifest/source.yaml` |
+| Skill and preflight references repointed | `skills/nn/SKILL.md`, `skills/nn-preflight/SKILL.md`, `components/{ai-readiness,interactive-showcase}.md` |
+| Docs page folded, page model, nav, AI index, master regenerated | `node scripts/generate-docsify-suite.mjs`, `generate-docs-master.mjs` (`--check` green) |
+| Published site pages and robots headers repointed | eight `docs/*.html`, `docs/{skills,innfo}/robots.txt` |
+| Delta spec `skill-catalog` | `openspec/changes/merge-ui-skills/specs/skill-catalog/spec.md` |
+| Verification | `check-openspec-deltas`, `check-docs-links` (632 links), `generate-docs-facts --check`, `generate-docs-master --check`, `verify.js --fast` (312 steps green) |
+
+Machine note: this worktree had no `nn-core`/`nn-mcp` dist and no `node_modules/.bin` (the
+installed tree is pnpm-shaped), so the two builds above were run through
+`node node_modules/typescript/bin/tsc` and `node node_modules/tsup/dist/cli-default.js`, and the
+`@cognnitive/nn-core` workspace link had to be repointed at this worktree to build the MCP
+bundle. Both are local-machine artifacts and are restored after the run.
