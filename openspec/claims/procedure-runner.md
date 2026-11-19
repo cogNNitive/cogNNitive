@@ -1,6 +1,6 @@
 # claim: procedure-runner
 
-branch: feat/procedure-runner
+branch: feat/procedure-runner (slice 1); session/add-element-fields (PR 739); session/procedure-blueprints (PR 738)
 opened: 2026-11-19
 thread: procedure-runner handoff (T3 Code), tracker odd/tasks/procedure-runner.md
 
@@ -20,5 +20,6 @@ area:
   - iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js   # generated
   - iNNfo/specs/bluepriNNts/executions/spec_NN.md
   - iNNfo/specs/bluepriNNts/procedures/spec_NN.md
+  - iNNfo/specs/bluepriNNts/changes/spec_NN.md
   - iNNfo/specs/bluepriNNts/catalog.json   # generated
   - skills/nn-innfo/SKILL.md
