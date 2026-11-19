@@ -15,6 +15,10 @@ async function procedureFoldBrowserSource(repoRoot) {
     platform: 'browser',
     target: 'es2020',
     legalComments: 'none',
+    // esbuild stamps each module's absolute path into a `// <path>` banner by default, which
+    // makes the artifact differ per checkout: the fixture could never reproduce on another
+    // machine. Paths are rebased to the repo root, so the same sources give the same bytes.
+    absWorkingDir: repoRoot,
   })
   const code = result.outputFiles[0].text
   // The slot is JSON, so the payload is the source as a JSON string.
