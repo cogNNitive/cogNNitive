@@ -131,6 +131,53 @@
       return entry && entry.graph && entry.graph.steps ? entry.graph.steps : {}
     }
 
+    // ---- Pending drafts of a run, as events the fold can consume ----
+    //
+    // A draft the console holds is not applied, but it is a fact the person recorded. The
+    // projection answers "what would this run look like" by folding the recorded events plus
+    // these pending ones. It never decides what a draft means: the draft already says it, and
+    // the fold reads it exactly as it reads a recorded event.
+    var PENDING_EVENT_CONCEPT = 'Execution Event'
+
+    function pendingEventsOf(run) {
+      if (!store || !run) return []
+      var list = store.drafts()
+      var out = []
+      ;(Array.isArray(list) ? list : []).forEach(function (d) {
+        if (!d || d.concept !== PENDING_EVENT_CONCEPT) return
+        if (String(d.knowledge_id) !== String(run.id)) return
+        var fields = d.proposed
+        if (typeof fields === 'string') {
+          try {
+            fields = JSON.parse(fields)
+          } catch {
+            return
+          }
+        }
+        if (!fields || typeof fields !== 'object' || !fields.kind) return
+        out.push(fields)
+      })
+      return out
+    }
+
+    /** The state this run would reach with its pending drafts applied, or null. */
+    function projectedStateOf(run) {
+      var core = GLOBAL.nnProcedureCore
+      if (!core || typeof core.stateOf !== 'function' || !core.available()) return null
+      if (!run || !active || !active.graph) return null
+      var pending = pendingEventsOf(run)
+      if (!pending.length) return null
+      var recorded = Array.isArray(run.events) ? run.events : []
+      try {
+        return core.stateOf(active.graph, recorded.concat(pending), {
+          defRev: run.defRev,
+          lockFree: true,
+        })
+      } catch {
+        return null
+      }
+    }
+
     function stepName(slug) {
       var s = stepsOf(active)[slug]
       return s ? s.name || slug : slug
@@ -385,7 +432,15 @@
       return st ? st.status : 'pending'
     }
 
-    function renderGraph(host) {
+    // The same step under the pending drafts. A step whose status differs is the one the
+    // hold moves, and the graph marks it apart from everything that is already applied.
+    function projectedStatus(slug, projection) {
+      if (!projection || !projection.steps || !projection.steps[slug]) return null
+      var next = projection.steps[slug].status
+      return next === stepStatus(slug) ? null : next
+    }
+
+    function renderGraph(host, projection) {
       var graph = active.graph
       var svgNS = 'http://www.w3.org/2000/svg'
       var nodeW = 200
@@ -436,13 +491,20 @@
         var step = graph.steps[slug]
         var p = pos[slug]
         var status = stepStatus(slug)
+        var ahead = projectedStatus(slug, projection)
         var g = document.createElementNS(svgNS, 'g')
         g.setAttribute(
           'class',
-          'dag-node ' + status + (step.stepType === 'decision' ? ' decision' : '') + (slug === current ? ' current' : '') + (slug === selectedStep ? ' selected' : ''),
+          'dag-node ' +
+            status +
+            (step.stepType === 'decision' ? ' decision' : '') +
+            (slug === current ? ' current' : '') +
+            (slug === selectedStep ? ' selected' : '') +
+            (ahead ? ' projected' : ''),
         )
         g.setAttribute('data-step', slug)
         g.setAttribute('data-status', status)
+        if (ahead) g.setAttribute('data-projected-status', ahead)
         g.setAttribute('data-layer', String(p.layer))
         g.addEventListener('click', function () {
           selectedStep = slug
@@ -465,7 +527,11 @@
         sub.setAttribute('x', p.x + 30)
         sub.setAttribute('y', p.y + 20)
         sub.setAttribute('class', 'node-sub')
-        sub.textContent = (step.stepType || 'task').toUpperCase() + (step.executor ? ' · ' + step.executor : '') + (status !== 'definition' ? ' · ' + status : '')
+        sub.textContent =
+          (step.stepType || 'task').toUpperCase() +
+          (step.executor ? ' · ' + step.executor : '') +
+          (status !== 'definition' ? ' · ' + status : '') +
+          (ahead ? ' → ' + ahead : '')
         g.appendChild(sub)
         var title = document.createElementNS(svgNS, 'text')
         title.setAttribute('x', p.x + 30)
@@ -502,7 +568,7 @@
       return name + (st ? ': ' + st.status + (st.rev ? ' (rev ' + st.rev + ')' : '') : '')
     }
 
-    function renderStepCard(host) {
+    function renderStepCard(host, projection) {
       var graph = active.graph
       var slug = selectedStep || (activeRun && activeRun.state && activeRun.state.currentStep) || graph.start || Object.keys(graph.steps)[0]
       var col = make('div', 'exec-active-col')
@@ -550,6 +616,7 @@
         if (st.outcome || st.next) fact('Outcome', (st.outcome || '—') + (st.next ? ' → ' + stepName(st.next) : ''))
       }
       if (facts.children.length) card.appendChild(facts)
+      renderProjection(card, slug, projection)
       if (step.next.length > 1) {
         var branches = make('div', 'branch-outcomes')
         step.next.forEach(function (t) {
@@ -568,6 +635,56 @@
         card.appendChild(raciBox)
       }
       col.appendChild(card)
+    }
+
+    /**
+     * The pending change on this step, shown the way every other console view shows one:
+     * the value it has now, then the value it would have. A step with nothing pending on it
+     * prints nothing, so the card never claims a change that is not queued.
+     */
+    function renderProjection(card, slug, projection) {
+      if (!projection) return
+      var now = activeRun && activeRun.state ? activeRun.state.steps[slug] : null
+      var next = projection.steps ? projection.steps[slug] : null
+      if (!next) return
+      var from = now ? now.status : 'pending'
+      var to = next.status
+      if (from === to) return
+
+      var box = make('div', 'proc-projection')
+      box.setAttribute('data-proc-projection', slug)
+      var head = make('div', 'proc-projection-title', 'Pending change')
+      box.appendChild(head)
+      var row = make('div', 'proc-projection-row')
+      row.appendChild(make('span', 'proc-projection-from', from))
+      row.appendChild(make('span', 'proc-projection-arrow', '→'))
+      row.appendChild(make('span', 'proc-projection-to', to))
+      box.appendChild(row)
+      // Every fact the pending events assert, listed exactly as the event carries it.
+      var facts = []
+      pendingEventsOf(activeRun).forEach(function (e) {
+        if (e.step !== slug) return
+        var bits = [e.kind]
+        ;['outcome', 'next', 'value', 'field'].forEach(function (k) {
+          if (e[k] !== undefined && e[k] !== '') bits.push(k + ': ' + e[k])
+        })
+        facts.push(bits.join(' · '))
+      })
+      if (facts.length) {
+        var list = make('div', 'proc-projection-facts')
+        facts.forEach(function (f) {
+          list.appendChild(make('div', 'proc-projection-fact', f))
+        })
+        box.appendChild(list)
+      }
+      box.appendChild(
+        make(
+          'div',
+          'proc-projection-note',
+          'Not applied yet: this view shows the run with your pending drafts. The changeset applies them.',
+        ),
+      )
+      card.appendChild(box)
     }
 
     function rolesForStep(workName) {
@@ -751,7 +868,7 @@
     }
 
     // ---- Run panel ----
-    function renderRunPanel(host) {
+    function renderRunPanel(host, projection) {
       var col = make('div', 'exec-log-col')
       host.appendChild(col)
       var panel = make('div', 'proc-run-state')
@@ -768,6 +885,11 @@
         return
       }
       panel.appendChild(make('div', 'proc-run-status', 'Status: ' + state.status))
+      if (projection && projection.status !== state.status) {
+        var moved = make('div', 'proc-run-projected', 'With pending drafts: ' + projection.status)
+        moved.setAttribute('data-proc-projected-status', projection.status)
+        panel.appendChild(moved)
+      }
       panel.appendChild(make('div', 'proc-run-current', 'Current step: ' + (state.currentStep ? stepName(state.currentStep) : 'none')))
       panel.appendChild(make('div', 'proc-run-path', 'Path: ' + state.path.map(stepName).join(' → ')))
       if (state.blockedBy) panel.appendChild(make('div', 'proc-run-blocked', 'Blocked: ' + state.blockedBy))
@@ -854,9 +976,11 @@
       }
       var ws = make('div', 'exec-workspace')
       body.appendChild(ws)
-      renderGraph(ws)
-      renderStepCard(ws)
-      renderRunPanel(ws)
+      // One projection per render: the graph, the step card and the panel must agree.
+      var projection = projectedStateOf(activeRun)
+      renderGraph(ws, projection)
+      renderStepCard(ws, projection)
+      renderRunPanel(ws, projection)
     }
 
     selectEntry(active)

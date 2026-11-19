@@ -6109,6 +6109,61 @@ details.collapse summary {
     .dag-node.selected rect { stroke-dasharray: 5 3; }
     .dag-node.current .node-title { fill: var(--primary); font-weight: 700; }
 
+    /* A step the pending drafts move: the applied state stays solid, the projection is drawn
+       as an outline so the two never read as the same thing. */
+    .dag-node.projected rect {
+      stroke-dasharray: 6 4;
+      stroke: var(--warning);
+      fill: var(--warning-light);
+    }
+    .dag-node.projected .node-sub { fill: var(--warning); font-weight: 700; }
+
+    /* The pending change on a step card: current value, then the value it would take */
+    .proc-projection {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px dashed var(--warning);
+      background: var(--warning-light);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .proc-projection-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--warning);
+    }
+    .proc-projection-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.84rem;
+      font-weight: 600;
+    }
+    .proc-projection-from { color: var(--muted); }
+    .proc-projection-arrow { color: var(--warning); }
+    .proc-projection-to { color: var(--text); }
+    .proc-projection-facts {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      color: var(--text);
+    }
+    .proc-projection-note {
+      font-size: 0.74rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .proc-run-projected {
+      color: var(--warning);
+      font-weight: 600;
+    }
+
     /* Live Execution Log */
     .exec-log-view {
       padding: 12px;
