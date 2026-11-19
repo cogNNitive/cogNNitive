@@ -36,10 +36,10 @@ request that lands the work**: a claim is a live lock, not a tombstone.
 
 A claim is a **convention with a tool**, not something the server enforces. `main` forbids only
 force-push and deletion, so the release is the last commit of the pull request and nothing
-rejects a PR that forgets it. CI carries the `merge_group` gate (`scripts/release-claim.mjs
---check`) so the rule would become blocking the day a merge queue is enabled; today no queue
-exists, so that gate never runs. The net is `claim-audit.mjs`, which names every claim whose PR
-is no longer open. A claim written before its PR opened (no `pr:`) is judged by its `branch:`:
+rejects a PR that forgets it. CI used to carry a blocking `merge_group` gate
+(`scripts/release-claim.mjs --check`); it was deleted on 2026-11-19 because no merge queue
+exists, so the gate could never run. The net is `claim-audit.mjs`, which names every claim whose
+PR is no longer open. A claim written before its PR opened (no `pr:`) is judged by its `branch:`:
 
 ```powershell
 gh pr list --state all --limit 5000 --json number,headRefName,state > temp/prs.json
