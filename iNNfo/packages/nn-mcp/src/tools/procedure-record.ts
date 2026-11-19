@@ -8,6 +8,8 @@ import { applyChange } from './apply-change.js'
 import { writeProposedChangeset } from './propose-changeset.js'
 import { findKnowledgeFile } from './spec.js'
 import { loadDeclarations } from './domain-index.js'
+import { acquireRunLock } from './procedure-lock.js'
+import type { RunLockHandle } from './procedure-lock.js'
 import {
   describeRun,
   fail,
@@ -23,7 +25,8 @@ import type { FoldedRun, ProcedureStateResult, RecordAction, ToolError } from '.
  * changeset applied through `applyChange`, so the ledger, the `append-only` write policy, the
  * apply lock and `close_model` all hold. Each event is one `add_element` change carrying its
  * fields (`to:: {json}`). The fold decides what may be recorded; a forbidden fact is refused
- * with a stable code and nothing is written.
+ * with a stable code and nothing is written. The read-fold-plan-apply window holds the run
+ * lock (`procedure-lock.ts`), so two callers cannot both fold the same state and both write.
  */
 
 /** Where a domain carries the `executions` bluepriNNt package; else the canonical URL. */
@@ -204,6 +207,9 @@ const ARTIFACT_FACTS = {
   rejected: 'artifact_rejected',
 } as const
 
+/** A step reports an artifact fact only once it has started: a `pending` or `off_path` step has nothing to report. */
+const ARTIFACT_REPORTING: ReadonlySet<string> = new Set(['active', 'waiting', 'done', 'reopened'])
+
 export interface RecordResult extends ProcedureStateResult {
   recorded: RunEvent[]
   changeset: string
@@ -301,8 +307,22 @@ function plan(
       const field = text(args['field'])
       if (!field || !graph.artifacts[field])
         return fail('UNKNOWN_ARTIFACT', `"${field ?? ''}" is not an artifact of the procedure.`)
-      const step =
-        text(args['step']) ?? graph.artifacts[field]!.producers[0] ?? state.currentStep ?? undefined
+      const named = text(args['step'])
+      if (named !== undefined && !graph.steps[named])
+        return fail('UNKNOWN_STEP', `"${named}" is not a step of the procedure.`)
+      const step = named ?? graph.artifacts[field]!.producers[0] ?? state.currentStep ?? undefined
+      if (step === undefined)
+        return fail(
+          'STEP_NOT_STARTED',
+          `Artifact "${field}" has no producer step to report it from; start a step first.`,
+        )
+      const status = state.steps[step]!.status
+      if (!ARTIFACT_REPORTING.has(status))
+        return fail(
+          'STEP_NOT_STARTED',
+          `Step "${step}" is ${status}; an artifact can only be reported by a step that started.`,
+          { step, status },
+        )
       const rev = text(args['rev'])
       return {
         events: [
@@ -459,29 +479,52 @@ export async function procedureRecord(
   const action = text(args['action']) as RecordAction | undefined
   if (!action || !ACTIONS.includes(action))
     return fail('INVALID_ACTION', `action must be one of ${ACTIONS.join(', ')}.`)
-  const read = await readRun(root, args['run'])
-  if (!read.ok) return read
-  const folded = await foldStoredRun(root, read.run)
-  if (!folded.ok) return folded
-  const planned = plan(folded.folded, action, args, root)
-  if ('ok' in planned) return planned
+  const runId = text(args['run'])
+  if (!runId) return fail('INVALID_ARGUMENT', 'run must be a non-empty run id.')
 
-  const kind = planned.kind ?? 'agent'
-  const actor = text(args['actor']) ?? kind
-  const run = read.run.id
-  const base = read.run.events.length + 1
-  const changes: Change[] = planned.events.map((e, i) =>
-    eventChange(run, base + i, eventFields(e, actor)),
-  )
-  if (planned.close) changes.push({ op: 'close_model', target: run, evidence: 'decision' })
-  const committed = await commit(root, changes, { title: `${action} ${run}`, actor, kind })
-  if (!committed.ok) return committed
-  const after = await reload(root, run)
-  if (!after.ok) return after
-  return {
-    ...after,
-    recorded: planned.events,
-    changeset: committed.changeset,
-    ...(planned.kind === 'engine' ? { exitCode: planned.exitCode } : {}),
+  // The whole read-fold-plan-apply window is single-writer per run: the apply lock only
+  // serializes the write, and a colliding event slug is auto-suffixed by the engine, so a
+  // second caller that folded the same state would append a duplicate fact without error.
+  let gate: RunLockHandle
+  try {
+    gate = await acquireRunLock(root, runId)
+  } catch (err) {
+    if ((err as { code?: string })?.code === 'RUN_BUSY')
+      return fail(
+        'RUN_BUSY',
+        `Another caller is writing run "${runId}"; re-read its state and retry.`,
+        { run: runId },
+      )
+    throw err
+  }
+
+  try {
+    const read = await readRun(root, runId)
+    if (!read.ok) return read
+    const folded = await foldStoredRun(root, read.run)
+    if (!folded.ok) return folded
+    const planned = plan(folded.folded, action, args, root)
+    if ('ok' in planned) return planned
+
+    const kind = planned.kind ?? 'agent'
+    const actor = text(args['actor']) ?? kind
+    const run = read.run.id
+    const base = read.run.events.length + 1
+    const changes: Change[] = planned.events.map((e, i) =>
+      eventChange(run, base + i, eventFields(e, actor)),
+    )
+    if (planned.close) changes.push({ op: 'close_model', target: run, evidence: 'decision' })
+    const committed = await commit(root, changes, { title: `${action} ${run}`, actor, kind })
+    if (!committed.ok) return committed
+    const after = await reload(root, run)
+    if (!after.ok) return after
+    return {
+      ...after,
+      recorded: planned.events,
+      changeset: committed.changeset,
+      ...(planned.kind === 'engine' ? { exitCode: planned.exitCode } : {}),
+    }
+  } finally {
+    await gate.release()
   }
 }

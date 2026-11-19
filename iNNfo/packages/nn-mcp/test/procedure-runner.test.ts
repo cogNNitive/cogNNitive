@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
 import { readFile, readdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -346,6 +346,83 @@ describe('procedure_record', SLOW, () => {
     )
     expect(r.state).toMatchObject({ inputs: { tax_id: { value: 'B1', rev: 'c1' } } })
     expect(await runText('r1')).toContain('kind:: input_recorded')
+  })
+
+  it('refuses a second writer of the same run, then breaks a stale holder', async () => {
+    ok(await startReview())
+    const lock = join(root, 'changes', '.lock.procedure-r1')
+    await writeFile(
+      lock,
+      JSON.stringify({ pid: 1, timestamp: Date.now(), changeset: 'procedure:r1' }),
+    )
+    // A live holder: the refuser writes nothing and does not release a lock it does not own.
+    expect(await procedureRecord(root, { run: 'r1', action: 'start' })).toMatchObject({
+      ok: false,
+      code: 'RUN_BUSY',
+    })
+    expect(existsSync(lock)).toBe(true)
+    expect(await changesets()).toHaveLength(1)
+
+    // A holder past the stale window is broken, and the call releases its own lock.
+    await writeFile(
+      lock,
+      JSON.stringify({ pid: 1, timestamp: Date.now() - 10 * 60_000, changeset: 'procedure:r1' }),
+    )
+    const started = ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
+    expect(started.recorded).toMatchObject([{ kind: 'step_started', step: 'draft' }])
+    expect(existsSync(lock)).toBe(false)
+  })
+
+  it('refuses an artifact fact from a step that never started', async () => {
+    ok(await startReview())
+    // `draft` is the current step and produces `draft-doc`, but nothing was reported from it.
+    expect(
+      await procedureRecord(root, {
+        run: 'r1',
+        action: 'artifact',
+        fact: 'validated',
+        field: 'draft-doc',
+        rev: 'd1',
+      }),
+    ).toMatchObject({ ok: false, code: 'STEP_NOT_STARTED' })
+    expect(await changesets()).toHaveLength(1)
+
+    // Once the step starts, the same fact is accepted.
+    ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
+    const r = ok(
+      await procedureRecord(root, {
+        run: 'r1',
+        action: 'artifact',
+        fact: 'validated',
+        field: 'draft-doc',
+        rev: 'd1',
+      }),
+    )
+    expect(r.state).toMatchObject({ artifacts: { 'draft-doc': { status: 'validated', rev: 'd1' } } })
+  })
+
+  it('a drifted run advertises only the actions its writer accepts', async () => {
+    ok(await startReview())
+    const doc = join(root, 'procedures', 'review_procedures_NN.md')
+    await writeFile(
+      doc,
+      (await readFile(doc, 'utf-8')).replace(
+        'knowledge_version: "V_1-0-0"',
+        'knowledge_version: "V_1-1-0"',
+      ),
+    )
+    const s = ok(await procedureState(root, { run: 'r1' }))
+    expect(s.actions).toEqual(['rebase', 'input', 'pause', 'cancel', 'finish'])
+    // Nothing advertised is refused: the artifact fact the state omits is the one plan refuses.
+    expect(
+      await procedureRecord(root, {
+        run: 'r1',
+        action: 'artifact',
+        fact: 'validated',
+        field: 'draft-doc',
+        rev: 'd1',
+      }),
+    ).toMatchObject({ ok: false, code: 'RUN_DRIFTED' })
   })
 })
 

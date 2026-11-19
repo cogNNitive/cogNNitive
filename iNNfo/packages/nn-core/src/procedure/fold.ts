@@ -125,6 +125,8 @@ export function foldRun(
   }
 
   const last = events[events.length - 1]
+  // `action=run` writes the start and its terminal in one changeset, so a command that dies
+  // leaves no event at all: this fires only for a step started on its own and never followed.
   const crashed =
     opts.lockFree === true &&
     last?.kind === 'step_started' &&

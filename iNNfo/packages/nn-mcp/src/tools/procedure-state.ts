@@ -185,15 +185,14 @@ export type RecordAction =
 /** The `procedure_record` actions the fold allows now, in a stable order. */
 export function allowedActions({ run, graph, state }: FoldedRun): RecordAction[] {
   if (run.closed || ['completed', 'failed', 'cancelled'].includes(state.status)) return []
-  const tail: RecordAction[] = [
-    'input',
-    'artifact',
-    state.paused ? 'resume' : 'pause',
-    'cancel',
-    'finish',
-  ]
-  if (state.drift) return ['rebase', ...tail]
-  if (state.paused) return tail
+  // Allowed in every open state, drift and pause included: recording an input is an external
+  // fact, and pause/resume, cancel and finish never touch the walked path.
+  const rest: RecordAction[] = [state.paused ? 'resume' : 'pause', 'cancel', 'finish']
+  // Drift blocks every step action and every artifact fact until `rebase` is recorded
+  // (`procedure-record.ts` `plan`), so the advertisement must not offer them.
+  if (state.drift) return ['rebase', 'input', ...rest]
+  const open: RecordAction[] = ['input', 'artifact', ...rest]
+  if (state.paused) return open
   const actions: RecordAction[] = []
   const current = state.currentStep
   if (current) {
@@ -208,7 +207,7 @@ export function allowedActions({ run, graph, state }: FoldedRun): RecordAction[]
       if (def.executor === 'engine' && def.command) actions.push('run')
     }
   }
-  return [...actions, ...tail]
+  return [...actions, ...open]
 }
 
 /** What the current step needs: its executor, the decision it asks, its command, its inputs and outputs. */

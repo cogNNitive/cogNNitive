@@ -80,7 +80,7 @@ Event kinds (extend `kind`):
 
 New event fields: `outcome`, `next`, `attempt`, `inputs`, `rev`. `rev` per verify kind: file/command → sha256; element → `ChangeLog.origin` change id; human → none.
 
-Engine crash is **derived**, never written: an engine `step_started` with no later event while the apply lock is free.
+Engine crash is **derived**, never written: an engine `step_started` with no later event while the apply lock is free. `action=run` writes the start and its outcome in one changeset, so a command that dies leaves no event: the step stays pending and is started again, and this derivation covers a step started on its own and never followed.
 
 ## 5. Fold (nn-core `foldRun`)
 
