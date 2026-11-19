@@ -20,7 +20,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { normalizeModelId } from './video-guard.mjs';
+import { avatarResolutionProfileFor, normalizeModelId } from './video-guard.mjs';
 import { AVATAR_IMAGE_MIME } from './avatar-request.mjs';
 import { buildTtsVoiceOptions, resolveRegisteredVoice } from './tts-options.mjs';
 
@@ -28,11 +28,13 @@ export const AVATAR_CACHE_CATEGORY = 'temp';
 export const AVATAR_CACHE_EXT = 'mp4';
 export const DEFAULT_AVATAR_RESOLUTION = '480p';
 
-/** Resolutions each avatar model accepts. Pruna rejects 720p; InfiniTalk accepts it. */
+/**
+ * The resolution profile of an avatar model comes from the guard module: model ids are
+ * data there, never re-derived from a vendor name in engine code (the rule
+ * `no-phantom-providers.test.mjs` enforces).
+ */
 export function validResolutionsFor(model) {
-  const m = normalizeModelId(model);
-  if (m.includes('pruna')) return ['480p', '768p'];
-  return ['480p', '720p', '768p'];
+  return [...avatarResolutionProfileFor(model).resolutions];
 }
 
 /**
@@ -139,8 +141,7 @@ export function checkAvatarUpscale({ width, height, formats = [], maxUpscale = D
 }
 
 export function defaultResolutionFor(model) {
-  const m = normalizeModelId(model);
-  return m.includes('pruna') ? '480p' : '720p';
+  return avatarResolutionProfileFor(model).fallback;
 }
 
 /** Validates a requested resolution against the model's allowed set (fail closed). */

@@ -25,6 +25,28 @@ test('infinitetalk keeps 720p', () => {
   assert.doesNotThrow(() => normalizeAvatarResolution('720p', INF));
 });
 
+const PRUNA_PVIDEO = 'pruna-ai/p-video/avatar';
+
+test('pruna p-video avatar takes 720p only, not the 480p default of its sibling', () => {
+  assert.deepEqual(validResolutionsFor(PRUNA_PVIDEO), ['720p']);
+  assert.equal(defaultResolutionFor(PRUNA_PVIDEO), '720p');
+  assert.equal(normalizeAvatarResolution(undefined, PRUNA_PVIDEO), '720p');
+  // The provider rejects 480p for this model, so the request must fail here, before
+  // any audio has been paid for, instead of after the upload.
+  assert.throws(() => normalizeAvatarResolution('480p', PRUNA_PVIDEO), /not supported/);
+});
+
+test('resolution profiles are keyed by api_id, not by vendor substring', () => {
+  assert.notDeepEqual(validResolutionsFor(PRUNA), validResolutionsFor(PRUNA_PVIDEO));
+  // The replicate/ prefix is normalized away and the profile still matches.
+  assert.deepEqual(validResolutionsFor(`replicate/${PRUNA_PVIDEO}`), ['720p']);
+});
+
+test('an unknown avatar model keeps the schema list and the existing default', () => {
+  assert.deepEqual(validResolutionsFor('acme/unknown-avatar'), ['480p', '720p', '768p']);
+  assert.equal(defaultResolutionFor('acme/unknown-avatar'), '720p');
+});
+
 test('the compiler lowers avatar_resolution onto the layer', () => {
   const model = {
     version: 'nn-read-knowledge@1',
