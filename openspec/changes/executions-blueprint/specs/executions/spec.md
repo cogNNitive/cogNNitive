@@ -35,3 +35,22 @@ When an `add_model` change creates an instance of a concept its bluepriNNt decla
 - GIVEN a domaiNN where no model uses `executions`
 - WHEN an `add_model` of a `Procedure Execution` named `onboard-acme` is applied
 - THEN the model is written under `executions/onboard-acme/`
+
+### Requirement: Only a closed model is citable as evidence
+
+A change MAY cite a model as evidence only by its id, as `<model id>@<element>`, and `apply_change` and `propose_changeset` MUST accept such a citation only when the model exists, holds the element and is closed (`closed: true`, set by `close_model`). Citing an open model MUST be reported as `CITATION_NOT_CLOSED`, and a missing model or element as `CITATION_UNRESOLVED`. For an accepted citation, `evidence_sha256` MUST record the sha256 of the model file. (Previously: a model id citation never resolved and was reported as `CITATION_UNRESOLVED`.)
+
+#### Scenario: A computed value cites the run that computed it
+- GIVEN a run `onboard-acme` with an event `e-001`
+- WHEN a change cites `onboard-acme@e-001` while the run is open
+- THEN it is rejected with `CITATION_NOT_CLOSED`
+- AND once the run is closed with `close_model`, the same citation is accepted and its file hash is recorded in `evidence_sha256`
+
+### Requirement: The changes bluepriNNt documents the origins of a value
+
+The changes bluepriNNt MUST document that evidence always points outside the living knowledge graph and MUST list the origins of a value: a person's decision, an AI agent's decision or proposal, a conversation, an external document, a run of a procedure, a computed value (the closed run that computed it) and an unknown origin.
+
+#### Scenario: The origins are listed
+- GIVEN the changes bluepriNNt
+- WHEN its specification is read
+- THEN it lists the seven origins and the closed-model citation rule

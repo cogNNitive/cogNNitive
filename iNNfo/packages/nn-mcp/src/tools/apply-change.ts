@@ -53,6 +53,7 @@ import {
   writeOperationOf,
   writePolicyViolation,
   WRITE_POLICY_KEY,
+  parseCitation,
   placementForDeclarations,
   isModelClosed,
 } from '@cognnitive/nn-core'
@@ -70,6 +71,7 @@ import type {
 } from '@cognnitive/nn-core'
 import { findKnowledgeFile, resolveBlueprintWithCache, normalizeId, ModelIdError } from './spec.js'
 import { buildNodeDomainIndex, loadDeclarations } from './domain-index.js'
+import { resolveModelCitation } from './model-citation.js'
 import { canonicalizeTarget, modelIdAliases } from './model-id.js'
 import { artifactTargetProblem } from './produce-artifact.js'
 import { findElementInModel, mutationArgsForChange, parseTargetAddress } from './change-args.js'
@@ -526,16 +528,21 @@ function resolvedTargetForChange(
 }
 
 /** One sha256 per evidence entry, in order; none for `decision` / `unknown` or an unreadable file. */
-async function evidenceShas(rootDir: string, evidence: string | undefined): Promise<string[] | undefined> {
+async function evidenceShas(
+  rootDir: string,
+  evidence: string | undefined,
+  modelFiles: ReadonlyMap<string, string> = new Map(),
+): Promise<string[] | undefined> {
   const items = splitEvidence(evidence)
   if (items.length === 0) return undefined
   const shas: string[] = []
   for (const item of items) {
     const lower = item.toLowerCase()
     if (lower === 'decision' || lower === 'unknown') return undefined
+    const modelFile = modelFiles.get(item)
     const filePath = evidencePath(item) ?? item
     try {
-      const bytes = await readFile(join(rootDir, filePath))
+      const bytes = await readFile(modelFile ?? join(rootDir, filePath))
       shas.push(createHash('sha256').update(bytes).digest('hex'))
     } catch {
       return undefined
@@ -847,6 +854,9 @@ export async function executeChangesetApply(
     // are accepted without resolution. One unresolved evidence rejects the whole changeset,
     // writes nothing and releases the lock â€” the same all-or-nothing shape as PROPOSAL_TAMPERED.
     const citationResolver = createFsSourceResolver(rootDir)
+    /** Files of the closed models cited as evidence, by citation, for `evidence_sha256`. */
+    const citedModelFiles = new Map<string, string>()
+    let citationIndex: Awaited<ReturnType<typeof buildNodeDomainIndex>> | null = null
     for (const change of csDoc.changes) {
       // A verdict is published by its changeset; its provenance is the human
       // reviewer, never an evidence citation (changeset-review-gate).
@@ -887,6 +897,29 @@ export async function executeChangesetApply(
       }
       for (const item of evidenceItems) {
         if (item === 'decision' || item === 'unknown') continue
+        // A model is cited by its id, and only once it is closed: a closed model is a
+        // frozen record, so it is a source; an open one is knowledge still changing.
+        const ref = parseCitation(item)
+        if (ref?.kind === 'model') {
+          citationIndex ??= await buildNodeDomainIndex(rootDir)
+          const cited = await resolveModelCitation(citationIndex, ref.filePath, ref.slug)
+          if (!cited.ok) {
+            return recordRejection(
+              [
+                {
+                  path: `changes.${change.id}.evidence`,
+                  message: `${cited.code}: change "${change.id}" cites "${item}", ${cited.detail}`,
+                  code: cited.code,
+                },
+              ],
+              change.id,
+              undefined,
+              false,
+            )
+          }
+          citedModelFiles.set(item, cited.path)
+          continue
+        }
         const resolved = resolveCitation(item, 'evidence', citationResolver, resolvedChangesetPath)
         if (!resolved.exists || resolved.error === 'UNKNOWN_ANCHOR' || resolved.error === 'MALFORMED') {
           return recordRejection(
@@ -2714,7 +2747,7 @@ export async function executeChangesetApply(
         if (target) change.resolved_target = target
         else delete change.resolved_target
       }
-      const shas = await evidenceShas(rootDir, change.evidence)
+      const shas = await evidenceShas(rootDir, change.evidence, citedModelFiles)
       if (shas) {
         change.evidence_sha256 = shas
         evidencePaths(change.evidence)?.forEach((path, i) => {

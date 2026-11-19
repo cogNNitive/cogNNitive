@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-8-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-8-0_NN.md"
-blueprint_version: "V_0-1-0"
+blueprint_version: "V_0-1-1"
 title: "Executions App"
 description: "Level-2 blueprint recording runs of procedures: one instance model per run, with an append-only log of events, closed after its terminal event."
 relationship_types:
@@ -118,6 +118,12 @@ Everything that happens is appended as an **Execution Event**: `started`, `step_
 ### Closing
 
 After its terminal event the run is closed with the `close_model` change; a closed run accepts no further write. A run that holds events cannot be removed or moved.
+
+A closed run is a record, so it can be cited as evidence (`<run id>@<event>`), like a source; an open run cannot (CITATION_NOT_CLOSED).
+
+### Computed Values
+
+A computed value (a KPI computed from a metrics model, for instance) is the output of a run: the run records an `input_recorded` event for each value it reads (its address in `step` or `field`, the value, the model version) and an event with the result, then it is closed. The computed value cites that run. The evidence keeps the inputs as they were, and comparing them with the current values shows when the value must be recomputed.
 
 ## Template
 
