@@ -18,6 +18,7 @@ title: "Artifact Dual-Emission, Review & Feedback Reconciliation Procedure"
 # NN Procedure
 
 ## NN Procedure: Reconcile Artifact Feedback
+slug:: reconcile-artifact-feedback
 category:: transformation
 summary:: Governs dual-emission of deliverables (published vs. reviewer_review), embeds language-aware reviewer instructions and filename conventions, extracts reviewer attribution and annotations forensically from DOCX/Markdown, triages discrepancies in 4 layers, resolves human intent, and updates upstream iNNfo domain models.
 inputs_required:: @reviewed-deliverable-document
@@ -28,6 +29,7 @@ procedure_model:: procedures/reconcile_artifact_feedback_procedures_NN.md
 # NN Work
 
 ## NN Work: Artifact Feedback Reconciliation Workflow
+slug:: artifact-feedback-reconciliation-workflow
 step_type:: task
 parent:: -
 next:: -
@@ -41,6 +43,7 @@ tags:: [procedure, dual-emission, review, feedback, reconciliation, docx, lineag
 End-to-end standard operating procedure governing the lifecycle from dual-emission generation, reviewer guidance, annotation harvesting, 4-layer discrepancy triaging, human intent resolution, upstream model mutation, and final publication registration.
 
 ## NN Work: Step 0 - Dual-Emission Deliverable Generation
+slug:: step-0-dual-emission-deliverable-generation
 parent:: @artifact-feedback-reconciliation-workflow
 step_type:: task
 next:: @step-1-forensic-ingestion-and-attribution-extraction
@@ -54,6 +57,7 @@ tags:: [dual-emission, generation, templates, reviewer-banner]
 Compiles two paired artifacts: (1) Clean published deliverable `{Stem}_V_{Version}.docx` without editorial meta-instructions, and (2) Review scaffold `{Stem}_V_{Version}_reviewer_review.docx` embedding the localized Reviewer Instruction Cover Sheet.
 
 ## NN Work: Step 1 - Forensic Ingestion and Attribution Extraction
+slug:: step-1-forensic-ingestion-and-attribution-extraction
 parent:: @artifact-feedback-reconciliation-workflow
 step_type:: task
 next:: @step-2-lineage-and-upstream-dependency-mapping
@@ -67,6 +71,7 @@ tags:: [forensics, attribution, pandoc, xml, comments, track-changes]
 Parses filename grammar `^{Stem}_V_{Version}_{reviewer_slug}_review\.docx$` to extract `reviewer_slug`. Converts document to Markdown/Plain text via Pandoc and unzips XML to harvest `<w:comments w:author="...">`, `<w:ins>`, `<w:del>`, highlights, and embedded media.
 
 ## NN Work: Step 2 - Lineage and Upstream Dependency Mapping
+slug:: step-2-lineage-and-upstream-dependency-mapping
 parent:: @artifact-feedback-reconciliation-workflow
 step_type:: task
 next:: @step-3-four-layer-discrepancy-triaging
@@ -80,6 +85,7 @@ tags:: [lineage, provenance, derived-from, dependencies]
 Reads baseline artifact registration in `domaiNN_NN.md` to map `sources::`, determining whether changed data originates in domain models, satellite financial models, or raw transcripts.
 
 ## NN Work: Step 3 - Four-Layer Discrepancy Triaging
+slug:: step-3-four-layer-discrepancy-triaging
 parent:: @artifact-feedback-reconciliation-workflow
 step_type:: task
 next:: @step-4-user-intent-decision-gate
@@ -93,6 +99,7 @@ tags:: [triage, classification, layers, domain-vs-presentation]
 Classifies harvested changes into 4 orthogonal buckets: (1) Scope & Deliverable Format [SCOPE/FORMAT], (2) Satellite Data/Financial Sources [DATA], (3) Domain Knowledge & Business Truth [DECISION], and (4) Reviewer Anomalies/Defects.
 
 ## NN Work: Step 4 - User Intent Decision Gate
+slug:: step-4-user-intent-decision-gate
 parent:: @artifact-feedback-reconciliation-workflow
 step_type:: decision
 next:: @step-5-upstream-model-and-template-mutation
@@ -106,6 +113,7 @@ tags:: [decision-gate, human-in-the-loop, intent-verification]
 If reviewer comments contain explicit tags (`[DECISION]`, `[SCOPE]`), intent is resolved automatically. If untagged direct deletions exist, prompts user with a single focused question: *"Is this an editorial cut for this document only, or has the domain reality changed?"*.
 
 ## NN Work: Step 5 - Upstream Model and Template Mutation
+slug:: step-5-upstream-model-and-template-mutation
 parent:: @artifact-feedback-reconciliation-workflow
 step_type:: task
 next:: @step-6-artifact-sanitization-and-lineage-registration
@@ -119,6 +127,7 @@ tags:: [mcp, mutation, refactoring, validation]
 Executes deterministic mutations on Level 3 domain models via `nn-mcp_apply_change` or file tools, re-validates schemas with `nn-mcp_validate_knowledge`, and updates generator templates if deliverable scope changed.
 
 ## NN Work: Step 6 - Artifact Sanitization and Lineage Registration
+slug:: step-6-artifact-sanitization-and-lineage-registration
 parent:: @artifact-feedback-reconciliation-workflow
 step_type:: task
 next:: -
@@ -134,46 +143,55 @@ Sanitizes artifact defects (truncated text, unresolved placeholders), regenerate
 # NN Artifact
 
 ## NN Artifact: Review Scaffold Deliverable
+slug:: review-scaffold-deliverable
 format:: docx
 storage:: artifacts/
 description:: Deliverable generated specifically for human review, containing embedded localized instructions and named with `_reviewer_review.docx`.
 
 ## NN Artifact: Reviewed Deliverable Document
+slug:: reviewed-deliverable-document
 format:: docx
 storage:: artifacts/
 description:: The document returned by the reviewer, named following `{Stem}_V_{Version}_{reviewer_slug}_review.docx`.
 
 ## NN Artifact: Published Final Deliverable
+slug:: published-final-deliverable
 format:: docx
 storage:: artifacts/
 description:: The final, clean, reconciled publication artifact without reviewer cover sheets, registered in workspace lineage.
 
 ## NN Artifact: Normalized Extraction and Annotation Bundle
+slug:: normalized-extraction-and-annotation-bundle
 format:: markdown
 storage:: system_temp
 description:: Plain text extraction, XML comments, Track Changes, and reviewer metadata extracted via Pandoc.
 
 ## NN Artifact: Workspace Manifest and Lineage Record
+slug:: workspace-manifest-and-lineage-record
 format:: iNNfo
 storage:: domaiNN_NN.md
 description:: Central workspace lineage index recording models, sources, artifacts, and procedures.
 
 ## NN Artifact: Upstream Dependency Map
+slug:: upstream-dependency-map
 format:: structured_json
 storage:: system_temp
 description:: Resolved mapping linking deliverable sections and numbers to upstream models or data sheets.
 
 ## NN Artifact: Four-Layer Triage Report
+slug:: four-layer-triage-report
 format:: markdown
 storage:: session_context
 description:: Structured classification of changes into Scope, Satellite Data, Domain Truth, and Reviewer Anomalies.
 
 ## NN Artifact: User Reconciliation Decisions
+slug:: user-reconciliation-decisions
 format:: user_input
 storage:: conversations/
 description:: Provenance of human decisions regarding intent and scope.
 
 ## NN Artifact: Updated Domain Model
+slug:: updated-domain-model
 format:: iNNfo
 storage:: kNNowledge/
 description:: Validated Level 3 domain model reflecting updated business truths.
@@ -181,21 +199,25 @@ description:: Validated Level 3 domain model reflecting updated business truths.
 # NN Tools
 
 ## NN Tools: Pandoc Converter
+slug:: pandoc-converter
 vendor:: John MacFarlane
 category:: document_conversion
 description:: Universal document converter used to produce Word deliverables and extract plain text/Markdown.
 
 ## NN Tools: iNNfo MCP Server
+slug:: innfo-mcp-server
 vendor:: cogNNitive
 category:: deterministic_engine
 description:: Model-context protocol engine for syntax validation, AST parsing, and atomic model mutations.
 
 ## NN Tools: Semantic Diff Engine
+slug:: semantic-diff-engine
 vendor:: git / node
 category:: diff_analysis
 description:: Word-level and AST-aware structural diffing engine.
 
 ## NN Tools: Engram Persistent Memory
+slug:: engram-persistent-memory
 vendor:: gentle-ai
 category:: memory_system
 description:: Cross-session persistent memory for tracking discovery notes, decisions, and session lineage.
@@ -203,14 +225,17 @@ description:: Cross-session persistent memory for tracking discovery notes, deci
 # NN Roles
 
 ## NN Roles: Human Reviewer
+slug:: human-reviewer
 scope:: external
 description:: Subject matter expert or stakeholder reviewing deliverables and providing editorial or domain feedback.
 
 ## NN Roles: Senior AI Architect
+slug:: senior-ai-architect
 scope:: internal
 description:: Orchestrator agent performing forensic extraction, triaging, decision-gating, and model mutation.
 
 ## NN Roles: Workspace Owner
+slug:: workspace-owner
 scope:: internal
 description:: Project lead making definitive decisions on business truth and approving model mutations.
 

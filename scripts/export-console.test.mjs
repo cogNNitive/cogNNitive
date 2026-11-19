@@ -173,7 +173,7 @@ level: 3
       assert.equal(existsSync(join(tempDir, 'artifacts')), false)
     })
 
-    it('lists a procedures model but not a procedures/ submodel', async () => {
+    it('lists a procedures model but not a procedures/ submodel linked from a catalog', async () => {
       await writeFile(
         join(tempDir, 'models', 'Workflows_procedures_NN.md'),
         `---
@@ -184,6 +184,13 @@ parent_spec:
 knowledge_version: "V_0-1-0"
 title: "Workflows"
 ---
+
+# NN Procedure
+
+## NN Procedure: Workflows
+category:: transformation
+summary:: Catalog entry that runs the import stepper.
+procedure_model:: procedures/import_audio_procedures_NN.md
 
 # NN Work
 
@@ -213,11 +220,41 @@ Transcribe it.
 `,
         'utf-8',
       )
+      // A self-contained custom procedure under procedures/ that names itself: it surfaces.
+      await writeFile(
+        join(tempDir, 'procedures', 'triage_procedures_NN.md'),
+        `---
+level: 3
+parent_spec:
+  name: "procedures_V_0-2-0"
+  url: "iNNfo/specs/bluepriNNts/procedures/procedures_V_0-2-0_NN.md"
+knowledge_version: "V_0-1-0"
+title: "Triage"
+---
+
+# NN Procedure
+
+## NN Procedure: Triage
+category:: transformation
+summary:: Self-contained custom procedure.
+procedure_model:: procedures/triage_procedures_NN.md
+
+# NN Work
+
+## NN Work: Triage
+step_type:: task
+Triage it.
+`,
+        'utf-8',
+      )
       const res = await runCli([tempDir, '--list'])
       assert.equal(res.code, 0)
+      // The catalog surfaces; the stepper it points at is a submodel and stays out.
       assert.match(res.stdout, /Workflows_procedures_NN\.md/)
       assert.doesNotMatch(res.stdout, /import_audio_procedures_NN\.md/)
-      assert.match(res.stdout, /\(4 models\)/)
+      // A custom procedure under procedures/ that names itself surfaces (not a stepper).
+      assert.match(res.stdout, /triage_procedures_NN\.md/)
+      assert.match(res.stdout, /\(5 models\)/)
     })
 
     it('exits with code 1 when no models match filter and not in read-only mode', async () => {

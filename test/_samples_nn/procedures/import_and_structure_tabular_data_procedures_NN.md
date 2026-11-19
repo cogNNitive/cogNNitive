@@ -20,6 +20,7 @@ title: "Tabular Data Import & Structure Procedure"
 # NN Work
 
 ## NN Work: Import and Structure Tabular Data
+slug:: import-and-structure-tabular-data
 step_type:: task
 parent:: -
 next:: -
@@ -32,6 +33,7 @@ scope:: internal
 Ingest tabular files, inspect column schemas and records, normalize raw tables to Markdown under sources/nn/, map rows to semantic Level 3 domain elements (e.g., Costs, Revenue, Products, Inventory), and validate model integrity.
 
 ## NN Work: Discover Raw Tabular Files
+slug:: discover-raw-tabular-files
 parent:: @import-and-structure-tabular-data
 step_type:: task
 next:: @verify-and-deduplicate-tabular-sources
@@ -44,6 +46,7 @@ scope:: internal
 Scan sources/import/ or drop folders for tabular spreadsheets (.xlsx, .csv, .tsv, .json).
 
 ## NN Work: Verify and Deduplicate Tabular Sources
+slug:: verify-and-deduplicate-tabular-sources
 parent:: @import-and-structure-tabular-data
 step_type:: decision
 next:: @parse-and-synthesize-tabular-schema
@@ -56,6 +59,7 @@ scope:: internal
 Compute SHA-256 hashes of tabular files to ensure updated or new files only are processed.
 
 ## NN Work: Parse and Synthesize Tabular Schema
+slug:: parse-and-synthesize-tabular-schema
 parent:: @import-and-structure-tabular-data
 step_type:: task
 next:: @map-table-rows-to-domain-model-elements
@@ -68,6 +72,7 @@ scope:: external
 Parse tabular columns, data types, header rows, and aggregated statistical summaries using external data parsing tools.
 
 ## NN Work: Map Table Rows to Domain Model Elements
+slug:: map-table-rows-to-domain-model-elements
 parent:: @import-and-structure-tabular-data
 step_type:: decision
 next:: @normalize-tabular-source-to-markdown
@@ -80,6 +85,7 @@ scope:: internal
 Map table columns to concept fields and table rows to target Level 3 model elements. Confirm field mappings with the workspace maintainer.
 
 ## NN Work: Normalize Tabular Source to Markdown
+slug:: normalize-tabular-source-to-markdown
 parent:: @import-and-structure-tabular-data
 step_type:: task
 next:: @populate-and-bind-domain-model-elements
@@ -92,6 +98,7 @@ scope:: internal
 Convert raw tabular files into structured Markdown tables under sources/nn/ with scanner provenance frontmatter.
 
 ## NN Work: Populate and Bind Domain Model Elements
+slug:: populate-and-bind-domain-model-elements
 parent:: @import-and-structure-tabular-data
 step_type:: task
 next:: @validate-target-model
@@ -104,6 +111,7 @@ scope:: internal
 Instantiate or update Level 3 model elements with properties extracted from table rows and bind provenance citations in sources::.
 
 ## NN Work: Validate Target Model
+slug:: validate-target-model
 parent:: @import-and-structure-tabular-data
 step_type:: task
 next:: -
@@ -118,67 +126,81 @@ Validate the populated domain model using nn-mcp to ensure reference integrity a
 # NN Tools
 
 ## NN Tools: AI Agent
+slug:: ai-agent
 scope:: internal
 LLM agent orchestrating schema mapping, record synthesis, and model instantiation.
 
 ## NN Tools: Command Line Interface
+slug:: command-line-interface
 scope:: internal
 Terminal environment for directory inspection and hash calculations.
 
 ## NN Tools: Tabular Data Parser
+slug:: tabular-data-parser
 scope:: external
 Parser tool (e.g. csv/xlsx parser, python script) reading tabular structures.
 
 ## NN Tools: nn-sources Scanner
+slug:: nn-sources-scanner
 scope:: internal
 Scanner converting tabular sources into normalized Markdown with provenance.
 
 ## NN Tools: File Editor
+slug:: file-editor
 scope:: internal
 Tool for writing models and updating semantic definitions.
 
 ## NN Tools: nn-mcp
+slug:: nn-mcp
 scope:: internal
 Deterministic validation engine for iNNfo models.
 
 # NN Artifact
 
 ## NN Artifact: Raw Tabular Data Directory
+slug:: raw-tabular-data-directory
 type:: spec
 format:: directory
 Input folder with raw tabular spreadsheets (.xlsx, .csv).
 
 ## NN Artifact: Unprocessed Tabular List
+slug:: unprocessed-tabular-list
 type:: data
 format:: json
 List of discovered tabular files pending parsing.
 
 ## NN Artifact: Verified Tabular Ingestion Queue
+slug:: verified-tabular-ingestion-queue
 type:: data
 format:: json
 Deduplicated list of spreadsheets.
 
 ## NN Artifact: Tabular Schema and Data Summary
+slug:: tabular-schema-and-data-summary
 type:: deliverable
 format:: markdown
 Parsed column definitions, record previews, and summaries.
 
 ## NN Artifact: Model Entity Mapping Plan
+slug:: model-entity-mapping-plan
 type:: spec
 format:: markdown
 Mapping between tabular columns/rows and Level 3 concepts/elements.
 
 ## NN Artifact: Normalized Markdown Sources
+slug:: normalized-markdown-sources
 type:: spec
 format:: markdown
 Traceable Markdown files in sources/nn/ containing formatted tables.
 
 ## NN Artifact: Updated Domain Model
+slug:: updated-domain-model
 type:: spec
 format:: markdown
 Domain model file populated with elements derived from tabular records.
 
 ## NN Artifact: Verified Target Domain Model
+slug:: verified-target-domain-model
 type:: report
 format:: status
 Validation report from nn-mcp confirming model integrity.
@@ -186,10 +208,12 @@ Validation report from nn-mcp confirming model integrity.
 # NN Roles
 
 ## NN Roles: iNNfo Agent
+slug:: innfo-agent
 scope:: internal
 AI agent executing parsing, mapping, and model population tasks.
 
 ## NN Roles: Workspace Maintainer
+slug:: workspace-maintainer
 scope:: external
 Human maintainer confirming column mappings and approving model changes.
 
