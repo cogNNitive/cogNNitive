@@ -10,7 +10,7 @@ import {
 
 /**
  * Fixtures lifted verbatim from
- * `skills/nn-preflight/scripts/upgrade-check.test.js` so the ported
+ * `skills/nn-preflight/scripts/lineage-audit.test.js` so the ported
  * `nn-core` primitives keep provable parity with the CLI classifier.
  */
 const CATALOG: TemplateCatalog = {
@@ -23,7 +23,8 @@ const CATALOG: TemplateCatalog = {
   },
 }
 
-const CANON = 'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts'
+const CANON =
+  'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts'
 
 describe('parseSemVer', () => {
   it('extracts a triple from a V_x-y-z token', () => {
