@@ -35,9 +35,9 @@ maintainer's call. Test runner: `node --test`, `npm run verify:fast`.
 | A3 | — | inline | complete | `session-tooling`: `neverCommitted` counts only commits, `sweep` uses the path git reports (#721), `claim-check` shares one loose JSON reader, skill/hook wording corrected. `skills status --json` dropped, see L2 |
 | B1 | — | blocked | pending | `remove-model-hardening`: waits for #730 → #731 → T5 to merge (all rewrite `apply-change.ts`) |
 | C1 | S2 S6 | inline | pending | console: history cap + notice, decompressed payload in the gate, changeset-aware freshness, dead code, one `nn-model` reader, CSP hashes, deep link, output name, "QA passed" |
-| D1 | — | inline | pending | coNNtent: avatar resolutions by `api_id` + #657 |
+| D1 | — | complete | `conntent-avatar`: avatar resolutions keyed by exact `api_id` in `video-guard.mjs`. #657 is a different bug (`output_formats master`) and is untouched here |
 | E1 | S5 | inline | pending | coNNtent animation T1 + T2 (heavy: published spec change, needs a delta spec) |
-| F1 | S4 | inline | pending | MCP tool descriptions |
+| F1 | S4 | verified, no change | Read all 24 tool definitions: each names its inputs and its mode. `list_knowledge` (documents/collection) vs `read_knowledge` (one document, slices) vs `query_units` (query DSL returning URIs); `resolve_sources` (citations → files) vs `resolve_effective` (cascade fold); `get_spec` (level 1) vs `get_blueprint`. None is ambiguous enough to justify a text change that would force a version bump and a bundle regen. |
 | G1 | — | inline | pending | docs: D8–D10 wording + the `master.md` fenced-block generator bug |
 
 Dropped from the audit after verification (evidence, not opinion):
@@ -70,3 +70,21 @@ Dropped from the audit after verification (evidence, not opinion):
   path, and the UTF-16 `--prs` reader. The first fixture was vacuous twice (a rebase onto the
   commit the branch already sat on writes no reflog entry, and a `reset --soft` to the same
   commit does the same), which is why the tests now assert their own precondition.
+- **L4** (D1 correction): the audit's "avatar fix + #657" conflated two things. #657 is
+  `coNNtent accepts an output_formats master it cannot deliver`, unrelated to resolutions, and
+  the avatar bug has no issue of its own. Verified against the provider page: `resolution` for
+  `pruna-ai/p-video/avatar` is 720p or 1080p, so the old `includes('pruna')` branch sent 480p
+  and the run was rejected after the audio had already been paid for.
+- **L5** (D1 design): the profile table lives in `lib/video-guard.mjs`, not in
+  `avatar-jobs.mjs`, because `no-phantom-providers.test.mjs` treats model ids as data and
+  rejects them anywhere else in engine code. p-video/avatar lists 720p only, on purpose: the
+  `avatar_resolution` select is 480p/720p/768p, so 1080p is unreachable from a model and
+  advertising it would offer a value the schema refuses.
+- **L6** (format gate, follow-up to #735): the format check only started running when
+  #735 removed the swallow, and the repo is not prettier-formatted, so any PR that touches
+  an old file was blamed for its debt. Generated artifacts (`catalog.json`,
+  `**/*.generated.json`) are now in `.prettierignore`: `npm run regen` owns their bytes and
+  `check:regen` fails when they differ from its output, so prettier would fight it. A
+  hand-written file a PR touches is formatted in its own commit, and churn stays out of the
+  fix. The repo-wide debt is still there; paying it is one `prettier --write` PR with no
+  other change in it.

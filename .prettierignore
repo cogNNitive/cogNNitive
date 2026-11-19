@@ -13,3 +13,11 @@ archive/**
 **/*.golden
 docs/app/**
 packages/nn-mcp/bin/**
+
+# Generated artifacts. Their bytes belong to their generator: `npm run regen`
+# rewrites them, and `check:regen` fails when the committed bytes differ from
+# that output. Running prettier over them would leave the repo in a state where
+# one guard undoes the other.
+iNNfo/specs/bluepriNNts/catalog.json
+docs/innfo/blueprints/catalog.json
+**/*.generated.json
