@@ -9,7 +9,7 @@
  * Targets:
  *   1. skills/nn-preflight/scripts/lib/version-status.generated.cjs (versionStatus.ts)
  *   2. skills/nn-preflight/scripts/lib/naming-contract.generated.cjs (naming/index.ts)
- *   3. skills/nn-upgrade/scripts/lib/nn-core.generated.cjs (parser, scaffold, freeze_slugs)
+ *   3. skills/nn-update/scripts/lib/nn-core.generated.cjs (parser, scaffold, freeze_slugs)
  *
  * Usage:
  *   node scripts/build-preflight-primitives.mjs [--check]
@@ -152,7 +152,8 @@ async function renderTarget(target) {
 async function main() {
   const check = process.argv.includes('--check')
   const outIdx = process.argv.indexOf('--out')
-  const outDir = outIdx !== -1 && process.argv[outIdx + 1] ? path.resolve(process.argv[outIdx + 1]) : null
+  const outDir =
+    outIdx !== -1 && process.argv[outIdx + 1] ? path.resolve(process.argv[outIdx + 1]) : null
   let driftCount = 0
 
   for (const target of BUNDLE_TARGETS) {
