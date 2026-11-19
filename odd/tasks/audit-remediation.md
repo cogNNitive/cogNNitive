@@ -34,7 +34,8 @@ maintainer's call. Test runner: `node --test`, `npm run verify:fast`.
 | A2 | — | inline | complete | same PR: `build:dist` in CI, full-history format check with `set -e`, `release-bump` on `main` |
 | A3 | — | inline | complete | `session-tooling`: `neverCommitted` counts only commits, `sweep` uses the path git reports (#721), `claim-check` shares one loose JSON reader, skill/hook wording corrected. `skills status --json` dropped, see L2 |
 | B1 | — | blocked | pending | `remove-model-hardening`: waits for #730 → #731 → T5 to merge (all rewrite `apply-change.ts`) |
-| C1 | S2 S6 | inline | pending | console: history cap + notice, decompressed payload in the gate, changeset-aware freshness, dead code, one `nn-model` reader, CSP hashes, deep link, output name, "QA passed" |
+| C1a | S2 | inline | complete | `console-cleanup`: the size gate also reads the model's **uncompressed** bytes, because the slot ships deflate-raw + base64 and the file size cannot see the inflation |
+| C1b | S6 | inline | pending | console: history cap of 12 **with its Changes-tab notice**, changeset-aware freshness, dead code in `nn-runtime.js`, one `nn-model` reader, CSP hashes, deep link, output name, "QA passed" |
 | D1 | — | complete | `conntent-avatar`: avatar resolutions keyed by exact `api_id` in `video-guard.mjs`. #657 is a different bug (`output_formats master`) and is untouched here |
 | E1 | S5 | inline | pending | coNNtent animation T1 + T2 (heavy: published spec change, needs a delta spec) |
 | F1 | S4 | verified, no change | Read all 24 tool definitions: each names its inputs and its mode. `list_knowledge` (documents/collection) vs `read_knowledge` (one document, slices) vs `query_units` (query DSL returning URIs); `resolve_sources` (citations → files) vs `resolve_effective` (cascade fold); `get_spec` (level 1) vs `get_blueprint`. None is ambiguous enough to justify a text change that would force a version bump and a bundle regen. |
@@ -88,3 +89,8 @@ Dropped from the audit after verification (evidence, not opinion):
   hand-written file a PR touches is formatted in its own commit, and churn stays out of the
   fix. The repo-wide debt is still there; paying it is one `prettier --write` PR with no
   other change in it.
+- **L7** (C1 split): C1 was eight items in the hottest area of the repo. It splits. C1a is
+  the size-gate decision alone, because it is self-contained and testable. The history cap
+  moves to C1b *with its notice*: shipping the cap alone would truncate what the Changes
+  tab shows without saying so, which is the failure mode this repo keeps paying for. The
+  other six cleanups join it, which also brings C1b back inside the 3–5 item rule.

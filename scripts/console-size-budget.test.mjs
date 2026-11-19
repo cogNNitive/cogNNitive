@@ -68,6 +68,26 @@ describe('evaluateSizeBudget', () => {
     assert.equal(gate.failBytes, 2_000)
   })
 
+  it('fails on the uncompressed model even when the page itself fits', () => {
+    // The model slot ships deflate-raw + base64: a page that fits on disk can still hold
+    // a payload that kills the tab once the browser inflates it.
+    const gate = evaluateSizeBudget({
+      ...parts,
+      total: 500,
+      modelsRawBytes: CONSOLE_SIZE_BUDGET.failBytes + 1,
+    })
+    assert.equal(gate.status, 'fail')
+    assert.equal(gate.effective, CONSOLE_SIZE_BUDGET.failBytes + 1)
+    assert.match(gate.message, /uncompressed/)
+  })
+
+  it('keeps the disk total when that is the larger number', () => {
+    const gate = evaluateSizeBudget({ ...parts, total: 500, modelsRawBytes: 100 })
+    assert.equal(gate.status, 'ok')
+    assert.equal(gate.effective, 500)
+    assert.doesNotMatch(gate.message, /uncompressed/)
+  })
+
   it('names the strategy it applied', () => {
     const gate = evaluateSizeBudget({ ...parts, total: 500, strategy: 'strip-citations' })
     assert.match(gate.message, /\[strategy: strip-citations\]/)
