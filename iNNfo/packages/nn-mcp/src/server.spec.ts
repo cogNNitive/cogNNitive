@@ -41,7 +41,9 @@ async function stubSpecChain() {
   )
   await writeFile(
     join(specsDir, 'defiNNition_V_0-1-0_NN.md'),
-    ['---', 'spec_version: "V_0-1-0"', 'level: 0', 'title: "Local defiNNition Spec"', '---'].join('\n'),
+    ['---', 'spec_version: "V_0-1-0"', 'level: 0', 'title: "Local defiNNition Spec"', '---'].join(
+      '\n',
+    ),
     'utf-8',
   )
 }
@@ -127,11 +129,11 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
     expect(info?.version).toBe(pkgVersion)
   })
 
-  it('lists exactly the 24 canonical tools and no retired names', async () => {
+  it('lists exactly the 27 canonical tools and no retired names', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual(toolDefinitions.map((t) => t.name).sort())
-    expect(tools).toHaveLength(24)
+    expect(tools).toHaveLength(27)
 
     const canonicalNames = [
       'list_knowledge',
@@ -158,10 +160,13 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
       'list_blueprint_skills',
       'resolve_effective',
       'explain',
+      'procedure_start',
+      'procedure_state',
+      'procedure_record',
     ].sort()
     expect(names).toEqual(canonicalNames)
 
-    // Verify all 24 tools declare MCP tool annotations with readOnlyHint
+    // Verify all 27 tools declare MCP tool annotations with readOnlyHint
     for (const tool of tools) {
       expect(tool.annotations).toBeDefined()
       expect(typeof tool.annotations?.readOnlyHint).toBe('boolean')
@@ -203,6 +208,31 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
     expect(textOf(result2 as CallToolResult)).toBe('Unknown tool: list_models')
   })
 
+  describe('procedure runner dispatch', () => {
+    it('procedure_state is read-only and answers a structured isError refusal for an unknown run', async () => {
+      const tools = (await client.listTools()).tools
+      expect(tools.find((t) => t.name === 'procedure_state')?.annotations?.readOnlyHint).toBe(true)
+      expect(tools.find((t) => t.name === 'procedure_record')?.annotations?.readOnlyHint).toBe(
+        false,
+      )
+      const result = await client.callTool({
+        name: 'procedure_state',
+        arguments: { run: 'ghost', domain: rootDir },
+      })
+      expect(result.isError).toBe(true)
+      expect(JSON.parse(textOf(result as CallToolResult))).toMatchObject({
+        version: 'innfo-procedure-state@1',
+        ok: false,
+        code: 'RUN_NOT_FOUND',
+      })
+      const record = await client.callTool({
+        name: 'procedure_record',
+        arguments: { run: 'ghost', action: 'jump', domain: rootDir },
+      })
+      expect(JSON.parse(textOf(record as CallToolResult))).toMatchObject({ code: 'INVALID_ACTION' })
+    })
+  })
+
   describe('resolve_effective and explain dispatch', () => {
     it('resolve over the server domain root; explain carries the same trace; failures are structured isError results', async () => {
       await writeFile(join(rootDir, 'domaiNN_NN.md'), '---\ntitle: t\n---\n# t\n', 'utf-8')
@@ -216,21 +246,37 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
       const value = await client.callTool({ name: 'resolve_effective', arguments: args })
       expect(value.isError).toBeFalsy()
       const valueBody = JSON.parse(textOf(value as CallToolResult))
-      expect(valueBody).toMatchObject({ version: 'innfo-resolve-effective@1', ok: true, present: true, value: 'red' })
+      expect(valueBody).toMatchObject({
+        version: 'innfo-resolve-effective@1',
+        ok: true,
+        present: true,
+        value: 'red',
+      })
 
       const explained = await client.callTool({ name: 'explain', arguments: args })
       const explainBody = JSON.parse(textOf(explained as CallToolResult))
       expect(explainBody.version).toBe('innfo-explain@1')
       expect(explainBody.trace).toEqual(valueBody.trace)
-      expect(explainBody.chain).toEqual([{ id: '', kind: 'root', doc: 'root_scope_NN.md', isolate: false }])
+      expect(explainBody.chain).toEqual([
+        { id: '', kind: 'root', doc: 'root_scope_NN.md', isolate: false },
+      ])
 
-      const outside = await client.callTool({ name: 'resolve_effective', arguments: { ...args, path: '../elsewhere_NN.md' } })
+      const outside = await client.callTool({
+        name: 'resolve_effective',
+        arguments: { ...args, path: '../elsewhere_NN.md' },
+      })
       expect(outside.isError).toBe(true)
-      expect(JSON.parse(textOf(outside as CallToolResult))).toMatchObject({ ok: false, code: 'PATH_OUTSIDE_SCOPE' })
+      expect(JSON.parse(textOf(outside as CallToolResult))).toMatchObject({
+        ok: false,
+        code: 'PATH_OUTSIDE_SCOPE',
+      })
 
       const missing = await client.callTool({ name: 'explain', arguments: {} })
       expect(missing.isError).toBe(true)
-      expect(JSON.parse(textOf(missing as CallToolResult))).toMatchObject({ ok: false, code: 'INVALID_ARGUMENT' })
+      expect(JSON.parse(textOf(missing as CallToolResult))).toMatchObject({
+        ok: false,
+        code: 'INVALID_ARGUMENT',
+      })
     })
   })
 
@@ -238,44 +284,74 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
     it('lists the root procedures/ as the root scope with a path; a path outside any domaiNN is an isError result', async () => {
       await writeFile(join(rootDir, 'domaiNN_NN.md'), '---\ntitle: t\n---\n# t\n', 'utf-8')
       await mkdir(join(rootDir, 'procedures'), { recursive: true })
-      await writeFile(join(rootDir, 'procedures', 'close-month_procedures_NN.md'), '---\nlevel: 3\ntitle: Close Month\n---\n', 'utf-8')
+      await writeFile(
+        join(rootDir, 'procedures', 'close-month_procedures_NN.md'),
+        '---\nlevel: 3\ntitle: Close Month\n---\n',
+        'utf-8',
+      )
 
-      const scoped = await client.callTool({ name: 'list_blueprint_procedures', arguments: { path: 'note_NN.md' } })
+      const scoped = await client.callTool({
+        name: 'list_blueprint_procedures',
+        arguments: { path: 'note_NN.md' },
+      })
       expect(scoped.isError).toBeFalsy()
       const body = JSON.parse(textOf(scoped as CallToolResult))
       expect(body.version).toBe('innfo-list-blueprint-procedures@1')
-      expect(body.procedures).toMatchObject([{ id: 'close-month', source_kind: 'scope', source: '', status: 'selected' }])
+      expect(body.procedures).toMatchObject([
+        { id: 'close-month', source_kind: 'scope', source: '', status: 'selected' },
+      ])
 
-      const outside = await client.callTool({ name: 'list_blueprint_procedures', arguments: { path: '../elsewhere_NN.md' } })
+      const outside = await client.callTool({
+        name: 'list_blueprint_procedures',
+        arguments: { path: '../elsewhere_NN.md' },
+      })
       expect(outside.isError).toBe(true)
-      expect(JSON.parse(textOf(outside as CallToolResult))).toMatchObject({ ok: false, code: 'PATH_OUTSIDE_SCOPE' })
+      expect(JSON.parse(textOf(outside as CallToolResult))).toMatchObject({
+        ok: false,
+        code: 'PATH_OUTSIDE_SCOPE',
+      })
     })
 
-    it.each([['domain'], ['root']])('refuses %s together with path: the scoped listing is bound to the server root', async (override) => {
-      await writeFile(join(rootDir, 'domaiNN_NN.md'), '---\ntitle: t\n---\n# t\n', 'utf-8')
-      const other = mkdtempSync(join(tmpdir(), 'nn-other-domain-'))
-      try {
-        writeFileSync(join(other, 'domaiNN_NN.md'), '---\ntitle: t\n---\n# t\n')
-        mkdirSync(join(other, 'procedures'))
-        writeFileSync(join(other, 'procedures', 'secret_procedures_NN.md'), '---\nlevel: 3\n---\n')
+    it.each([['domain'], ['root']])(
+      'refuses %s together with path: the scoped listing is bound to the server root',
+      async (override) => {
+        await writeFile(join(rootDir, 'domaiNN_NN.md'), '---\ntitle: t\n---\n# t\n', 'utf-8')
+        const other = mkdtempSync(join(tmpdir(), 'nn-other-domain-'))
+        try {
+          writeFileSync(join(other, 'domaiNN_NN.md'), '---\ntitle: t\n---\n# t\n')
+          mkdirSync(join(other, 'procedures'))
+          writeFileSync(
+            join(other, 'procedures', 'secret_procedures_NN.md'),
+            '---\nlevel: 3\n---\n',
+          )
+          const result = await client.callTool({
+            name: 'list_blueprint_procedures',
+            arguments: { path: 'note_NN.md', [override]: other },
+          })
+          expect(result.isError).toBe(true)
+          const body = JSON.parse(textOf(result as CallToolResult))
+          expect(body).toMatchObject({ ok: false, code: 'INVALID_ARGUMENT' })
+          expect(JSON.stringify(body)).not.toContain('secret')
+        } finally {
+          rmSync(other, { recursive: true, force: true })
+        }
+      },
+    )
+
+    it.each([[''], [42], [null], [{}]])(
+      'answers a structured INVALID_ARGUMENT for path %j instead of falling back to the unscoped listing',
+      async (path) => {
         const result = await client.callTool({
           name: 'list_blueprint_procedures',
-          arguments: { path: 'note_NN.md', [override]: other },
+          arguments: { path },
         })
         expect(result.isError).toBe(true)
-        const body = JSON.parse(textOf(result as CallToolResult))
-        expect(body).toMatchObject({ ok: false, code: 'INVALID_ARGUMENT' })
-        expect(JSON.stringify(body)).not.toContain('secret')
-      } finally {
-        rmSync(other, { recursive: true, force: true })
-      }
-    })
-
-    it.each([[''], [42], [null], [{}]])('answers a structured INVALID_ARGUMENT for path %j instead of falling back to the unscoped listing', async (path) => {
-      const result = await client.callTool({ name: 'list_blueprint_procedures', arguments: { path } })
-      expect(result.isError).toBe(true)
-      expect(JSON.parse(textOf(result as CallToolResult))).toMatchObject({ ok: false, code: 'INVALID_ARGUMENT' })
-    })
+        expect(JSON.parse(textOf(result as CallToolResult))).toMatchObject({
+          ok: false,
+          code: 'INVALID_ARGUMENT',
+        })
+      },
+    )
   })
 
   describe('apply_change dispatch (changeset vs legacy bare calls)', () => {
@@ -383,7 +459,10 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
       await mkdir(otherRoot, { recursive: true })
       await writeFile(join(otherRoot, 'Only_V_1-0-0_NN.md'), docFrontmatter, 'utf-8')
 
-      const result = await client.callTool({ name: 'list_knowledge', arguments: { domain: otherRoot } })
+      const result = await client.callTool({
+        name: 'list_knowledge',
+        arguments: { domain: otherRoot },
+      })
       const parsed = JSON.parse(textOf(result as CallToolResult))
       expect(parsed.version).toBe('innfo-list-knowledge@1')
       expect(parsed.knowledge.map((m: { id: string }) => m.id)).toEqual(['Only_V_1-0-0'])
@@ -545,7 +624,9 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
         const parsed = JSON.parse(text)
         expect(parsed.success).toBe(true)
         expect(Object.keys(parsed).filter((k) => /preview/i.test(k))).toEqual([])
-        expect(text).not.toMatch(/preview_url|preview_app_url|127\.0\.0\.1|cognnitive\.com\/innfo\/app/)
+        expect(text).not.toMatch(
+          /preview_url|preview_app_url|127\.0\.0\.1|cognnitive\.com\/innfo\/app/,
+        )
       } finally {
         if (orig === undefined) delete process.env.INNFO_PREVIEW
         else process.env.INNFO_PREVIEW = orig
@@ -556,7 +637,9 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
   it('tool descriptions never mention a live preview or the hosted app', async () => {
     const { tools } = await client.listTools()
     const blob = JSON.stringify(tools)
-    expect(blob).not.toMatch(/live[- ]preview|preview_url|preview_app_url|INNFO_PREVIEW|hosted app|innfo\/app/i)
+    expect(blob).not.toMatch(
+      /live[- ]preview|preview_url|preview_app_url|INNFO_PREVIEW|hosted app|innfo\/app/i,
+    )
   })
 
   describe('init_knowledge', () => {
@@ -609,7 +692,10 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
 
   describe('list_blueprints and hydrate_blueprint', () => {
     it('list_blueprints returns enveloped array under "blueprints"', async () => {
-      const result = await client.callTool({ name: 'list_blueprints', arguments: { domain: rootDir } })
+      const result = await client.callTool({
+        name: 'list_blueprints',
+        arguments: { domain: rootDir },
+      })
       expect(result.isError).toBeFalsy()
       const parsed = JSON.parse(textOf(result as CallToolResult))
       expect(parsed.version).toBe('innfo-list-blueprints@1')
@@ -692,7 +778,9 @@ describe('resolveRootDir', () => {
 
   it('lets INNFO_DOMAIN_DIR win over the marker walk', () => {
     marker(join(base, 'acme'))
-    expect(resolveRootDir(join(base, 'acme'), { INNFO_DOMAIN_DIR: '/somewhere/else' })).toBe('/somewhere/else')
+    expect(resolveRootDir(join(base, 'acme'), { INNFO_DOMAIN_DIR: '/somewhere/else' })).toBe(
+      '/somewhere/else',
+    )
   })
 
   it('falls back to cwd when no marker exists, never to the repository root', () => {
