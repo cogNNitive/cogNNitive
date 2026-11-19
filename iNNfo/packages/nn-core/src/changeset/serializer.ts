@@ -3,7 +3,13 @@ import type { ChangesetDocument, ChangesetFrontmatter, ChangeItem } from './type
 import { EXECUTION_FACT_KEYS } from './hasher.js'
 
 /** Per-change annotation keys: the only lines the raw path rewrites. */
-const ANNOTATION_KEYS = ['status', 'resolution', 'applied_at', 'batch', ...EXECUTION_FACT_KEYS] as const
+const ANNOTATION_KEYS = [
+  'status',
+  'resolution',
+  'applied_at',
+  'batch',
+  ...EXECUTION_FACT_KEYS,
+] as const
 const ANNOTATION_RE = new RegExp(`^(${ANNOTATION_KEYS.join('|')})::`)
 const CHANGE_HEADING_RE = /^##\s+NN\s+Change:\s*(.+)$/i
 
@@ -60,9 +66,14 @@ function formatChangeItem(item: ChangeItem): string {
   lines.push(`op:: ${item.op}`)
   lines.push(`target:: ${item.target}`)
 
-  // A `set_fields` payload is a one-line JSON object: written as is, never re-quoted.
+  // A `set_fields` payload, and the initial fields of an `add_element`, is a one-line
+  // JSON object: written as is, never re-quoted.
   const payload = (val: string): string =>
-    item.op === 'set_fields' && !val.includes('\n') && val.trim().startsWith('{') ? val : formatPropertyValue(val)
+    (item.op === 'set_fields' || item.op === 'add_element') &&
+    !val.includes('\n') &&
+    val.trim().startsWith('{')
+      ? val
+      : formatPropertyValue(val)
   if (item.from !== undefined) {
     lines.push(`from:: ${payload(item.from)}`)
   }
@@ -118,11 +129,7 @@ function formatChangeItem(item: ChangeItem): string {
  * `applied_at`, `batch`, `models`, `evidence_sha256`) in place,
  * leaving every other frontmatter line byte-identical.
  */
-function rewriteFrontmatter(
-  yamlText: string,
-  fm: ChangesetFrontmatter,
-  eol: string,
-): string {
+function rewriteFrontmatter(yamlText: string, fm: ChangesetFrontmatter, eol: string): string {
   const lines = yamlText.split(/\r?\n/)
 
   const blockEnd = (start: number): number => {
@@ -159,10 +166,7 @@ function rewriteFrontmatter(
     'resolution',
     fm.resolution !== undefined ? [`resolution: ${JSON.stringify(fm.resolution)}`] : null,
   )
-  upsert(
-    'applied_at',
-    fm.applied_at !== undefined ? [`applied_at: ${fm.applied_at}`] : null,
-  )
+  upsert('applied_at', fm.applied_at !== undefined ? [`applied_at: ${fm.applied_at}`] : null)
   upsert('batch', fm.batch !== undefined ? [`batch: ${fm.batch}`] : null)
   upsert(
     'evidence_sha256',
@@ -172,9 +176,7 @@ function rewriteFrontmatter(
   )
   upsert(
     'models',
-    fm.models !== undefined
-      ? stringifyYaml({ models: fm.models }).trim().split(/\r?\n/)
-      : null,
+    fm.models !== undefined ? stringifyYaml({ models: fm.models }).trim().split(/\r?\n/) : null,
   )
 
   return lines.join(eol)
@@ -184,11 +186,7 @@ function rewriteFrontmatter(
  * Rewrites only the execution annotation lines of each change block, appending them after
  * the block's last normative line. Every other byte of the body is copied verbatim.
  */
-function rewriteBodyAnnotations(
-  body: string,
-  changes: ChangeItem[],
-  eol: string,
-): string {
+function rewriteBodyAnnotations(body: string, changes: ChangeItem[], eol: string): string {
   const lines = body.split(/\r?\n/)
   const byId = new Map(changes.map((c) => [c.id, c]))
 

@@ -75,7 +75,7 @@ describe('the prose body is a unit, not a field', () => {
     expect(model.elements.get('Work')?.[0].fields.description).toBeUndefined()
   })
 
-  it('add_element rejects inline fields, pointing at update_field', () => {
+  it('add_element rejects a fields key, pointing at "to"', () => {
     const model = parseKnowledge(MODEL)
     const res = applyMutation(model, 'add_element', {
       conceptName: 'Work',
@@ -83,7 +83,7 @@ describe('the prose body is a unit, not a field', () => {
       fields: { statement: 'Inline' },
     })
     expect(res.success).toBe(false)
-    expect(res.errors?.[0].message).toContain('update_field')
+    expect(res.errors?.[0].message).toContain('"to"')
     expect(model.elements.get('Work')?.some((e) => e.name === 'Mission')).toBe(false)
   })
 

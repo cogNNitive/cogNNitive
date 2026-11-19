@@ -1,4 +1,14 @@
-import { readFile, writeFile, rm, rmdir, mkdir, stat, rename, readdir, open } from 'node:fs/promises'
+import {
+  readFile,
+  writeFile,
+  rm,
+  rmdir,
+  mkdir,
+  stat,
+  rename,
+  readdir,
+  open,
+} from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { basename, dirname, join, relative, isAbsolute } from 'node:path'
 import {
@@ -40,6 +50,7 @@ import {
   gateDeclarationProblems,
   reviewGateProvenanceProblems,
   setFieldsProblems,
+  addElementFieldsProblems,
   elementSlugProblems,
   setFieldsEntries,
   compactExecutionFacts,
@@ -109,7 +120,6 @@ export interface ApplyChangeResult {
   removedModels?: string[]
 }
 
-
 interface VersionParts {
   major: number
   minor: number
@@ -172,7 +182,13 @@ async function findAllWorkspaceModelFiles(
   for (const entry of entries) {
     if (entry.isDirectory()) {
       const lowerDir = entry.name.toLowerCase()
-      if (entry.name.startsWith('.') || ignore.has(lowerDir) || lowerDir === 'changes' || lowerDir === 'archive') continue
+      if (
+        entry.name.startsWith('.') ||
+        ignore.has(lowerDir) ||
+        lowerDir === 'changes' ||
+        lowerDir === 'archive'
+      )
+        continue
       const sub = await findAllWorkspaceModelFiles(join(dir, entry.name), ignore, rootDir)
       results.push(...sub)
     } else if (
@@ -189,7 +205,13 @@ async function findAllWorkspaceModelFiles(
       // cost seconds on large trees and tripped the test timeout.
       const filePath = join(dir, entry.name)
       const relPath = relative(rootDir, filePath).split('\\').join('/')
-      if (isExcludedPath(relPath) || relPath.startsWith('changes/') || relPath.includes('/archive/') || relPath.startsWith('archive/')) continue
+      if (
+        isExcludedPath(relPath) ||
+        relPath.startsWith('changes/') ||
+        relPath.includes('/archive/') ||
+        relPath.startsWith('archive/')
+      )
+        continue
       results.push(filePath)
     }
   }
@@ -209,7 +231,9 @@ async function bumpBlueprintVersion(
   model: ParsedKnowledge,
   args: Record<string, unknown>,
 ): Promise<ApplyChangeResult> {
-  const prevVersion = String(model.frontmatter.blueprint_version ?? model.frontmatter.knowledge_version ?? '')
+  const prevVersion = String(
+    model.frontmatter.blueprint_version ?? model.frontmatter.knowledge_version ?? '',
+  )
   const next = computeNewVersion(prevVersion, args)
   if (!next) {
     return {
@@ -224,7 +248,10 @@ async function bumpBlueprintVersion(
     }
   }
 
-  if (model.frontmatter.blueprint_version === undefined && model.frontmatter.knowledge_version !== undefined) {
+  if (
+    model.frontmatter.blueprint_version === undefined &&
+    model.frontmatter.knowledge_version !== undefined
+  ) {
     model.frontmatter.knowledge_version = next.version
   } else {
     model.frontmatter.blueprint_version = next.version
@@ -272,8 +299,7 @@ async function persistAtomic(stagingPath: string, livePath: string): Promise<voi
       await rename(stagingPath, livePath)
       return
     } catch (err: any) {
-      const isLockError =
-        err.code === 'EPERM' || err.code === 'EBUSY' || err.code === 'EACCES'
+      const isLockError = err.code === 'EPERM' || err.code === 'EBUSY' || err.code === 'EACCES'
       if (isLockError && attempt < MAX_RETRIES) {
         attempt++
         await new Promise((r) => setTimeout(r, attempt * 25))
@@ -347,7 +373,10 @@ function writeScopesAt(filePath: string): WriteScopes {
 }
 
 const isEmptyValue = (value: unknown): boolean =>
-  value === undefined || value === null || (typeof value === 'string' && value.trim() === '') || (Array.isArray(value) && value.length === 0)
+  value === undefined ||
+  value === null ||
+  (typeof value === 'string' && value.trim() === '') ||
+  (Array.isArray(value) && value.length === 0)
 
 /**
  * True when an update only writes values the element does not have yet: the
@@ -376,7 +405,9 @@ function writesOnlyEmptyValues(change: ChangeItem, element: Record<string, any>)
 
 /** The concepts that have at least one instance in a model. */
 function conceptsIn(model: ParsedKnowledge): string[] {
-  return [...model.elements.entries()].filter(([, list]) => list.length > 0).map(([concept]) => concept)
+  return [...model.elements.entries()]
+    .filter(([, list]) => list.length > 0)
+    .map(([concept]) => concept)
 }
 
 /**
@@ -392,7 +423,8 @@ function maintenanceChangeProblem(
   if (change.op === 'bump_version' && createdInThisApply) {
     return {
       code: 'BUMP_ON_CREATED_MODEL',
-      message: 'a model created by add_model in the same changeset is not bumped; set its initial knowledge_version on add_model',
+      message:
+        'a model created by add_model in the same changeset is not bumped; set its initial knowledge_version on add_model',
     }
   }
   if (model.frontmatter.level !== 3) {
@@ -436,7 +468,11 @@ async function artifactAlreadyRecorded(rootDir: string, rel: string): Promise<bo
     }
     const changeset = changesetLikeOf(`changes/${name}`, doc)
     for (const change of doc.changes) {
-      if (change.op !== 'produce_artifact' || resolveChangeFacts(change, changeset).status !== 'applied') continue
+      if (
+        change.op !== 'produce_artifact' ||
+        resolveChangeFacts(change, changeset).status !== 'applied'
+      )
+        continue
       if (change.target.replace(/\\/g, '/') === rel) return true
     }
   }
@@ -446,8 +482,13 @@ async function artifactAlreadyRecorded(rootDir: string, rel: string): Promise<bo
 /* â”€â”€ Execution facts (change-provenance) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /** The element an address label names, by frozen slug, display name or slugified name. */
-function elementByLabel(model: ParsedKnowledge, label: string): { slug?: string; name?: string } | undefined {
-  const wanted = String(label ?? '').trim().toLowerCase()
+function elementByLabel(
+  model: ParsedKnowledge,
+  label: string,
+): { slug?: string; name?: string } | undefined {
+  const wanted = String(label ?? '')
+    .trim()
+    .toLowerCase()
   if (!wanted) return undefined
   for (const [, elements] of model.elements) {
     for (const el of elements) {
@@ -490,7 +531,11 @@ function resolvedTargetForChange(
     case 'remove_element':
     case 'rename_element': {
       const el = elementByLabel(model, parts[0] ?? '')
-      const slug = change.resolved_slug || el?.slug || change.slug || slugifyHeading(change.name ?? parts[0] ?? '')
+      const slug =
+        change.resolved_slug ||
+        el?.slug ||
+        change.slug ||
+        slugifyHeading(change.name ?? parts[0] ?? '')
       return slug ? resolvedTarget.element(modelId, slug) : undefined
     }
     case 'extract_instance': {
@@ -506,13 +551,12 @@ function resolvedTargetForChange(
       const field = change.op === 'update_concept_field' ? parts[1] : undefined
       return resolvedTarget.concept(modelId, concept, field)
     }
-    case 'update_matrix_cell': {      const [matIdent, rowLabel, colLabel] = parts
+    case 'update_matrix_cell': {
+      const [matIdent, rowLabel, colLabel] = parts
       if (!matIdent || !rowLabel || !colLabel) return undefined
       const wanted = matIdent.toLowerCase()
       const matrix = model.matrices.find(
-        (m) =>
-          m.name.toLowerCase() === wanted ||
-          slugifyHeading(m.name).toLowerCase() === wanted,
+        (m) => m.name.toLowerCase() === wanted || slugifyHeading(m.name).toLowerCase() === wanted,
       )
       if (!matrix) return undefined
       const matrixSlug = slugifyHeading(matrix.name)
@@ -570,7 +614,11 @@ async function latestAppliedAt(changesDir: string): Promise<string | undefined> 
     }
     const candidates = [doc.frontmatter.applied_at, ...doc.changes.map((c) => c.applied_at)]
     for (const value of candidates) {
-      if (typeof value === 'string' && value.length > 0 && (latest === undefined || value > latest)) {
+      if (
+        typeof value === 'string' &&
+        value.length > 0 &&
+        (latest === undefined || value > latest)
+      ) {
         latest = value
       }
     }
@@ -605,7 +653,12 @@ export async function executeChangesetApply(
       status: 'rejected',
       models: {},
       appliedCount: 0,
-      errors: [{ path: changesetPathInput, message: 'Changeset path must resolve inside the workspace root' }],
+      errors: [
+        {
+          path: changesetPathInput,
+          message: 'Changeset path must resolve inside the workspace root',
+        },
+      ],
     }
   }
 
@@ -651,7 +704,8 @@ export async function executeChangesetApply(
      * The write-back: one block per recorded change, carrying only the execution facts
      * that differ from the batch-wide ones in the frontmatter (change-provenance).
      */
-    const writeBack = (doc: ChangesetDocument): string => serializeChangeset(compactExecutionFacts(doc, recordedTargets))
+    const writeBack = (doc: ChangesetDocument): string =>
+      serializeChangeset(compactExecutionFacts(doc, recordedTargets))
 
     // Persist a rejection that is intrinsic to the proposal (a malformed operation or
     // add_model, a mutation that can never apply as written). The write-back starts from
@@ -674,7 +728,9 @@ export async function executeChangesetApply(
       persist = true,
     ): Promise<ApplyChangeResult> => {
       const reason = errors
-        .map((e) => (e.code && !e.message.startsWith(e.code) ? `${e.code}: ${e.message}` : e.message))
+        .map((e) =>
+          e.code && !e.message.startsWith(e.code) ? `${e.code}: ${e.message}` : e.message,
+        )
         .join('; ')
       try {
         if (!persist) throw new Error('not persisted')
@@ -693,7 +749,10 @@ export async function executeChangesetApply(
           await writeFile(resolvedChangesetPath, text, 'utf-8')
         }
       } catch (err) {
-        if (persist) console.warn(`[apply-change] Could not persist the rejection of ${relChangesetPath}: ${err}`)
+        if (persist)
+          console.warn(
+            `[apply-change] Could not persist the rejection of ${relChangesetPath}: ${err}`,
+          )
       }
       return {
         success: false,
@@ -719,7 +778,13 @@ export async function executeChangesetApply(
         status: 'rejected',
         models: {},
         appliedCount: 0,
-        errors: [{ path: relChangesetPath, message: `CHANGESET_REJECTED: ${recorded}`, code: 'CHANGESET_REJECTED' }],
+        errors: [
+          {
+            path: relChangesetPath,
+            message: `CHANGESET_REJECTED: ${recorded}`,
+            code: 'CHANGESET_REJECTED',
+          },
+        ],
       }
     }
 
@@ -793,7 +858,10 @@ export async function executeChangesetApply(
     }
 
     // 4. Idempotent replay check
-    if (csDoc.frontmatter.status === 'applied' || csDoc.frontmatter.status === 'partially_applied') {
+    if (
+      csDoc.frontmatter.status === 'applied' ||
+      csDoc.frontmatter.status === 'partially_applied'
+    ) {
       const recordedModels = csDoc.frontmatter.models ?? {}
       let allMatch = Object.keys(recordedModels).length > 0
       for (const [modelSlug, transition] of Object.entries(recordedModels)) {
@@ -812,7 +880,9 @@ export async function executeChangesetApply(
           const liveRaw = await readFile(modelFile, 'utf-8')
           const liveModel = parseKnowledge(liveRaw)
           const liveVersion = String(
-            liveModel.frontmatter.knowledge_version ?? liveModel.frontmatter.blueprint_version ?? '',
+            liveModel.frontmatter.knowledge_version ??
+              liveModel.frontmatter.blueprint_version ??
+              '',
           )
           if (liveVersion !== transition.result_version) {
             allMatch = false
@@ -833,7 +903,12 @@ export async function executeChangesetApply(
           models: recordedModels,
           appliedCount: 0,
           conflictedCount: csDoc.changes.filter((c) => c.status === 'conflict').length,
-          warnings: [{ path: '', message: 'Idempotent replay: changeset already applied with matching model versions' }],
+          warnings: [
+            {
+              path: '',
+              message: 'Idempotent replay: changeset already applied with matching model versions',
+            },
+          ],
         }
       } else {
         return {
@@ -921,7 +996,11 @@ export async function executeChangesetApply(
           continue
         }
         const resolved = resolveCitation(item, 'evidence', citationResolver, resolvedChangesetPath)
-        if (!resolved.exists || resolved.error === 'UNKNOWN_ANCHOR' || resolved.error === 'MALFORMED') {
+        if (
+          !resolved.exists ||
+          resolved.error === 'UNKNOWN_ANCHOR' ||
+          resolved.error === 'MALFORMED'
+        ) {
           return recordRejection(
             [
               {
@@ -995,11 +1074,24 @@ export async function executeChangesetApply(
       if (change.op !== 'add_model') continue
       const key = change.target.toLowerCase()
       const hierarchical = typeof change.concept === 'string' && change.concept.trim() !== ''
-      if (!isSafeRelativeId(change.target) || (hierarchical ? change.target.includes('\\') : /[\\/]/.test(change.target))) {
-        return rejectProposal('ADD_MODEL_INVALID_TARGET', change.target, `change "${change.id}" has an unsafe model id "${change.target}"`, change.id)
+      if (
+        !isSafeRelativeId(change.target) ||
+        (hierarchical ? change.target.includes('\\') : /[\\/]/.test(change.target))
+      ) {
+        return rejectProposal(
+          'ADD_MODEL_INVALID_TARGET',
+          change.target,
+          `change "${change.id}" has an unsafe model id "${change.target}"`,
+          change.id,
+        )
       }
       if (addModelIndex.has(key)) {
-        return rejectProposal('ADD_MODEL_DUPLICATE', change.target, `more than one add_model change targets "${change.target}"`, change.id)
+        return rejectProposal(
+          'ADD_MODEL_DUPLICATE',
+          change.target,
+          `more than one add_model change targets "${change.target}"`,
+          change.id,
+        )
       }
       addModelIndex.set(key, index)
     }
@@ -1060,14 +1152,24 @@ export async function executeChangesetApply(
             change.id,
           )
         }
-        return rejectProposal('ADD_MODEL_INVALID_TARGET', change.target, `change "${change.id}": ${placed.message}`, change.id)
+        return rejectProposal(
+          'ADD_MODEL_INVALID_TARGET',
+          change.target,
+          `change "${change.id}": ${placed.message}`,
+          change.id,
+        )
       }
       // A compact concept declared explicitly stays on the compact branch: its
       // target is a plain id and the file keeps the `kNNowledge/` name rules.
       if (placed.folder === 'kNNowledge/') continue
       const filePath = join(rootDir, placed.folder, placed.file)
       if (!isInsideRoot(rootDir, filePath)) {
-        return rejectProposal('ADD_MODEL_INVALID_TARGET', change.target, `model id "${change.target}" resolves outside the domain`, change.id)
+        return rejectProposal(
+          'ADD_MODEL_INVALID_TARGET',
+          change.target,
+          `model id "${change.target}" resolves outside the domain`,
+          change.id,
+        )
       }
       const segments = change.target.split('/')
       const slug = segments[segments.length - 1]!
@@ -1087,11 +1189,15 @@ export async function executeChangesetApply(
         }
         const holderIsContainer =
           holderConcept !== undefined
-            ? containerConcept === undefined || holderConcept.toLowerCase() === containerConcept.toLowerCase()
+            ? containerConcept === undefined ||
+              holderConcept.toLowerCase() === containerConcept.toLowerCase()
             : holder?.storage.kind === 'instance' &&
-              (containerConcept === undefined || holder.storage.concept.toLowerCase() === containerConcept.toLowerCase())
+              (containerConcept === undefined ||
+                holder.storage.concept.toLowerCase() === containerConcept.toLowerCase())
         if (!holderIsContainer) {
-          const expected = containerConcept ? `an instance of ${containerConcept}` : 'an instance model'
+          const expected = containerConcept
+            ? `an instance of ${containerConcept}`
+            : 'an instance model'
           return rejectProposal(
             'CONTAINER_MISSING',
             change.target,
@@ -1148,7 +1254,14 @@ export async function executeChangesetApply(
       const toId = String(change.to ?? '').trim()
       const { modelSlug: sourceId, parts, error } = parseTargetAddress(change.target)
       const slug = (parts[0] ?? '').trim()
-      if (error || !sourceId || !slug || slug.includes('&') || !isSafeRelativeId(sourceId) || !isSafeRelativeId(toId)) {
+      if (
+        error ||
+        !sourceId ||
+        !slug ||
+        slug.includes('&') ||
+        !isSafeRelativeId(sourceId) ||
+        !isSafeRelativeId(toId)
+      ) {
         return rejectProposal(
           'EXTRACT_INVALID_TARGET',
           change.target,
@@ -1159,7 +1272,11 @@ export async function executeChangesetApply(
       const { index: domainIndex, pathOf } = await nodeIndex()
       const source = domainIndex.byId(sourceId)
       if (!source) {
-        return rejectPhase1('MODEL_NOT_FOUND', sourceId, `extract_instance source "${sourceId}" does not exist`)
+        return rejectPhase1(
+          'MODEL_NOT_FOUND',
+          sourceId,
+          `extract_instance source "${sourceId}" does not exist`,
+        )
       }
       if (source.storage.kind !== 'compact') {
         return rejectProposal(
@@ -1171,7 +1288,11 @@ export async function executeChangesetApply(
       }
       const sourcePath = pathOf(sourceId)
       if (!sourcePath) {
-        return rejectPhase1('MODEL_NOT_FOUND', sourceId, `extract_instance source "${sourceId}" has no file`)
+        return rejectPhase1(
+          'MODEL_NOT_FOUND',
+          sourceId,
+          `extract_instance source "${sourceId}" has no file`,
+        )
       }
       const sourceModel = await loadKnowledge(sourcePath)
       const subtree = subtreeOf(sourceModel, slug)
@@ -1225,7 +1346,8 @@ export async function executeChangesetApply(
         const planned = plannedConcepts.get(containerId.toLowerCase())
         const ok =
           planned !== undefined
-            ? containerConcept === undefined || planned.toLowerCase() === containerConcept.toLowerCase()
+            ? containerConcept === undefined ||
+              planned.toLowerCase() === containerConcept.toLowerCase()
             : holder?.storage.kind === 'instance' &&
               holder.storage.concept.toLowerCase() === containerConcept.toLowerCase()
         if (!ok) {
@@ -1239,19 +1361,36 @@ export async function executeChangesetApply(
       }
       const placed = domainIndex.placementFor(subtree.concept, toId, blueprintName)
       if (!('folder' in placed)) {
-        return rejectProposal('EXTRACT_INVALID_TARGET', toId, `change "${change.id}": ${placed.message}`, change.id)
+        return rejectProposal(
+          'EXTRACT_INVALID_TARGET',
+          toId,
+          `change "${change.id}": ${placed.message}`,
+          change.id,
+        )
       }
       const path = join(rootDir, placed.folder, placed.file)
       if (!isInsideRoot(rootDir, path)) {
-        return rejectProposal('EXTRACT_INVALID_TARGET', toId, `model id "${toId}" resolves outside the domain`, change.id)
+        return rejectProposal(
+          'EXTRACT_INVALID_TARGET',
+          toId,
+          `model id "${toId}" resolves outside the domain`,
+          change.id,
+        )
       }
       // An existing instance is a conflict, and it is the double-storage case the
       // registry is cleaned of with `remove_element`, never repaired by extract.
       const occupiedById =
-        domainIndex.byId(toId) !== undefined || (await stat(path).then((s) => s.isFile(), () => false))
+        domainIndex.byId(toId) !== undefined ||
+        (await stat(path).then(
+          (s) => s.isFile(),
+          () => false,
+        ))
       // The destination folder is created by the extraction: if something already
       // claims it, the migration would write into a foreign folder.
-      const occupiedFolder = await stat(dirname(path)).then((s) => s.isDirectory(), () => false)
+      const occupiedFolder = await stat(dirname(path)).then(
+        (s) => s.isDirectory(),
+        () => false,
+      )
       if (occupiedById || occupiedFolder) {
         const where = occupiedById
           ? `instance "${toId}" already exists`
@@ -1287,7 +1426,8 @@ export async function executeChangesetApply(
     }
 
     for (const [index, change] of csDoc.changes.entries()) {
-      if (isNonMutating(change.op) || change.op === 'add_model' || change.op === 'produce_artifact') continue
+      if (isNonMutating(change.op) || change.op === 'add_model' || change.op === 'produce_artifact')
+        continue
       const targetModel = parseTargetAddress(change.target).modelSlug
       const createdAt = addModelIndex.get(targetModel.toLowerCase())
       if (createdAt !== undefined && createdAt > index) {
@@ -1311,14 +1451,14 @@ export async function executeChangesetApply(
       }
     }
 
-    // `fields` is not a key of the Change concept: a change carries no inline field
-    // values. Reject a proposal that still carries one, defensively.
+    // `fields` is not a key of the Change concept: an add_element carries its initial
+    // fields in `to`. Reject a proposal that still carries one, defensively.
     for (const change of csDoc.changes) {
       if (change.fields !== undefined) {
         return rejectProposal(
           'INVALID_OPERATION',
           change.target,
-          `change "${change.id}": a change must not carry inline fields; set them with one set_fields change for the fields that share one evidence, or one update_field change per field whose evidence differs`,
+          `change "${change.id}": fields is not a change key; an add_element carries its initial fields in "to" (a JSON object of field -> value), an existing element takes one set_fields change for the fields that share one evidence, or one update_field change per field whose evidence differs`,
           change.id,
         )
       }
@@ -1340,9 +1480,14 @@ export async function executeChangesetApply(
     // set_fields: the payload is checked defensively (propose_changeset already did),
     // then the change is expanded into one update_field sub-item per field.
     for (const change of csDoc.changes) {
-      const problem = setFieldsProblems(change)[0]
+      const problem = setFieldsProblems(change)[0] ?? addElementFieldsProblems(change)[0]
       if (problem) {
-        return rejectProposal(problem.code, change.target, `change "${change.id}": ${problem.message}`, change.id)
+        return rejectProposal(
+          problem.code,
+          change.target,
+          `change "${change.id}": ${problem.message}`,
+          change.id,
+        )
       }
     }
 
@@ -1373,7 +1518,10 @@ export async function executeChangesetApply(
           evidence: change.evidence,
         }
       })
-      setFieldsParts.set(change.id, subs.map((sub) => sub.id))
+      setFieldsParts.set(
+        change.id,
+        subs.map((sub) => sub.id),
+      )
       return subs
     })
     /**
@@ -1386,9 +1534,18 @@ export async function executeChangesetApply(
       const changes = recordedChanges.map((recorded): ChangeItem => {
         const subIds = setFieldsParts.get(recorded.id)
         if (!subIds) return current.get(recorded.id) ?? recorded
-        const subs = subIds.map((id) => current.get(id)).filter((c): c is ChangeItem => c !== undefined)
+        const subs = subIds
+          .map((id) => current.get(id))
+          .filter((c): c is ChangeItem => c !== undefined)
         const folded: ChangeItem = { ...recorded }
-        for (const key of ['status', 'resolution', 'resolved_target', 'evidence_sha256', 'applied_at', 'batch'] as const) {
+        for (const key of [
+          'status',
+          'resolution',
+          'resolved_target',
+          'evidence_sha256',
+          'applied_at',
+          'batch',
+        ] as const) {
           delete folded[key]
         }
         const failed = subs.find((c) => c.status !== undefined && c.status !== 'applied')
@@ -1441,7 +1598,11 @@ export async function executeChangesetApply(
       }
       const artifactProblem = await artifactTargetProblem(rootDir, rel)
       if (artifactProblem) {
-        return rejectPhase1(artifactProblem.code, rel, `change "${change.id}": ${artifactProblem.message}`)
+        return rejectPhase1(
+          artifactProblem.code,
+          rel,
+          `change "${change.id}": ${artifactProblem.message}`,
+        )
       }
       if (await artifactAlreadyRecorded(rootDir, rel)) {
         blockedChanges.set(change.id, {
@@ -1466,7 +1627,10 @@ export async function executeChangesetApply(
       // The id can be free while the placement path is already taken: add_model
       // never writes over a file, whether or not that file is a model.
       if (!exists && plan) {
-        exists = await stat(plan.path).then((s) => s.isFile(), () => false)
+        exists = await stat(plan.path).then(
+          (s) => s.isFile(),
+          () => false,
+        )
       }
       if (exists) {
         existingAddModelIds.add(key)
@@ -1475,7 +1639,8 @@ export async function executeChangesetApply(
           message: `MODEL_EXISTS: model "${change.target}" already exists; add_model never overwrites or repairs a model`,
         })
         for (const other of csDoc.changes) {
-          if (other.id === change.id || isNonMutating(other.op) || other.op === 'produce_artifact') continue
+          if (other.id === change.id || isNonMutating(other.op) || other.op === 'produce_artifact')
+            continue
           if (parseTargetAddress(other.target).modelSlug.toLowerCase() !== key) continue
           blockedChanges.set(other.id, {
             code: 'DEPENDS_ON_CONFLICTED_CHANGE',
@@ -1489,7 +1654,11 @@ export async function executeChangesetApply(
     if (needsKnowledgeDir) {
       const kDir = await stat(join(rootDir, 'kNNowledge')).catch(() => null)
       if (!kDir || !kDir.isDirectory()) {
-        return rejectPhase1('DOMAIN_LAYOUT_INVALID', 'kNNowledge', 'the domain has no kNNowledge/ directory to create models in')
+        return rejectPhase1(
+          'DOMAIN_LAYOUT_INVALID',
+          'kNNowledge',
+          'the domain has no kNNowledge/ directory to create models in',
+        )
       }
     }
 
@@ -1522,7 +1691,11 @@ export async function executeChangesetApply(
       const { index: domainIndex, pathOf } = await nodeIndex()
       const from = domainIndex.byId(fromId)
       if (!from) {
-        return rejectPhase1('MODEL_NOT_FOUND', fromId, `move_model target "${fromId}" does not exist`)
+        return rejectPhase1(
+          'MODEL_NOT_FOUND',
+          fromId,
+          `move_model target "${fromId}" does not exist`,
+        )
       }
       const fromStorage = from.storage
       if (fromStorage.kind !== 'instance') {
@@ -1547,7 +1720,9 @@ export async function executeChangesetApply(
       }
       const oldModel = await loadKnowledge(fromPath)
       const parent = oldModel.frontmatter.parent_spec as { name?: string; url?: string } | undefined
-      const declarations = parent?.name ? await loadDeclarations(rootDir, { name: parent.name, url: parent.url }) : null
+      const declarations = parent?.name
+        ? await loadDeclarations(rootDir, { name: parent.name, url: parent.url })
+        : null
       const storage = declarations
         ? [...declarations].find(([name]) => name.toLowerCase() === concept.toLowerCase())?.[1]
         : undefined
@@ -1572,23 +1747,44 @@ export async function executeChangesetApply(
       const blueprintName = parent?.name ?? from.blueprint.name
       const placed = domainIndex.placementFor(concept, toId, blueprintName)
       if (!('folder' in placed)) {
-        return rejectProposal('MOVE_INVALID_TARGET', toId, `change "${change.id}": ${placed.message}`, change.id)
+        return rejectProposal(
+          'MOVE_INVALID_TARGET',
+          toId,
+          `change "${change.id}": ${placed.message}`,
+          change.id,
+        )
       }
       const toPath = join(rootDir, placed.folder, placed.file)
       if (!isInsideRoot(rootDir, toPath)) {
-        return rejectProposal('MOVE_INVALID_TARGET', toId, `model id "${toId}" resolves outside the domain`, change.id)
+        return rejectProposal(
+          'MOVE_INVALID_TARGET',
+          toId,
+          `model id "${toId}" resolves outside the domain`,
+          change.id,
+        )
       }
       const fromDir = dirname(fromPath)
       const toDir = dirname(toPath)
       if (toDir !== fromDir) {
-        if (await stat(toDir).then(() => true, () => false)) {
+        if (
+          await stat(toDir).then(
+            () => true,
+            () => false,
+          )
+        ) {
           return rejectPhase1(
             'MOVE_DESTINATION_OCCUPIED',
             toId,
             `moving "${fromId}" to "${toId}" would write into "${relative(rootDir, toDir)}", which already exists`,
           )
         }
-      } else if (toPath !== fromPath && (await stat(toPath).then(() => true, () => false))) {
+      } else if (
+        toPath !== fromPath &&
+        (await stat(toPath).then(
+          () => true,
+          () => false,
+        ))
+      ) {
         return rejectPhase1('MODEL_EXISTS', toId, `MODEL_EXISTS: "${toId}" already has a file`)
       }
       movePlans.set(change.id, {
@@ -1726,14 +1922,20 @@ export async function executeChangesetApply(
           concept: declared?.writePolicy,
           scopes: scopes.scopes,
         })
-        const violation = writePolicyViolation(effective.policy, change.op, declared?.name ?? (conceptName || modelSlug))
+        const violation = writePolicyViolation(
+          effective.policy,
+          change.op,
+          declared?.name ?? (conceptName || modelSlug),
+        )
         if (violation) {
-          return recordRejection([{ path: change.target, message: violation.message, code: violation.code }], change.id)
+          return recordRejection(
+            [{ path: change.target, message: violation.message, code: violation.code }],
+            change.id,
+          )
         }
       }
       return null
     }
-
 
     for (const change of csDoc.changes) {
       if (change.op === 'comment' || change.op === 'produce_artifact') continue
@@ -1762,7 +1964,10 @@ export async function executeChangesetApply(
             `change "${change.id}": bluepriNNt "${blueprintName}" could not be resolved from "${blueprintUrl}"${detail}`,
           )
         }
-        const composed = resolveBlueprintSchema(resolvedBlueprint.template.rawContent, resolvedBlueprint.resolveInclude)
+        const composed = resolveBlueprintSchema(
+          resolvedBlueprint.template.rawContent,
+          resolvedBlueprint.resolveInclude,
+        )
         if (composed.errors.length > 0) {
           const detail = composed.errors.map((e) => `${e.path}: ${e.message}`).join('; ')
           return rejectPhase1(
@@ -1777,9 +1982,9 @@ export async function executeChangesetApply(
             change,
             concepts: [plan.root.concept],
             schema: composed.schema,
-            blueprintPolicy: (resolvedBlueprint.template.frontmatter as unknown as Record<string, unknown>)?.[
-              WRITE_POLICY_KEY
-            ],
+            blueprintPolicy: (
+              resolvedBlueprint.template.frontmatter as unknown as Record<string, unknown>
+            )?.[WRITE_POLICY_KEY],
             scopes: writeScopesAt(plan.path),
             modelSlug: cleanId,
           })
@@ -1792,12 +1997,19 @@ export async function executeChangesetApply(
           title: change.name,
           knowledgeVersion: change.knowledge_version,
           schema: composed.schema,
-          blueprintFrontmatter: resolvedBlueprint.template.frontmatter as unknown as Record<string, unknown>,
+          blueprintFrontmatter: resolvedBlueprint.template.frontmatter as unknown as Record<
+            string,
+            unknown
+          >,
           ...(plan?.root ? { root: plan.root } : {}),
         })
         const filePath = plan ? plan.path : join(rootDir, 'kNNowledge', `${cleanId}_NN.md`)
         if (!isInsideRoot(rootDir, filePath)) {
-          return rejectPhase1('ADD_MODEL_INVALID_TARGET', change.target, `model id "${change.target}" resolves outside the domain`)
+          return rejectPhase1(
+            'ADD_MODEL_INVALID_TARGET',
+            change.target,
+            `model id "${change.target}" resolves outside the domain`,
+          )
         }
         const created = parseKnowledge(content)
         const initialVersion = String(created.frontmatter.knowledge_version ?? 'V_0-1-0')
@@ -1858,7 +2070,9 @@ export async function executeChangesetApply(
             .filter((m) => m.id !== modelSlug && m.id.split('/').pop() === last)
             .map((m) => m.id)
           const hint =
-            candidates.length > 0 ? `; no model has that id (candidates: ${candidates.join(', ')})` : ''
+            candidates.length > 0
+              ? `; no model has that id (candidates: ${candidates.join(', ')})`
+              : ''
           return {
             success: false,
             changesetPath: relChangesetPath,
@@ -2049,7 +2263,7 @@ export async function executeChangesetApply(
         if (isNonMutating(change.op)) continue
         change.status = 'conflict'
         const diag = conflictDiagnostics.get(change.id)
-        change.resolution = diag ? diag.message : (change.resolution || 'Precondition failed')
+        change.resolution = diag ? diag.message : change.resolution || 'Precondition failed'
       }
       csDoc.frontmatter.status = 'conflict'
       csDoc.frontmatter.applied_at = new Date().toISOString()
@@ -2094,7 +2308,7 @@ export async function executeChangesetApply(
     for (const change of conflictedSubset) {
       change.status = 'conflict'
       const diag = conflictDiagnostics.get(change.id)
-      change.resolution = diag ? diag.message : (change.resolution || 'Precondition failed')
+      change.resolution = diag ? diag.message : change.resolution || 'Precondition failed'
     }
 
     // Referrers (design A10): a move is allowed only when every typed reference to
@@ -2174,7 +2388,10 @@ export async function executeChangesetApply(
 
       // A closed model accepts nothing after its closing event, whatever its write
       // policy, including a second close.
-      if ((writeOperationOf(change.op) !== null || change.op === 'close_model') && isModelClosed(entry.model.frontmatter as Record<string, unknown>)) {
+      if (
+        (writeOperationOf(change.op) !== null || change.op === 'close_model') &&
+        isModelClosed(entry.model.frontmatter as Record<string, unknown>)
+      ) {
         return recordRejection(
           [
             {
@@ -2190,11 +2407,21 @@ export async function executeChangesetApply(
       // Write policy on whole models: a removal removes every instance the model
       // holds, a move updates their address, an extraction removes the element
       // from this model.
-      if (change.op === 'move_model' || change.op === 'remove_model' || change.op === 'extract_instance') {
-        const extracted = change.op === 'extract_instance' ? extractPlans.get(change.id)?.concept : undefined
+      if (
+        change.op === 'move_model' ||
+        change.op === 'remove_model' ||
+        change.op === 'extract_instance'
+      ) {
+        const extracted =
+          change.op === 'extract_instance' ? extractPlans.get(change.id)?.concept : undefined
         const rejected = await writePolicyRejection({
           change,
-          concepts: change.op === 'extract_instance' ? (extracted ? [extracted] : []) : conceptsIn(entry.model),
+          concepts:
+            change.op === 'extract_instance'
+              ? extracted
+                ? [extracted]
+                : []
+              : conceptsIn(entry.model),
           schema: await schemaFor(entry),
           blueprintPolicy: entry.blueprintWritePolicy,
           scopes: writeScopesFor(entry),
@@ -2208,7 +2435,11 @@ export async function executeChangesetApply(
       if (change.op === 'move_model') {
         const plan = movePlans.get(change.id)
         if (!plan) {
-          return rejectPhase1('MOVE_INVALID_TARGET', change.target, `change "${change.id}" has no move plan`)
+          return rejectPhase1(
+            'MOVE_INVALID_TARGET',
+            change.target,
+            `change "${change.id}" has no move plan`,
+          )
         }
         change.status = 'applied'
         change.resolution = `Moved model "${plan.fromId}" to "${plan.toId}"`
@@ -2220,7 +2451,11 @@ export async function executeChangesetApply(
       if (change.op === 'remove_model') {
         const plan = removePlans.get(change.id)
         if (!plan) {
-          return rejectPhase1('REMOVE_INVALID_TARGET', change.target, `change "${change.id}" has no removal plan`)
+          return rejectPhase1(
+            'REMOVE_INVALID_TARGET',
+            change.target,
+            `change "${change.id}" has no removal plan`,
+          )
         }
         entry.removed = true
         change.status = 'applied'
@@ -2234,7 +2469,11 @@ export async function executeChangesetApply(
       if (change.op === 'extract_instance') {
         const plan = extractPlans.get(change.id)
         if (!plan) {
-          return rejectPhase1('EXTRACT_INVALID_TARGET', change.target, `change "${change.id}" has no extract plan`)
+          return rejectPhase1(
+            'EXTRACT_INVALID_TARGET',
+            change.target,
+            `change "${change.id}" has no extract plan`,
+          )
         }
         const mutRes = coreApplyMutation(entry.model, 'extract_instance', {
           elementName: plan.slug,
@@ -2243,7 +2482,9 @@ export async function executeChangesetApply(
         const subtree = mutRes.extracted
         if (!mutRes.success || !subtree) {
           return recordRejection(
-            (mutRes.errors ?? [{ path: '', message: `extract_instance "${plan.slug}" failed` }]).map((e) => ({
+            (
+              mutRes.errors ?? [{ path: '', message: `extract_instance "${plan.slug}" failed` }]
+            ).map((e) => ({
               ...e,
               code: 'MUTATION_FAILED',
             })),
@@ -2253,7 +2494,11 @@ export async function executeChangesetApply(
         }
         let extractedBlueprint: Awaited<ReturnType<typeof resolveBlueprintWithCache>> | null = null
         try {
-          extractedBlueprint = await resolveBlueprintWithCache(rootDir, plan.blueprintUrl, plan.blueprintName)
+          extractedBlueprint = await resolveBlueprintWithCache(
+            rootDir,
+            plan.blueprintUrl,
+            plan.blueprintName,
+          )
         } catch {
           extractedBlueprint = null
         }
@@ -2285,7 +2530,10 @@ export async function executeChangesetApply(
           title: change.name ?? rootNode.name,
           knowledgeVersion: change.knowledge_version,
           schema: composed.schema,
-          blueprintFrontmatter: extractedBlueprint.template.frontmatter as unknown as Record<string, unknown>,
+          blueprintFrontmatter: extractedBlueprint.template.frontmatter as unknown as Record<
+            string,
+            unknown
+          >,
           root: {
             concept: plan.concept,
             slug: plan.slug,
@@ -2315,9 +2563,19 @@ export async function executeChangesetApply(
         continue
       }
 
-      if (change.op === 'bump_version' || change.op === 'freeze_slugs' || change.op === 'close_model') {
+      if (
+        change.op === 'bump_version' ||
+        change.op === 'freeze_slugs' ||
+        change.op === 'close_model'
+      ) {
         const problem = maintenanceChangeProblem(change, entry.model, entry.created)
-        if (problem) return rejectProposal(problem.code, change.target, `change "${change.id}": ${problem.message}`, change.id)
+        if (problem)
+          return rejectProposal(
+            problem.code,
+            change.target,
+            `change "${change.id}": ${problem.message}`,
+            change.id,
+          )
       }
 
       // Freezing a fully frozen model changes nothing: an applied no-op that must not
@@ -2368,6 +2626,9 @@ export async function executeChangesetApply(
       }
 
       const mutationArgs = mutationArgsForChange(change, entry.model, renameSchema)
+      // An add_element writes its initial fields (`to`) in the same mutation, so the
+      // element and its values are one change (and one write for an append-only concept).
+      if (change.op === 'add_element' && change.to !== undefined) mutationArgs.to = change.to
 
       // Write policy (write-policy): the concept's declaration, its bluepriNNt default and
       // the domaiNN chain decide which kinds of write the concept's instances accept.
@@ -2375,12 +2636,20 @@ export async function executeChangesetApply(
       if (writeOperation !== null) {
         const policySchema = renameSchema ?? (await schemaFor(entry))
         const elementIdent =
-          String(mutationArgs.elementName ?? '') || parseTargetAddress(change.target).remainder.split('&')[0].trim()
-        const found = findElementInModel(entry.model, String(mutationArgs.conceptName ?? '') || undefined, elementIdent)
+          String(mutationArgs.elementName ?? '') ||
+          parseTargetAddress(change.target).remainder.split('&')[0].trim()
+        const found = findElementInModel(
+          entry.model,
+          String(mutationArgs.conceptName ?? '') || undefined,
+          elementIdent,
+        )
         const conceptName = String(mutationArgs.conceptName ?? '') || found?.concept || ''
         // Filling a value that is still empty writes something new, so it is checked
         // as an add: an append-only instance is written once, never overwritten.
-        const fillsEmpty = writeOperation === 'update' && found !== null && writesOnlyEmptyValues(change, found.element)
+        const fillsEmpty =
+          writeOperation === 'update' &&
+          found !== null &&
+          writesOnlyEmptyValues(change, found.element)
         const rejected = await writePolicyRejection({
           change: fillsEmpty ? { ...change, op: 'add_element' } : change,
           concepts: conceptName ? [conceptName] : [],
@@ -2404,10 +2673,12 @@ export async function executeChangesetApply(
       // Record successful resolution annotation
       change.status = 'applied'
       if (change.op === 'remove_element') {
-        const cascadedCount = mutRes.cascadedMatrixCells ?? (matrixCascades.get(change.id)?.length ?? 0)
-        change.resolution = cascadedCount > 0
-          ? `Removed element and cascaded ${cascadedCount} matrix cell(s)`
-          : 'Removed element successfully'
+        const cascadedCount =
+          mutRes.cascadedMatrixCells ?? matrixCascades.get(change.id)?.length ?? 0
+        change.resolution =
+          cascadedCount > 0
+            ? `Removed element and cascaded ${cascadedCount} matrix cell(s)`
+            : 'Removed element successfully'
       } else {
         change.resolution = 'Applied successfully'
       }
@@ -2436,15 +2707,13 @@ export async function executeChangesetApply(
         if (entry.bumpLevel) {
           const requested = computeNewVersion(entry.baseVersion, { bump: entry.bumpLevel })
           if (!requested) {
-            return recordRejection(
-              [
-                {
-                  path: entry.modelSlug,
-                  code: 'INVALID_VERSION',
-                  message: `INVALID_VERSION: cannot bump "${entry.baseVersion}" of model "${entry.modelSlug}" by ${entry.bumpLevel}`,
-                },
-              ],
-            )
+            return recordRejection([
+              {
+                path: entry.modelSlug,
+                code: 'INVALID_VERSION',
+                message: `INVALID_VERSION: cannot bump "${entry.baseVersion}" of model "${entry.modelSlug}" by ${entry.bumpLevel}`,
+              },
+            ])
           }
           entry.nextVersion = requested.version
         }
@@ -2488,7 +2757,8 @@ export async function executeChangesetApply(
     // through is already wrong. Compact models keep their behaviour unchanged.
     for (const [, entry] of loadedModels) {
       if (!entry.mutated || !entry.modelSlug.includes('/')) continue
-      const parent = entry.model.frontmatter.parent_spec as { name?: string; url?: string } | undefined
+      const parent = entry.model.frontmatter.parent_spec as
+        { name?: string; url?: string } | undefined
       if (!parent?.name) continue
       const declarations = await loadDeclarations(rootDir, { name: parent.name, url: parent.url })
       if (!declarations) continue
@@ -2539,8 +2809,17 @@ export async function executeChangesetApply(
     // A created model must still be absent: re-check inside the lock, before any write.
     for (const [, entry] of loadedModels) {
       if (!entry.created) continue
-      if (await stat(entry.filePath).then(() => true, () => false)) {
-        return rejectPhase1('MODEL_EXISTS', entry.modelSlug, `model "${entry.modelSlug}" appeared while the changeset was being applied`)
+      if (
+        await stat(entry.filePath).then(
+          () => true,
+          () => false,
+        )
+      ) {
+        return rejectPhase1(
+          'MODEL_EXISTS',
+          entry.modelSlug,
+          `model "${entry.modelSlug}" appeared while the changeset was being applied`,
+        )
       }
     }
 
@@ -2553,7 +2832,10 @@ export async function executeChangesetApply(
       const missing: string[] = []
       let current = dir
       for (;;) {
-        const present = await stat(current).then((s) => s.isDirectory(), () => false)
+        const present = await stat(current).then(
+          (s) => s.isDirectory(),
+          () => false,
+        )
         if (present) break
         missing.push(current)
         const parent = dirname(current)
@@ -2592,7 +2874,9 @@ export async function executeChangesetApply(
           const movedFile = oldDir === newDir ? move.toPath : join(oldDir, basename(move.toPath))
           if (movedFile !== move.fromPath) await rename(movedFile, move.fromPath)
         } catch (rollbackErr) {
-          console.warn(`[apply-change] Failed to reverse the move of "${move.fromPath}": ${rollbackErr}`)
+          console.warn(
+            `[apply-change] Failed to reverse the move of "${move.fromPath}": ${rollbackErr}`,
+          )
         }
       }
       // 1. Rollback created models (delete them and their staging files)
@@ -2686,7 +2970,13 @@ export async function executeChangesetApply(
         while (dir !== rootDir && dir !== knowledgeRoot && isInsideRoot(rootDir, dir)) {
           const left = await readdir(dir).catch(() => null)
           if (!left || left.length > 0) break
-          if (!(await rmdir(dir).then(() => true, () => false))) break
+          if (
+            !(await rmdir(dir).then(
+              () => true,
+              () => false,
+            ))
+          )
+            break
           dir = dirname(dir)
         }
       }
@@ -2707,7 +2997,8 @@ export async function executeChangesetApply(
     const cleanAppliedCount = new Set(
       cleanSubset.filter((c) => !isNonMutating(c.op)).map((c) => recordedIdOf(c.id)),
     ).size
-    const overallStatus: ChangeStatus = cleanAppliedCount === totalActionable ? 'applied' : 'partially_applied'
+    const overallStatus: ChangeStatus =
+      cleanAppliedCount === totalActionable ? 'applied' : 'partially_applied'
 
     const batchId = displayStem(basename(resolvedChangesetPath))
     csDoc.frontmatter.status = overallStatus
@@ -2743,7 +3034,11 @@ export async function executeChangesetApply(
       }
       const entry = loadedModels.get(modelSlug.toLowerCase())
       if (entry) {
-        const target = resolvedTargetForChange(change, entry.model, canonicalUnitModelId(entry.modelSlug || modelSlug))
+        const target = resolvedTargetForChange(
+          change,
+          entry.model,
+          canonicalUnitModelId(entry.modelSlug || modelSlug),
+        )
         if (target) change.resolved_target = target
         else delete change.resolved_target
       }
@@ -2760,7 +3055,10 @@ export async function executeChangesetApply(
 
     const serializedCs = writeBack(recordedDocument())
     try {
-      const csStaging = join(dirname(resolvedChangesetPath), `${basename(resolvedChangesetPath)}.tmp`)
+      const csStaging = join(
+        dirname(resolvedChangesetPath),
+        `${basename(resolvedChangesetPath)}.tmp`,
+      )
       await writeAndSync(csStaging, serializedCs)
       await persistAtomic(csStaging, resolvedChangesetPath)
     } catch (err) {
@@ -2797,7 +3095,9 @@ async function synthesizeAndExecuteChangeset(
   if (!isSafeRelativeId(id)) {
     return {
       success: false,
-      errors: [{ path: id, message: 'Invalid knowledge id: must be a safe workspace-relative path' }],
+      errors: [
+        { path: id, message: 'Invalid knowledge id: must be a safe workspace-relative path' },
+      ],
     }
   }
   let target = id
@@ -2857,7 +3157,7 @@ async function synthesizeAndExecuteChangeset(
       }
     : undefined
 
-  // A change carries no inline fields: the direct add_element op cannot express them.
+  // `fields` is not a change key: add_element carries its initial fields in `to`.
   if (!isAddMatrix && op === 'add_element' && opArgs.fields !== undefined) {
     return {
       success: false,
@@ -2866,11 +3166,17 @@ async function synthesizeAndExecuteChangeset(
           path: 'fields',
           code: 'INVALID_OPERATION',
           message:
-            'INVALID_OPERATION: add_element must not carry inline fields; call update_field once per field, or propose a changeset with one set_fields change for the fields that share one evidence',
+            'INVALID_OPERATION: add_element carries its initial fields in "to" (a JSON object of field -> value, the shape set_fields uses), never in "fields"',
         },
       ],
     }
   }
+  // The initial fields of an add_element may arrive as an object: the change records
+  // them as their one-line JSON text.
+  const directTo =
+    op === 'add_element' && opArgs.to !== null && typeof opArgs.to === 'object'
+      ? JSON.stringify(opArgs.to)
+      : undefined
 
   const changeItem: ChangeItem = {
     id: 'c-01',
@@ -2878,17 +3184,19 @@ async function synthesizeAndExecuteChangeset(
     target,
     from: opArgs.from !== undefined ? String(opArgs.from) : undefined,
     to: isAddMatrix
-      ? ((opArgs.targetConcept as string) || (opArgs.to as string) || undefined)
+      ? (opArgs.targetConcept as string) || (opArgs.to as string) || undefined
       : op === 'bump_version'
         ? String(opArgs.bump ?? 'patch')
         : opArgs.value !== undefined
           ? String(opArgs.value)
           : opArgs.to !== undefined
-            ? String(opArgs.to)
+            ? (directTo ?? String(opArgs.to))
             : opArgs.text !== undefined
               ? String(opArgs.text)
               : (opArgs.newName as string | undefined),
-    concept: isAddMatrix ? (opArgs.source as string) || undefined : (opArgs.conceptName as string) || undefined,
+    concept: isAddMatrix
+      ? (opArgs.source as string) || undefined
+      : (opArgs.conceptName as string) || undefined,
     name: isAddMatrix
       ? (opArgs.matrixName as string) || (opArgs.name as string) || undefined
       : (opArgs.newName as string) || (opArgs.elementName as string) || undefined,
@@ -2923,7 +3231,10 @@ export const MAINTENANCE_OPS = ['generate_index'] as const
 export const SCHEMA_OPS = ['add_concept', 'add_field'] as const
 
 function isDirectOperation(op: string): boolean {
-  return (MAINTENANCE_OPS as readonly string[]).includes(op) || (SCHEMA_OPS as readonly string[]).includes(op)
+  return (
+    (MAINTENANCE_OPS as readonly string[]).includes(op) ||
+    (SCHEMA_OPS as readonly string[]).includes(op)
+  )
 }
 
 /**
@@ -2935,7 +3246,11 @@ export async function applyChange(
   op?: string,
   args?: Record<string, unknown>,
 ): Promise<ApplyChangeResult> {
-  if (!op || idOrChangesetPath.endsWith('_changes_NN.md') || idOrChangesetPath.startsWith('changes/')) {
+  if (
+    !op ||
+    idOrChangesetPath.endsWith('_changes_NN.md') ||
+    idOrChangesetPath.startsWith('changes/')
+  ) {
     return executeChangesetApply(rootDir, idOrChangesetPath)
   }
 
@@ -2967,7 +3282,8 @@ export async function applyChange(
           {
             path: 'version',
             code: 'INVALID_BUMP_LEVEL',
-            message: 'INVALID_BUMP_LEVEL: a level-3 bump_version takes a level ({ bump: "patch" | "minor" | "major" }), not an explicit version',
+            message:
+              'INVALID_BUMP_LEVEL: a level-3 bump_version takes a level ({ bump: "patch" | "minor" | "major" }), not an explicit version',
           },
         ],
       }
@@ -3001,10 +3317,8 @@ export async function applyChange(
       }
     }
     try {
-      const { template: idxBlueprint, resolveInclude: idxInclude } = await resolveBlueprintForKnowledge(
-        rootDir,
-        model,
-      )
+      const { template: idxBlueprint, resolveInclude: idxInclude } =
+        await resolveBlueprintForKnowledge(rootDir, model)
       if (idxBlueprint) {
         const { schema } = resolveBlueprintSchema(idxBlueprint.rawContent, idxInclude)
         opArgs.taxonomy = schema.taxonomy.length

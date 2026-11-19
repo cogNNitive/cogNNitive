@@ -3,17 +3,14 @@ import type { ConceptField } from './types/parser.js'
 import { ElementsMap } from './types/index.js'
 import type { BlueprintSchema } from './schema/index.js'
 import { MODEL_CLOSED_KEY, isModelClosed } from './schema/writePolicy.js'
-import {
-  CONCEPT_DEFINITION,
-  FIELD_DEFINITION,
-  MATRIX_DEFINITION,
-} from './schema/index.js'
+import { CONCEPT_DEFINITION, FIELD_DEFINITION, MATRIX_DEFINITION } from './schema/index.js'
 import { slugify } from './parser/slug.js'
 import { parsePropertyValue } from './parser/sections.js'
 import { RESERVED_CONCEPT_NAMES, WIDGET_CONFIG_KEYS } from './validator/constants.js'
 import { levenshteinDistance, slugifyHeading } from './sourceRef.js'
 import { updateReferenceString, updateWikiLinks } from './references.js'
 import { validateFieldValue } from './schema/field-values.js'
+import { addElementFieldsEntries, addElementFieldsProblems } from './changeset/types.js'
 
 // The reference-rewriting helpers live in `sourceRef.ts` (pure string helpers, so
 // the browser-safe changelog can relink without importing the mutation engine).
@@ -44,8 +41,7 @@ export interface ExtractedSubtree {
 }
 
 type RequireArgsResult =
-  | { ok: true; values: Record<string, string> }
-  | { ok: false; result: MutationResult }
+  { ok: true; values: Record<string, string> } | { ok: false; result: MutationResult }
 
 /**
  * Validates that the given string args are present and non-empty.
@@ -81,7 +77,6 @@ function requireArgs(args: Record<string, unknown>, keys: string[]): RequireArgs
   return { ok: true, values }
 }
 
-
 /** Builds the "unknown concept" rejection message for schema-aware element
  *  ops (`addElement`, and mirrored by `updateField`'s existing lookup
  *  failure): names the offending concept, suggests the nearest declared
@@ -112,7 +107,10 @@ function cloneKnowledge(model: ParsedKnowledge): ParsedKnowledge {
   const { elements, ...rest } = model
   const clonedElements = new ElementsMap()
   for (const [key, nodes] of elements.entries()) {
-    clonedElements.set(key, nodes.map((node) => structuredClone(node)))
+    clonedElements.set(
+      key,
+      nodes.map((node) => structuredClone(node)),
+    )
   }
   return { ...structuredClone(rest), elements: clonedElements }
 }
@@ -221,7 +219,8 @@ function modelHasUnfrozenElements(model: ParsedKnowledge): boolean {
 }
 
 const MUTATION_HANDLERS: Record<string, MutationHandler> = {
-  add_concept: (model, args) => addConcept(model, args),  add_field: (model, args) => addField(model, args),
+  add_concept: (model, args) => addConcept(model, args),
+  add_field: (model, args) => addField(model, args),
   add_element: (model, args, schema) => addElement(model, args, schema),
   update_field: (model, args, schema) => updateField(model, args, schema),
   remove_element: (model, args) => removeElement(model, args),
@@ -298,7 +297,10 @@ function repinBlueprint(model: ParsedKnowledge, args: Record<string, unknown>): 
 function closeModel(model: ParsedKnowledge): MutationResult {
   const fm = model.frontmatter as Record<string, any>
   if (isModelClosed(fm)) {
-    return { success: false, errors: [{ path: MODEL_CLOSED_KEY, message: 'MODEL_CLOSED: the model is already closed' }] }
+    return {
+      success: false,
+      errors: [{ path: MODEL_CLOSED_KEY, message: 'MODEL_CLOSED: the model is already closed' }],
+    }
   }
   fm[MODEL_CLOSED_KEY] = true
   return { success: true }
@@ -373,7 +375,10 @@ function setFieldDefault(model: ParsedKnowledge, args: Record<string, unknown>):
   const scope = typeof args.conceptName === 'string' ? args.conceptName.trim() : ''
 
   if (!fieldName) {
-    return { success: false, errors: [{ path: 'name', message: 'set_field_default requires "name"' }] }
+    return {
+      success: false,
+      errors: [{ path: 'name', message: 'set_field_default requires "name"' }],
+    }
   }
   if (value === undefined) {
     return { success: false, errors: [{ path: 'to', message: 'set_field_default requires "to"' }] }
@@ -395,7 +400,9 @@ function setFieldDefault(model: ParsedKnowledge, args: Record<string, unknown>):
   if (filled === 0) {
     return {
       success: true,
-      warnings: [{ path: '', message: `set_field_default: every element already has "${fieldName}"` }],
+      warnings: [
+        { path: '', message: `set_field_default: every element already has "${fieldName}"` },
+      ],
     }
   }
   return { success: true }
@@ -485,16 +492,21 @@ function addConcept(model: ParsedKnowledge, args: Record<string, unknown>): Muta
   if (RESERVED_CONCEPT_NAMES.has(conceptName)) {
     return {
       success: false,
-      errors: [{
-        path: 'Concept Definition',
-        message: `"${conceptName}" is a reserved pseudo-concept name and MUST NOT be declared`,
-      }],
+      errors: [
+        {
+          path: 'Concept Definition',
+          message: `"${conceptName}" is a reserved pseudo-concept name and MUST NOT be declared`,
+        },
+      ],
     }
   }
 
   const defs = model.elements.get(CONCEPT_DEFINITION) ?? []
   if (defs.some((c) => c.name.toLowerCase() === conceptName.toLowerCase())) {
-    return { success: false, errors: [{ path: '', message: `Concept "${conceptName}" already exists` }] }
+    return {
+      success: false,
+      errors: [{ path: '', message: `Concept "${conceptName}" already exists` }],
+    }
   }
 
   const fields: Record<string, unknown> = { type: (args.type as string) ?? 'text' }
@@ -531,12 +543,18 @@ function addField(model: ParsedKnowledge, args: Record<string, unknown>): Mutati
   } else if (Array.isArray(conceptVal)) {
     for (const c of conceptVal) {
       if (!declaredConceptNames.has(String(c).toLowerCase())) {
-        return { success: false, errors: [{ path: 'concept', message: `Concept "${c}" not found` }] }
+        return {
+          success: false,
+          errors: [{ path: 'concept', message: `Concept "${c}" not found` }],
+        }
       }
     }
   } else if (typeof conceptVal === 'string') {
     if (!declaredConceptNames.has(conceptVal.toLowerCase())) {
-      return { success: false, errors: [{ path: '', message: `Concept "${conceptVal}" not found` }] }
+      return {
+        success: false,
+        errors: [{ path: '', message: `Concept "${conceptVal}" not found` }],
+      }
     }
   }
 
@@ -549,7 +567,12 @@ function addField(model: ParsedKnowledge, args: Record<string, unknown>): Mutati
   if (existingField) {
     return {
       success: false,
-      errors: [{ path: '', message: `Field "${fieldName}" already exists on concept "${String(conceptVal)}"` }],
+      errors: [
+        {
+          path: '',
+          message: `Field "${fieldName}" already exists on concept "${String(conceptVal)}"`,
+        },
+      ],
     }
   }
 
@@ -564,7 +587,12 @@ function addField(model: ParsedKnowledge, args: Record<string, unknown>): Mutati
     if (mult && fieldType !== 'select') {
       return {
         success: false,
-        errors: [{ path: 'multiple', message: `Field "${fieldName}" has multiple:: true, which requires type:: select (got "${fieldType}")` }],
+        errors: [
+          {
+            path: 'multiple',
+            message: `Field "${fieldName}" has multiple:: true, which requires type:: select (got "${fieldType}")`,
+          },
+        ],
       }
     }
     fields['multiple'] = mult
@@ -575,13 +603,20 @@ function addField(model: ParsedKnowledge, args: Record<string, unknown>): Mutati
     if (widget === 'scale' && fieldType !== 'number') {
       return {
         success: false,
-        errors: [{ path: 'widget', message: `widget "scale" requires type:: number (got "${fieldType}")` }],
+        errors: [
+          { path: 'widget', message: `widget "scale" requires type:: number (got "${fieldType}")` },
+        ],
       }
     }
     if (widget === 'boolean' && fieldType !== 'boolean') {
       return {
         success: false,
-        errors: [{ path: 'widget', message: `widget "boolean" requires type:: boolean (got "${fieldType}")` }],
+        errors: [
+          {
+            path: 'widget',
+            message: `widget "boolean" requires type:: boolean (got "${fieldType}")`,
+          },
+        ],
       }
     }
     if (widget === 'cycle') {
@@ -590,7 +625,12 @@ function addField(model: ParsedKnowledge, args: Record<string, unknown>): Mutati
       if (fieldType !== 'select' || fields['multiple'] === true || !hasOptions) {
         return {
           success: false,
-          errors: [{ path: 'widget', message: `widget "cycle" requires a single-valued select with options` }],
+          errors: [
+            {
+              path: 'widget',
+              message: `widget "cycle" requires a single-valued select with options`,
+            },
+          ],
         }
       }
     }
@@ -598,14 +638,18 @@ function addField(model: ParsedKnowledge, args: Record<string, unknown>): Mutati
       if (fieldType !== 'select' || fields['multiple'] !== true) {
         return {
           success: false,
-          errors: [{ path: 'widget', message: `widget "set" requires type:: select with multiple:: true` }],
+          errors: [
+            { path: 'widget', message: `widget "set" requires type:: select with multiple:: true` },
+          ],
         }
       }
     }
     if (widget === 'text' && fieldType !== 'string') {
       return {
         success: false,
-        errors: [{ path: 'widget', message: `widget "text" requires type:: string (got "${fieldType}")` }],
+        errors: [
+          { path: 'widget', message: `widget "text" requires type:: string (got "${fieldType}")` },
+        ],
       }
     }
     fields['widget'] = widget
@@ -617,7 +661,9 @@ function addField(model: ParsedKnowledge, args: Record<string, unknown>): Mutati
     if (!widget) {
       return {
         success: false,
-        errors: [{ path: 'widget_config', message: `"${fieldName}" declares widget_config but no widget` }],
+        errors: [
+          { path: 'widget_config', message: `"${fieldName}" declares widget_config but no widget` },
+        ],
       }
     }
     const allowed = WIDGET_CONFIG_KEYS[widget] || []
@@ -626,7 +672,12 @@ function addField(model: ParsedKnowledge, args: Record<string, unknown>): Mutati
         if (!allowed.includes(k)) {
           return {
             success: false,
-            errors: [{ path: `widget_config.${k}`, message: `"${k}" is not a widget_config key for widget "${widget}". Allowed: ${allowed.join(', ') || '(none)'}` }],
+            errors: [
+              {
+                path: `widget_config.${k}`,
+                message: `"${k}" is not a widget_config key for widget "${widget}". Allowed: ${allowed.join(', ') || '(none)'}`,
+              },
+            ],
           }
         }
       }
@@ -635,13 +686,23 @@ function addField(model: ParsedKnowledge, args: Record<string, unknown>): Mutati
         if (scaleCfg['min'] === undefined || scaleCfg['max'] === undefined) {
           return {
             success: false,
-            errors: [{ path: 'widget_config', message: `widget "scale" requires widget_config.min and max` }],
+            errors: [
+              {
+                path: 'widget_config',
+                message: `widget "scale" requires widget_config.min and max`,
+              },
+            ],
           }
         }
         if (Number(scaleCfg['min']) >= Number(scaleCfg['max'])) {
           return {
             success: false,
-            errors: [{ path: 'widget_config', message: `widget "scale" min (${scaleCfg['min']}) must be less than max (${scaleCfg['max']})` }],
+            errors: [
+              {
+                path: 'widget_config',
+                message: `widget "scale" min (${scaleCfg['min']}) must be less than max (${scaleCfg['max']})`,
+              },
+            ],
           }
         }
       }
@@ -676,7 +737,6 @@ function addField(model: ParsedKnowledge, args: Record<string, unknown>): Mutati
   return { success: true }
 }
 
-
 function addElement(
   model: ParsedKnowledge,
   args: Record<string, unknown>,
@@ -698,7 +758,9 @@ function addElement(
       const declaredNames = schema.concepts.map((c) => c.name)
       return {
         success: false,
-        errors: [{ path: 'conceptName', message: unknownConceptMessage(conceptName, declaredNames) }],
+        errors: [
+          { path: 'conceptName', message: unknownConceptMessage(conceptName, declaredNames) },
+        ],
       }
     }
   }
@@ -708,27 +770,38 @@ function addElement(
   if (existingElements.some((e) => e.name.toLowerCase() === elementName.toLowerCase())) {
     return {
       success: false,
-      errors: [{ path: '', message: `Element "${elementName}" already exists in concept "${conceptName}"` }],
+      errors: [
+        {
+          path: '',
+          message: `Element "${elementName}" already exists in concept "${conceptName}"`,
+        },
+      ],
     }
   }
 
   // Slug uniqueness check if requested
-  const requestedSlug = typeof args.slug === 'string' && args.slug.trim() ? args.slug.trim() : undefined
+  const requestedSlug =
+    typeof args.slug === 'string' && args.slug.trim() ? args.slug.trim() : undefined
   if (requestedSlug) {
     for (const [, elements] of model.elements.entries()) {
       for (const el of elements) {
         if (el.slug?.toLowerCase() === requestedSlug.toLowerCase()) {
           return {
             success: false,
-            errors: [{ path: 'slug', message: `Slug "${requestedSlug}" already exists in this model — element slugs must be unique model-wide` }],
+            errors: [
+              {
+                path: 'slug',
+                message: `Slug "${requestedSlug}" already exists in this model — element slugs must be unique model-wide`,
+              },
+            ],
           }
         }
       }
     }
   }
 
-  // A change carries no inline fields (`changeset-document-model`): each field is
-  // its own `update_field`. Reject the key loudly instead of silently dropping it.
+  // The initial fields travel in `to` (`changeset-document-model`), the JSON object
+  // `set_fields` uses, never in a `fields` key: reject it loudly instead of dropping it.
   if (args.fields !== undefined && args.fields !== null) {
     return {
       success: false,
@@ -736,9 +809,23 @@ function addElement(
         {
           path: 'fields',
           message:
-            'INVALID_OPERATION: add_element must not carry inline fields; emit one set_fields change (target model@element) for the fields that share one evidence, or one update_field per field (target model@element&field)',
+            'INVALID_OPERATION: add_element carries its initial fields in "to" (a JSON object of field -> value, the shape set_fields uses), never in "fields"',
         },
       ],
+    }
+  }
+  // `to` arrives as the changeset's one-line JSON text, or as an object on the direct API.
+  const initialTo =
+    args.to === undefined || args.to === null
+      ? undefined
+      : typeof args.to === 'string'
+        ? args.to
+        : JSON.stringify(args.to)
+  const toProblem = addElementFieldsProblems({ op: 'add_element', to: initialTo })[0]
+  if (toProblem) {
+    return {
+      success: false,
+      errors: [{ path: 'to', message: `${toProblem.code}: ${toProblem.message}` }],
     }
   }
 
@@ -749,6 +836,7 @@ function addElement(
     'slug',
     'description',
     'fields',
+    'to',
     // Not a field: a change derives from `evidence`. Accepted here only so the
     // generic copy below does not smuggle it into the element's fields.
     'sources',
@@ -765,11 +853,6 @@ function addElement(
     if (!reservedArgsKeys.has(k) && v !== undefined) {
       fields[k] = v
     }
-  }
-
-  if (existingElements.length > 0) {
-    const prevLast = existingElements[existingElements.length - 1]
-    prevLast.trailingBlankLine = true
   }
 
   let elementSlug: string
@@ -801,6 +884,17 @@ function addElement(
     slugExplicit: true,
     trailingBlankLine: true,
   }
+  // The initial fields are written before the element joins the model, so a value
+  // that fails validation leaves the model untouched.
+  for (const entry of addElementFieldsEntries({ op: 'add_element', to: initialTo })) {
+    const written = writeFieldValue(newElement, conceptName, entry.field, entry.to, schema)
+    if (!written.success) return written
+  }
+
+  if (existingElements.length > 0) {
+    const prevLast = existingElements[existingElements.length - 1]
+    prevLast.trailingBlankLine = true
+  }
   existingElements.push(newElement)
   model.elements.set(conceptName, existingElements)
   return { success: true }
@@ -829,11 +923,7 @@ function matchesElement(e: ElementNode, target: string): boolean {
  * decides: `update_field to:: 5` on an unset `type:: number` must arrive as the
  * number 5, or validation rejects a changeset that is valid by contract.
  */
-function coerceFieldValue(
-  existing: unknown,
-  incoming: unknown,
-  def?: ConceptField,
-): unknown {
+function coerceFieldValue(existing: unknown, incoming: unknown, def?: ConceptField): unknown {
   if (typeof incoming !== 'string') return incoming
   const declared = def?.type
   if (declared === 'number' || (declared === undefined && typeof existing === 'number')) {
@@ -864,7 +954,8 @@ function updateField(
   args: Record<string, unknown>,
   schema?: BlueprintSchema,
 ): MutationResult {
-  let elementName = (args.elementName as string) || (args.elementSlug as string) || (args.slug as string) || ''
+  let elementName =
+    (args.elementName as string) || (args.elementSlug as string) || (args.slug as string) || ''
   let fieldName = (args.fieldName as string) || ''
   const conceptName = (args.conceptName as string) || ''
   const val = args.value !== undefined ? args.value : args.to
@@ -889,7 +980,12 @@ function updateField(
     if (!fieldName) missing.push('fieldName')
     return {
       success: false,
-      errors: [{ path: '', message: `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} required` }],
+      errors: [
+        {
+          path: '',
+          message: `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} required`,
+        },
+      ],
     }
   }
 
@@ -918,7 +1014,10 @@ function updateField(
   if (conceptName) {
     const existingElements = model.elements.get(conceptName)
     if (!existingElements) {
-      return { success: false, errors: [{ path: '', message: `Concept "${conceptName}" not found` }] }
+      return {
+        success: false,
+        errors: [{ path: '', message: `Concept "${conceptName}" not found` }],
+      }
     }
     foundElement = existingElements.find((e) => matchesElement(e, elementName))
     foundConcept = conceptName
@@ -945,6 +1044,22 @@ function updateField(
     }
   }
 
+  return writeFieldValue(foundElement, foundConcept, fieldName, val, schema)
+}
+
+/**
+ * Writes one field value on an element, the way `update_field` does: an empty value
+ * clears the field, a `[...]` string is parsed as a list, the declared field type
+ * coerces the value and validates it. `add_element` reuses it for the initial fields
+ * it carries in `to`, so both writes are checked by the same rules.
+ */
+function writeFieldValue(
+  foundElement: ElementNode,
+  foundConcept: string,
+  fieldName: string,
+  val: unknown,
+  schema?: BlueprintSchema,
+): MutationResult {
   // An empty value clears the field: the line is removed and the type check is
   // skipped, since "no value" cannot be expressed by any declared field type.
   // An absent field is a no-op success.
@@ -968,7 +1083,9 @@ function updateField(
   // what a field with no existing value holds, so validation sees the real value.
   let fieldDef: ConceptField | undefined
   if (schema && foundConcept) {
-    const conceptObj = schema.concepts?.find((c) => c.name.toLowerCase() === foundConcept!.toLowerCase())
+    const conceptObj = schema.concepts?.find(
+      (c) => c.name.toLowerCase() === foundConcept!.toLowerCase(),
+    )
     fieldDef = conceptObj?.fields?.find((f) => f.name.toLowerCase() === fieldName.toLowerCase())
     if (!fieldDef && Array.isArray((schema as any).fields)) {
       fieldDef = (schema as any).fields.find(
@@ -1012,7 +1129,12 @@ function updateMatrixCell(
   let matrixSlug = (args.matrixSlug as string) || ''
   let row = (args.row as string) || ''
   let col = (args.col as string) || ''
-  const val = args.value !== undefined ? String(args.value) : (args.to !== undefined ? String(args.to) : undefined)
+  const val =
+    args.value !== undefined
+      ? String(args.value)
+      : args.to !== undefined
+        ? String(args.to)
+        : undefined
 
   if (args.target && typeof args.target === 'string') {
     let clean = args.target.trim()
@@ -1056,7 +1178,8 @@ function updateMatrixCell(
     }
     if (matrixName) {
       if (slugify(name).toLowerCase() === slugify(matrixName).toLowerCase()) return true
-      if (slugifyHeading(name).toLowerCase() === slugifyHeading(matrixName).toLowerCase()) return true
+      if (slugifyHeading(name).toLowerCase() === slugifyHeading(matrixName).toLowerCase())
+        return true
       if (normalizeKey(name) === normalizeKey(matrixName)) return true
     }
     return false
@@ -1183,7 +1306,12 @@ function removeElement(model: ParsedKnowledge, args: Record<string, unknown>): M
       slugifyHeading(e.name).toLowerCase() !== elementName.toLowerCase(),
   )
   if (filtered.length === existingElements.length) {
-    return { success: false, errors: [{ path: '', message: `Element "${elementName}" not found in concept "${conceptName}"` }] }
+    return {
+      success: false,
+      errors: [
+        { path: '', message: `Element "${elementName}" not found in concept "${conceptName}"` },
+      ],
+    }
   }
   model.elements.set(conceptName, filtered)
 
@@ -1218,7 +1346,7 @@ function removeElement(model: ParsedKnowledge, args: Record<string, unknown>): M
           (targetHeading !== undefined && (colLower === targetHeading || cClean === targetHeading))
         return !rowMatches && !colMatches
       })
-      cascadedCells += (initialCount - matrix.cells.length)
+      cascadedCells += initialCount - matrix.cells.length
     }
   }
 
@@ -1241,12 +1369,13 @@ export function subtreeOf(
 ): ExtractedSubtree | null {
   const ident = elementIdent.trim().toLowerCase()
   if (!ident) return null
-  const matches = (el: ElementNode): boolean =>
-    Boolean(el.slug && el.slug.toLowerCase() === ident)
+  const matches = (el: ElementNode): boolean => Boolean(el.slug && el.slug.toLowerCase() === ident)
 
   let rootConcept: string | undefined
   let root: ElementNode | undefined
-  const scoped = conceptName ? [[conceptName, model.elements.get(conceptName) ?? []] as const] : [...model.elements.entries()]
+  const scoped = conceptName
+    ? [[conceptName, model.elements.get(conceptName) ?? []] as const]
+    : [...model.elements.entries()]
   for (const [concept, list] of scoped) {
     root = list.find(matches)
     if (root) {
@@ -1321,15 +1450,9 @@ function extractInstance(model: ParsedKnowledge, args: Record<string, unknown>):
  * knowledge unit, not a field: `update_field …&description` is refused with
  * `USE_UPDATE_ELEMENT_TEXT` and this op never emits a `description::` line.
  */
-function updateElementText(
-  model: ParsedKnowledge,
-  args: Record<string, unknown>,
-): MutationResult {
+function updateElementText(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
   let elementName =
-    (args.elementName as string) ||
-    (args.elementSlug as string) ||
-    (args.slug as string) ||
-    ''
+    (args.elementName as string) || (args.elementSlug as string) || (args.slug as string) || ''
   const conceptName = (args.conceptName as string) || ''
   const text =
     typeof args.text === 'string'
@@ -1362,7 +1485,10 @@ function updateElementText(
   if (conceptName) {
     const existingElements = model.elements.get(conceptName)
     if (!existingElements) {
-      return { success: false, errors: [{ path: '', message: `Concept "${conceptName}" not found` }] }
+      return {
+        success: false,
+        errors: [{ path: '', message: `Concept "${conceptName}" not found` }],
+      }
     }
     foundElement = existingElements.find((e) => matchesElement(e, elementName))
   } else {
@@ -1416,9 +1542,7 @@ function updateConceptText(
 
   let targetKey = conceptName
   if (schema) {
-    const declared = schema.concepts.find(
-      (c) => c.name.toLowerCase() === conceptName.toLowerCase(),
-    )
+    const declared = schema.concepts.find((c) => c.name.toLowerCase() === conceptName.toLowerCase())
     if (declared) targetKey = declared.name
   }
   for (const k of Object.keys(model.rawSections)) {
@@ -1471,7 +1595,12 @@ function updateConceptField(
     if (!fieldName) missing.push('fieldName')
     return {
       success: false,
-      errors: [{ path: '', message: `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} required` }],
+      errors: [
+        {
+          path: '',
+          message: `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} required`,
+        },
+      ],
     }
   }
 
@@ -1481,9 +1610,7 @@ function updateConceptField(
 
   let targetConceptKey = conceptName
   if (schema) {
-    const declared = schema.concepts.find(
-      (c) => c.name.toLowerCase() === conceptName.toLowerCase(),
-    )
+    const declared = schema.concepts.find((c) => c.name.toLowerCase() === conceptName.toLowerCase())
     if (declared) targetConceptKey = declared.name
   } else if (model.conceptFields) {
     for (const k of Object.keys(model.conceptFields)) {
@@ -1510,7 +1637,9 @@ function updateConceptField(
 
   // Schema-aware field validation
   if (schema) {
-    const conceptObj = schema.concepts?.find((c) => c.name.toLowerCase() === targetConceptKey.toLowerCase())
+    const conceptObj = schema.concepts?.find(
+      (c) => c.name.toLowerCase() === targetConceptKey.toLowerCase(),
+    )
     let fieldDef = conceptObj?.fields?.find((f) => f.name.toLowerCase() === fieldName.toLowerCase())
     if (!fieldDef && Array.isArray((schema as any).fields)) {
       fieldDef = (schema as any).fields.find(
@@ -1578,7 +1707,8 @@ function matrixIdentMatches(name: string, ident: string): boolean {
  * concept. Every seeded cell starts empty. Fails when the matrix already exists.
  */
 function addMatrix(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
-  let matrixName = (args.matrixName as string) || (args.name as string) || (args.matrixSlug as string) || ''
+  let matrixName =
+    (args.matrixName as string) || (args.name as string) || (args.matrixSlug as string) || ''
   if (args.target && typeof args.target === 'string') {
     let clean = args.target.trim()
     if (clean.includes('@')) clean = clean.slice(clean.indexOf('@') + 1)
@@ -1600,7 +1730,10 @@ function addMatrix(model: ParsedKnowledge, args: Record<string, unknown>): Mutat
         return matrixIdentMatches(ident, matrixName)
       }))
   if (exists) {
-    return { success: false, errors: [{ path: '', message: `Matrix "${matrixName}" already exists` }] }
+    return {
+      success: false,
+      errors: [{ path: '', message: `Matrix "${matrixName}" already exists` }],
+    }
   }
 
   const source = (args.source as string) || (args.conceptName as string) || ''
@@ -1609,7 +1742,11 @@ function addMatrix(model: ParsedKnowledge, args: Record<string, unknown>): Mutat
 
   const listArg = (value: unknown): string[] => {
     if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean)
-    if (typeof value === 'string') return value.split(',').map((v) => v.trim()).filter(Boolean)
+    if (typeof value === 'string')
+      return value
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean)
     return []
   }
   const elementNamesOf = (concept: string): string[] => {
@@ -1644,10 +1781,7 @@ function addMatrix(model: ParsedKnowledge, args: Record<string, unknown>): Mutat
   return { success: true }
 }
 
-function removeMatrix(
-  model: ParsedKnowledge,
-  args: Record<string, unknown>,
-): MutationResult {
+function removeMatrix(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
   let matrixName = (args.matrixName as string) || (args.matrixSlug as string) || ''
   if (args.target && typeof args.target === 'string') {
     let clean = args.target.trim()
@@ -1722,21 +1856,37 @@ function renameConcept(model: ParsedKnowledge, args: Record<string, unknown>): M
   if (RESERVED_CONCEPT_NAMES.has(newName)) {
     return {
       success: false,
-      errors: [{ path: 'Concept Definition', message: `"${newName}" is a reserved pseudo-concept name` }],
+      errors: [
+        { path: 'Concept Definition', message: `"${newName}" is a reserved pseudo-concept name` },
+      ],
     }
   }
 
   const lowerOld = conceptName.toLowerCase()
   const lowerNew = newName.toLowerCase()
-  if (lowerOld === lowerNew) return { success: false, errors: [{ path: '', message: 'newName must differ from conceptName' }] }
+  if (lowerOld === lowerNew)
+    return {
+      success: false,
+      errors: [{ path: '', message: 'newName must differ from conceptName' }],
+    }
 
   const defs = model.elements.get(CONCEPT_DEFINITION) ?? []
   const def = defs.find((c) => c.name.toLowerCase() === lowerOld)
   if (!def) {
-    return { success: false, errors: [{ path: '', message: `Concept "${conceptName}" not found in Concept Definition elements` }] }
+    return {
+      success: false,
+      errors: [
+        { path: '', message: `Concept "${conceptName}" not found in Concept Definition elements` },
+      ],
+    }
   }
   if (defs.some((c) => c.name.toLowerCase() === lowerNew && c !== def)) {
-    return { success: false, errors: [{ path: '', message: `Concept "${newName}" already exists in Concept Definition elements` }] }
+    return {
+      success: false,
+      errors: [
+        { path: '', message: `Concept "${newName}" already exists in Concept Definition elements` },
+      ],
+    }
   }
   def.name = newName
 
@@ -1815,14 +1965,25 @@ function renameElement(
 
   let lowerOld = elementName.toLowerCase()
   const lowerNew = newName.toLowerCase()
-  if (lowerOld === lowerNew) return { success: false, errors: [{ path: '', message: 'newName must differ from elementName' }] }
+  if (lowerOld === lowerNew)
+    return {
+      success: false,
+      errors: [{ path: '', message: 'newName must differ from elementName' }],
+    }
 
   // Concept-scoped sibling uniqueness check (D3)
   const existingElements = model.elements.get(conceptName)
-  if (!existingElements) return { success: false, errors: [{ path: '', message: `Concept "${conceptName}" not found` }] }
+  if (!existingElements)
+    return { success: false, errors: [{ path: '', message: `Concept "${conceptName}" not found` }] }
 
   const element = existingElements.find((e) => matchesElement(e, elementName))
-  if (!element) return { success: false, errors: [{ path: '', message: `Element "${elementName}" not found in concept "${conceptName}"` }] }
+  if (!element)
+    return {
+      success: false,
+      errors: [
+        { path: '', message: `Element "${elementName}" not found in concept "${conceptName}"` },
+      ],
+    }
 
   const oldDisplayName = element.name
   lowerOld = oldDisplayName.toLowerCase()
@@ -1832,7 +1993,9 @@ function renameElement(
   if (duplicateSibling) {
     return {
       success: false,
-      errors: [{ path: '', message: `Element "${newName}" already exists in concept "${conceptName}"` }],
+      errors: [
+        { path: '', message: `Element "${newName}" already exists in concept "${conceptName}"` },
+      ],
     }
   }
 
@@ -1868,13 +2031,13 @@ function renameElement(
         for (const [fKey, fVal] of Object.entries(el.fields)) {
           const isRefField = conceptRefs?.has(fKey.toLowerCase()) ?? false
           const rewrite = (s: string): string =>
-            isRefField ? updateReferenceString(s, oldDisplayName, newName) : updateWikiLinks(s, oldDisplayName, newName)
+            isRefField
+              ? updateReferenceString(s, oldDisplayName, newName)
+              : updateWikiLinks(s, oldDisplayName, newName)
           if (typeof fVal === 'string') {
             el.fields[fKey] = rewrite(fVal)
           } else if (Array.isArray(fVal)) {
-            el.fields[fKey] = fVal.map((item) =>
-              typeof item === 'string' ? rewrite(item) : item,
-            )
+            el.fields[fKey] = fVal.map((item) => (typeof item === 'string' ? rewrite(item) : item))
           }
         }
       }
@@ -1944,7 +2107,7 @@ function generateIndex(model: ParsedKnowledge, args: Record<string, unknown>): M
   if (templateTaxonomy && Array.isArray(templateTaxonomy) && templateTaxonomy.length > 0) {
     // Keep edges where both parent and child are present
     const edgesToKeep = templateTaxonomy.filter(
-      (edge) => presentConcepts.has(edge.parent) && presentConcepts.has(edge.child)
+      (edge) => presentConcepts.has(edge.parent) && presentConcepts.has(edge.child),
     )
 
     // For any present concept, check if it has a parent in the kept edges
@@ -1966,5 +2129,3 @@ function generateIndex(model: ParsedKnowledge, args: Record<string, unknown>): M
   model.taxonomy = finalEdges
   return { success: true }
 }
-
-
