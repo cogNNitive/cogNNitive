@@ -23,12 +23,7 @@ export interface SemVerTriple {
  * when the catalog is unreachable, so the CLI can never emit `unknown`.
  */
 export type VersionStatus =
-  | 'current'
-  | 'upgrade-available'
-  | 'ahead'
-  | 'unlisted'
-  | 'unpinned'
-  | 'unknown'
+  'current' | 'upgrade-available' | 'ahead' | 'unlisted' | 'unpinned' | 'unknown'
 
 /**
  * SemVer bump of the catalog `adopted` version over the model's pinned version.
@@ -114,11 +109,7 @@ export function compareVersions(a: string, b: string): number {
  * specialization).
  */
 export function parsePinnedUrl(url: string): { name: string; version: string } | null {
-  const basename =
-    String(url)
-      .split('/')
-      .pop()
-      ?.replace(/\.md$/i, '') ?? ''
+  const basename = String(url).split('/').pop()?.replace(/\.md$/i, '') ?? ''
   const flat = basename.match(/^(.+?)_V_(\d+)-(\d+)-(\d+)(?:_spec)?_NN$/i)
   if (flat) return { name: flat[1], version: `V_${flat[2]}-${flat[3]}-${flat[4]}` }
   const pkg = String(url).match(/bluepriNNts\/([^/]+)\/V_(\d+)-(\d+)-(\d+)\/spec_NN\.md/i)
@@ -185,7 +176,7 @@ export function classifyAgainstCatalog(
     const unversionedName = parseUnversionedBlueprintName(parentUrl)
     if (unversionedName) {
       const matchKey = Object.keys(catalog.blueprints || {}).find(
-        (k) => k.toLowerCase() === unversionedName.toLowerCase()
+        (k) => k.toLowerCase() === unversionedName.toLowerCase(),
       )
       const entry = matchKey ? catalog.blueprints[matchKey] : catalog.frozen?.[unversionedName]
       if (entry) {
@@ -251,7 +242,7 @@ export function classifyAgainstCatalog(
     }
   }
 
-    const known = entry.versions.some((v) => v.blueprint_version === pinned.version)
+  const known = entry.versions.some((v) => v.blueprint_version === pinned.version)
   if (!known && compareVersions(pinned.version, entry.adopted) > 0) {
     return {
       status: 'ahead',
@@ -287,7 +278,6 @@ export function classifyAgainstCatalog(
     pinned: pinned.version,
     adopted: entry.adopted,
     gap: status === 'upgrade-available' ? kind : status === 'current' ? 'same' : 'none',
-    detail:
-      status === 'ahead' ? 'Model is ahead of the catalog adopted version' : undefined,
+    detail: status === 'ahead' ? 'Model is ahead of the catalog adopted version' : undefined,
   }
 }
