@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-8-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-8-0_NN.md"
-blueprint_version: "V_0-1-0"
+blueprint_version: "V_0-1-1"
 title: "Executions App"
 description: "Level-2 blueprint recording runs of procedures: one instance model per run, with an append-only log of events, closed after its terminal event."
 relationship_types:

@@ -175,7 +175,7 @@
     },
     "executions": {
       "name": "executions",
-      "adopted": "V_0-1-0",
+      "adopted": "V_0-1-1",
       "tier": "core",
       "access": "public",
       "when_to_use": "Level-2 blueprint recording runs of procedures: one instance model per run, with an append-only log of events, closed after its terminal event.",
@@ -183,7 +183,7 @@
       "embedded_skills": [],
       "versions": [
         {
-          "blueprint_version": "V_0-1-0",
+          "blueprint_version": "V_0-1-1",
           "spec_version": "V_0-5-0",
           "title": "Executions App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/executions/spec_NN.md"
