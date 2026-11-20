@@ -1,5 +1,6 @@
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { basename, dirname, join, relative } from 'node:path'
 import {
   parseKnowledge,
@@ -399,6 +400,28 @@ function collectSynchronizationDiagnostics(rootDir: string): ReferenceDiagnostic
   }))
 }
 
+/**
+ * `sha256(path) -> hex` for `checkProvenance`'s `EVIDENCE_SOURCE_CHANGED`: the cited
+ * file hashed relative to the workspace root. A path that escapes the root or cannot be
+ * read returns no hash, so that entry stays silent rather than reporting spurious drift.
+ */
+function evidenceShaResolver(rootDir: string): (path: string) => string | undefined {
+  return (refPath) => {
+    const abs = join(rootDir, refPath)
+    const rel = relative(rootDir, abs)
+    if (rel === '' || rel.startsWith('..') || isAbsoluteLike(rel)) return undefined
+    try {
+      return createHash('sha256').update(readFileSync(abs)).digest('hex')
+    } catch {
+      return undefined
+    }
+  }
+}
+
+function isAbsoluteLike(rel: string): boolean {
+  return /^([a-zA-Z]:|[/\\])/.test(rel)
+}
+
 /** Pure. Diagnostics whose `path` names `resolvedModelPath`. */
 export function filterDiagnosticsForModel(
   diagnostics: ReferenceDiagnostic[],
@@ -429,7 +452,7 @@ export async function collectDriftDiagnostics(rootDir: string): Promise<Referenc
   )
 
   const diagnostics: ReferenceDiagnostic[] = []
-  for (const diagnostic of checkProvenance(log, models).diagnostics) {
+  for (const diagnostic of checkProvenance(log, models, { sha256: evidenceShaResolver(rootDir) }).diagnostics) {
     const unit = diagnostic.unit ?? ''
     const at = unit.indexOf('@')
     const modelId = at === -1 ? unit : unit.slice(0, at)

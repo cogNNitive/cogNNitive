@@ -16,6 +16,7 @@ import { isJsonPointer } from './jsonPointer.js'
 import { roleOf } from './naming/index.js'
 import { isAddressError, parseAddress } from './address/index.js'
 import type { AddressError } from './address/index.js'
+import { parseMirrorAddress } from './sync/address.js'
 
 export interface HeaderUnit {
   /** Markdown heading unit: level is structural rank, slug is the canonical form. */
@@ -520,6 +521,29 @@ export function resolveUnitPath(
   return result.ok ? result.value : null
 }
 
+/**
+ * A mirrored model's element unit (`sources/sync/<alias>/<path>_NN.md@<slug>[&<field>]`),
+ * mapped onto the SourceRef element unit. `null` for everything else, so a plain
+ * `sources/` citation keeps the parsing it has today.
+ */
+function parseMirrorElementRef(clean: string, at: number): SourceRef | null {
+  const mirror = parseMirrorAddress(clean)
+  if (!mirror) return null
+  // `parseMirrorAddress` admits only `element` and `body`; a body unit addresses the whole element.
+  if (mirror.unit.kind !== 'element' && mirror.unit.kind !== 'body') return null
+  const location = clean.slice(0, at)
+  const base = {
+    filePath: location,
+    fileName: basename(location),
+    kind: 'model' as const,
+    raw: clean,
+    slug: mirror.unit.slug,
+    unit: { kind: 'element' as const, slug: mirror.unit.slug },
+  }
+  if (mirror.unit.kind === 'body') return { ...base, subunits: ['#body'] }
+  return { ...base, subunits: mirror.unit.field === undefined ? [] : [mirror.unit.field] }
+}
+
 /** A `<hierarchical-id>@<unit>` citation of a kNNowledge unit, mapped onto the SourceRef unit kinds. */
 function parseModelUnitRef(raw: string): SourceRef | null {
   if (RAW_AREA_RE.test(raw)) return null
@@ -606,6 +630,11 @@ export function parseKnowledgeUnitRef(input: string): SourceRef | null {
   const clean = input.trim()
   const at = clean.indexOf('@')
   if (at === -1) return null
+  // A mirrored model is a model owned by an origin domaiNN: its unit is a semantic element,
+  // never a heading. Resolved before the heading grammar, because `sources/sync/...` is a
+  // `sources/` path and would otherwise never reach model-unit parsing.
+  const mirror = parseMirrorElementRef(clean, at)
+  if (mirror) return mirror
   // No file extension: a kNNowledge unit, parsed by the unified address grammar.
   if (!SOURCE_FILE_RE.test(clean.slice(0, at))) return parseModelUnitRef(clean)
   const resolved = resolveUnitPath(clean.slice(0, at))

@@ -3,6 +3,7 @@ import { validateWorkspaceReferences } from '../src/validator/workspaceReference
 import { validateElementFieldReferences } from '../src/validator/references.js'
 import { buildWorkspaceIndex } from '../src/recursiveParser/workspaceIndex.js'
 import { buildDomainIndex } from '../src/domain/index.js'
+import { parseCitation } from '../src/sourceRef.js'
 import type { MirrorLookup } from '../src/sync/address.js'
 import type { RecursiveParseResult } from '../src/recursiveParser/types.js'
 import type { KnowledgeNode, Concept, ParsedKnowledge } from '../src/types/index.js'
@@ -134,5 +135,18 @@ describe('per-file pass: a mirror address', () => {
     }
     const concepts: Concept[] = [{ name: 'Procedure', type: 'list', fields: [{ name: 'responsable', type: 'reference' }] }]
     expect(validateElementFieldReferences(model, concepts).map((d) => d.code)).not.toContain('ADDRESS_MALFORMED')
+  })
+})
+
+describe('the mirror address parses for evidence as it does for references', () => {
+  it('gives the same element unit to parseCitation and to the reference lookup', () => {
+    // The reference path and the source/evidence path must agree on what a mirror address means.
+    const cited = parseCitation(MIRROR_ADDRESS)
+    expect(cited).not.toBeNull()
+    expect(cited!.filePath).toBe('sources/sync/org/organization_NN.md')
+    expect(cited!.unit).toEqual({ kind: 'element', slug: 'gerente' })
+    // The reference lookup resolves that same address through the mirror index.
+    const { result, index } = consumer(MIRROR_ADDRESS)
+    expect(validateWorkspaceReferences(result, index, undefined, undefined, lookup)).toEqual([])
   })
 })

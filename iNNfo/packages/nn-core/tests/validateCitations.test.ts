@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  parseCitation,
   validateCitations,
   type CitationSite,
   type SourceResolver,
@@ -175,5 +176,67 @@ describe('validateCitations: any domaiNN-relative path (S3a)', () => {
   it('reports KU_EXCLUDED_PATH for a staging target', () => {
     const diags = validateCitations([site('staging/scratch.md@## Intro')], resolver)
     expect(diags.map((d) => d.code)).toEqual(['KU_EXCLUDED_PATH'])
+  })
+})
+
+describe('validateCitations: a mirror element address (federated lineage)', () => {
+  /** The mirrored origin model: an Organization-like file holding `# NN Role` / `## NN Role: Gerente`. */
+  const MIRROR = 'sources/sync/org/organization_NN.md'
+  const MIRROR_CONTENT = [
+    '---',
+    'level: 3',
+    '---',
+    '',
+    '# NN Role',
+    '',
+    '## NN Role: Gerente',
+    'name:: Ana',
+    '',
+  ].join('\n')
+
+  const site = (value: string): CitationSite => ({
+    value,
+    referringPath: 'kNNowledge/procedures_NN.md',
+    element: 'Approve budget',
+    field: 'sources',
+  })
+
+  const resolver: SourceResolver = (refPath) =>
+    refPath === MIRROR ? { exists: true, content: MIRROR_CONTENT } : { exists: false }
+
+  it('parses the element form to an element unit, not a heading unit', () => {
+    const cit = parseCitation(`${MIRROR}@gerente`)
+    expect(cit).not.toBeNull()
+    expect(cit!.filePath).toBe(MIRROR)
+    expect(cit!.unit).toEqual({ kind: 'element', slug: 'gerente' })
+    expect(cit!.subunits).toEqual([])
+  })
+
+  it('parses the field form to one subunit', () => {
+    const cit = parseCitation(`${MIRROR}@gerente&name`)
+    expect(cit).not.toBeNull()
+    expect(cit!.unit).toEqual({ kind: 'element', slug: 'gerente' })
+    expect(cit!.subunits).toEqual(['name'])
+  })
+
+  it('validates a mirrored element citation cleanly', () => {
+    expect(validateCitations([site(`${MIRROR}@gerente`)], resolver)).toEqual([])
+  })
+
+  it('validates a field of a mirrored element cleanly', () => {
+    expect(validateCitations([site(`${MIRROR}@gerente&name`)], resolver)).toEqual([])
+  })
+
+  it('reports KU_UNKNOWN_ELEMENT_SLUG for an element absent from the mirror', () => {
+    const diags = validateCitations([site(`${MIRROR}@nobody`)], resolver)
+    expect(diags.map((d) => d.code)).toEqual(['KU_UNKNOWN_ELEMENT_SLUG'])
+    expect(diags[0]!.severity).toBe('error')
+    expect(diags[0]!.target).toBe(MIRROR)
+  })
+
+  it('keeps a plain sources/ heading citation unchanged', () => {
+    expect(validateCitations([site('sources/import/guide.md@## Overview')], resolver).map((d) => d.code)).toEqual([
+      'KU_DANGLING_FILE',
+    ])
   })
 })
