@@ -23,6 +23,7 @@ const SOURCES = [
   ['studio.js', 'nnStudio'],
   ['nn-fsa.js', 'nnFsa'],
   ['nn-runtime.js', 'nnConsole'],
+  ['nn-procedure-core.js', 'nnProcedureCore'],
   ['render-procedure-stepper.js', 'nnProcedureStepper'],
 ];
 
