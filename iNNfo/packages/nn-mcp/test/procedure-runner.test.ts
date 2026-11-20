@@ -398,7 +398,9 @@ describe('procedure_record', SLOW, () => {
         rev: 'd1',
       }),
     )
-    expect(r.state).toMatchObject({ artifacts: { 'draft-doc': { status: 'validated', rev: 'd1' } } })
+    expect(r.state).toMatchObject({
+      artifacts: { 'draft-doc': { status: 'validated', rev: 'd1' } },
+    })
   })
 
   it('a drifted run advertises only the actions its writer accepts', async () => {

@@ -82,9 +82,7 @@ export async function acquireRunLock(
     if (await tryCreate()) return { path, release: releaseOnce(path) }
   }
 
-  const err = new Error(
-    `RUN_BUSY: run "${run}" is being written by another caller (lock ${path})`,
-  )
+  const err = new Error(`RUN_BUSY: run "${run}" is being written by another caller (lock ${path})`)
   ;(err as { code?: string }).code = 'RUN_BUSY'
   throw err
 }

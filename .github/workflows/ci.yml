@@ -160,19 +160,19 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
-          # `set -e` is the whole point: without it a failed diff exits 0 through
-          # command substitution and the step reports "No formattable files
-          # changed", which is indistinguishable from a clean PR.
+          # Capture the diff status before parsing its output: mapfile with process
+          # substitution would turn a failed diff into an apparently empty PR.
           set -euo pipefail
           git fetch --no-tags origin "$BASE_REF"
           npx prettier --version >/dev/null   # a missing prettier must not read as "all clean"
 
-          mapfile -t CHANGED < <(git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" \
+          changed=$(git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" \
             -- '*.ts' '*.mts' '*.vue' '*.js' '*.mjs' '*.json')
-          if [ ${#CHANGED[@]} -eq 0 ]; then
+          if [[ -z "$changed" ]]; then
             echo "No formattable files changed."
             exit 0
           fi
+          mapfile -t CHANGED <<< "$changed"
 
           # The repo is not prettier-formatted, and this gate only started running when
           # #735 stopped swallowing its failures. Checking every touched file at once
