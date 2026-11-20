@@ -29,7 +29,9 @@ node scripts/nn-session.mjs status                        # primary health + eve
   point. Two live threads in one checkout share files, the git index and the current
   branch: on 2026-11-16 five console threads read `main` while that tree was checked out
   on `fix/conntent-avatar-narration` and being rebased under them. One writer per
-  worktree.
+  worktree. Before the first write, compare Git's absolute worktree path and
+  branch with the harness thread's workspace. If another live writer owns that
+  path, do not edit, rebase, regenerate, or push from it.
 - **The primary checkout is read-only.** A `PreToolUse` hook denies edits and
   `git add/commit/stash` there. Work in the worktree. When the tool cwd resets to the
   primary, use `git -C <literal absolute worktree path>`: the hook reads the `-C`
@@ -52,10 +54,11 @@ node scripts/nn-session.mjs status                        # primary health + eve
   worktree you did not create.
 - **`node_modules` is a junction to the primary's.** The workspace link
   `node_modules/@cognnitive/nn-core` points at whichever worktree built core last;
-  repoint it before trusting nn-mcp tests:
-  `cmd /c "rmdir node_modules\@cognnitive\nn-core"` then
-  `cmd /c "mklink /J node_modules\@cognnitive\nn-core <worktree>\iNNfo\packages\nn-core"`.
-  Never run `npm ci` from a worktree: it corrupts the primary's `node_modules`.
+  check that `@cognnitive/nn-core` resolves to the current worktree before trusting
+  nn-mcp tests or typechecks. For core/MCP work, use an isolated install
+  (`nn-session start --full-install` in the script-managed lane). Never run
+  `npm ci` through a junction or repoint a shared link while another session
+  is using it.
 - **Commit early, push early.** `wip:<id>: <reason>` checkpoints are fine on the session
   branch; squash them before landing. Pushing `session/*` skips the heavy local gate:
   the PR's CI is the gate.
@@ -152,7 +155,11 @@ gate on every PR to provide it. The cheap fix is arithmetic, not machinery.
 - **Never merge, rebase or amend in the primary checkout.** The git hooks refuse it, under every
   harness (`scripts/guard-primary-checkout.mjs`). A branch that fell behind rebases inside its
   own worktree.
-- **Merge with `gh pr merge --merge ...`** once CI is green. Not `--squash`: the merge commit
+- **Merge with `gh pr merge --merge ...`** only after CI is green on the exact
+  remote head SHA. Recheck that the candidate's release versions are still
+  untagged. If the candidate changes, recheck the new head. Use
+  `--match-head-commit <sha>` to guard against a moved head.
+  Not `--squash`: the merge commit
   keeps the session branch an ancestor of `main`, so `nn-session stop`/`sweep` can remove it.
 - **The backlog is a single-writer surface.** Only the PR that lands a batch edits its row, and
   it edits it last, so a conflict is one line and not a rebase of the whole file.
@@ -206,6 +213,10 @@ tag shapes are a contract. Nobody tags by hand.
   The `release-bump` CI job enforces it: a PR that changes a path of `nn-mcp` or
   `nn-console` (`scripts/release/release-keys.js`) without moving that key to an
   untagged version fails (`node scripts/release/check-authored-bump.js --base origin/main`).
+- **Close with evidence:** record the PR, exact head SHA, and observed checks.
+  Report merged, tagged, and published as separate states; verify publication at
+  the destination when it is in scope. For locking or rollback changes, include
+  a contention or injected-failure test, not just a successful write.
 - **A failed release run:** fix forward on `main`, or re-run one tag with
   `gh workflow run release.yml --ref main -f tag=<tag> -f publish=true` (one at a time;
   concurrent dispatches cancel each other). Never delete or move a published tag.
@@ -224,6 +235,9 @@ tag shapes are a contract. Nobody tags by hand.
 
 `node scripts/nn-session.mjs sweep` removes every session worktree and local branch
 already merged into `main`, skipping (and naming) any with uncommitted changes.
+Before either removal command, confirm that no thread expected to resume is
+bound to the path. If unsure, keep the worktree. A missing `.git` does not make
+ignored files in a leftover directory disposable.
 `stop --id <id>` removes one; it refuses unmerged or dirty worktrees. Never remove a
 worktree with a bare `git worktree remove`: its `node_modules` junctions stop git
 halfway and leave a half-deleted folder; `stop` unlinks them first. Remote branch deletion is the maintainer's, and with
