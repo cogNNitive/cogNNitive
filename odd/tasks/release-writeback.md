@@ -25,8 +25,11 @@ Test runner: `node --test <file>`, `node scripts/verify.js --fast`, `npm run che
 
 ## Tasks
 
-- T1 S1 — `regen-gate` tolerant mode + `verify.js` passes `--tolerant`. Route: inline. Status: pending.
-- T2 S1 — `.githooks/pre-commit` stops regenerating and staging; delete `scripts/pre-commit-regen.js` and its test. Route: inline. Status: pending.
+- T1 S1 — `regen-gate` tolerant mode + `verify.js` passes `--tolerant`. Route: inline. Status: done —
+  `checkRegen({ tolerant })` splits the moved paths by `sharedArtifactLabel`; 14/14 in
+  `scripts/lib/regen-gate.test.js`, including "a shared artifact belongs to the lane" and "a path
+  the generator may not own still fails".
+- T2 S1 — `.githooks/pre-commit` stops regenerating and staging; delete `scripts/pre-commit-regen.js` and its test. Route: inline. Status: done — the hook keeps only the primary guard; `pre-push-check` (14/14) still consumes `FRESHNESS_GUARDS`, so the push path is unchanged.
 - T3 S2 — CI `regen` job: `npm ci`, `npm run regen`, commit with the fixed message, push; idempotent guard. Route: inline. Status: pending.
 - T4 S2/S3 — `auto-tag` plans after the regeneration commit, not from the merge SHA; `plan-auto-tags` test that the plan is idempotent across a bookkeeping commit. Route: inline. Status: pending.
 - T5 S3/S4/S5 — derive `nn-mcp`/`nn-console` in `plan-auto-tags`; write-back in the lane; retire `check-authored-bump` and the `release-bump` job; update `version-agreement`. Route: inline. Status: pending.
