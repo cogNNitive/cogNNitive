@@ -88,6 +88,30 @@ test('guard allows a linked worktree silently', () => {
   assert.deepStrictEqual(writes, [])
 })
 
+test('guard steps aside in GitHub Actions, where the only checkout is the primary', () => {
+  // The write-back lane commits regenerated artifacts on `main`; before this, its first real
+  // merge ran, regenerated, and then had the commit refused by this very guard.
+  const writes = []
+  const code = guard('commit', {
+    cwd: primaryCheckout(),
+    stderr: captureStderr(writes),
+    env: { GITHUB_ACTIONS: 'true' },
+  })
+
+  assert.strictEqual(code, 0)
+  assert.deepStrictEqual(writes, [])
+})
+
+test('the escape hatch is GitHub-specific: a bare CI variable keeps the guard', () => {
+  const code = guard('commit', {
+    cwd: primaryCheckout(),
+    stderr: captureStderr([]),
+    env: { CI: 'true' },
+  })
+
+  assert.strictEqual(code, 1)
+})
+
 test('the CLI exits 1 in a primary checkout and 0 in a worktree', () => {
   const blocked = spawnSync(process.execPath, [GUARD, 'rebase'], {
     cwd: primaryCheckout(),

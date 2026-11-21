@@ -52,10 +52,18 @@ export function isPrimaryCheckout(start) {
  * `action` names the refused operation so the message says what was blocked.
  *
  * @param {string} action
- * @param {{ cwd?: string, stderr?: { write: (chunk: string) => unknown } }} [options]
+ * @param {{ cwd?: string, stderr?: { write: (chunk: string) => unknown }, env?: Record<string, string | undefined> }} [options]
  * @returns {0 | 1}
  */
-export function guard(action, { cwd = process.cwd(), stderr = process.stderr } = {}) {
+export function guard(
+  action,
+  { cwd = process.cwd(), stderr = process.stderr, env = process.env } = {},
+) {
+  // A CI runner's only checkout IS a primary checkout, and the write-back lane on `main`
+  // commits there by design. The rule protects a developer's shared tree, not a lone job,
+  // so GitHub Actions steps aside. Deliberately not `CI`: a developer with that exported
+  // would lose the guard without knowing it.
+  if (env.GITHUB_ACTIONS === 'true') return 0
   if (!isPrimaryCheckout(cwd)) return 0
   stderr.write(
     `BLOCKED: ${action} in the primary checkout, which is read-only ` +
