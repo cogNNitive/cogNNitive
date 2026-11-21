@@ -81,14 +81,15 @@ function remoteTags(origin) {
     .sort()
 }
 
-function runScript(fixture, tags, sha = fixture.sha) {
+function runScript(fixture, tags, sha = fixture.sha, githubSha = sha) {
   // The runner exports GITHUB_STEP_SUMMARY to every step, so a child that inherits
   // process.env writes the summary there instead of stdout. Scrub it: the summary
   // path has its own case.
   const env = { ...process.env }
   delete env.GITHUB_STEP_SUMMARY
   env.TAGS = JSON.stringify(tags)
-  env.GITHUB_SHA = sha
+  env.RELEASE_TARGET_SHA = sha
+  env.GITHUB_SHA = githubSha
   env.PUSH_RELEASE_TAGS_ATTEMPTS = '1'
   env.PUSH_RELEASE_TAGS_DELAY_MS = '0'
   return spawnSync(process.execPath, [SCRIPT], { cwd: fixture.work, encoding: 'utf-8', env })
@@ -181,6 +182,30 @@ describe('push-release-tags: one atomic push, idempotent, never moves a tag', ()
     assert.match(res.stderr, /publish=true/)
   })
 
+  it('tags RELEASE_TARGET_SHA, not the GITHUB_SHA a step cannot override', () => {
+    // The regression this pins: a step's `env: GITHUB_SHA:` is silently ignored because
+    // GITHUB_SHA is a default variable, so `nn-mcp-v0.49.5` pointed at the merge commit
+    // while the regenerated commit sat one ahead with the bundle that ships.
+    const regenerated = commit(fixture.work, 'chore(regen): regenerate')
+    git(fixture.work, 'push', '-q', 'origin', 'HEAD:refs/heads/main')
+
+    const res = runScript(fixture, ['a-v1.0.0'], regenerated, fixture.sha)
+    assert.equal(res.status, 0, res.stderr)
+
+    const out = execFileSync(
+      'git',
+      ['ls-remote', '--tags', fixture.origin, 'refs/tags/a-v1.0.0', 'refs/tags/a-v1.0.0^{}'],
+      { encoding: 'utf-8' },
+    )
+    // An annotated tag lists a peeled `^{}` line with the commit; the plain line is the tag object.
+    const peeled = out
+      .split('\n')
+      .map((line) => line.trim().split('\t'))
+      .find(([sha, ref]) => sha && ref && ref.endsWith('^{}'))
+    assert.ok(peeled, 'the tag is annotated and peels to a commit')
+    assert.equal(peeled[0], regenerated, 'the tag must follow the release target, not the run SHA')
+  })
+
   it('writes the step summary when the runner provides one', () => {
     const summary = join(fixture.root, 'summary.md')
     writeFileSync(summary, '')
@@ -190,7 +215,7 @@ describe('push-release-tags: one atomic push, idempotent, never moves a tag', ()
       env: {
         ...process.env,
         TAGS: JSON.stringify(['a-v1.0.0']),
-        GITHUB_SHA: fixture.sha,
+        RELEASE_TARGET_SHA: fixture.sha,
         GITHUB_STEP_SUMMARY: summary,
         PUSH_RELEASE_TAGS_ATTEMPTS: '1',
         PUSH_RELEASE_TAGS_DELAY_MS: '0',
