@@ -55,7 +55,12 @@ node scripts/nn-session.mjs status                        # primary health + eve
 - **`node_modules` is a junction to the primary's.** The workspace link
   `node_modules/@cognnitive/nn-core` points at whichever worktree built core last;
   check that `@cognnitive/nn-core` resolves to the current worktree before trusting
-  nn-mcp tests or typechecks. For core/MCP work, use an isolated install
+  nn-mcp tests or typechecks. When it points at a swept worktree the junction is dangling
+  and when it points at the primary the `dist` is often stale, and both surface as
+  `Cannot find module '@cognnitive/nn-core'` or as a missing export that the source
+  clearly has. `cmd /c rmdir <link>` then
+  `New-Item -ItemType Junction -Path <link> -Target <this worktree>/iNNfo/packages/nn-core`
+  is the whole repair; never fix it by editing the import. For core/MCP work, use an isolated install
   (`nn-session start --full-install` in the script-managed lane). Never run
   `npm ci` through a junction or repoint a shared link while another session
   is using it.
@@ -119,6 +124,22 @@ moves to `openspec/changes/archive/`; `openspec/specs/` no longer exists.
 session to finish, is several changes. Split it before writing specs, and land each
 part on `main` on its own.
 
+### A lock in the product is a contract, not a file
+
+A filesystem lock in `nn-mcp` (`changes/.lock`, `changes/.lock.procedure-<run>`) is the
+whole single-writer guarantee of a read-decide-write window, and both halves were got
+wrong by copy-paste in the procedure runner:
+
+- the payload carries an owner token and release compares it before unlinking. Unlinking
+  by path lets a holder that was robbed while still running delete its successor's lock,
+  and a third caller then walks in on a run nobody is serializing;
+- every caller-supplied timeout is bounded below the window the lock calls stale. With an
+  unbounded `timeout_ms` (and `0`, which means "no timeout"), a legitimate slow step is
+  indistinguishable from a crash, so it gets robbed mid-write.
+
+Age is not liveness. Probe the holder, and treat a payload that cannot name its holder as
+broken rather than as a permanent `RUN_BUSY`.
+
 ## 3. Solo-maintainer profile for the agent workflow
 
 Gentle-AI's ODD runs the agent; this repository narrows it:
@@ -129,13 +150,24 @@ Gentle-AI's ODD runs the agent; this repository narrows it:
 - **No independent verifier, no review receipts.** RDD is off globally
   (`gentle-ai review mode status`). Verification is the focused test plus CI.
 - **Inner loop:** `node --test <file>` for what you touched, or `npm run verify:fast`.
-  The full `node scripts/verify.js` is CI's job.
+  The full `node scripts/verify.js` is CI's job. The PR's format gate checks a file when
+  it was prettier-clean on the base branch or when the PR adds it, and the repo is not
+  prettier-clean as a whole, so run prettier on the files you touched before pushing:
+  one unformatted file reds the PR, and the fix lands as a second PR (#759 → #760).
+- **A known flake is not a failure.** Three nn-mcp suites (`check-workspace`, `layout`)
+  run under 30s timeouts and flake when workers compete for the machine; re-run with
+  `--no-file-parallelism` before you report the change red.
 - **One thread, one area, 3–5 items.** Fifteen threads for one work area is not parallelism,
   it is fifteen rebases queued in advance. When two sides of the work must agree on a
   contract, land the contract first and start both from that commit.
 - **Derived artifacts regenerate themselves.** The pre-commit hook reruns the fast
   generators when code or samples are staged and stages what changed. If a push or CI
-  still reports a stale artifact, run `npm run regen` and commit.
+  still reports a stale artifact, run `npm run regen` and commit. A change under
+  `iNNfo/packages/nn-core` also needs `node scripts/build-core-mirrors.mjs` and
+  `node scripts/export-console.mjs test/fixtures/testlab --domain --no-open` — the
+  fixture embeds a CSP hash of the bundle, so it moves when core moves. A conflicted
+  generated artifact is resolved with `node scripts/regen.js`, never by hand: the CC
+  hooks refuse `checkout --theirs` and `restore --worktree` on it.
 
 ## 4. Land on `main`
 
@@ -161,6 +193,10 @@ gate on every PR to provide it. The cheap fix is arithmetic, not machinery.
   `--match-head-commit <sha>` to guard against a moved head.
   Not `--squash`: the merge commit
   keeps the session branch an ancestor of `main`, so `nn-session stop`/`sweep` can remove it.
+  Two assertions make "green" mean something: every check is `SUCCESS` in `gh pr checks <n>`
+  (the ruleset requires none, so a red `quality` job still reads MERGEABLE — #759 merged
+  that way), and `git rev-list --count origin/<branch>..origin/main` is `0` (a green head
+  four commits behind is not ready either).
 - **The backlog is a single-writer surface.** Only the PR that lands a batch edits its row, and
   it edits it last, so a conflict is one line and not a rebase of the whole file.
 - **A conflicted generated artifact means rebase + `npm run regen`**, never a hand-resolved
@@ -175,7 +211,9 @@ check that cannot run is upkeep pretending to be a guard.
 
 **Claims are a convention again.** The PR that lands the work deletes `openspec/claims/<id>.md`
 in its last commit. Nothing enforces that without a queue, so `npm run check:claims -- --prs
-<open PRs>` is the net: it names every claim whose PR is no longer open.
+<open PRs>` is the net: it names every claim whose PR is no longer open. Run it before asking
+for a merge and treat its exit 1 as work to do, in this PR: `audit-followthrough.md` sat on
+`main` after #763 merged because nobody ran it.
 
 1. Push the session branch and open a PR to `main` without asking. That is the normal
    end of a unit.
@@ -207,6 +245,13 @@ After every green push to `main`, CI's `auto-tag` job
 
 Consumers resolve these tag names (`nn-mcp` resolver, skills-manager, catalog), so the
 tag shapes are a contract. Nobody tags by hand.
+
+- **A tag is not a release.** `auto-tag` invokes `release.yml` once per planned tag in
+  fixed order (blueprints first) and stops at the first failure, so every later tag stays
+  pushed and never published — `blueprints-v0.83.2`, `skills-v4.2.1` and `nn-mcp-v0.49.2`
+  are exactly that. Read the push run's jobs named `release (<tag>)`, not the tag list,
+  and re-run a missing leg one at a time. Consumers follow the manifest, which advertises
+  the newest tag, so an orphan tag is inert — right up until you cite it as a release.
 
 - **To release nn-mcp or the console:** bump its `package.json` version in the PR, then
   run `npm run sync:versions`, `npm install --package-lock-only` and `npm run regen`.
