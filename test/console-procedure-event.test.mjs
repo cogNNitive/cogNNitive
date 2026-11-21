@@ -1,4 +1,4 @@
-﻿import { describe, it } from 'node:test'
+import { describe, it } from 'node:test'
 import { runModelOfEvents } from './helpers/run-model-of-events.mjs'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'

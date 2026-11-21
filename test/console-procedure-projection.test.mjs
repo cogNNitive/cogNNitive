@@ -1,4 +1,4 @@
-﻿/* The projection: a run rendered with the drafts the console holds but has not applied,
+/* The projection: a run rendered with the drafts the console holds but has not applied,
    marked apart from what the export recorded. Drives the real fold and the real controller,
    so a projection that disagrees with nn-core fails here rather than in a browser. */
 import { describe, it, beforeEach } from 'node:test'
