@@ -56,9 +56,7 @@ const releaseOwned = (lockPath: string, nonce: string): (() => Promise<void>) =>
 }
 
 type StoredLock =
-  | { kind: 'ok'; value: Record<string, unknown> }
-  | { kind: 'missing' }
-  | { kind: 'unreadable' }
+  { kind: 'ok'; value: Record<string, unknown> } | { kind: 'missing' } | { kind: 'unreadable' }
 
 const readStored = async (lockPath: string): Promise<StoredLock> => {
   try {
@@ -132,7 +130,9 @@ export async function acquireLock(
 
   const value = stored.kind === 'ok' ? stored.value : null
   const age =
-    value && typeof value.timestamp === 'number' ? Date.now() - value.timestamp : Number.POSITIVE_INFINITY
+    value && typeof value.timestamp === 'number'
+      ? Date.now() - value.timestamp
+      : Number.POSITIVE_INFINITY
   const alive = value !== null && holderAlive(value.pid)
   const breakable =
     value === null || // unreadable or non-object payload: a writer died mid-write
