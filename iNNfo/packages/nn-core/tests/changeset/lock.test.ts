@@ -1,8 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { spawn } from 'node:child_process'
 import { mkdtemp, rm, readFile, writeFile, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { acquireLock } from '../../src/changeset/lock.js'
+
+/** A pid that is certainly not running: a child that already exited. */
+async function deadPid(): Promise<number> {
+  const child = spawn(process.execPath, ['-e', 'process.exit(0)'], { stdio: 'ignore' })
+  const pid = child.pid!
+  await new Promise((resolve) => child.on('exit', resolve))
+  return pid
+}
 
 describe('Single-Writer Lock Manager', () => {
   let testDir: string
@@ -46,10 +55,10 @@ describe('Single-Writer Lock Manager', () => {
     await handle2.release()
   })
 
-  it('recovers from stale lock older than 60 seconds with warning and successfully re-acquires', async () => {
+  it('recovers from a lock whose holder is gone', async () => {
     const lockPath = join(testDir, 'changes', '.lock')
     const stalePayload = {
-      pid: 999999,
+      pid: await deadPid(),
       timestamp: Date.now() - 70000, // 70s ago (> 60s)
       changeset: 'stale-changeset',
     }
@@ -62,6 +71,58 @@ describe('Single-Writer Lock Manager', () => {
     const content = await readFile(lockPath, 'utf8')
     expect(JSON.parse(content).changeset).toBe('new-changeset')
 
+    await handle.release()
+  })
+
+  it('does not rob a live holder that outlives the stale window', async () => {
+    const lockPath = join(testDir, 'changes', '.lock')
+    // Our own pid is alive, and the payload is older than timeoutMs but inside the orphan
+    // window: a large changeset can legitimately take longer than 60s to apply.
+    await writeFile(
+      lockPath,
+      JSON.stringify({
+        pid: process.pid,
+        timestamp: Date.now() - 70000,
+        changeset: 'slow-but-alive',
+        nonce: 'theirs',
+      }),
+      'utf8',
+    )
+
+    await expect(acquireLock(testDir, 'new-changeset', 60000)).rejects.toThrow(
+      /CONCURRENT_APPLY_ACTIVE/,
+    )
+  })
+
+  it('does not let a robbed holder delete the lock of its successor', async () => {
+    const handle = await acquireLock(testDir, 'changeset-01')
+    const lockPath = handle.lockPath
+    // A successor now owns the file (different nonce, live pid). Releasing by path would hand
+    // the domain to a third writer while the successor still believes it holds the lock.
+    await writeFile(
+      lockPath,
+      JSON.stringify({
+        pid: process.pid,
+        timestamp: Date.now(),
+        changeset: 'successor',
+        nonce: 'successor',
+      }),
+      'utf8',
+    )
+
+    await handle.release()
+    const content = await readFile(lockPath, 'utf8')
+    expect(JSON.parse(content).changeset).toBe('successor')
+  })
+
+  it('breaks a payload that cannot name its holder instead of wedging forever', async () => {
+    const lockPath = join(testDir, 'changes', '.lock')
+    // Parses as JSON but carries no pid and no timestamp: age would be NaN and a `>` test
+    // would be false forever, so the domain would never apply another changeset.
+    await writeFile(lockPath, '{}', 'utf8')
+
+    const handle = await acquireLock(testDir, 'new-changeset', 60000)
+    expect(handle.payload.changeset).toBe('new-changeset')
     await handle.release()
   })
 
