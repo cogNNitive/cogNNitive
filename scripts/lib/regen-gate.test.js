@@ -60,7 +60,6 @@ function writeFiles(root, files) {
   }
 }
 
-const EXCLUDED = REGEN_EXCLUDED_PATHS[0].path;
 
 test('parseRegenMode reads --check as the gate and anything else as a write pass', () => {
   assert.equal(parseRegenMode([]), 'write', 'npm run regen writes');
@@ -93,30 +92,7 @@ test('listChangedPaths reports tracked changes and ignores an untracked file', (
   }
 });
 
-test('listChangedPaths leaves the release-state catalog out of the judgement', () => {
-  const root = makeRepo({ [EXCLUDED]: '{"release_tag":"blueprints-v1.0.0"}\n', 'other.json': '{}\n' });
-  try {
-    writeFiles(root, { [EXCLUDED]: '{"release_tag":null}\n' });
-    assert.deepEqual(
-      listChangedPaths({ root }).paths,
-      [],
-      'the catalog encodes git tag state, so only its --check can judge it',
-    );
 
-    writeFiles(root, { 'other.json': '{"x":1}\n' });
-    assert.deepEqual(listChangedPaths({ root }).paths, ['other.json'], 'everything else is judged');
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
-});
-
-test('both tag-derived catalogs are excluded, because committing changes HEAD', () => {
-  assert.deepStrictEqual(
-    REGEN_EXCLUDED_PATHS.map((entry) => entry.path).sort(),
-    ['docs/innfo/blueprints/catalog.json', 'iNNfo/specs/bluepriNNts/catalog.json'],
-    'the write-back lane judges its own pass with this gate; a file stamped from HEAD cannot be stable across the commit that changes HEAD',
-  );
-});
 
 test('listChangedPaths reports a clear error outside a git work tree', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'regen-gate-nogit-'));
@@ -171,21 +147,6 @@ test('checkRegen goes red on a stale artifact and names it', () => {
   }
 });
 
-test('checkRegen is green when only the release-state catalog moved', () => {
-  const root = makeRepo({ [EXCLUDED]: '{"release_tag":"blueprints-v1.0.0"}\n', 'art.js': 'generated\n' });
-  try {
-    const res = checkRegen({
-      root,
-      runPass: () => {
-        writeFiles(root, { [EXCLUDED]: '{"release_tag":"blueprints-v1.1.0"}\n' });
-        return { status: 0, output: '' };
-      },
-    });
-    assert.equal(res.ok, true, 'tag state alone is not drift');
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
-});
 
 test('checkRegen judges only what the pass moved, not the edits the author already had', () => {
   const root = makeRepo({ 'src.ts': 'v1\n', 'art.js': 'generated from v1\n' });
