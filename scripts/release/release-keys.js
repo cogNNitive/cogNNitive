@@ -30,9 +30,14 @@ const RELEASE_TABLE = Object.freeze({
     /**
      * The only repo path is the generated bundle, which is never a trigger, so the source has
      * to be listed here: without it the key would only ship when somebody edited a version by
-     * hand, which is the lane this file feeds.
+     * hand, which is the lane this file feeds. `nn-core` belongs on the list because the bundle
+     * embeds it: a core change that never released nn-mcp would leave consumers on the old code.
      */
-    changePaths: Object.freeze(['iNNfo/packages/nn-mcp/src', 'iNNfo/packages/nn-mcp/test']),
+    changePaths: Object.freeze([
+      'iNNfo/packages/nn-mcp/src',
+      'iNNfo/packages/nn-mcp/test',
+      'iNNfo/packages/nn-core/src',
+    ]),
     sitePaths: Object.freeze(['docs/innfo/cdn/manifest.json']),
   }),
   'nn-console': Object.freeze({

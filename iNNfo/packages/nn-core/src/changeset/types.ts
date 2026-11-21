@@ -655,6 +655,8 @@ export interface LockPayload {
   pid: number
   timestamp: number
   changeset: string
+  /** Written on acquire; release unlinks only when the file still carries it. */
+  nonce?: string
 }
 
 export interface LockHandle {
