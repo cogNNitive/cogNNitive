@@ -312,6 +312,10 @@ jobs:
           # tag against package.json, and the release copies the tag's tree.
           node scripts/release/write-pending-versions.js
           npm run sync:versions
+          # The lockfile pins each workspace package's version, and `lockfile-agreement` fails
+          # when it drifts from the manifest after the write-back. This is the fourth step of
+          # the documented bump flow, and the lane is the only place that bumps now.
+          npm install --package-lock-only
           npm run regen
           if [ -z "$(git status --porcelain)" ]; then
             echo "no derived artifact and no pending version moved"
