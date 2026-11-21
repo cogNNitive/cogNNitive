@@ -9,6 +9,41 @@ import type {
 
 const EXECUTORS: readonly string[] = ['human', 'agent', 'engine']
 
+/**
+ * `tool` aliases (design §4.6): when a Work has no `executor`, one of these literals read
+ * from `tool` is taken as its executor. `console` maps to `human`, because the console is
+ * where a person acts. Any other `tool` value keeps its meaning as a Tool reference.
+ */
+const TOOL_ALIASES: ReadonlyMap<string, Executor> = new Map([
+  ['engine', 'engine'],
+  ['agent', 'agent'],
+  ['human', 'human'],
+  ['console', 'human'],
+])
+
+/** A `{name}` placeholder in prose or a command. */
+const SLOT_RE = /\{([A-Za-z_][\w-]*)\}/g
+
+/** The slot names a text declares through `{name}` placeholders, in order, unique. */
+export function slotNames(...texts: Array<string | undefined>): string[] {
+  const out: string[] = []
+  for (const text of texts) {
+    if (!text) continue
+    for (const m of text.matchAll(SLOT_RE)) if (!out.includes(m[1])) out.push(m[1])
+  }
+  return out
+}
+
+/** Replaces every `{name}` whose value is known; `{run}` is the built-in one. */
+export function fillSlots(text: string, values: Record<string, string>): string {
+  return text.replace(SLOT_RE, (whole, name: string) => values[name] ?? whole)
+}
+
+/** The `{name}` placeholders still present after substitution, so the caller can refuse. */
+export function unresolvedSlots(text: string): string[] {
+  return slotNames(text)
+}
+
 /** Every reference token in a field value: `[[x]]`, `[[x, y]]`, `@x`, or plain comma-separated text. */
 export function referenceTokens(value: unknown): string[] {
   if (value === undefined || value === null || value === '') return []
@@ -36,10 +71,17 @@ const str = (v: unknown): string | undefined =>
  * Parses a procedures-bluepriNNt model into its runnable steps (design §2, §3). A Work that is
  * the parent of another Work is a container, not a step. Structural problems are reported,
  * never thrown; loops are out of slice 1 and reported as CYCLE.
+ *
+ * `container` restricts the graph to one container's descendants (design §4.6): a file that
+ * holds several sub-procedures is addressed as `<doc>@<container-slug>`, and starts, `next`
+ * and artifacts are computed among those descendants only.
  */
-export function procedureGraph(model: ParsedKnowledge): ProcedureGraph {
-  const work = model.elements.get('Work') ?? []
+export function procedureGraph(model: ParsedKnowledge, container?: string): ProcedureGraph {
+  const allWork = model.elements.get('Work') ?? []
   const artifactNodes = model.elements.get('Artifact') ?? []
+  const toAllWork = resolver(allWork)
+  const containerSlug = container ? (toAllWork(container) ?? container) : undefined
+  const work = containerSlug ? descendantsOf(allWork, containerSlug, resolver(allWork)) : allWork
   const toWork = resolver(work)
   const toArtifact = resolver(artifactNodes)
   const diagnostics: GraphDiagnostic[] = []
@@ -61,17 +103,27 @@ export function procedureGraph(model: ParsedKnowledge): ProcedureGraph {
       })
     }
     const executor = str(n.fields['executor'])
+    const toolAlias = str(n.fields['tool'])
+    const resolvedExecutor: Executor | undefined =
+      executor && EXECUTORS.includes(executor)
+        ? (executor as Executor)
+        : toolAlias
+          ? TOOL_ALIASES.get(toolAlias.trim().toLowerCase())
+          : undefined
     steps[slug] = {
       slug,
       name: n.name,
       stepType: str(n.fields['step_type']),
-      executor: executor && EXECUTORS.includes(executor) ? (executor as Executor) : undefined,
+      executor: resolvedExecutor,
       parent: parentOf(n),
       next: [],
       condition: str(n.fields['condition']),
       decision: str(n.fields['decision']),
       command: str(n.fields['command']),
       produces: str(n.fields['produces']),
+      ...(exitCodesOf(n.fields['exit_codes'])
+        ? { exitCodes: exitCodesOf(n.fields['exit_codes'])! }
+        : {}),
       inputs: artifactRefs(n.fields['input']),
       outputs: artifactRefs(n.fields['output']),
     }
@@ -97,10 +149,15 @@ export function procedureGraph(model: ParsedKnowledge): ProcedureGraph {
   for (const n of artifactNodes) {
     const slug = n.slug ?? ''
     const required = n.fields['required']
+    const kindText = str(n.fields['kind'])
+    const kind = kindText === 'element' || kindText === 'changeset' ? kindText : 'file'
+    const at = str(n.fields['at'])
     artifacts[slug] = {
       slug,
       name: n.name,
-      verify: str(n.fields['verify']),
+      kind,
+      ...(at !== undefined ? { at } : {}),
+      verify: verifyOf(str(n.fields['verify']), kind),
       required: !(required === false || required === 'false'),
       producers: Object.values(steps)
         .filter((s) => s.outputs.includes(slug))
@@ -124,6 +181,32 @@ export function procedureGraph(model: ParsedKnowledge): ProcedureGraph {
     })
   diagnostics.push(...findCycles(steps))
 
+  // Slots (design §4.6): the `{name}` placeholders the procedure declares, from the
+  // frontmatter `slots` list and from every step command and every artifact `at`.
+  const declaredSlots: string[] = Array.isArray(model.frontmatter['slots'])
+    ? (model.frontmatter['slots'] as unknown[]).map((s) =>
+        typeof s === 'string'
+          ? s.replace(/^\{|\}$/g, '').trim()
+          : typeof s === 'object' && s !== null && 'name' in s
+            ? String((s as { name: unknown }).name).trim()
+            : '',
+      )
+    : typeof model.frontmatter['slots'] === 'string'
+      ? String(model.frontmatter['slots'])
+          .replace(/^\[|\]$/g, '')
+          .split(',')
+          .map((s) => s.trim().replace(/^\{|\}$/g, ''))
+      : []
+  const slots = [
+    ...new Set([
+      ...declaredSlots.filter((s) => s !== ''),
+      ...slotNames(
+        ...Object.values(steps).map((s) => s.command),
+        ...Object.values(artifacts).map((a) => a.at),
+      ),
+    ]),
+  ].filter((s) => s !== 'run')
+
   return {
     defRev: str(model.frontmatter.knowledge_version) ?? null,
     steps,
@@ -132,8 +215,68 @@ export function procedureGraph(model: ParsedKnowledge): ProcedureGraph {
     terminals: Object.values(steps)
       .filter((s) => s.next.length === 0)
       .map((s) => s.slug),
+    slots,
     diagnostics,
   }
+}
+
+/** The Works that are the container's descendants (never the container itself). */
+function descendantsOf(
+  work: ElementNode[],
+  container: string,
+  toWork: (token: string) => string | undefined,
+): ElementNode[] {
+  const childrenOf = new Map<string, ElementNode[]>()
+  for (const n of work) {
+    const parent = referenceTokens(n.fields['parent']).map(toWork)[0]
+    if (!parent) continue
+    const list = childrenOf.get(parent)
+    if (list) list.push(n)
+    else childrenOf.set(parent, [n])
+  }
+  const out: ElementNode[] = []
+  const todo = [...(childrenOf.get(container) ?? [])]
+  for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
+    out.push(n)
+    todo.push(...(childrenOf.get(n.slug ?? '') ?? []))
+  }
+  return out
+}
+
+/**
+ * `exit_codes::` maps an exit code to an outcome name (design §4.6). A JSON object of
+ * `"<code>": "<outcome>"`. Exit 0 is always `done`, and an unmapped nonzero exit is
+ * `failed`; the map only overrides those, so a controlled gate stop can become a wait.
+ */
+function exitCodesOf(v: unknown): Record<string, string> | undefined {
+  if (v === null || v === undefined || v === '') return undefined
+  let value: unknown = v
+  if (typeof v === 'string') {
+    const trimmed = v.trim()
+    if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return undefined
+    try {
+      value = JSON.parse(trimmed)
+    } catch {
+      return undefined
+    }
+  }
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return undefined
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([k, val]) => [k, String(val)]),
+  )
+}
+
+/**
+ * An artifact's `verify` defaults from its `kind` (design §4.1): `file` verifies the file at
+ * `at`, `element` the element at `at`, and `changeset` is satisfied by being applied. An
+ * explicit `verify` wins.
+ */
+function verifyOf(
+  declared: string | undefined,
+  kind: ProcedureArtifact['kind'],
+): string | undefined {
+  if (declared) return declared
+  return kind === 'changeset' ? 'applied' : undefined
 }
 
 function findCycles(steps: Record<string, ProcedureStep>): GraphDiagnostic[] {
