@@ -18,10 +18,7 @@
  * longer reproduce from their sources. That is the single gate the twelve per-artifact
  * freshness steps in `scripts/verify.js` were replaced by.
  *
- * Two entries the diff cannot judge, by construction rather than by omission:
- *  - `iNNfo/specs/bluepriNNts/catalog.json` stamps `release_tag` from the
- *    `blueprints-v*` git tags, so it is generated in write mode and left alone in
- *    check mode (its own `--check` normalises the tag away; `verify.js` keeps it).
+ * One entry the diff cannot judge, by construction rather than by omission:
  *  - `test/fixtures/testlab/domaiNN_console.html` carries the export wall clock in
  *    `meta.generated`, so the pass restores the committed bytes when only the stamped
  *    fields moved (`withoutStamps`, shared with scripts/lib/console-fixture-freshness.js).
@@ -38,13 +35,6 @@ const repoRoot = path.join(__dirname, '..');
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const mode = parseRegenMode(process.argv.slice(2));
 const isCheck = mode === 'check';
-
-/**
- * Guard ids the check pass must not run at all. `blueprint-catalog` cannot be judged
- * by a diff (see the header), and running its generator here would dirty the tree on
- * a pass that is supposed to leave it clean.
- */
-const CHECK_SKIPS = new Set(['blueprint-catalog']);
 
 /** Runs a command; `quiet` captures its output instead of inheriting it. */
 function exec(cmd, args, quiet = false) {
@@ -98,7 +88,7 @@ function syncCopies() {
   }
 }
 
-const guards = isCheck ? FRESHNESS_GUARDS.filter((g) => !CHECK_SKIPS.has(g.id)) : FRESHNESS_GUARDS;
+const guards = FRESHNESS_GUARDS;
 const generate = [
   ...guards.map((g) => [g.script]),
   ['scripts/generate-docs-facts.mjs'],

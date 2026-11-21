@@ -1,7 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
+import { execFileSync } from 'node:child_process'
 
 /**
  * S4c gate (change-provenance: the record is retired).
@@ -47,9 +49,12 @@ test('live code, skills and specs name no retired lineage-record symbol', () => 
 
 test('the cogNNitive blueprint and its catalog entry are gone', () => {
   assert.equal(fs.existsSync(path.join(ROOT, 'iNNfo', 'specs', 'bluepriNNts', 'cogNNitive')), false)
-  const catalog = JSON.parse(
-    fs.readFileSync(path.join(ROOT, 'iNNfo', 'specs', 'bluepriNNts', 'catalog.json'), 'utf8'),
-  )
-  const names = JSON.stringify(catalog)
+  // The catalog is generated where it is consumed and is not tracked (see #774), so render it
+  // into a scratch file instead of reading a committed copy.
+  const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'catalog-')), 'catalog.json')
+  execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'blueprint-catalog.mjs'), '--out', out], {
+    encoding: 'utf8',
+  })
+  const names = fs.readFileSync(out, 'utf8')
   assert.equal(/cogNNitive\/spec_NN\.md/.test(names), false, 'catalog still references the blueprint')
 })

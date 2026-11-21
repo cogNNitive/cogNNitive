@@ -88,3 +88,9 @@ skills/nn-sources/config.json
 # Generated console artifacts inside the sample domain (regenerate with scripts/export-console.mjs)
 test/_samples_nn/domaiNN_console.html
 test/_samples_nn/artifacts/*_console/
+
+# Blueprint catalog: derived from the tree and the release tags. A tracked copy has no fixed
+# point (committing changes HEAD, which changes the stamp), so it is generated where it is
+# consumed: the release stages it with --release-tag, and the docs build renders its own copy.
+iNNfo/specs/bluepriNNts/catalog.json
+docs/innfo/blueprints/catalog.json

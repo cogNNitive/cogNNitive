@@ -48,10 +48,9 @@ run('npm --workspace=@cognnitive/nn-mcp run build', 'Build @cognnitive/nn-mcp');
 console.log('\nâ–¶ Staging blueprint catalog into docs/innfo/blueprints/catalog.json...');
 const catalogSrc = path.join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'catalog.json');
 const catalogTargetDir = path.join(docsRoot, 'innfo', 'blueprints');
-if (!fs.existsSync(catalogSrc)) {
-  console.error(`âŒ Blueprint catalog not found at: ${catalogSrc}. Run scripts/blueprint-catalog.mjs first.`);
-  process.exit(1);
-}
+// Neither copy is tracked (see #774): generate the source one so the docs copy can be rendered.
+fs.mkdirSync(path.dirname(catalogSrc), { recursive: true });
+run('node scripts/blueprint-catalog.mjs', 'Generate the blueprint catalog');
 fs.mkdirSync(catalogTargetDir, { recursive: true });
 // Generate in place (not copy) so `release_tag` is computed per entry from the
 // tags available at build time (CI `site` checks out with fetch-depth: 0).

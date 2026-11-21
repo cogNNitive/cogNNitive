@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
+import { execFileSync } from 'node:child_process'
 import { parseKnowledge } from '../../src/parser/index'
 import { findCanonicalBlueprint } from '../../src/schema'
 
@@ -14,6 +16,18 @@ function namesOf(parsed: ReturnType<typeof parseKnowledge>, element: string): st
 
 function read(rel: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, rel), 'utf-8')
+}
+
+/**
+ * The catalog is generated where it is consumed and is not tracked (see #774), so render it
+ * into a scratch file instead of reading a committed copy.
+ */
+function generatedCatalog(): { blueprints: Record<string, unknown> } {
+  const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'catalog-')), 'catalog.json')
+  execFileSync(process.execPath, [path.join(REPO_ROOT, 'scripts/blueprint-catalog.mjs'), '--out', out], {
+    encoding: 'utf-8',
+  })
+  return JSON.parse(fs.readFileSync(out, 'utf-8'))
 }
 
 describe('sidecar bluepriNNt', () => {
@@ -59,7 +73,7 @@ describe('sidecar bluepriNNt', () => {
   it('is registered in manifest/source.yaml, the canonical registry, the catalog, and vocabulary.json', () => {
     expect(read('manifest/source.yaml')).toMatch(/- name: sidecar\n\s+repo: [^\n]+\n\s+path: iNNfo\/specs\/bluepriNNts\/sidecar\/spec_NN\.md/)
 
-    const catalog = JSON.parse(read('iNNfo/specs/bluepriNNts/catalog.json'))
+    const catalog = generatedCatalog()
     expect(Object.keys(catalog.blueprints)).toContain('sidecar')
 
     const vocabulary = JSON.parse(read('iNNfo/specs/vocabulary.json'))

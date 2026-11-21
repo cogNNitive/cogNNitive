@@ -9,7 +9,9 @@
  */
 
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -24,15 +26,18 @@ test('the blueprint folder and skill are renamed with no alias', () => {
   assert.equal(fs.existsSync(path.join(ROOT, 'iNNfo/specs/bluepriNNts/coNNtent/skills/nn-video-script')), false);
 });
 
-test('the blueprint identity is coNNtent in its frontmatter and in both catalogs', () => {
+test('the blueprint identity is coNNtent in its frontmatter and in the generated catalog', () => {
   const spec = read('iNNfo/specs/bluepriNNts/coNNtent/spec_NN.md');
   assert.match(spec, /^blueprint_name: "coNNtent"$/m);
-  for (const rel of ['iNNfo/specs/bluepriNNts/catalog.json', 'docs/innfo/blueprints/catalog.json']) {
-    const catalog = JSON.parse(read(rel)).blueprints;
-    assert.ok(catalog.coNNtent, `${rel} lists coNNtent`);
-    assert.equal(catalog['video-script'], undefined, `${rel} has no video-script alias`);
-    assert.deepEqual(catalog.coNNtent.embedded_skills, ['nn-conntent']);
-  }
+  // The catalogs are not tracked (#774): render the source one and read that.
+  const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'catalog-')), 'catalog.json');
+  execFileSync(process.execPath, [path.join(ROOT, 'scripts/blueprint-catalog.mjs'), '--out', out], {
+    encoding: 'utf8',
+  });
+  const catalog = JSON.parse(fs.readFileSync(out, 'utf8')).blueprints;
+  assert.ok(catalog.coNNtent, 'the catalog lists coNNtent');
+  assert.equal(catalog['video-script'], undefined, 'the catalog has no video-script alias');
+  assert.deepEqual(catalog.coNNtent.embedded_skills, ['nn-conntent']);
 });
 
 test('the skill is named nn-conntent with its own triggers', () => {

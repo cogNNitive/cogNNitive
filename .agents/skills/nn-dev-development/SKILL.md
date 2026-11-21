@@ -282,11 +282,12 @@ tag shapes are a contract. Nobody tags by hand.
   are exactly that. Read the push run's jobs named `release (<tag>)`, not the tag list,
   and re-run a missing leg one at a time. Consumers follow the manifest, which advertises
   the newest tag, so an orphan tag is inert — right up until you cite it as a release.
-- **`catalog.json` is stamped at publish time**, not by the PR: `run-release.js`
-  (`stampBlueprintCatalog`) writes the tag it is publishing into both copies. The value
-  committed in the repo is cosmetic, and CI cannot judge it (`blueprint-catalog --check`
-  normalises the field away on purpose). Do not "fix" it with a PR: touching
-  `iNNfo/specs/` for a generated file cuts a blueprints release for nothing.
+- **`catalog.json` is not tracked.** Both copies (`iNNfo/specs/bluepriNNts/` and
+  `docs/innfo/blueprints/`) are generated where they are consumed: `run-release.js` renders the
+  published one with `--release-tag <tag>`, and the docs build renders its own. A tracked copy has
+  no fixed point — the stamp is computed from HEAD's trees, so committing changes it — which is
+  why every merge could produce a bookkeeping commit and why the drift #285 "fixed" came back. It
+  is gitignored on purpose: do not add it back, and do not "fix" a local copy by hand.
 - **Bookkeeping is not a release trigger.** `release-keys.js` excludes
   `iNNfo/specs/bluepriNNts/catalog.json` from the `blueprints` change set for exactly that
   reason: its bytes come from the tags, so a commit that only restamps it would cut the

@@ -7,6 +7,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { generateBlueprintCatalog } = require('./blueprint-catalog-stage.js');
 const { parseReleaseTag } = require('./parse-release-tag.js');
 const { decidePublish } = require('./publish-decision.js');
 const { assembleManifest } = require('./assemble-manifest.js');
@@ -58,21 +59,6 @@ function pushWithRetry(workDir, args, authEnv, secrets, maxAttempts = 5) {
   }
 }
 
-function stampBlueprintCatalog(workDir, tag, logger) {
-  for (const rel of ['iNNfo/specs/bluepriNNts/catalog.json', 'docs/innfo/blueprints/catalog.json']) {
-    const catPath = path.join(workDir, ...rel.split('/'));
-    if (!fs.existsSync(catPath)) continue;
-    try {
-      const raw = JSON.parse(fs.readFileSync(catPath, 'utf8'));
-      for (const sec of [raw.blueprints, raw.frozen]) {
-        if (sec) for (const bp of Object.values(sec)) if (bp && typeof bp === 'object') bp.release_tag = tag;
-      }
-      fs.writeFileSync(catPath, JSON.stringify(raw, null, 2) + '\n', 'utf8');
-    } catch (e) {
-      logger.warn(`Could not stamp release_tag on ${catPath}: ${e.message}`);
-    }
-  }
-}
 
 async function runRelease(config, options = {}) {
   const logger = config.logger || options.logger || console;
@@ -113,7 +99,7 @@ async function runRelease(config, options = {}) {
       }
     }
 
-    if (key === 'blueprints') stampBlueprintCatalog(work, tag, logger);
+    if (key === 'blueprints') generateBlueprintCatalog(work, tag, logger);
 
     // 2. Diff and decide commit C
     git(['add', '-A']);

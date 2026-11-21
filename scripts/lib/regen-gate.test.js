@@ -22,7 +22,6 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const {
-  REGEN_EXCLUDED_PATHS,
   checkRegen,
   formatFailure,
   listChangedPaths,
@@ -60,7 +59,6 @@ function writeFiles(root, files) {
   }
 }
 
-const EXCLUDED = REGEN_EXCLUDED_PATHS[0].path;
 
 test('parseRegenMode reads --check as the gate and anything else as a write pass', () => {
   assert.equal(parseRegenMode([]), 'write', 'npm run regen writes');
@@ -91,31 +89,6 @@ test('listChangedPaths reports tracked changes and ignores an untracked file', (
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
-});
-
-test('listChangedPaths leaves the release-state catalog out of the judgement', () => {
-  const root = makeRepo({ [EXCLUDED]: '{"release_tag":"blueprints-v1.0.0"}\n', 'other.json': '{}\n' });
-  try {
-    writeFiles(root, { [EXCLUDED]: '{"release_tag":null}\n' });
-    assert.deepEqual(
-      listChangedPaths({ root }).paths,
-      [],
-      'the catalog encodes git tag state, so only its --check can judge it',
-    );
-
-    writeFiles(root, { 'other.json': '{"x":1}\n' });
-    assert.deepEqual(listChangedPaths({ root }).paths, ['other.json'], 'everything else is judged');
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
-});
-
-test('both tag-derived catalogs are excluded, because committing changes HEAD', () => {
-  assert.deepStrictEqual(
-    REGEN_EXCLUDED_PATHS.map((entry) => entry.path).sort(),
-    ['docs/innfo/blueprints/catalog.json', 'iNNfo/specs/bluepriNNts/catalog.json'],
-    'the write-back lane judges its own pass with this gate; a file stamped from HEAD cannot be stable across the commit that changes HEAD',
-  );
 });
 
 test('listChangedPaths reports a clear error outside a git work tree', () => {
@@ -166,22 +139,6 @@ test('checkRegen goes red on a stale artifact and names it', () => {
     assert.deepEqual(res.paths, ['art.js'], 'the stale artifact is the one named');
     assert.match(res.message, /art\.js/);
     assert.match(res.message, /npm run regen/, 'the reader is told how to fix it');
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
-});
-
-test('checkRegen is green when only the release-state catalog moved', () => {
-  const root = makeRepo({ [EXCLUDED]: '{"release_tag":"blueprints-v1.0.0"}\n', 'art.js': 'generated\n' });
-  try {
-    const res = checkRegen({
-      root,
-      runPass: () => {
-        writeFiles(root, { [EXCLUDED]: '{"release_tag":"blueprints-v1.1.0"}\n' });
-        return { status: 0, output: '' };
-      },
-    });
-    assert.equal(res.ok, true, 'tag state alone is not drift');
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -299,8 +256,6 @@ test('verify.js carries one derived-artifact gate instead of the twelve freshnes
     assert.equal(byId[id], undefined, `${id} is replaced by the gate, not kept alongside it`);
   }
 
-  // Kept on purpose: the catalog's --check normalises release_tag, which the gate cannot.
-  assert.ok(byId['blueprint-catalog'], 'the release-state catalog keeps its own check');
   // Kept on purpose: a rebuild comparison with the wall-clock stamps masked, plus the
   // first-difference diagnostic the gate's path list cannot give.
   assert.ok(byId['console-fixture'], 'the console fixture keeps its own check');

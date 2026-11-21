@@ -205,25 +205,19 @@ test('runRelease dry-run writes nothing to remote', async (t) => {
   assert.equal(tags, '');
 });
 
-test('runRelease blueprint release stamps release_tag on catalog.json', async (t) => {
+test('runRelease blueprint release generates catalog.json stamped with the tag', async (t) => {
   const fx = cloneFixture();
   t.after(() => {
     try { fs.rmSync(fx.tmp, { recursive: true, force: true }); } catch {}
   });
 
-  // Setup blueprint catalog in monorepo
+  // The catalog is not tracked any more (see #774): the release generates it from the copied
+  // tree, so the fixture ships a real blueprint instead of a hand-written catalog.
   const catDir = path.join(fx.monorepo, 'iNNfo', 'specs', 'bluepriNNts');
   fs.mkdirSync(catDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(catDir, 'catalog.json'),
-    JSON.stringify({
-      generator: 'test',
-      blueprints: {
-        procedures: { name: 'procedures', release_tag: 'blueprints-v0.40.0' },
-      },
-      frozen: {},
-    }, null, 2) + '\n'
-  );
+  fs.cpSync(path.join(__dirname, '..', '..', 'iNNfo', 'specs', 'bluepriNNts', 'blank'), path.join(catDir, 'blank'), {
+    recursive: true,
+  });
 
   // Update source.yaml with blueprint
   fs.writeFileSync(
@@ -247,11 +241,11 @@ test('runRelease blueprint release stamps release_tag on catalog.json', async (t
 
   assert.equal(result.tag, 'blueprints-v0.50.0');
 
-  // Verify web repo has stamped catalog.json
+  // Verify the web repo carries a generated, stamped catalog.json
   const checkClone = path.join(fx.tmp, 'web-check-bp');
   execFileSync('git', ['clone', fx.webBare, checkClone], { stdio: 'ignore' });
   const publishedCat = JSON.parse(
     fs.readFileSync(path.join(checkClone, 'iNNfo', 'specs', 'bluepriNNts', 'catalog.json'), 'utf8')
   );
-  assert.equal(publishedCat.blueprints.procedures.release_tag, 'blueprints-v0.50.0');
+  assert.equal(publishedCat.blueprints.blank.release_tag, 'blueprints-v0.50.0');
 });

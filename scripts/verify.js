@@ -618,11 +618,11 @@ function buildSteps(repoRoot, options = {}) {
         : { ok: false, lines: res.errors.map((e) => `  - ${e}`) };
     }),
   });
-  // 7. Blueprint Catalog Drift Guard. Deliberately not part of the gate above: its write
-  //    path stamps `release_tag` from the `blueprints-v*` git tags while this --check
-  //    compares the catalog with that field normalised away, so a byte diff would redden
-  //    on every tag cut instead of on real drift (the regen gate excludes it for the same reason).
-  steps.push(roFresh('blueprint-catalog'));
+  // 7. The blueprint catalog is NOT checked here any more: it is no longer tracked (see #774).
+  //    It used to need its own guard because its write path stamps `release_tag` from the
+  //    `blueprints-v*` tags while `--check` compared it with that field normalised away. A file
+  //    that is generated where it is consumed — the release staging and the docs build — has
+  //    nothing to be fresh against.
   // 7b-ter-bis. The committed console fixture must reproduce a fresh export of its domain
   // (the export itself, not a digest: `regen` exports it but cannot diff it, because the
   // export stamps `meta.generated` on every run; this check masks the stamps and names

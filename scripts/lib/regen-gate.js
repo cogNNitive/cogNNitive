@@ -25,29 +25,14 @@ const { sharedArtifactLabel } = require('./shared-artifacts.js');
 /**
  * Committed artifacts the byte diff must not judge, each with the reason.
  *
- * `release_tag` is read from the `blueprints-v*` git tags: the same catalog content
- * renders different bytes under a different tag set, which is why
- * `blueprint-catalog.mjs --check` compares it with that field normalised away. Its
- * freshness step stays in `scripts/verify.js`; this gate regenerates it in write mode and
- * ignores it in check mode.
+ * Empty since #774. The one entry here was the blueprint catalog: `release_tag` is read from the
+ * `blueprints-v*` tags, so identical content rendered different bytes under a different tag set.
+ * The catalogs are now generated where they are consumed (the release staging and the docs
+ * build) and are not tracked, which removes the problem instead of excluding it.
  *
  * @type {Array<{ path: string, reason: string }>}
  */
-const REGEN_EXCLUDED_PATHS = [
-  {
-    path: 'iNNfo/specs/bluepriNNts/catalog.json',
-    reason:
-      'release_tag comes from the blueprints-v* git tags, so identical content renders different bytes ' +
-      'in a different tag set; blueprint-catalog --check compares it with release_tag normalised away',
-  },
-  {
-    path: 'docs/innfo/blueprints/catalog.json',
-    reason:
-      'the docs mirror of the same tag-derived catalog: it moves with the one above and for the same reason. ' +
-      'The write-back lane judges its own pass with this gate, and a file whose bytes depend on HEAD ' +
-      'cannot be stable across the commit that changes HEAD',
-  },
-];
+const REGEN_EXCLUDED_PATHS = [];
 
 /**
  * Reads the mode out of the command line. `--check` means "run the pass, then compare";

@@ -21,7 +21,8 @@ const FRESHNESS_GUARDS = [
   { id: 'preflight-primitives', desc: 'Check Preflight Primitives Bundle Fresh', script: 'scripts/build-preflight-primitives.mjs', args: ['--check'], regen: 'node scripts/build-preflight-primitives.mjs' },
   { id: 'skills-manager-bundle', desc: 'Check Skills Manager Bundle Fresh', script: 'scripts/build-skills-manager-bundle.mjs', args: ['--check'], regen: 'node scripts/build-skills-manager-bundle.mjs' },
   { id: 'skill-shared-rules', desc: 'Check Skill Shared Rules Fresh', script: 'scripts/build-skill-shared-rules.mjs', args: ['--check'], regen: 'node scripts/build-skill-shared-rules.mjs' },
-  { id: 'blueprint-catalog', desc: 'Check Blueprint Catalog Fresh', script: 'scripts/blueprint-catalog.mjs', args: ['--check'], regen: 'node scripts/blueprint-catalog.mjs' },
+  // `blueprint-catalog` is not a freshness guard any more: the catalog is not tracked (see
+  // #774), so the release stages it with `--release-tag` and the docs build renders its copy.
   { id: 'core-mirror', desc: 'Check Core Mirrors Fresh', script: 'scripts/build-core-mirrors.mjs', args: ['--check'], regen: 'node scripts/build-core-mirrors.mjs' },
   // Reads nn-core's parser through the coNNtent core mirror above, so it runs after it.
   { id: 'field-registry', desc: 'Check Field Registry Fresh', script: 'iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/build-field-registry.mjs', args: ['--check'], regen: 'node iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/build-field-registry.mjs' },
