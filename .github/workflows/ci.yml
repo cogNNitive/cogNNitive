@@ -231,53 +231,6 @@ jobs:
       - name: Check spec URLs resolve
         run: npm run check:spec-urls
 
-  # ── Release bump: `nn-mcp` and `nn-console` ship only when their package.json carries
-  #    an untagged version, so a PR that changes their release paths without a bump
-  #    merges and releases nothing (#650 missed 0.37.2, #670/#683 missed 0.37.4). Only the
-  #    PR's own diff is checked, so an older unreleased change on the base blames nobody.
-  #    It also runs on `main`. Two PRs that bump the same key to the same version are
-  #    each green on their own diff, and only the second landing can notice that its
-  #    version is already tagged — which is exactly how a release went missing. On
-  #    `main` the finding is advisory (`continue-on-error`): it describes a commit
-  #    that already landed, so it reports instead of reddening `main`, and it is
-  #    deliberately absent from `auto-tag`'s `needs`.
-  release-bump:
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    continue-on-error: ${{ github.event_name == 'push' }}
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          # Full history and every release tag: the check diffs against the base
-          # branch and reads the latest `nn-mcp-v*` / `nn-console-v*` tags.
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22.23.4
-
-      - name: A changed authored release key carries an unreleased version
-        env:
-          BASE_REF: ${{ github.base_ref }}
-          BEFORE_SHA: ${{ github.event.before }}
-          EVENT_NAME: ${{ github.event_name }}
-        run: |
-          set -euo pipefail
-          BASE="origin/$BASE_REF"
-          if [ "$EVENT_NAME" = "push" ]; then
-            case "$BEFORE_SHA" in
-              0000000000000000000000000000000000000000|"")
-                echo "No previous commit on this ref; nothing to compare against."
-                exit 0
-                ;;
-            esac
-            BASE="$BEFORE_SHA"
-          fi
-          node scripts/release/check-authored-bump.js --base "$BASE"
-
   # One-way publish of the built site to the public distribution repo
   # (`cogNNitive-web`), which owns the GitHub Pages deployment for
   # `cognnitive.com`. The monorepo no longer serves Pages from itself: this job
@@ -322,8 +275,56 @@ jobs:
   #    The tags land in ONE atomic push (scripts/release/push-release-tags.mjs): a
   #    rejection therefore leaves every tag or none, never a half-tagged commit whose
   #    `release` job is skipped (#725).
+  # ── Regeneration: derived artifacts belong to `main`, not to a change branch. A PR carries
+  #    source only (the gate accepts the artifact that moves with it, `--tolerant`); this job
+  #    commits the regenerated files and the derived version write-back here, BEFORE auto-tag
+  #    plans, because the release publishes the tree of the tag it cuts. The commit carries a
+  #    fixed message, and a run whose last commit already has it does nothing: the push below
+  #    triggers that second run, and it must not regenerate again.
+  regen:
+    needs: [verify, quality, spec-integrity]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.23.4
+          cache: npm
+
+      - run: npm ci
+
+      - name: Regenerate and commit when a derived artifact or a version moved
+        run: |
+          set -euo pipefail
+          GUARD='chore(regen): regenerate derived artifacts and write back the pending versions'
+          if [ "$(git log -1 --format=%s)" = "$GUARD" ]; then
+            echo "the last commit is already a regeneration: nothing to do"
+            exit 0
+          fi
+          # The version is written back BEFORE the tag exists: version-agreement compares the
+          # tag against package.json, and the release copies the tag's tree.
+          node scripts/release/write-pending-versions.js
+          npm run sync:versions
+          npm run regen
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "no derived artifact and no pending version moved"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m "$GUARD"
+          git push origin HEAD:main
+
   auto-tag:
-    needs: [verify, site, quality, spec-integrity]
+    needs: [verify, site, quality, spec-integrity, regen]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
@@ -337,11 +338,19 @@ jobs:
 
       - name: Plan release tags
         id: plan
-        run: node scripts/release/plan-auto-tags.js
+        run: |
+          set -euo pipefail
+          # The regeneration commit is the tree that ships, so plan (and tag) THAT, not the
+          # merge commit this run started on. `regen` has already pushed it by now.
+          git fetch --no-tags origin main
+          git checkout --detach FETCH_HEAD
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          node scripts/release/plan-auto-tags.js
 
       - name: Create and push tags
         env:
           TAGS: ${{ steps.plan.outputs.tags }}
+          GITHUB_SHA: ${{ steps.plan.outputs.sha }}
         run: node scripts/release/push-release-tags.mjs
 
   release:
@@ -366,19 +375,39 @@ jobs:
         with:
           fetch-depth: 0
 
-      # The smoke only reads test/ui and the committed TestLab fixture, so skip the
-      # Playwright+Chromium install unless those (or this workflow) changed.
-      # Anything unclear (new branch, force push, manual run) runs it.
+      # The smoke reads test/ui and the TestLab export it opens, so skip the Playwright+Chromium
+      # install unless those or the console source that produces the export changed. The export
+      # no longer travels in a PR (the write-back lane commits it on `main`), so without the
+      # console paths here a console change would never run the smoke at all.
       - name: Detect relevant changes
         id: rel
         run: |
           BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
           if [ -n "$BASE" ] && [ "$BASE" != 0000000000000000000000000000000000000000 ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-            if git diff --quiet "$BASE" "${{ github.sha }}" -- test/ui test/fixtures/testlab .github/workflows/ci.yml; then
+            if git diff --quiet "$BASE" "${{ github.sha }}" -- test/ui test/fixtures/testlab iNNfo/specs/bluepriNNts/console scripts/export-console.mjs .github/workflows/ci.yml; then
               echo run=false >> "$GITHUB_OUTPUT"; exit 0
             fi
           fi
           echo run=true >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        if: steps.rel.outputs.run == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.23.4
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.rel.outputs.run == 'true'
+        run: npm ci
+
+      # Export the console from THIS tree, so the smoke opens the PR's bundle instead of the
+      # one committed before the lane existed.
+      - name: Export the TestLab console from source
+        if: steps.rel.outputs.run == 'true'
+        run: |
+          npm --workspace=@cognnitive/nn-core run build
+          node scripts/export-console.mjs test/fixtures/testlab --domain --no-open
 
       - name: Setup Python
         if: steps.rel.outputs.run == 'true'

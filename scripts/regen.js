@@ -148,7 +148,11 @@ if (run(npm, ['--workspace=@cognnitive/nn-mcp', 'run', 'build:dist']) !== 0) fai
 
 if (isCheck) {
   console.log('regen: regenerating every derived artifact, then diffing against HEAD...');
-  const gate = checkRegen({ root: repoRoot, runPass });
+  const gate = checkRegen({
+    root: repoRoot,
+    runPass,
+    tolerant: process.argv.includes('--tolerant'),
+  });
   console.log(gate.message);
   process.exit(gate.ok ? 0 : 1);
 }
