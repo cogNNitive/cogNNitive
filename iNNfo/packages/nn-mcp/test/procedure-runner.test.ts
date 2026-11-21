@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { spawn } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
 import { readFile, readdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { procedureState } from '../src/tools/procedure-state.js'
 import { procedureRecord, procedureStart } from '../src/tools/procedure-record.js'
+import { acquireRunLock, runLockPath } from '../src/tools/procedure-lock.js'
 import { validateProposal } from '../src/tools/propose-changeset.js'
 
 /**
@@ -29,6 +31,14 @@ const EXECUTIONS_SPEC = join(
 )
 
 let root: string
+
+/** A pid that is certainly not running: a child process that has already exited. */
+async function deadPid(): Promise<number> {
+  const child = spawn(process.execPath, ['-e', 'process.exit(0)'], { stdio: 'ignore' })
+  const pid = child.pid!
+  await new Promise((resolve) => child.on('exit', resolve))
+  return pid
+}
 
 beforeEach(() => {
   root = realpathSync(mkdtempSync(join(tmpdir(), 'nn-procedure-runner-')))
@@ -348,12 +358,12 @@ describe('procedure_record', SLOW, () => {
     expect(await runText('r1')).toContain('kind:: input_recorded')
   })
 
-  it('refuses a second writer of the same run, then breaks a stale holder', async () => {
+  it('refuses a second writer while the holder is alive', async () => {
     ok(await startReview())
     const lock = join(root, 'changes', '.lock.procedure-r1')
     await writeFile(
       lock,
-      JSON.stringify({ pid: 1, timestamp: Date.now(), changeset: 'procedure:r1' }),
+      JSON.stringify({ pid: process.pid, timestamp: Date.now(), nonce: 'someone-else' }),
     )
     // A live holder: the refuser writes nothing and does not release a lock it does not own.
     expect(await procedureRecord(root, { run: 'r1', action: 'start' })).toMatchObject({
@@ -362,15 +372,55 @@ describe('procedure_record', SLOW, () => {
     })
     expect(existsSync(lock)).toBe(true)
     expect(await changesets()).toHaveLength(1)
+  })
 
-    // A holder past the stale window is broken, and the call releases its own lock.
+  it('does not rob a live holder because its lock looks old', async () => {
+    ok(await startReview())
+    const lock = join(root, 'changes', '.lock.procedure-r1')
+    // Our own pid is alive, and the payload is older than RUN_LOCK_STALE_MS but still inside
+    // the longest a bounded step may take. Reclaiming on the clock alone is what shipped: a
+    // step slower than 120s lost its lock while still writing, and its events doubled.
     await writeFile(
       lock,
-      JSON.stringify({ pid: 1, timestamp: Date.now() - 10 * 60_000, changeset: 'procedure:r1' }),
+      JSON.stringify({ pid: process.pid, timestamp: Date.now() - 130_000, nonce: 'slow' }),
     )
+    expect(await procedureRecord(root, { run: 'r1', action: 'start' })).toMatchObject({
+      ok: false,
+      code: 'RUN_BUSY',
+    })
+    expect(existsSync(lock)).toBe(true)
+  })
+
+  it('does not let a robbed holder delete the lock of its successor', async () => {
+    const held = await acquireRunLock(root, 'r1', 1)
+    const lock = runLockPath(root, 'r1')
+    // A successor now owns the file (different nonce, same live pid). Releasing by path would
+    // hand the run to a third writer while the successor still believes it holds it.
+    await writeFile(
+      lock,
+      JSON.stringify({ pid: process.pid, timestamp: Date.now(), nonce: 'successor' }),
+    )
+    await held.release()
+    expect(existsSync(lock)).toBe(true)
+  })
+
+  it('breaks a lock whose holder is gone, then takes the run over', async () => {
+    ok(await startReview())
+    const lock = join(root, 'changes', '.lock.procedure-r1')
+    await writeFile(lock, JSON.stringify({ pid: await deadPid(), timestamp: Date.now() }))
     const started = ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
     expect(started.recorded).toMatchObject([{ kind: 'step_started', step: 'draft' }])
     expect(existsSync(lock)).toBe(false)
+  })
+
+  it('breaks a payload that cannot name its holder', async () => {
+    ok(await startReview())
+    const lock = join(root, 'changes', '.lock.procedure-r1')
+    // Parses as JSON but carries no pid and no timestamp: it cannot be reasoned about, and
+    // treating it as a live holder would wedge the run forever.
+    await writeFile(lock, '{}')
+    const started = ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
+    expect(started.recorded).toMatchObject([{ kind: 'step_started', step: 'draft' }])
   })
 
   it('refuses an artifact fact from a step that never started', async () => {
