@@ -312,6 +312,10 @@ jobs:
           # tag against package.json, and the release copies the tag's tree.
           node scripts/release/write-pending-versions.js
           npm run sync:versions
+          # The lockfile pins each workspace package's version, and `lockfile-agreement` fails
+          # when it drifts from the manifest after the write-back. This is the fourth step of
+          # the documented bump flow, and the lane is the only place that bumps now.
+          npm install --package-lock-only
           npm run regen
           if [ -z "$(git status --porcelain)" ]; then
             echo "no derived artifact and no pending version moved"
@@ -322,15 +326,12 @@ jobs:
           git add -A
           git commit -m "$GUARD"
           git push origin HEAD:main
-          # A second pass must move nothing. That is the equality the artifact tests no longer
-          # assert from a change branch (a branch carries the previous build by design), and it
-          # also catches a generator that is not deterministic.
-          npm run regen
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "::error::regeneration is not idempotent: a second pass moved a tracked path"
-            git status --short
-            exit 1
-          fi
+          # A second pass must move nothing OUTSIDE the artifacts whose bytes depend on HEAD.
+          # The tag-derived catalogs are excluded by the gate itself: committing changes HEAD,
+          # which changes the release_tag they are stamped with, so they can never be stable
+          # across the commit that created them. Everything else must reproduce exactly, which
+          # is the equality the artifact tests no longer assert from a change branch.
+          node scripts/regen.js --check
 
   auto-tag:
     needs: [verify, site, quality, spec-integrity, regen]

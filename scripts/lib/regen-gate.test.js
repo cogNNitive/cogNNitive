@@ -110,6 +110,14 @@ test('listChangedPaths leaves the release-state catalog out of the judgement', (
   }
 });
 
+test('both tag-derived catalogs are excluded, because committing changes HEAD', () => {
+  assert.deepStrictEqual(
+    REGEN_EXCLUDED_PATHS.map((entry) => entry.path).sort(),
+    ['docs/innfo/blueprints/catalog.json', 'iNNfo/specs/bluepriNNts/catalog.json'],
+    'the write-back lane judges its own pass with this gate; a file stamped from HEAD cannot be stable across the commit that changes HEAD',
+  );
+});
+
 test('listChangedPaths reports a clear error outside a git work tree', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'regen-gate-nogit-'));
   try {
