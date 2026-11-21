@@ -139,6 +139,14 @@ test('pathspecsFor excludes the tag-derived catalog from the blueprints change s
   assert.deepStrictEqual(pathspecsFor('skills'), ['skills']);
 });
 
+test('nn-mcp changes include nn-core, because the published bundle embeds it', () => {
+  // A core change that never released nn-mcp would ship the fix to main and leave every
+  // consumer on the old bundle: the bundle is generated, so it cannot be the trigger itself.
+  const paths = pathspecsFor('nn-mcp');
+  assert.ok(paths.includes('iNNfo/packages/nn-mcp/src'));
+  assert.ok(paths.includes('iNNfo/packages/nn-core/src'));
+});
+
 test('a commit that only restamps the generated catalog is not a blueprint change', () => {
   // The catalog's release_tag is read from the tags themselves, so counting a restamp as a
   // blueprint change makes the release a trigger for the next release: restamp, tag, a
