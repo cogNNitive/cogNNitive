@@ -360,7 +360,10 @@ jobs:
       - name: Create and push tags
         env:
           TAGS: ${{ steps.plan.outputs.tags }}
-          GITHUB_SHA: ${{ steps.plan.outputs.sha }}
+          # Not GITHUB_SHA: a step cannot override a default variable, so `env: GITHUB_SHA:`
+          # is silently ignored and the tags land on the merge commit while the write-back
+          # commit, which carries the regenerated artifacts, sits one ahead.
+          RELEASE_TARGET_SHA: ${{ steps.plan.outputs.sha }}
         run: node scripts/release/push-release-tags.mjs
 
   release:
