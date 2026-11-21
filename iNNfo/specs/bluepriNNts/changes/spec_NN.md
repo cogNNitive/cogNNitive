@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-6-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-6-0_NN.md"
 blueprint_name: "changes"
-blueprint_version: "V_0-14-0"
+blueprint_version: "V_0-15-0"
 title: "Changeset Blueprint"
 description: "Level-2 blueprint defining the normative document model for graph mutations, proposals, reviews, and version transitions in cogNNitive."
 nature:
@@ -151,6 +151,11 @@ concept:: Change
 type:: boolean
 description:: Atomicity of the proposal, in the changeset frontmatter. When true, any conflicted change conflicts every change of the changeset and nothing is written: the batch applies wholly or the changeset is recorded as conflict. Sealed into proposal_sha, because atomicity is part of what was proposed. Absent or false keeps the partial-apply behavior.
 
+## NN Field Definition: run
+concept:: Change
+type:: string
+description:: Run context, in the changeset frontmatter: <run-id>@<step-slug> when the changeset was written inside a procedure step. Sealed into proposal_sha, because it is part of what was proposed. It is a frontmatter fact rather than evidence because an open run is not citable. A human gate verdict carries none and links to its step through that step's evidence.
+
 # Changeset Blueprint
 
 ## A level-2 blueprint defining the normative document model for graph mutations, proposals, reviews, and version transitions in cogNNitive
@@ -213,6 +218,8 @@ A model is cited by its id (`<model id>@<element>`), never by its file path, and
 - Execution annotations (status, resolution, resolved_slug, applied_at, batch) and the execution facts (resolved_target, evidence_sha256) record the outcome of applying the change. Every change has an applied_at (UTC), status, author and batch. The batch-wide facts are written once, in the changeset frontmatter (applied_at, batch, status, and evidence_sha256 as a map from each cited path to its sha256), and every change inherits them: a change carries a fact only when its value differs (status when it differs from the changeset status, author when it differs from the frontmatter author, resolution only when the change did not apply, resolved_target only when it differs from target, evidence_sha256 only for a cited path the map does not carry; applied_at and batch never). The change log resolves each fact as the change's own value, else the changeset's, so a changeset whose changes carry every fact themselves resolves the same way. The change chain, ordered by (applied_at, changeset stamp, filename, document index), is a unit's history.
 
 Changeset status is one of proposed, applied, partially_applied, rejected, conflict. A changeset is rejected when the proposal itself is invalid (a failed validation or an unresolved citation): the status and the reason (resolution) are persisted and the changeset is never re-applied. A conflict is a failed precondition of the live model and may be fixed and retried.
+
+A changeset MAY declare `run` in its frontmatter as `<run-id>@<step-slug>`, naming the procedure step that wrote it. It is sealed into `proposal_sha` and is a frontmatter fact rather than `evidence`, because an open run is not citable: "what did this step produce" is the set of applied changes carrying that `run`, and "which run produced this element" is the `run` of the element's origin change. A human `review_gate` carries no run context and links to its step through that step's evidence.
 
 A changeset MAY declare `atomic: true` in its frontmatter. An atomic changeset is all or nothing: when any change conflicts — a failed `from` or `base_hash`, a missing target, a stale target, a reference conflict — every change of the changeset is conflicted, nothing is written, and the changeset is recorded as `conflict` with reason `ATOMIC_CHANGESET_CONFLICT`, which names the original failure. An atomic changeset whose changes all apply is `applied`. The declaration is sealed into `proposal_sha`: a changeset sealed as non-atomic cannot be turned into an all-or-nothing one after the fact without breaking the seal. Absent or `false`, the changeset keeps the partial-apply behavior described above.
 

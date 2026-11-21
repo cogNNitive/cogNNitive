@@ -120,6 +120,9 @@ export function computeProposalSha(changes: ChangeItem[], frontmatter?: Proposal
   if (frontmatter?.atomic === true) {
     hash.update('\n:::atomic:::\ntrue')
   }
+  if (frontmatter?.run !== undefined && frontmatter.run !== '') {
+    hash.update('\n:::run:::\n').update(frontmatter.run)
+  }
   return hash.digest('hex').toLowerCase()
 }
 
@@ -129,6 +132,7 @@ export interface ProposalSealInput {
   origin?: string
   reviewer?: string
   atomic?: boolean
+  run?: string
 }
 
 /**

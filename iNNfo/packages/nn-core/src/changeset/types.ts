@@ -169,6 +169,13 @@ export interface ChangesetFrontmatter {
    * part of what was proposed. Absent or `false` keeps the partial-apply behavior.
    */
   atomic?: boolean
+  /**
+   * Run context (design D3, B1): `<run-id>@<step-slug>` when the changeset was written
+   * inside a procedure step. Sealed into `proposal_sha`: it is part of what was proposed,
+   * and it is a frontmatter fact rather than `evidence` because an open run is not citable.
+   * A human gate verdict carries none and links to its step through the step's evidence.
+   */
+  run?: string
   workspace_id?: string
   /** Provenance of every change in the file: exactly `human`, `agent` or `engine`. */
   author_kind?: string

@@ -14105,6 +14105,9 @@ function validateFrontmatter2(fm) {
   if (fm.atomic !== void 0 && typeof fm.atomic !== "boolean") {
     invalidFrontmatter2("atomic must be true or false when present");
   }
+  if (fm.run !== void 0 && (typeof fm.run !== "string" || fm.run.trim() === "")) {
+    invalidFrontmatter2('run must be a non-empty "<run-id>@<step-slug>" when present');
+  }
   return fm;
 }
 function parseChangeset2(rawContent) {
@@ -14811,6 +14814,17 @@ var init_changelog = __esm({
         const bucket = this.history(unit);
         return bucket.length > 0 ? bucket[bucket.length - 1] : void 0;
       }
+      runChanges(runId, stepSlug) {
+        const wanted = stepSlug !== void 0 ? `${runId}@${stepSlug}` : runId;
+        const matches = (change) => {
+          if (!change.run)
+            return false;
+          if (stepSlug !== void 0)
+            return change.run === wanted;
+          return change.run === runId || change.run.startsWith(`${runId}@`);
+        };
+        return this.all.filter((change) => change.applied && matches(change));
+      }
       units(model) {
         return unitsFromFold2(this.fold, model);
       }
@@ -14909,6 +14923,7 @@ function changesetLikeOf2(path, doc) {
     author: fm.author,
     appliedAt: fm.applied_at,
     ...typeof fm.batch === "string" ? { batch: fm.batch } : {},
+    ...typeof fm.run === "string" && fm.run !== "" ? { run: fm.run } : {},
     ...fm.evidence_sha256 && typeof fm.evidence_sha256 === "object" ? { evidenceSha256: fm.evidence_sha256 } : {},
     changes: doc.changes
   };
@@ -14991,6 +15006,7 @@ function loggedChanges(cs) {
       changesetStatus,
       appliedAt: facts.appliedAt,
       batch: facts.batch,
+      ...cs.run !== void 0 ? { run: cs.run } : {},
       author: facts.author,
       op: change.op,
       target: change.target,
@@ -17710,6 +17726,9 @@ function computeProposalSha2(changes, frontmatter) {
   }
   if (frontmatter?.atomic === true) {
     hash.update("\n:::atomic:::\ntrue");
+  }
+  if (frontmatter?.run !== void 0 && frontmatter.run !== "") {
+    hash.update("\n:::run:::\n").update(frontmatter.run);
   }
   return hash.digest("hex").toLowerCase();
 }
@@ -22830,6 +22849,9 @@ function computeProposalSha(changes, frontmatter) {
   if (frontmatter?.atomic === true) {
     hash.update("\n:::atomic:::\ntrue");
   }
+  if (frontmatter?.run !== void 0 && frontmatter.run !== "") {
+    hash.update("\n:::run:::\n").update(frontmatter.run);
+  }
   return hash.digest("hex").toLowerCase();
 }
 
@@ -22911,6 +22933,9 @@ function validateFrontmatter(fm) {
   }
   if (fm.atomic !== void 0 && typeof fm.atomic !== "boolean") {
     invalidFrontmatter("atomic must be true or false when present");
+  }
+  if (fm.run !== void 0 && (typeof fm.run !== "string" || fm.run.trim() === "")) {
+    invalidFrontmatter('run must be a non-empty "<run-id>@<step-slug>" when present');
   }
   return fm;
 }

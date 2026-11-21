@@ -8942,7 +8942,7 @@ var REQUIRED_BY_PRIMITIVE = {
 
 // stub:canonical-registry-stub
 function findCanonicalBlueprint(key) {
-  return key === "changes" ? { name: "changes", version: "V_0-14-0", aliases: [], specContent: "" } : null;
+  return key === "changes" ? { name: "changes", version: "V_0-15-0", aliases: [], specContent: "" } : null;
 }
 
 // iNNfo/packages/nn-core/src/schema/nature.ts
@@ -11350,6 +11350,9 @@ function validateFrontmatter(fm) {
   if (fm.atomic !== void 0 && typeof fm.atomic !== "boolean") {
     invalidFrontmatter("atomic must be true or false when present");
   }
+  if (fm.run !== void 0 && (typeof fm.run !== "string" || fm.run.trim() === "")) {
+    invalidFrontmatter('run must be a non-empty "<run-id>@<step-slug>" when present');
+  }
   return fm;
 }
 function parseChangeset(rawContent) {
@@ -11943,7 +11946,8 @@ var ChangeLogImpl = class {
     for (const rekey of this.fold.rekeys) {
       if (rekey.kind === "extract") continue;
       if (current === rekey.from) current = rekey.to;
-      else if (current.startsWith(`${rekey.from}/`)) current = `${rekey.to}${current.slice(rekey.from.length)}`;
+      else if (current.startsWith(`${rekey.from}/`))
+        current = `${rekey.to}${current.slice(rekey.from.length)}`;
       else continue;
       moved = true;
     }
@@ -11966,6 +11970,15 @@ var ChangeLogImpl = class {
     if (!this.fold.units.has(unit)) return void 0;
     const bucket = this.history(unit);
     return bucket.length > 0 ? bucket[bucket.length - 1] : void 0;
+  }
+  runChanges(runId, stepSlug) {
+    const wanted = stepSlug !== void 0 ? `${runId}@${stepSlug}` : runId;
+    const matches = (change) => {
+      if (!change.run) return false;
+      if (stepSlug !== void 0) return change.run === wanted;
+      return change.run === runId || change.run.startsWith(`${runId}@`);
+    };
+    return this.all.filter((change) => change.applied && matches(change));
   }
   units(model) {
     return unitsFromFold(this.fold, model);
@@ -12050,6 +12063,7 @@ function changesetLikeOf(path2, doc) {
     author: fm.author,
     appliedAt: fm.applied_at,
     ...typeof fm.batch === "string" ? { batch: fm.batch } : {},
+    ...typeof fm.run === "string" && fm.run !== "" ? { run: fm.run } : {},
     ...fm.evidence_sha256 && typeof fm.evidence_sha256 === "object" ? { evidenceSha256: fm.evidence_sha256 } : {},
     changes: doc.changes
   };
@@ -12121,6 +12135,7 @@ function loggedChanges(cs) {
       changesetStatus,
       appliedAt: facts.appliedAt,
       batch: facts.batch,
+      ...cs.run !== void 0 ? { run: cs.run } : {},
       author: facts.author,
       op: change.op,
       target: change.target,

@@ -108,6 +108,11 @@ function validateFrontmatter(fm: Record<string, unknown>): ChangesetFrontmatter 
   if (fm.atomic !== undefined && typeof fm.atomic !== 'boolean') {
     invalidFrontmatter('atomic must be true or false when present')
   }
+  // `run` is optional; when present it names the step that wrote the changeset
+  // (`<run-id>@<step-slug>`) and is sealed like the changes themselves.
+  if (fm.run !== undefined && (typeof fm.run !== 'string' || fm.run.trim() === '')) {
+    invalidFrontmatter('run must be a non-empty "<run-id>@<step-slug>" when present')
+  }
   return fm as unknown as ChangesetFrontmatter
 }
 
