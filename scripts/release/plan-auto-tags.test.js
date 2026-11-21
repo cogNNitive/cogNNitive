@@ -25,32 +25,46 @@ test('bumpFor: feat is minor, fix is patch, bang or BREAKING CHANGE is major', (
   assert.strictEqual(bumpFor(['fix: a\n\nBREAKING CHANGE: gone']), 'major');
 });
 
-test('nothing changed and authored versions already tagged: no tags', () => {
+test('nothing changed: no tags', () => {
   const plan = planAutoTags({
     tags: ['skills-v1.2.0', 'blueprints-v0.5.0', 'nn-mcp-v0.9.0', 'nn-console-v0.3.0'],
-    authored: { 'nn-mcp': '0.9.0', 'nn-console': '0.3.0' },
     commitsSinceTag: noChanges,
   });
   assert.deepStrictEqual(plan, []);
 });
 
-test('content keys bump from their commits; authored keys tag their package version', () => {
+test('every key bumps from its commits, blueprints first', () => {
   const plan = planAutoTags({
     tags: ['skills-v1.2.0', 'blueprints-v0.5.0', 'nn-mcp-v0.9.0', 'nn-console-v0.3.0'],
-    authored: { 'nn-mcp': '0.10.0', 'nn-console': '0.3.0' },
-    commitsSinceTag: { ...noChanges, skills: ['fix(skills): a'], blueprints: ['feat(bp): b'] },
+    commitsSinceTag: {
+      ...noChanges,
+      skills: ['fix(skills): a'],
+      blueprints: ['feat(bp): b'],
+      'nn-mcp': ['feat(nn-mcp): c'],
+      'nn-console': ['fix(console): d'],
+    },
   });
   assert.deepStrictEqual(plan.map((p) => p.tag), [
     'blueprints-v0.6.0',
     'skills-v1.2.1',
     'nn-mcp-v0.10.0',
+    'nn-console-v0.3.1',
   ]);
+});
+
+test('no key carries an authored version: a silent package.json cannot skip a release', () => {
+  // The hand bump used to be the only trigger for nn-mcp and nn-console, and a PR that forgot
+  // it merged and released nothing (#650, #670, #683). Deriving from commits removes the choice.
+  const plan = planAutoTags({
+    tags: ['nn-mcp-v0.49.4'],
+    commitsSinceTag: { ...noChanges, 'nn-mcp': ['fix(nn-mcp): a fix'] },
+  });
+  assert.deepStrictEqual(plan.map((p) => p.tag), ['nn-mcp-v0.49.5']);
 });
 
 test('blueprints always ships first so a new blueprint has a pin before the others', () => {
   const plan = planAutoTags({
     tags: ['skills-v1.0.0', 'blueprints-v1.0.0'],
-    authored: {},
     commitsSinceTag: { ...noChanges, skills: ['fix: a'], blueprints: ['fix: b'] },
   });
   assert.strictEqual(plan[0].key, 'blueprints');
@@ -59,21 +73,9 @@ test('blueprints always ships first so a new blueprint has a pin before the othe
 test('the highest existing tag wins, not the most recent one in the list', () => {
   const plan = planAutoTags({
     tags: ['skills-v2.0.0', 'skills-v10.1.0', 'skills-v9.0.0'],
-    authored: {},
     commitsSinceTag: { ...noChanges, skills: ['fix: a'] },
   });
   assert.deepStrictEqual(plan.map((p) => p.tag), ['skills-v10.1.1']);
-});
-
-test('an authored version below an existing tag is refused, never re-tagged', () => {
-  assert.throws(
-    () => planAutoTags({
-      tags: ['nn-mcp-v0.9.0'],
-      authored: { 'nn-mcp': '0.8.0' },
-      commitsSinceTag: noChanges,
-    }),
-    /nn-mcp 0\.8\.0 is below the released nn-mcp-v0\.9\.0/,
-  );
 });
 
 test('generatedUnder finds every generated file inside a content key', () => {
@@ -125,7 +127,7 @@ test('a commit that only rewrites generated files plans nothing for any content 
 });
 
 test('a content key with no tag yet starts at 0.1.0', () => {
-  const plan = planAutoTags({ tags: [], authored: {}, commitsSinceTag: { ...noChanges, skills: ['fix: a'] } });
+  const plan = planAutoTags({ tags: [], commitsSinceTag: { ...noChanges, skills: ['fix: a'] } });
   assert.deepStrictEqual(plan.map((p) => p.tag), ['skills-v0.1.0']);
 });
 

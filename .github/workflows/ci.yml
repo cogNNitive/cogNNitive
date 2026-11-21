@@ -231,53 +231,6 @@ jobs:
       - name: Check spec URLs resolve
         run: npm run check:spec-urls
 
-  # ── Release bump: `nn-mcp` and `nn-console` ship only when their package.json carries
-  #    an untagged version, so a PR that changes their release paths without a bump
-  #    merges and releases nothing (#650 missed 0.37.2, #670/#683 missed 0.37.4). Only the
-  #    PR's own diff is checked, so an older unreleased change on the base blames nobody.
-  #    It also runs on `main`. Two PRs that bump the same key to the same version are
-  #    each green on their own diff, and only the second landing can notice that its
-  #    version is already tagged — which is exactly how a release went missing. On
-  #    `main` the finding is advisory (`continue-on-error`): it describes a commit
-  #    that already landed, so it reports instead of reddening `main`, and it is
-  #    deliberately absent from `auto-tag`'s `needs`.
-  release-bump:
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    continue-on-error: ${{ github.event_name == 'push' }}
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          # Full history and every release tag: the check diffs against the base
-          # branch and reads the latest `nn-mcp-v*` / `nn-console-v*` tags.
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22.23.4
-
-      - name: A changed authored release key carries an unreleased version
-        env:
-          BASE_REF: ${{ github.base_ref }}
-          BEFORE_SHA: ${{ github.event.before }}
-          EVENT_NAME: ${{ github.event_name }}
-        run: |
-          set -euo pipefail
-          BASE="origin/$BASE_REF"
-          if [ "$EVENT_NAME" = "push" ]; then
-            case "$BEFORE_SHA" in
-              0000000000000000000000000000000000000000|"")
-                echo "No previous commit on this ref; nothing to compare against."
-                exit 0
-                ;;
-            esac
-            BASE="$BEFORE_SHA"
-          fi
-          node scripts/release/check-authored-bump.js --base "$BASE"
-
   # One-way publish of the built site to the public distribution repo
   # (`cogNNitive-web`), which owns the GitHub Pages deployment for
   # `cognnitive.com`. The monorepo no longer serves Pages from itself: this job
@@ -347,22 +300,27 @@ jobs:
 
       - run: npm ci
 
-      - name: Regenerate and commit when a derived artifact moved
+      - name: Regenerate and commit when a derived artifact or a version moved
         run: |
           set -euo pipefail
-          if [ "$(git log -1 --format=%s)" = "chore(regen): regenerate derived artifacts from their sources" ]; then
+          GUARD='chore(regen): regenerate derived artifacts and write back the pending versions'
+          if [ "$(git log -1 --format=%s)" = "$GUARD" ]; then
             echo "the last commit is already a regeneration: nothing to do"
             exit 0
           fi
+          # The version is written back BEFORE the tag exists: version-agreement compares the
+          # tag against package.json, and the release copies the tag's tree.
+          node scripts/release/write-pending-versions.js
+          npm run sync:versions
           npm run regen
           if [ -z "$(git status --porcelain)" ]; then
-            echo "no derived artifact moved"
+            echo "no derived artifact and no pending version moved"
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'chore(regen): regenerate derived artifacts from their sources'
+          git commit -m "$GUARD"
           git push origin HEAD:main
 
   auto-tag:
