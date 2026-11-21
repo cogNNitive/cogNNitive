@@ -8,6 +8,7 @@ import {
   fillSlots,
   formatUtcStamp,
   holderOf,
+  loadChangeLog,
   procedureIdOf,
   unresolvedSlots,
 } from '@cognnitive/nn-core'
@@ -462,8 +463,29 @@ function plan(
           { step, status: stepStatus },
         )
       const rev = text(args['rev'])
-      const verified = text(args['rev']) === undefined ? text(args['value']) : undefined
-      void verified
+      // An element artifact's rev is the element's last applied change id, computed by the
+      // runner and never passed by the agent (design §4.3): the agent records the output, the
+      // run model pins what the change log says it is now.
+      const kind = f.graph.artifacts[field]!.kind
+      let elementRev: string | undefined
+      if (kind === 'element') {
+        const address =
+          text(args['value']) ?? substitute(f.graph.artifacts[field]!.at, f.run.params) ?? undefined
+        if (!address)
+          return fail(
+            'INVALID_ARGUMENT',
+            `Artifact "${field}" is an element artifact with no address; give value as model@element.`,
+          )
+        const at = address.indexOf('@')
+        const unit = at !== -1 ? address.slice(at + 1) : address
+        elementRev = loadChangeLog(root).origin(`${address.slice(0, at)}@${unit}`)?.id
+        if (!elementRev)
+          return fail(
+            'ARTIFACT_NOT_RECORDED',
+            `No applied change records element "${address}"; write it with a change before recording the artifact.`,
+            { artifact: field, address },
+          )
+      }
       return {
         step,
         changes: [
@@ -473,7 +495,8 @@ function plan(
             to: JSON.stringify({
               status,
               ...(value !== undefined ? { value } : {}),
-              ...(rev !== undefined ? { rev } : {}),
+              ...(kind === 'element' && elementRev !== undefined ? { rev: elementRev } : {}),
+              ...(kind !== 'element' && rev !== undefined ? { rev } : {}),
               step,
             }),
             evidence: 'decision',
