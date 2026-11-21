@@ -163,6 +163,12 @@ export interface ChangesetFrontmatter {
   models?: Record<string, ModelVersionTransition>
   title?: string
   author?: string
+  /**
+   * Atomicity of the proposal: when `true`, any conflicted change conflicts every change
+   * of the changeset and nothing is written (design D8). Sealed into `proposal_sha`: it is
+   * part of what was proposed. Absent or `false` keeps the partial-apply behavior.
+   */
+  atomic?: boolean
   workspace_id?: string
   /** Provenance of every change in the file: exactly `human`, `agent` or `engine`. */
   author_kind?: string

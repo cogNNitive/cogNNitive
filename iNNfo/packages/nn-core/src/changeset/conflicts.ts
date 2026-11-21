@@ -14,6 +14,47 @@ export interface PartitionResult {
 }
 
 /**
+ * An atomic changeset (frontmatter `atomic: true`, design D8) is all or nothing: one
+ * conflicted change conflicts every change of the changeset and nothing is written.
+ * Returns every change as conflicted, each carrying the diagnostic of the first
+ * conflict so the caller can report one reason per change. A non-atomic partition is
+ * returned unchanged.
+ *
+ * Pure: this decides the partition, it does not touch the disk.
+ */
+export function applyAtomicity(
+  partition: PartitionResult,
+  atomic: boolean | undefined,
+): PartitionResult {
+  if (atomic !== true) return partition
+  const { conflictedSubset, conflictDiagnostics } = partition
+  if (conflictedSubset.length === 0) return partition
+
+  const first = conflictDiagnostics.get(conflictedSubset[0]!.id)
+  const conflictsAll = {
+    code: 'ATOMIC_CHANGESET_CONFLICT',
+    message:
+      'ATOMIC_CHANGESET_CONFLICT: the changeset is atomic and at least one change conflicted' +
+      (first ? ` (${first.code}: ${first.message})` : '') +
+      '; no change of the changeset was written',
+  }
+  const everyChange = [...partition.cleanSubset, ...conflictedSubset]
+  for (const change of everyChange) {
+    change.status = 'conflict'
+    change.resolution = conflictsAll.message
+  }
+  const diagnostics = new Map<string, { code: string; message: string }>()
+  for (const change of everyChange) {
+    diagnostics.set(change.id, conflictsAll)
+  }
+  return {
+    cleanSubset: [],
+    conflictedSubset: everyChange,
+    conflictDiagnostics: diagnostics,
+  }
+}
+
+/**
  * Evaluates preconditions for each change item individually:
  * - from value mismatches
  * - missing target elements
@@ -134,14 +175,19 @@ export async function partitionChangeset(
         change.op === 'rename_element')
     ) {
       const baseVer =
-        modelBaseVersions?.get(targetModelSlug) ||
-        model.frontmatter.knowledge_version ||
-        ''
+        modelBaseVersions?.get(targetModelSlug) || model.frontmatter.knowledge_version || ''
       if (baseVer && elementIdent) {
-        const staleRes = checkStaleTarget(await stalenessHistory(changesDir), targetModelSlug, elementIdent, baseVer)
+        const staleRes = checkStaleTarget(
+          await stalenessHistory(changesDir),
+          targetModelSlug,
+          elementIdent,
+          baseVer,
+        )
         if (staleRes.stale) {
           const code = staleRes.code ?? 'STALE_TARGET_DELETED'
-          const msg = staleRes.message || `STALE_TARGET_DELETED: Target element was deleted after base_version ${baseVer}`
+          const msg =
+            staleRes.message ||
+            `STALE_TARGET_DELETED: Target element was deleted after base_version ${baseVer}`
           conflictDiagnostics.set(change.id, { code, message: msg })
           change.status = 'conflict'
           change.resolution = msg
@@ -158,14 +204,24 @@ export async function partitionChangeset(
       change.op === 'remove_element' ||
       change.op === 'rename_element'
     ) {
-      let foundElement: { name: string; slug?: string; fields: Record<string, unknown>; description?: string } | null = null
+      let foundElement: {
+        name: string
+        slug?: string
+        fields: Record<string, unknown>
+        description?: string
+      } | null = null
       // Set only for an element that exists in the model (not one an earlier add creates).
       let foundConcept = ''
       let foundIsLive = false
       if (model.elements) {
         const candidates: Array<{
           concept: string
-          element: { name: string; slug?: string; fields: Record<string, unknown>; description?: string }
+          element: {
+            name: string
+            slug?: string
+            fields: Record<string, unknown>
+            description?: string
+          }
         }> = []
 
         // If change.concept is specified, check that concept first
@@ -225,15 +281,19 @@ export async function partitionChangeset(
 
       if (!foundElement) {
         // Also check if an earlier add_element in this batch adds this element
-        const earlierAdd = changes.slice(0, changes.indexOf(change)).find(
-          (c) =>
-            c.op === 'add_element' &&
-            extractModelSlug(c.target).toLowerCase() === targetModelSlug.toLowerCase() &&
-            (!change.concept || !c.concept || c.concept.toLowerCase() === change.concept.toLowerCase()) &&
-            ((c.resolved_slug && c.resolved_slug.toLowerCase() === elementIdent.toLowerCase()) ||
-              (c.slug && c.slug.toLowerCase() === elementIdent.toLowerCase()) ||
-              (c.name && slugify(c.name).toLowerCase() === elementIdent.toLowerCase())),
-        )
+        const earlierAdd = changes
+          .slice(0, changes.indexOf(change))
+          .find(
+            (c) =>
+              c.op === 'add_element' &&
+              extractModelSlug(c.target).toLowerCase() === targetModelSlug.toLowerCase() &&
+              (!change.concept ||
+                !c.concept ||
+                c.concept.toLowerCase() === change.concept.toLowerCase()) &&
+              ((c.resolved_slug && c.resolved_slug.toLowerCase() === elementIdent.toLowerCase()) ||
+                (c.slug && c.slug.toLowerCase() === elementIdent.toLowerCase()) ||
+                (c.name && slugify(c.name).toLowerCase() === elementIdent.toLowerCase())),
+          )
         if (earlierAdd) {
           foundElement = {
             name: earlierAdd.name || earlierAdd.slug || '',
@@ -256,7 +316,10 @@ export async function partitionChangeset(
 
       // 4b. base_hash precondition: the element changed since the change was written.
       if (change.base_hash && foundIsLive) {
-        const currentHash = hashParsedElement(foundConcept, foundElement as Parameters<typeof hashParsedElement>[1])
+        const currentHash = hashParsedElement(
+          foundConcept,
+          foundElement as Parameters<typeof hashParsedElement>[1],
+        )
         if (currentHash !== change.base_hash.trim().toLowerCase()) {
           const msg = `PRECONDITION_FAILED: Target element "${elementIdent}" changed since the change was written (base_hash ${change.base_hash} does not match current ${currentHash})`
           conflictDiagnostics.set(change.id, { code: 'STALE_BASE_HASH', message: msg })
@@ -321,15 +384,9 @@ export async function partitionChangeset(
         const matchesCoord = (actual: string, requested: string): boolean => {
           const a = actual.toLowerCase()
           const r = requested.toLowerCase()
-          return (
-            a === r ||
-            slugify(a) === slugify(r) ||
-            slugifyHeading(a) === slugifyHeading(r)
-          )
+          return a === r || slugify(a) === slugify(r) || slugifyHeading(a) === slugifyHeading(r)
         }
-        const cell = mat?.cells?.find(
-          (c) => matchesCoord(c.row, row) && matchesCoord(c.col, col),
-        )
+        const cell = mat?.cells?.find((c) => matchesCoord(c.row, row) && matchesCoord(c.col, col))
         const currentVal = cell?.value !== undefined ? String(cell.value) : undefined
         if (currentVal !== change.from) {
           const msg = `PRECONDITION_FAILED: Precondition failed: current value "${currentVal ?? ''}" does not match from "${change.from}"`
@@ -355,9 +412,16 @@ export async function partitionChangeset(
       }
 
       // Find concept in model
-      const cFields = model.conceptFields?.[conceptIdent] ||
-        (Object.keys(model.conceptFields || {}).find((k) => k.toLowerCase() === conceptIdent.toLowerCase())
-          ? model.conceptFields?.[Object.keys(model.conceptFields || {}).find((k) => k.toLowerCase() === conceptIdent.toLowerCase())!]
+      const cFields =
+        model.conceptFields?.[conceptIdent] ||
+        (Object.keys(model.conceptFields || {}).find(
+          (k) => k.toLowerCase() === conceptIdent.toLowerCase(),
+        )
+          ? model.conceptFields?.[
+              Object.keys(model.conceptFields || {}).find(
+                (k) => k.toLowerCase() === conceptIdent.toLowerCase(),
+              )!
+            ]
           : undefined)
 
       const currentRawVal = cFields?.[fieldIdent]
@@ -369,9 +433,19 @@ export async function partitionChangeset(
       }
 
       const currentCanonical = formatCanonical(currentRawVal)
-      const expectedFrom = formatCanonical(change.from !== undefined ? (change.from.trim().startsWith('[') ? parsePropertyValue(change.from) : change.from) : undefined)
+      const expectedFrom = formatCanonical(
+        change.from !== undefined
+          ? change.from.trim().startsWith('[')
+            ? parsePropertyValue(change.from)
+            : change.from
+          : undefined,
+      )
 
-      if (change.from !== undefined && currentCanonical !== expectedFrom && currentCanonical !== change.from.trim()) {
+      if (
+        change.from !== undefined &&
+        currentCanonical !== expectedFrom &&
+        currentCanonical !== change.from.trim()
+      ) {
         const msg = `PRECONDITION_FAILED: Precondition failed: current value "${currentCanonical}" does not match from "${change.from}"`
         conflictDiagnostics.set(change.id, { code: 'PRECONDITION_FAILED', message: msg })
         change.status = 'conflict'
@@ -390,15 +464,18 @@ export async function partitionChangeset(
       const mIdentLower = matrixIdent.toLowerCase()
 
       const exists =
-        (model.matrices && model.matrices.some(
-          (m) =>
-            m.name.toLowerCase() === mIdentLower ||
-            slugify(m.name).toLowerCase() === mIdentLower ||
-            slugifyHeading(m.name).toLowerCase() === mIdentLower,
-        )) ||
-        (model.sectionOrder && model.sectionOrder.some(
-          (s) => s.toLowerCase() === `matrices: ${mIdentLower}` || s.toLowerCase() === mIdentLower,
-        ))
+        (model.matrices &&
+          model.matrices.some(
+            (m) =>
+              m.name.toLowerCase() === mIdentLower ||
+              slugify(m.name).toLowerCase() === mIdentLower ||
+              slugifyHeading(m.name).toLowerCase() === mIdentLower,
+          )) ||
+        (model.sectionOrder &&
+          model.sectionOrder.some(
+            (s) =>
+              s.toLowerCase() === `matrices: ${mIdentLower}` || s.toLowerCase() === mIdentLower,
+          ))
 
       if (!exists) {
         const msg = `PRECONDITION_FAILED: Matrix "${matrixIdent}" not found in model "${targetModelSlug}"`

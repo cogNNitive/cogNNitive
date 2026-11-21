@@ -9869,14 +9869,17 @@ function validateFrontmatter(fm) {
     invalidFrontmatter("missing blueprint_version");
   }
   if (!isChangeStatus(fm.status)) {
-    invalidFrontmatter(
-      "status must be one of proposed|applied|partially_applied|rejected|conflict"
-    );
+    invalidFrontmatter("status must be one of proposed|applied|partially_applied|rejected|conflict");
+  }
+  if (fm.atomic !== void 0 && typeof fm.atomic !== "boolean") {
+    invalidFrontmatter("atomic must be true or false when present");
   }
   return fm;
 }
 function parseChangeset(rawContent) {
-  const frontmatterMatch = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(rawContent.trimStart());
+  const frontmatterMatch = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(
+    rawContent.trimStart()
+  );
   if (!frontmatterMatch) {
     invalidFrontmatter("missing frontmatter block");
   }
@@ -10050,7 +10053,9 @@ function parseChangeset(rawContent) {
   if (hasGate) {
     for (const key of ["author_kind", "origin", "reviewer"]) {
       if (frontmatter[key] === void 0 || frontmatter[key] === null) {
-        throw new Error(`Invalid review_gate changeset: missing frontmatter "${key}" (required for verdicts)`);
+        throw new Error(
+          `Invalid review_gate changeset: missing frontmatter "${key}" (required for verdicts)`
+        );
       }
     }
   }

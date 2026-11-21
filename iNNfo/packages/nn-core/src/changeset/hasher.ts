@@ -97,19 +97,38 @@ function canonicalizeChangeItem(change: ChangeItem): Record<string, unknown> {
  * proposed changes, plus the human-provenance markers (`author_kind`, `origin`,
  * `reviewer`) when present, so a verdict seal covers them
  * (changeset-review-gate "The seal covers verdict keys and provenance").
+ *
+ * `atomic` is part of the proposal too: a changeset sealed as non-atomic cannot be
+ * turned into an all-or-nothing one after the fact without breaking the seal.
  */
-export function computeProposalSha(changes: ChangeItem[], frontmatter?: { author_kind?: string; origin?: string; reviewer?: string }): string {
+export function computeProposalSha(changes: ChangeItem[], frontmatter?: ProposalSealInput): string {
   const canonicalItems = changes.map(canonicalizeChangeItem)
   const serialized = JSON.stringify(canonicalItems)
   const hash = createHash('sha256').update(serialized, 'utf8')
-  if (frontmatter && (frontmatter.author_kind !== undefined || frontmatter.origin !== undefined || frontmatter.reviewer !== undefined)) {
+  if (
+    frontmatter &&
+    (frontmatter.author_kind !== undefined ||
+      frontmatter.origin !== undefined ||
+      frontmatter.reviewer !== undefined)
+  ) {
     const markers: Record<string, unknown> = {}
     for (const key of ['author_kind', 'origin', 'reviewer'] as const) {
       if (frontmatter[key] !== undefined) markers[key] = frontmatter[key]
     }
     hash.update('\n:::provenance:::\n').update(JSON.stringify(markers))
   }
+  if (frontmatter?.atomic === true) {
+    hash.update('\n:::atomic:::\ntrue')
+  }
   return hash.digest('hex').toLowerCase()
+}
+
+/** The frontmatter fields the seal covers, other than the changes themselves. */
+export interface ProposalSealInput {
+  author_kind?: string
+  origin?: string
+  reviewer?: string
+  atomic?: boolean
 }
 
 /**

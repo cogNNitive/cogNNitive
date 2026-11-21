@@ -1,11 +1,15 @@
 import { parse as parseYaml } from 'yaml'
-import { addModelProblems, extractInstanceProblems, isChangeOp, isChangeStatus, moveModelProblems, removeModelProblems, reviewGateProblems } from './types.js'
-import { splitSourceFieldValue } from '../sourceRef.js'
-import type {
-  ChangesetDocument,
-  ChangesetFrontmatter,
-  ChangeItem,
+import {
+  addModelProblems,
+  extractInstanceProblems,
+  isChangeOp,
+  isChangeStatus,
+  moveModelProblems,
+  removeModelProblems,
+  reviewGateProblems,
 } from './types.js'
+import { splitSourceFieldValue } from '../sourceRef.js'
+import type { ChangesetDocument, ChangesetFrontmatter, ChangeItem } from './types.js'
 
 export { reviewGateProblems } from './types.js'
 
@@ -45,7 +49,8 @@ function parseStringArray(value: unknown): string[] | undefined {
   return value.map((v) => String(v))
 }
 
-function parseFieldsValue(str: string): Record<string, string> | undefined {  const trimmed = str.trim()
+function parseFieldsValue(str: string): Record<string, string> | undefined {
+  const trimmed = str.trim()
   if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
     try {
       const parsed = JSON.parse(trimmed)
@@ -96,9 +101,12 @@ function validateFrontmatter(fm: Record<string, unknown>): ChangesetFrontmatter 
     invalidFrontmatter('missing blueprint_version')
   }
   if (!isChangeStatus(fm.status)) {
-    invalidFrontmatter(
-      'status must be one of proposed|applied|partially_applied|rejected|conflict',
-    )
+    invalidFrontmatter('status must be one of proposed|applied|partially_applied|rejected|conflict')
+  }
+  // `atomic` is optional; when present it must be a boolean. A string that reads truthy
+  // would change atomicity without changing the seal the same way.
+  if (fm.atomic !== undefined && typeof fm.atomic !== 'boolean') {
+    invalidFrontmatter('atomic must be true or false when present')
   }
   return fm as unknown as ChangesetFrontmatter
 }
@@ -110,7 +118,9 @@ function validateFrontmatter(fm: Record<string, unknown>): ChangesetFrontmatter 
  * is rejected with `CHANGESET_FRONTMATTER_INVALID` naming the offending key.
  */
 export function parseChangeset(rawContent: string): ChangesetDocument {
-  const frontmatterMatch = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(rawContent.trimStart())
+  const frontmatterMatch = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(
+    rawContent.trimStart(),
+  )
 
   if (!frontmatterMatch) {
     invalidFrontmatter('missing frontmatter block')
@@ -307,7 +317,9 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
   if (hasGate) {
     for (const key of ['author_kind', 'origin', 'reviewer'] as const) {
       if (frontmatter[key] === undefined || frontmatter[key] === null) {
-        throw new Error(`Invalid review_gate changeset: missing frontmatter "${key}" (required for verdicts)`)
+        throw new Error(
+          `Invalid review_gate changeset: missing frontmatter "${key}" (required for verdicts)`,
+        )
       }
     }
   }
