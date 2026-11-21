@@ -8380,6 +8380,28 @@ function validateWritePolicy(concepts) {
   return diagnostics;
 }
 
+// iNNfo/packages/nn-core/src/schema/transitions.ts
+function parseTransitions(raw) {
+  let value = raw;
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) return void 0;
+    try {
+      value = JSON.parse(trimmed);
+    } catch {
+      return void 0;
+    }
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return void 0;
+  const out = {};
+  for (const [from, targets] of Object.entries(value)) {
+    if (!Array.isArray(targets)) return void 0;
+    if (!targets.every((t) => typeof t === "string")) return void 0;
+    out[from] = targets;
+  }
+  return out;
+}
+
 // iNNfo/packages/nn-core/src/schema/extract.ts
 var CONCEPT_DEFINITION = "Concept Definition";
 var FIELD_DEFINITION = "Field Definition";
@@ -8474,6 +8496,8 @@ function extractBlueprintSchema(parsed) {
     if (fieldDescription) field.description = fieldDescription;
     const optionsFrom = asString(el.fields["options_from"]);
     if (optionsFrom) field.options_from = optionsFrom;
+    const transitions = parseTransitions(el.fields["transitions"]);
+    if (transitions) field.transitions = transitions;
     if (scope === "concept" && owner) {
       const list = fieldsByConcept.get(owner);
       if (list) {

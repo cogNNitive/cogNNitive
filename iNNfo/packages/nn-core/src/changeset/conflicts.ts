@@ -4,6 +4,9 @@ import { parsePropertyValue } from '../parser/sections.js'
 import { hashParsedElement } from '../console/element-hash.js'
 import { checkStaleTarget, loadStalenessHistory, type StalenessHistory } from './history.js'
 import { extractModelSlug } from './utils.js'
+import { transitionDiagnostic, transitionValue } from './transitions.js'
+import { declaredTransitionsFor } from '../schema/transitions.js'
+import type { DeclaredTransitions } from '../schema/transitions.js'
 import type { ChangeItem } from './types.js'
 import type { ParsedKnowledge } from '../types/index.js'
 
@@ -11,6 +14,55 @@ export interface PartitionResult {
   cleanSubset: ChangeItem[]
   conflictedSubset: ChangeItem[]
   conflictDiagnostics: Map<string, { code: string; message: string }>
+}
+
+/** The initial fields of an `add_element`, read from its `to` JSON object. */
+function addElementInitialFields(to: string): Record<string, string> | undefined {
+  const trimmed = to.trim()
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return undefined
+  try {
+    const parsed = JSON.parse(trimmed)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined
+    const out: Record<string, string> = {}
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      out[key] = String(value)
+    }
+    return out
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * The value the field was last written to by an earlier change of the same changeset, or
+ * `undefined` when no earlier change touched it. A `select` lifecycle is validated in
+ * changeset order: two changes on the same field chain, and the second starts where the
+ * first left it.
+ */
+function lastWriteToField(
+  changes: ChangeItem[],
+  before: number,
+  modelSlug: string,
+  elementIdent: string,
+  fieldName: string,
+): string | undefined {
+  let value: string | undefined
+  for (let i = 0; i < before; i++) {
+    const prior = changes[i]!
+    if (prior.op !== 'update_field' || prior.to === undefined) continue
+    if (extractModelSlug(prior.target).toLowerCase() !== modelSlug.toLowerCase()) continue
+    const at = prior.target.indexOf('@')
+    const rest = at !== -1 ? prior.target.slice(at + 1) : ''
+    const amp = rest.lastIndexOf('&')
+    if (amp === -1) continue
+    const ident = rest.slice(0, amp).trim()
+    const field = rest.slice(amp + 1).trim()
+    const matchesIdent =
+      ident.toLowerCase() === elementIdent.toLowerCase() ||
+      slugify(ident).toLowerCase() === slugify(elementIdent).toLowerCase()
+    if (matchesIdent && field.toLowerCase() === fieldName.toLowerCase()) value = prior.to
+  }
+  return value
 }
 
 /**
@@ -73,6 +125,11 @@ export async function partitionChangeset(
    * `add_model` whose target exists and the changes that depend on it.
    */
   blockedChanges?: Map<string, { code: string; message: string }>,
+  /**
+   * Declared transitions per concept and field (lowercase keys). A `select` field listed
+   * here accepts an `update_field`/`add_element` write only along a declared edge.
+   */
+  declaredTransitions?: DeclaredTransitions,
 ): Promise<PartitionResult> {
   const cleanSubset: ChangeItem[] = []
   const conflictedSubset: ChangeItem[] = []
@@ -116,6 +173,32 @@ export async function partitionChangeset(
     if (change.op === 'add_model') {
       cleanSubset.push(change)
       continue
+    }
+
+    // 0b. add_element writes its initial fields in `to` (a JSON object). A field with
+    // declared transitions is entered from `""`, so an add must be a declared first edge.
+    if (change.op === 'add_element' && change.to !== undefined && declaredTransitions) {
+      const initial = addElementInitialFields(change.to)
+      const concept = change.concept
+      let refused: string | undefined
+      if (initial && concept) {
+        for (const [fieldName, value] of Object.entries(initial)) {
+          const transitions = declaredTransitionsFor(declaredTransitions, concept, fieldName)
+          if (!transitions) continue
+          const diag = transitionDiagnostic(fieldName, transitions, '', value)
+          if (diag) {
+            refused = diag
+            break
+          }
+        }
+      }
+      if (refused) {
+        conflictDiagnostics.set(change.id, { code: 'TRANSITION_NOT_ALLOWED', message: refused })
+        change.status = 'conflict'
+        change.resolution = refused
+        conflictedSubset.push(change)
+        continue
+      }
     }
 
     // 1. Reference conflicts from impact analysis
@@ -354,7 +437,40 @@ export async function partitionChangeset(
         }
       }
 
-      // 5b. from precondition check for update_element_text (the prose body)
+      // 5a. Declared transitions (iNNfo V_0-9-0, design D6): a `select` field whose
+      // Field Definition declares `transitions` moves only along a declared edge. The
+      // current value is the live one at this change, so an earlier change of the same
+      // changeset already counted. Writing the value the field holds is always allowed.
+      if (change.op === 'update_field' && change.to !== undefined) {
+        const fieldName = ampIdx !== -1 ? remainder.slice(ampIdx + 1).trim() : ''
+        const transitions = declaredTransitionsFor(
+          declaredTransitions,
+          foundConcept || change.concept,
+          fieldName,
+        )
+        if (transitions) {
+          // In changeset order an earlier change of this same file already moved the
+          // field, so the current value is that change's `to`, not the live one.
+          const priorTo = lastWriteToField(
+            changes,
+            changes.indexOf(change),
+            targetModelSlug,
+            elementIdent,
+            fieldName,
+          )
+          const currentVal =
+            priorTo !== undefined ? priorTo : transitionValue(foundElement.fields?.[fieldName])
+          const diag = transitionDiagnostic(fieldName, transitions, currentVal, change.to)
+          if (diag) {
+            conflictDiagnostics.set(change.id, { code: 'TRANSITION_NOT_ALLOWED', message: diag })
+            change.status = 'conflict'
+            change.resolution = diag
+            conflictedSubset.push(change)
+            continue
+          }
+        }
+      }
+
       if (change.op === 'update_element_text' && change.from !== undefined) {
         const currentProse = foundElement.description ?? ''
         if (currentProse !== change.from) {

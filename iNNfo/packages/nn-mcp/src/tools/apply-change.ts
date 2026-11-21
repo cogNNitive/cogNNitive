@@ -29,6 +29,7 @@ import {
   evaluateBatchDeleteImpact,
   partitionChangeset,
   applyAtomicity,
+  buildDeclaredTransitions,
   isChangeOp,
   isBumpLevel,
   BUMP_LEVELS,
@@ -80,6 +81,8 @@ import type {
   ChangeStatus,
   BumpLevel,
   ChangeOp,
+  DeclaredTransitions,
+  FieldTransitions,
 } from '@cognnitive/nn-core'
 import { findKnowledgeFile, resolveBlueprintWithCache, normalizeId, ModelIdError } from './spec.js'
 import { buildNodeDomainIndex, loadDeclarations } from './domain-index.js'
@@ -102,6 +105,38 @@ import { DEFAULT_WORKSPACE_IGNORE, validateBlueprint } from './validate.js'
  */
 const NON_MUTATING_OPS: ReadonlySet<string> = new Set(['comment', 'review_gate'])
 const isNonMutating = (op: string): boolean => NON_MUTATING_OPS.has(op)
+
+/**
+ * Unions the per-model transition lookups into the one the partition reads. A concept and
+ * field declared by two loaded models merge to the union of their edges: a changeset that
+ * writes the same concept name in two models declares both, so neither is silently weaker.
+ */
+function mergeTransitions(perModel: Map<string, DeclaredTransitions>): DeclaredTransitions {
+  const merged: DeclaredTransitions = new Map()
+  for (const declared of perModel.values()) {
+    for (const [concept, fields] of declared) {
+      let target = merged.get(concept)
+      if (!target) {
+        target = new Map()
+        merged.set(concept, target)
+      }
+      for (const [field, transitions] of fields) {
+        const existing = target.get(field)
+        if (!existing) {
+          target.set(field, transitions)
+          continue
+        }
+        const union: FieldTransitions = { ...existing }
+        for (const [from, targets] of Object.entries(transitions) as Array<[string, string[]]>) {
+          const prior = union[from] ?? []
+          union[from] = [...new Set([...prior, ...targets])]
+        }
+        target.set(field, union)
+      }
+    }
+  }
+  return merged
+}
 
 export interface ApplyChangeResult {
   success: boolean
@@ -2234,6 +2269,20 @@ export async function executeChangesetApply(
       }
     }
     const changesDir = join(rootDir, 'changes')
+    // Declared transitions (iNNfo V_0-9-0): collect every declared edge of the models this
+    // changeset writes, so the partition can refuse a write outside them. A model whose
+    // bluepriNNt cannot be resolved contributes none, and its writes stay unchecked here
+    // (the mutation itself reports the unresolved bluepriNNt).
+    const declaredTransitionsByModel = new Map<
+      string,
+      ReturnType<typeof buildDeclaredTransitions>
+    >()
+    for (const [modelKey, entry] of loadedModels) {
+      const schema = await schemaFor(entry)
+      if (!schema) continue
+      declaredTransitionsByModel.set(modelKey, buildDeclaredTransitions(schema.concepts))
+    }
+    const declaredTransitions = mergeTransitions(declaredTransitionsByModel)
     const partition = await partitionChangeset(
       csDoc.changes,
       loadedModelAsts,
@@ -2241,6 +2290,7 @@ export async function executeChangesetApply(
       modelBaseVersions,
       referenceConflicts,
       blockedChanges,
+      declaredTransitions,
     )
     const { cleanSubset, conflictedSubset, conflictDiagnostics } = partition
 
