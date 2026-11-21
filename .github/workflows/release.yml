@@ -34,6 +34,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          # The tree that ships is the TAG's tree, not the merge commit of the run that
+          # planned it: the write-back lane commits the regenerated artifacts on `main`
+          # before the tag exists, so the tag is a child of the merge commit. Comparing
+          # this checkout against the tag (run-release.js stages the key paths and diffs
+          # them against it) only agrees when the checkout IS the tag.
+          ref: ${{ inputs.tag }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v7

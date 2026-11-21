@@ -22,6 +22,7 @@ const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const { RELEASE_KEYS, RELEASE_TABLE } = require('./release-keys.js');
+const { sharedArtifactLabel } = require('../lib/shared-artifacts.js');
 const { parseSemver, compareSemver } = require('../lib/semver.js');
 
 const ORDER = ['blueprints', 'skills', 'nn-mcp', 'nn-console'];
@@ -31,17 +32,37 @@ const AUTHORED_PACKAGES = {
 };
 
 /**
- * The pathspecs whose commits count as a change of `key`: its distribution paths, minus
- * the generated files derived from the release tags themselves. A restamp commit that
- * counted here would cut the release that caused the restamp, and that one would restamp
- * again, so the lane would never reach a fixed point.
+ * The pathspecs whose commits count as a change of `key`: its distribution paths, minus the
+ * generated files and version mirrors inside them. A commit that only moves one of those is
+ * bookkeeping — `sync:versions` rewrites the `package.json` mirrors and the regen pass
+ * rewrites the bundles — and counting it would cut the release that produced the rewrite,
+ * so the lane would never reach a fixed point.
  *
  * @param {string} key
+ * @param {string[]} [excluded] generated paths to leave out of the set
  * @returns {string[]}
  */
-function pathspecsFor(key) {
-  const ignored = RELEASE_TABLE[key].ignoredRepoPaths ?? [];
-  return [...RELEASE_TABLE[key].repoPaths, ...ignored.map((p) => `:(exclude)${p}`)];
+function pathspecsFor(key, excluded = RELEASE_TABLE[key].ignoredRepoPaths ?? []) {
+  return [...RELEASE_TABLE[key].repoPaths, ...excluded.map((p) => `:(exclude)${p}`)];
+}
+
+/**
+ * Every tracked generated file inside `key`'s distribution paths, taken from the one list of
+ * what counts as generated (`scripts/lib/shared-artifacts.js`), so a new generator under
+ * `skills/` or `iNNfo/specs/` is excluded the moment it is tracked instead of cutting a
+ * release nobody asked for.
+ *
+ * @param {string} key
+ * @param {string} cwd
+ * @returns {string[]}
+ */
+function generatedUnder(key, cwd) {
+  const tracked = git(['ls-files', '--', ...RELEASE_TABLE[key].repoPaths], cwd)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const explicit = RELEASE_TABLE[key].ignoredRepoPaths ?? [];
+  return [...new Set([...explicit, ...tracked.filter((f) => sharedArtifactLabel(f) !== null)])].sort();
 }
 
 /** @param {string[]} messages full commit messages @returns {'major'|'minor'|'patch'} */
@@ -119,7 +140,7 @@ function readRepoState(cwd) {
     if (key in AUTHORED_PACKAGES) continue;
     const latest = latestVersion(tags, key);
     const range = latest ? [`${key}-v${latest}..HEAD`] : ['HEAD'];
-    const out = git(['log', '--no-merges', '--format=%B%x00', ...range, '--', ...pathspecsFor(key)], cwd);
+    const out = git(['log', '--no-merges', '--format=%B%x00', ...range, '--', ...pathspecsFor(key, generatedUnder(key, cwd))], cwd);
     commitsSinceTag[key] = out.split('\0').map((m) => m.trim()).filter(Boolean);
   }
   return { tags, authored, commitsSinceTag };
@@ -138,5 +159,6 @@ module.exports = {
   readRepoState,
   latestVersion,
   pathspecsFor,
+  generatedUnder,
   AUTHORED_PACKAGES,
 };

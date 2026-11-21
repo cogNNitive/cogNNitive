@@ -5,8 +5,16 @@ const assert = require('node:assert');
 const { execFileSync } = require('node:child_process');
 const { mkdirSync, mkdtempSync, writeFileSync } = require('node:fs');
 const { tmpdir } = require('node:os');
-const { join } = require('node:path');
-const { planAutoTags, bumpFor, readRepoState, pathspecsFor } = require('./plan-auto-tags.js');
+const { join, resolve } = require('node:path');
+const {
+  planAutoTags,
+  bumpFor,
+  readRepoState,
+  pathspecsFor,
+  generatedUnder,
+} = require('./plan-auto-tags.js');
+
+const repoRoot = resolve(__dirname, '..', '..');
 
 const noChanges = { skills: [], blueprints: [], 'nn-mcp': [], 'nn-console': [] };
 
@@ -66,6 +74,54 @@ test('an authored version below an existing tag is refused, never re-tagged', ()
     }),
     /nn-mcp 0\.8\.0 is below the released nn-mcp-v0\.9\.0/,
   );
+});
+
+test('generatedUnder finds every generated file inside a content key', () => {
+  const bp = generatedUnder('blueprints', repoRoot)
+  assert.ok(bp.includes('iNNfo/specs/bluepriNNts/catalog.json'), 'the tag-derived catalog');
+  assert.ok(bp.includes('iNNfo/specs/bluepriNNts/console/nn-console.bundle.js'), 'the console bundle');
+  assert.ok(bp.includes('iNNfo/specs/bluepriNNts/console/package.json'), 'the console version mirror');
+  assert.ok(
+    bp.includes('iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/lib/nn-core.generated.cjs'),
+    'a core mirror nested inside the blueprints tree',
+  );
+
+  const skills = generatedUnder('skills', repoRoot)
+  assert.ok(skills.includes('skills/nn-sources/scripts/lib/nn-core.generated.cjs'), 'a skill core mirror');
+  assert.equal(
+    skills.some((p) => p.startsWith('iNNfo/')),
+    false,
+    'a key only excludes what lives inside its own distribution paths',
+  );
+});
+
+test('a commit that only rewrites generated files plans nothing for any content key', () => {
+  // The lane this guards: regen and sync:versions rewrite the mirrors on `main`, and if a
+  // rewrite counted as a change, the release it belongs to would be cut again on every pass.
+  const repo = mkdtempSync(join(tmpdir(), 'plan-tags-generated-'));
+  const git = (...args) =>
+    execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  git('init', '-q');
+  git('config', 'user.email', 'plan-tags@example.com');
+  git('config', 'user.name', 'plan-tags');
+
+  const skillDir = join(repo, 'skills', 'nn-demo', 'scripts', 'lib');
+  mkdirSync(skillDir, { recursive: true });
+  writeFileSync(join(skillDir, 'nn-core.generated.cjs'), 'module.exports = 1\n');
+  writeFileSync(join(repo, 'skills', 'nn-demo', 'package.json'), '{"name":"nn-demo"}\n');
+  git('add', '-A');
+  git('commit', '-qm', 'chore(skills): sync the generated mirrors');
+
+  const state = readRepoState(repo)
+  assert.deepStrictEqual(state.commitsSinceTag.skills, []);
+
+  writeFileSync(join(repo, 'skills', 'nn-demo', 'SKILL.md'), '# demo\n');
+  git('add', '-A');
+  git('commit', '-qm', 'feat(skills): a real skill change');
+
+  assert.deepStrictEqual(readRepoState(repo).commitsSinceTag.skills, [
+    'feat(skills): a real skill change',
+  ]);
 });
 
 test('a content key with no tag yet starts at 0.1.0', () => {
