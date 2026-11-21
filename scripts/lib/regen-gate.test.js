@@ -211,13 +211,52 @@ test('checkRegen judges only what the pass moved, not the edits the author alrea
   }
 });
 
-test('checkRegen fails the gate when the pass itself fails', () => {
-  const root = makeRepo({ 'art.js': 'generated\n' });
+test('checkRegen fails the gate when the pass itself fails', () => {  const root = makeRepo({ 'art.js': 'generated\n' });
   try {
     const res = checkRegen({ root, runPass: () => ({ status: 1, output: 'boom: tsc failed' }) });
     assert.equal(res.ok, false, 'a failed pass is a failed gate');
     assert.match(res.message, /boom: tsc failed/, 'the pass output survives into the message');
     assert.match(res.message, /npm run regen/, 'the fix command is still printed');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+const SHARED_BUNDLE = 'iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js';
+
+test('tolerant: a shared artifact that moves with its source belongs to the lane, not the branch', () => {
+  const root = makeRepo({ 'src.ts': 'v1\n', [SHARED_BUNDLE]: 'bundle from v1\n' });
+  try {
+    const res = checkRegen({
+      root,
+      tolerant: true,
+      runPass: () => {
+        writeFiles(root, { [SHARED_BUNDLE]: 'bundle from v1, rebuilt\n' });
+        return { status: 0, output: '' };
+      },
+    });
+    assert.equal(res.ok, true, 'the write-back lane owns that file after the merge');
+    assert.deepEqual(res.allowed, [SHARED_BUNDLE], 'the artifact is named as the lane work');
+    assert.match(res.message, /committed on/, 'the message says where it lands');
+    assert.match(res.message, /build bundle/, 'the reader sees which class of file it is');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('tolerant: a path the generator is not allowed to own still fails the gate', () => {
+  const root = makeRepo({ 'src.ts': 'v1\n', 'scripts/hand-written.mjs': 'a\n' });
+  try {
+    const res = checkRegen({
+      root,
+      tolerant: true,
+      runPass: () => {
+        writeFiles(root, { 'scripts/hand-written.mjs': 'b\n' });
+        return { status: 0, output: '' };
+      },
+    });
+    assert.equal(res.ok, false, 'a generator writing outside its surface is never waived');
+    assert.deepEqual(res.paths, ['scripts/hand-written.mjs'], 'the foreign path is the one named');
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -229,7 +268,11 @@ test('verify.js carries one derived-artifact gate instead of the twelve freshnes
 
   const gate = byId['regen-gate'];
   assert.ok(gate, 'the gate step exists in the full gate');
-  assert.deepEqual(gate.args, ['scripts/regen.js', '--check'], 'the step runs the gate itself');
+  assert.deepEqual(
+    gate.args,
+    ['scripts/regen.js', '--check', '--tolerant'],
+    'the gate runs with the tolerant split: a derived artifact belongs to the write-back lane',
+  );
   assert.equal(gate.parallel, undefined, 'the gate writes the tree, so it never shares the pool');
 
   for (const id of [
