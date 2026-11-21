@@ -30,6 +30,20 @@ const AUTHORED_PACKAGES = {
   'nn-console': 'iNNfo/specs/bluepriNNts/console/package.json',
 };
 
+/**
+ * The pathspecs whose commits count as a change of `key`: its distribution paths, minus
+ * the generated files derived from the release tags themselves. A restamp commit that
+ * counted here would cut the release that caused the restamp, and that one would restamp
+ * again, so the lane would never reach a fixed point.
+ *
+ * @param {string} key
+ * @returns {string[]}
+ */
+function pathspecsFor(key) {
+  const ignored = RELEASE_TABLE[key].ignoredRepoPaths ?? [];
+  return [...RELEASE_TABLE[key].repoPaths, ...ignored.map((p) => `:(exclude)${p}`)];
+}
+
 /** @param {string[]} messages full commit messages @returns {'major'|'minor'|'patch'} */
 function bumpFor(messages) {
   if (messages.some((m) => /^[a-z]+(\([^)]*\))?!:/.test(m) || /^BREAKING[ -]CHANGE:/m.test(m))) {
@@ -105,7 +119,7 @@ function readRepoState(cwd) {
     if (key in AUTHORED_PACKAGES) continue;
     const latest = latestVersion(tags, key);
     const range = latest ? [`${key}-v${latest}..HEAD`] : ['HEAD'];
-    const out = git(['log', '--no-merges', '--format=%B%x00', ...range, '--', ...RELEASE_TABLE[key].repoPaths], cwd);
+    const out = git(['log', '--no-merges', '--format=%B%x00', ...range, '--', ...pathspecsFor(key)], cwd);
     commitsSinceTag[key] = out.split('\0').map((m) => m.trim()).filter(Boolean);
   }
   return { tags, authored, commitsSinceTag };
@@ -118,4 +132,11 @@ if (require.main === module) {
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `tags=${json}\n`);
 }
 
-module.exports = { planAutoTags, bumpFor, readRepoState, latestVersion, AUTHORED_PACKAGES };
+module.exports = {
+  planAutoTags,
+  bumpFor,
+  readRepoState,
+  latestVersion,
+  pathspecsFor,
+  AUTHORED_PACKAGES,
+};

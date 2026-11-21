@@ -14,6 +14,13 @@ const RELEASE_TABLE = Object.freeze({
   }),
   blueprints: Object.freeze({
     repoPaths: Object.freeze(['iNNfo/specs']),
+    /**
+     * `catalog.json` is generated *from the release tags*: a commit that only restamps it
+     * is bookkeeping, not a blueprint change. Counting it as one closes a loop —
+     * restamp, tag, and the new tag makes the next restamp different, so it tags again.
+     * `run-release.js` stamps that file at publish time anyway, so nothing is lost.
+     */
+    ignoredRepoPaths: Object.freeze(['iNNfo/specs/bluepriNNts/catalog.json']),
     sitePaths: Object.freeze([]),
   }),
   'nn-mcp': Object.freeze({

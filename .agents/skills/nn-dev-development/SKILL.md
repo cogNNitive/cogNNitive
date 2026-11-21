@@ -277,6 +277,16 @@ tag shapes are a contract. Nobody tags by hand.
   committed in the repo is cosmetic, and CI cannot judge it (`blueprint-catalog --check`
   normalises the field away on purpose). Do not "fix" it with a PR: touching
   `iNNfo/specs/` for a generated file cuts a blueprints release for nothing.
+- **Bookkeeping is not a release trigger.** `release-keys.js` excludes
+  `iNNfo/specs/bluepriNNts/catalog.json` from the `blueprints` change set for exactly that
+  reason: its bytes come from the tags, so a commit that only restamps it would cut the
+  release that restamps it again, forever. The same rule has to hold for anything a future
+  automatic post-merge commit would touch (`package.json`, `package-lock.json`, the
+  bundles, the console export): an excluded generated file cannot cut its own release, and
+  a non-excluded one loops. And the regeneration must land **before** the tag, because the
+  release copies the tag's tree — a commit that regenerates after `auto-tag` publishes the
+  stale bundle. Both are why moving artifacts out of PRs is a release-contract change, not
+  a hook tweak.
 - **To release nn-mcp or the console:** bump its `package.json` version in the PR, then
   run `npm run sync:versions`, `npm install --package-lock-only` and `npm run regen`.
   The `release-bump` CI job enforces it: a PR that changes a path of `nn-mcp` or
