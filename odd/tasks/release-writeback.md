@@ -46,9 +46,16 @@ Test runner: `node --test <file>`, `node scripts/verify.js --fast`, `npm run che
   removal of the hand bump.
 - T7 S1–S6 — verification: `node scripts/verify.js` (not `--fast`, which skips the regen gate),
   `scripts/release/*.test.*`, and one real merge to observe the lane end to end (`release (<tag>)`
-  job success plus an empty plan on the bookkeeping commit). Route: inline. Status: pending —
-  this is the acceptance gate for the cycle: everything except the workflow ordering is verified
-  locally, and the ordering only proves itself on the first merge that moves a source path.
+  job success plus an empty plan on the bookkeeping commit). Route: inline. Status: **observed** on
+  2026-11-21, twice:
+  - merge `787849c6` (#766): the lane regenerated and the commit was refused by
+    `guard-primary-checkout` (a runner's only checkout is a primary), so `regen` failed and
+    `auto-tag` was skipped. Fixed forward in #767.
+  - merge `27f49345` (#767): `regen` committed `79165ff88` (the two catalogs, stamped
+    `blueprints-v0.85.1`), `auto-tag` planned `[]`, `release` skipped, tags unchanged, and no
+    follow-up run exists at all because a push made with `GITHUB_TOKEN` does not trigger
+    workflows. `node scripts/release/plan-auto-tags.js` on `79165ff88` returns `[]`, so the
+    lane cannot re-enter even with a token that does trigger.
 - L3 (2026-11-21): T5 changed shape while implementing it. `repoPaths` is what ships and
   `changePaths` is what triggers, and they are not the same for `nn-mcp`: its only repo path is
   the generated bundle, so deriving from it would mean the key never releases. Worse, that was
