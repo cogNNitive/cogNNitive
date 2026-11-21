@@ -1033,7 +1033,10 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
             type: 'string',
             description: 'Who records the fact (default agent, or engine for run)',
           },
-          timeout_ms: { type: 'number', description: 'run: command timeout (default 60000)' },
+          timeout_ms: {
+            type: 'number',
+            description: 'run: command timeout (default 60000, clamped to 1000..300000)',
+          },
           domain: { type: 'string', description: 'Optional domain root override' },
           root: { type: 'string', description: 'Optional domain root override (alias for domain)' },
         },

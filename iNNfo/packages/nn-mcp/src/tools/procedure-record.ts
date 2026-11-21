@@ -8,7 +8,7 @@ import { applyChange } from './apply-change.js'
 import { writeProposedChangeset } from './propose-changeset.js'
 import { findKnowledgeFile } from './spec.js'
 import { loadDeclarations } from './domain-index.js'
-import { acquireRunLock } from './procedure-lock.js'
+import { MAX_STEP_TIMEOUT_MS, acquireRunLock } from './procedure-lock.js'
 import type { RunLockHandle } from './procedure-lock.js'
 import {
   describeRun,
@@ -439,7 +439,13 @@ function planEngineRun(
   const started = planStepStart(f, step)
   if ('ok' in started) return started
   const command = substitute(def.command, f.run.params)!
-  const timeout = typeof args['timeout_ms'] === 'number' ? args['timeout_ms'] : DEFAULT_TIMEOUT_MS
+  const requested = typeof args['timeout_ms'] === 'number' ? args['timeout_ms'] : DEFAULT_TIMEOUT_MS
+  // The step's length is the run lock's liveness window, so it has to be bounded: with an
+  // unbounded (or zero, which means "no timeout" to `spawnSync`) value, a live holder is
+  // indistinguishable from a crashed one and can be robbed mid-write.
+  const timeout = Number.isFinite(requested)
+    ? Math.min(Math.max(requested, 1_000), MAX_STEP_TIMEOUT_MS)
+    : DEFAULT_TIMEOUT_MS
   const res = spawnSync(command, { cwd: root, shell: true, timeout, encoding: 'utf-8' })
   const exitCode = res.status
   const events: RunEvent[] = [started]
