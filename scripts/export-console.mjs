@@ -1302,6 +1302,7 @@ export function collectProcedureRuns({
  * the two, so the widget keeps working without a second ledger in the domain.
  */
 function eventsOfRunModel(record) {
+  /** @type {Array<Record<string, unknown>>} */
   const events = [{ kind: 'started', actor: 'engine' }]
   for (const [slug, row] of Object.entries(record.steps ?? {})) {
     if (row.attempt > 0) events.push({ kind: 'step_started', step: slug, attempt: row.attempt })
