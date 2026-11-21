@@ -206,7 +206,8 @@ describe('push-release-tags: one atomic push, idempotent, never moves a tag', ()
     assert.equal(peeled[0], regenerated, 'the tag must follow the release target, not the run SHA')
   })
 
-  it('writes the step summary when the runner provides one', () => {    const summary = join(fixture.root, 'summary.md')
+  it('writes the step summary when the runner provides one', () => {
+    const summary = join(fixture.root, 'summary.md')
     writeFileSync(summary, '')
     const res = spawnSync(process.execPath, [SCRIPT], {
       cwd: fixture.work,
