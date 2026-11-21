@@ -1,7 +1,8 @@
-/* The projection: a run rendered with the drafts the console holds but has not applied,
+﻿/* The projection: a run rendered with the drafts the console holds but has not applied,
    marked apart from what the export recorded. Drives the real fold and the real controller,
    so a projection that disagrees with nn-core fails here rather than in a browser. */
 import { describe, it, beforeEach } from 'node:test'
+import { runModelOfEvents } from './helpers/run-model-of-events.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -148,7 +149,7 @@ describe('procedure view projects a run from its pending drafts', () => {
                 defRev,
                 params: {},
                 events: AT_REVIEW,
-                state: nnCore.foldRun(graph, AT_REVIEW, { defRev, lockFree: true }),
+                state: nnCore.foldRun(graph, runModelOfEvents(AT_REVIEW, { defRev }), { defRev }),
               },
             ],
           },

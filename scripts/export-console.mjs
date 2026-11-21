@@ -1280,10 +1280,10 @@ export function collectProcedureRuns({
         record.state === 'completed' || record.state === 'failed' || record.state === 'cancelled',
       defRev: record.defRev,
       params: record.params,
-      // The console stepper still reads `events`; the run model carries none (design §2.4 keeps
-      // the console widget out of this change), so the export advertises an empty log rather
-      // than changing the stepper's contract here.
-      events: [],
+      // The console stepper reads a run as a list of events (design §2.4 keeps the widget out
+      // of the state-model change). The run model is state, not events, so these are derived
+      // from its rows: the stepper keeps its contract and never sees a stale ledger.
+      events: eventsOfRunModel(record),
       state: entry.graph
         ? helper.foldRun(entry.graph, record, {
             defRev: record.defRev,
@@ -1293,6 +1293,43 @@ export function collectProcedureRuns({
     })
   }
   return [...entries.values()].sort((a, b) => compare(a.file, b.file))
+}
+
+/**
+ * The stepper's event view of a run model (design §2.4): every row that carries state becomes
+ * the event that state implies, in a stable order (header, then steps, then artifacts). The
+ * console widget reads events, and the run model is state; this is the one translation between
+ * the two, so the widget keeps working without a second ledger in the domain.
+ */
+function eventsOfRunModel(record) {
+  const events = [{ kind: 'started', actor: 'engine' }]
+  for (const [slug, row] of Object.entries(record.steps ?? {})) {
+    if (row.attempt > 0) events.push({ kind: 'step_started', step: slug, attempt: row.attempt })
+    if (row.status === 'waiting')
+      events.push({ kind: 'step_waiting', step: slug, value: row.waitingOn ?? '' })
+    if (row.status === 'done')
+      events.push({
+        kind: 'step_completed',
+        step: slug,
+        ...(row.outcome !== undefined ? { outcome: row.outcome } : {}),
+        ...(row.next !== undefined ? { next: row.next } : {}),
+      })
+    if (row.status === 'failed')
+      events.push({ kind: 'step_failed', step: slug, value: row.failure ?? '' })
+  }
+  for (const [slug, row] of Object.entries(record.artifacts ?? {})) {
+    if (row.status === 'validated' || row.status === 'rejected' || row.status === 'produced')
+      events.push({
+        kind: `artifact_${row.status}`,
+        field: slug,
+        ...(row.value !== undefined ? { value: row.value } : {}),
+        ...(row.rev !== undefined ? { rev: row.rev } : {}),
+      })
+  }
+  if (record.state === 'paused') events.push({ kind: 'interrupted' })
+  if (record.state === 'completed' || record.state === 'failed' || record.state === 'cancelled')
+    events.push({ kind: record.state })
+  return events
 }
 
 /* ── Model discovery ───────────────────────────────────────────── */

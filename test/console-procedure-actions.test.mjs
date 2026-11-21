@@ -1,4 +1,5 @@
-import { describe, it, beforeEach } from 'node:test'
+﻿import { describe, it, beforeEach } from 'node:test'
+import { runModelOfEvents } from './helpers/run-model-of-events.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -66,7 +67,7 @@ function runOf(id, graph, events, opts = {}) {
     defRev,
     params: {},
     events,
-    state: core.foldRun(graph, events, { defRev, lockFree: opts.lockFree !== false }),
+    state: core.foldRun(graph, runModelOfEvents(events, { defRev }), { defRev }),
   }
 }
 
