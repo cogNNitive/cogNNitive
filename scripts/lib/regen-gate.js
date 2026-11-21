@@ -40,6 +40,13 @@ const REGEN_EXCLUDED_PATHS = [
       'release_tag comes from the blueprints-v* git tags, so identical content renders different bytes ' +
       'in a different tag set; blueprint-catalog --check compares it with release_tag normalised away',
   },
+  {
+    path: 'docs/innfo/blueprints/catalog.json',
+    reason:
+      'the docs mirror of the same tag-derived catalog: it moves with the one above and for the same reason. ' +
+      'The write-back lane judges its own pass with this gate, and a file whose bytes depend on HEAD ' +
+      'cannot be stable across the commit that changes HEAD',
+  },
 ];
 
 /**
