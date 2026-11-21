@@ -94,7 +94,7 @@ const filePaths = (files) =>
  * ones that a rebase plus `npm run regen` already resolves.
  *
  * @param {string[]} myPaths
- * @param {Array<{ number: number, headRefName: string, files: unknown[] }>} prs
+ * @param {Array<{ number: number, headRefName: string, files: Array<{ path: string } | string> }>} prs
  * @param {string} branch
  */
 function compare(myPaths, prs, branch) {
