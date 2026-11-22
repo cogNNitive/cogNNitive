@@ -60,6 +60,9 @@ captured:: 2026-11-14
 ## NN Idea: Per-delegate token and cost metering for every phase that launches subagents (general mechanism, not a review feature) - each delegate reports its own input, output and cached tokens on completion, and the orchestrator aggregates them against a dated rate table so an estimate can be replaced by a measured figure. Wanted first by nn-dev-multimodel-review, whose preflight can only estimate, but the same gap exists in every SDD apply, backlog audit and analysis phase that fans out. Needs a decision on how a runtime that does not report usage is represented, and on where the ledger lives (per run, per session or per repo).
 captured:: 2026-11-15
 
+## NN Idea: Conditional field transitions (`requires`) - the deferred half of declared transitions (design §2.5). A Field Definition would declare `requires:: {"approved": "gate:script"}`, a condition an edge must satisfy. Deferred because, as specified in the 2026-11-21 review, it was unsatisfiable or wrong: the coNNtent script gate is per Scene element, not on the Video; the condition ignored the verdict (`approved | needs-change`), so a rejection satisfied it; the element hash covers every field including `status`, so a gated move rewrites the hash it was gated on; and the engine writes `approved` itself, so an autopilot domain with no gates would be blocked. Reopens only with a written subject rule (which elements, how they aggregate), the current affirmative verdict with supersession, a hash that excludes the gated field, and applicability bound to the gates configured for the model rather than merely declared by the bluepriNNt. Human-only approval stays where it is enforced today: `changeset/gates.ts` and the coNNtent gate resolver.
+captured:: 2026-11-21
+
 # NN Item
 ## NN Item: source-import-guards
 value:: M
@@ -1015,3 +1018,22 @@ lane:: light
 items:: contextual-docs-links
 risk:: L
 state:: planned
+
+## NN Item: procedure-consolidation
+value:: H
+effort:: L
+risk:: H
+status:: shipped
+lane:: heavy
+verdict:: current
+evidence:: Shipped as one branch (session/procedure-consolidation-impl) implementing the design in odd/designs/procedure-consolidation.md, whose review is archived at openspec/analysis/2026-11-21-procedure-consolidation-design/. It lands in five commits. A2 (69eb91426): a changeset MAY declare atomic: true; any conflicted change conflicts every change and nothing is written, with ATOMIC_CHANGESET_CONFLICT naming the failure; sealed into proposal_sha (applyAtomicity in nn-core changeset/conflicts, applied in apply-change). A1 (bb386dd1e): iNNfo V_0-9-0 declares transitions on a select Field Definition (current value, empty for unset, to the values it may move to); apply enforces the edge in changeset order with TRANSITION_NOT_ALLOWED, an add_element is checked from unset, re-stating the current value is always allowed, and history is never revalidated; schema/transitions owns parse and shape, changeset/transitions the apply rule. B1 (3f62720a1): a changeset carries a sealed run:: <run-id>@<step-slug> frontmatter and the change log gains runChanges(runId, stepSlug?), a run-scoped read where a prefix is not a run. B2 (5b3e80a50): executions V_0-3-0 replaces Execution Event with Step Run, Run Artifact and Input rows; the run is a model with state and its history is its own change log; foldRun reads the model, crash derivation probes the holder pid on this host and falls back to claimed_at + timeout + grace, never the apply lock; every runner changeset is atomic and guards the header seq with from, and a step claim/completion guards status and attempt (the attempt fence); a lost guard is RUN_BUSY; procedure_start refuses an unrunnable graph and an unresolved slot before writing; procedure-lock.ts and runRecordOf are deleted. B3+C1 (b7dc47323): an Artifact declares kind (file/element/changeset) and at, verify defaults from kind, an element artifact's rev is computed from the change log, and the coNNtent procedure becomes runnable (doc@container addressing, tool:: executor aliases, {name} slots with a slots declaration, exit_codes mapping 10/11 to waiting and 12 to failed), with Video.status declaring the transitions derived from its writers (coNNtent V_0-29-0). Each slice carries its own delta spec (changeset-atomicity, field-transitions, run-context, executions-state-model, procedure-artifacts) and tests. Conditional transitions (requires) are deliberately not part of this change; they are recorded as the Idea above with their reopening conditions (design §2.5). The console stepper still reads an events list the run model no longer has, so the export advertises an empty log until the widget follows (design §2.4 keeps it out of this change).
+done_when:: A run is a model with state whose history is its change log, the runner is a series of atomic seq-guarded changesets against that model with no run lock and no event concept, a select field can declare its transitions and apply enforces them, a changeset can carry a sealed run context, and the coNNtent procedure is runnable.
+batch:: b22d-procedure-consolidation
+
+## NN Batch: b22d-procedure-consolidation
+order:: 62
+lane:: heavy
+items:: procedure-consolidation
+risk:: H
+state:: shipped
+

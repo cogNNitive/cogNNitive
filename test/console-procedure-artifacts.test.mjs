@@ -1,6 +1,7 @@
 /* Artifacts are files, not model elements: the card names them as chips, each says which
    step produced it and offers the file. Opening one reads it; it never writes. */
 import { describe, it, beforeEach } from 'node:test'
+import { runModelOfEvents } from './helpers/run-model-of-events.mjs'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { JSDOM } from 'jsdom'
@@ -93,7 +94,7 @@ function payload() {
               defRev,
               params: {},
               events: EVENTS,
-              state: core.foldRun(graph, EVENTS, { defRev, lockFree: true }),
+              state: core.foldRun(graph, runModelOfEvents(EVENTS, { defRev }), { defRev }),
             },
           ],
         },

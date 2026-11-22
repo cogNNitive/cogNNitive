@@ -33,6 +33,8 @@ export interface ChangesetLike {
   appliedAt?: string
   /** Frontmatter `batch`: the batch identity every change inherits. */
   batch?: string
+  /** Frontmatter `run`: `<run-id>@<step-slug>` when written inside a procedure step. */
+  run?: string
   /** Frontmatter `evidence_sha256`: cited path -> sha256, inherited per evidence entry. */
   evidenceSha256?: Readonly<Record<string, string>>
   changes: ReadonlyArray<ChangeLike>
@@ -103,6 +105,7 @@ export function changesetLikeOf(path: string, doc: ChangesetDocument): Changeset
     author: fm.author,
     appliedAt: fm.applied_at,
     ...(typeof fm.batch === 'string' ? { batch: fm.batch } : {}),
+    ...(typeof fm.run === 'string' && fm.run !== '' ? { run: fm.run } : {}),
     ...(fm.evidence_sha256 && typeof fm.evidence_sha256 === 'object'
       ? { evidenceSha256: fm.evidence_sha256 }
       : {}),
@@ -218,6 +221,7 @@ function loggedChanges(cs: ChangesetLike): LoggedChange[] {
       changesetStatus,
       appliedAt: facts.appliedAt,
       batch: facts.batch,
+      ...(cs.run !== undefined ? { run: cs.run } : {}),
       author: facts.author,
       op: change.op as ChangeOp,
       target: change.target,

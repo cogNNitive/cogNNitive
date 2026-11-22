@@ -9,6 +9,7 @@ import {
   extractBlueprintSchema,
 } from './extract.js'
 import { validateFieldValue } from './field-values.js'
+import { parseTransitions, transitionsProblems, TRANSITIONS_INVALID } from './transitions.js'
 import { WIDGET_CONFIG_KEYS } from '../validator/constants.js'
 
 /* ── Metaschema (Self-Description) ──────────────────────────────
@@ -214,12 +215,14 @@ export function validateBlueprintAgainstMetaschema(
 
   const metaConcepts = extractBlueprintSchema(parseKnowledge(metaMarkdown)).concepts
   const template = parseKnowledge(templateContent)
-  const primitiveNames = Array.from(new Set([
-    CONCEPT_DEFINITION,
-    FIELD_DEFINITION,
-    MATRIX_DEFINITION,
-    ...metaConcepts.map((c) => c.name),
-  ]))
+  const primitiveNames = Array.from(
+    new Set([
+      CONCEPT_DEFINITION,
+      FIELD_DEFINITION,
+      MATRIX_DEFINITION,
+      ...metaConcepts.map((c) => c.name),
+    ]),
+  )
   const groups: Array<[string, Array<{ name: string; fields: Record<string, unknown> }>]> =
     primitiveNames.map((primitive) => [primitive, template.elements.get(primitive) ?? []])
 
@@ -238,6 +241,32 @@ export function validateBlueprintAgainstMetaschema(
   for (const el of fieldDefs) {
     const multiple = el.fields['multiple'] === true || el.fields['multiple'] === 'true'
     const type = asString(el.fields['type'])
+    // Declared transitions (iNNfo V_0-9-0): every key and target is one of `options`, and
+    // every option is a key. A malformed map is reported on the declaration.
+    for (const problem of transitionsProblems({
+      name: el.name,
+      type: type ?? 'string',
+      options: Array.isArray(el.fields['options'])
+        ? (el.fields['options'] as unknown[]).map(String)
+        : undefined,
+      transitions: parseTransitions(el.fields['transitions']),
+    })) {
+      diagnostics.push({
+        path: `${FIELD_DEFINITION}.${el.name}.transitions`,
+        message: problem,
+        severity: 'error',
+      })
+    }
+    if (
+      el.fields['transitions'] !== undefined &&
+      parseTransitions(el.fields['transitions']) === undefined
+    ) {
+      diagnostics.push({
+        path: `${FIELD_DEFINITION}.${el.name}.transitions`,
+        message: `${TRANSITIONS_INVALID}: field "${el.name}" declares a transitions value that is not a JSON object of value -> [values]`,
+        severity: 'error',
+      })
+    }
     if (multiple && type !== 'select') {
       diagnostics.push({
         path: `${FIELD_DEFINITION}.${el.name}.multiple`,

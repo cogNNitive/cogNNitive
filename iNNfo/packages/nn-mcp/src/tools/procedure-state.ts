@@ -1,17 +1,17 @@
-import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { dirname, join, posix, relative, resolve } from 'node:path'
 import {
+  crashProbe,
+  fillSlots,
   foldRun,
-  loadChangeLog,
   parseKnowledge,
   procedureGraph,
-  runRecordOf,
+  runModelOf,
 } from '@cognnitive/nn-core'
 import type {
   GraphDiagnostic,
   ProcedureGraph,
-  RunRecord as CoreRunRecord,
+  RunModel,
   RunState,
   SlotDecl,
 } from '@cognnitive/nn-core'
@@ -21,9 +21,10 @@ import { locateChain } from './resolve-effective.js'
 import { locateFloorProcedures } from './floor-procedures.js'
 
 /**
- * Reading side of the procedure runner (design §2, §5, §6): a run is an `executions` instance
- * model; its state is never stored, it is folded from its events by nn-core `foldRun` against
- * the graph nn-core `procedureGraph` reads from the procedure model. Nothing here writes.
+ * Reading side of the procedure runner (design §3.3): a run is an `executions` instance
+ * model; its state is never stored twice, it is folded from its own rows by nn-core
+ * `foldRun` against the graph nn-core `procedureGraph` reads from the procedure model.
+ * Nothing here writes.
  */
 
 export interface ToolError {
@@ -53,31 +54,37 @@ export interface ResolvedProcedure {
   graph: ProcedureGraph
 }
 
-/** Reads a procedure document by the address a run header records. */
+/** Reads a procedure document by the address a run header records, optionally one container. */
 export async function loadProcedure(
   root: string,
   address: string,
 ): Promise<{ ok: true; graph: ProcedureGraph } | ToolError> {
+  // `<doc>@<container-slug>` addresses one sub-procedure of a file (design §4.6).
+  const at = address.lastIndexOf('@')
+  const docAddress =
+    at > 0 && !address.slice(0, at).includes('://') ? address.slice(0, at) : address
+  const container =
+    at > 0 && !address.slice(0, at).includes('://') ? address.slice(at + 1) : undefined
   let abs: string
-  if (address.startsWith(FLOOR_PREFIX)) {
+  if (docAddress.startsWith(FLOOR_PREFIX)) {
     const located = locateChain(root, '.')
     if (!located.ok) return fail(located.code, located.detail)
     const floor = await locateFloorProcedures(located.chain)
     if (!floor.ok || !floor.packageDir)
-      return fail('PROCEDURE_NOT_FOUND', `No bluepriNNt package holds ${address}.`)
-    abs = join(floor.packageDir, address.slice(address.indexOf('/') + 1))
+      return fail('PROCEDURE_NOT_FOUND', `No bluepriNNt package holds ${docAddress}.`)
+    abs = join(floor.packageDir, docAddress.slice(docAddress.indexOf('/') + 1))
   } else {
-    abs = resolve(root, address)
+    abs = resolve(root, docAddress)
     if (relative(root, abs).startsWith('..'))
-      return fail('PROCEDURE_NOT_FOUND', `${address} is outside the domain root.`)
+      return fail('PROCEDURE_NOT_FOUND', `${docAddress} is outside the domain root.`)
   }
   let text: string
   try {
     text = await readFile(abs, 'utf-8')
   } catch {
-    return fail('PROCEDURE_NOT_FOUND', `The procedure document ${address} cannot be read.`)
+    return fail('PROCEDURE_NOT_FOUND', `The procedure document ${docAddress} cannot be read.`)
   }
-  return { ok: true, graph: procedureGraph(parseKnowledge(text)) }
+  return { ok: true, graph: procedureGraph(parseKnowledge(text), container) }
 }
 
 /**
@@ -104,11 +111,13 @@ export async function resolveProcedure(
   return { ok: true, procedure: { address, slots: entry.slots, graph: loaded.graph } }
 }
 
-export interface RunRecord extends CoreRunRecord {
+export interface RunRecord extends RunModel {
   id: string
+  /** Whether the run model carries the `close_model` event (frontmatter `closed`). */
+  closed: boolean
 }
 
-/** Reads a run instance model: its header and its events in file order. */
+/** Reads a run instance model: its header and its step and artifact rows. */
 export async function readRun(
   root: string,
   run: unknown,
@@ -123,9 +132,16 @@ export async function readRun(
   }
   if (!file) return fail('RUN_NOT_FOUND', `No run "${run}" exists in this domaiNN.`)
   const model = parseKnowledge(await readFile(file, 'utf-8'))
-  const record = runRecordOf(model)
-  if (!record) return fail('RUN_NOT_FOUND', `"${run}" is not a Procedure Execution.`)
-  return { ok: true, run: { id: run.trim(), ...record } }
+  const runModel = runModelOf(model)
+  if (!runModel) return fail('RUN_NOT_FOUND', `"${run}" is not a Procedure Execution.`)
+  return {
+    ok: true,
+    run: {
+      id: run.trim(),
+      ...runModel,
+      closed: (model.frontmatter as Record<string, unknown>)['closed'] === true,
+    },
+  }
 }
 
 /** `{slot}` placeholders replaced by the run parameters; unknown placeholders are kept. */
@@ -133,39 +149,34 @@ export const substitute = (
   text: string | undefined,
   params: Record<string, unknown>,
 ): string | undefined =>
-  text?.replace(/\{([\w-]+)\}/g, (m, k: string) =>
-    params[k] === undefined ? m : String(params[k]),
-  )
+  text === undefined
+    ? undefined
+    : fillSlots(text, Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])))
 
-/** Whether the apply lock (`changes/.lock`, held by every apply) is free: the crash derivation needs it. */
-export const isLockFree = (root: string): boolean => !existsSync(join(root, 'changes', '.lock'))
+/** The `{name}` placeholders a command still carries after substitution, so a run can refuse. */
 
 export interface FoldedRun {
   run: RunRecord
   graph: ProcedureGraph
   state: RunState
-  lockFree: boolean
 }
 
-/** Folds a run against its procedure. Recorded inputs addressed `model@unit` are compared to their last change (design §7). */
+/**
+ * Folds a run against its procedure. Crash derivation probes the holder of an `active`
+ * engine step (design §3.3): a pid probe on this host, an age fallback beyond it. It never
+ * reads the apply lock.
+ */
 export async function foldStoredRun(
   root: string,
   run: RunRecord,
 ): Promise<{ ok: true; folded: FoldedRun } | ToolError> {
   const loaded = await loadProcedure(root, run.procedure)
   if (!loaded.ok) return loaded
-  const addressed = run.events.filter((e) => e.kind === 'input_recorded' && e.field?.includes('@'))
-  const currentRevs: Record<string, string> = {}
-  if (addressed.length > 0) {
-    const log = loadChangeLog(root)
-    for (const e of addressed) {
-      const id = log.origin(e.field!)?.id
-      if (id !== undefined) currentRevs[e.field!] = id
-    }
-  }
-  const lockFree = isLockFree(root)
-  const state = foldRun(loaded.graph, run.events, { defRev: run.defRev, lockFree, currentRevs })
-  return { ok: true, folded: { run, graph: loaded.graph, state, lockFree } }
+  const state = foldRun(loaded.graph, run, {
+    defRev: run.defRev,
+    activeStepIsStale: (_slug, row) => crashProbe(row, { now: Date.now() }),
+  })
+  return { ok: true, folded: { run, graph: loaded.graph, state } }
 }
 
 export type RecordAction =
@@ -248,7 +259,9 @@ export interface ProcedureStateResult {
   def_rev: string | null
   params: Record<string, unknown>
   closed: boolean
-  lockFree: boolean
+  /** The stored header state (`open`, `paused`, …). The derived status is on `state.status`. */
+  headerState: string
+  seq: number
   diagnostics: GraphDiagnostic[]
   state: RunState
   step: Record<string, unknown> | null
@@ -257,7 +270,7 @@ export interface ProcedureStateResult {
 }
 
 export function describeRun(folded: FoldedRun): ProcedureStateResult {
-  const { run, graph, state, lockFree } = folded
+  const { run, graph, state } = folded
   return {
     ok: true,
     run: run.id,
@@ -265,7 +278,8 @@ export function describeRun(folded: FoldedRun): ProcedureStateResult {
     def_rev: run.defRev,
     params: run.params,
     closed: run.closed,
-    lockFree,
+    headerState: run.state,
+    seq: run.seq,
     diagnostics: graph.diagnostics,
     state,
     step: currentStepNeeds(folded),
