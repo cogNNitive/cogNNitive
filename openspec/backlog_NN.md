@@ -86,17 +86,6 @@ evidence:: defaults/video-defaults_NN.md:20-21 still pins `image_model:: wavespe
 done_when:: The coNNtent blueprint's avatar layer names a source instead of a vendor model id, `defaults/video-defaults_NN.md` stops pinning `wavespeed-ai/z-image/turbo` and `wavespeed-ai/infinitetalk-fast` for that layer, the vendor id lives in the domain's own defaults with its plug point documented, and no binary actor assets are added to the repository. Rescoped 2026-11-16: neutrality only, no catalog.
 batch:: b5b-video-vector-actor-catalog
 
-## NN Item: coNNtent-procedures
-value:: M
-effort:: M
-risk:: M
-status:: open
-lane:: heavy
-verdict:: current
-evidence:: The coNNtent blueprint's procedures/ folder now holds configure_cascade, create_character, create_series and usage (checked 2026-11-22), but neither draft-scene-visuals nor produce-video exists. The old video-template requirement on generate_video_script_procedures_NN.md survives only in the archive (openspec/changes/archive/2026-11-10-conntent-blueprint-redesign/specs/conntent-template/spec.md); openspec/specs/ no longer exists. The real draft-scene-visuals procedure lives only in the external workspace video_NN and as a test fixture under iNNfo/packages/nn-core/tests/fixtures/video-golden/procedures/, which has no media-collection gate.
-done_when:: The coNNtent blueprint declares and ships a procedures/ folder with two generic procedures promoted from video_NN: draft-scene-visuals (cleaned of series, language, vendor and machine specifics, and carrying the pre-draft gate that clean screenshots and rendered HyperFrames clips must exist under assets/<slug>/media/ before the draft JSON or build-draft-html.mjs) and produce-video (a router that lists series through their scope documents and hands off to the procedure each series declares). select-news is not shipped here: it moves to the iNNbox_NN domain, which specializes in acquiring sources. A test asserts the folder is declared and every shipped procedure resolves, and the blueprint version is bumped and repinned. Open decisions before the change: procedure language, file naming against the video-template requirement, and whether the gate also becomes a hard check in build-draft-html.mjs.
-batch:: b5d-conntent-procedures
-
 # NN Batch
 ## NN Batch: b4e-okf-export
 order:: 55
@@ -111,11 +100,3 @@ lane:: light
 items:: video-vector-actor-catalog
 risk:: M
 state:: planned
-
-## NN Batch: b5d-conntent-procedures
-order:: 54
-lane:: heavy
-items:: coNNtent-procedures
-risk:: M
-state:: planned
-
