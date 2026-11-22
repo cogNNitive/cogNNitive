@@ -349,6 +349,7 @@ const SLOW_SUITES = new Set([
   'test/console-matrix-cells.test.mjs',
   'test/console-s3b-parity.test.mjs',
   'test/console-sample-custom-view.test.mjs',
+  'test/console-sandbox-storage.test.mjs',
   'test/console-view-context.test.mjs',
   'test/init-domain-blueprints.test.mjs',
   'iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/test/video-engine-cli.test.mjs',
