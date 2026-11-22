@@ -620,3 +620,55 @@ test('stop removes a session whose commits landed on main, without --force', () 
     rmSync(base, { recursive: true, force: true })
   }
 })
+
+test('--help prints usage and mutates nothing', () => {
+  // #770: `--help` was ignored as an unknown flag, so `start --help` cut a session
+  // branch from origin/main and created a worktree named after the host and pid.
+  // Asking for help must never run anything.
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  try {
+    const worktreesBefore = git(['worktree', 'list', '--porcelain'], repo)
+    const invocations = [
+      ['--help', '--root', repo],
+      ['-h', '--root', repo],
+      ['help', '--root', repo],
+      ['start', '--help', '--root', repo],
+      ['sweep', '--help', '--root', repo],
+    ]
+    for (const args of invocations) {
+      const r = run(args)
+      assert.equal(r.code, 0, `${args.join(' ')} must exit 0: ${r.out}`)
+      assert.match(r.out, /usage: nn-session\.mjs start\|list\|status\|stop\|sweep/)
+    }
+    assert.equal(
+      git(['worktree', 'list', '--porcelain'], repo),
+      worktreesBefore,
+      'no worktree created',
+    )
+    assert.equal(git(['branch', '--list', 'session/*'], repo), '', 'no session branch created')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('stop --id removes the worktree git reports, not a guessed path', () => {
+  // #721: `stop --id` rebuilt `<parent>/cogNNitive-<id>`, found nothing, and still
+  // printed `removed` while the real directory survived and kept its branch alive.
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  const odd = join(base, 'a-name-nothing-derives')
+  try {
+    git(['worktree', 'add', '-q', '--no-track', '-b', 'session/x2', odd, 'main'], repo)
+    landCommit(repo, odd, 'x2.txt')
+
+    const st = runAll(['stop', '--id', 'x2', '--root', repo])
+
+    assert.equal(st.code, 0, st.out)
+    assert.ok(!existsSync(odd), `removed the reported path: ${st.out}`)
+    assert.match(st.out, /removed /)
+    assert.equal(git(['branch', '--list', 'session/x2'], repo), '', 'branch deleted')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
