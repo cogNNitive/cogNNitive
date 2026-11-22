@@ -14,7 +14,7 @@ import {
   procedureIdOf,
   unresolvedSlots,
 } from '@cognnitive/nn-core'
-import type { ChangeItem, RunState, StepRow, Transition } from '@cognnitive/nn-core'
+import type { ChangeItem, RunState, StepRow } from '@cognnitive/nn-core'
 import { applyChange } from './apply-change.js'
 import { writeProposedChangeset } from './propose-changeset.js'
 import { findKnowledgeFile } from './spec.js'
@@ -347,16 +347,6 @@ function startEngineCommand(opts: {
   })
   return { pid: child.pid, kill: () => child.kill(), done }
 }
-
-/** Whether a guard holds for this outcome; prose is asserted only when it is named explicitly. */
-const holds = (t: Transition, outcome: string | undefined): boolean | 'asserted' =>
-  t.guard.kind === 'none'
-    ? true
-    : t.guard.kind === 'outcome'
-      ? t.guard.token === outcome
-      : t.guard.kind === 'artifact'
-        ? t.guard.holds
-        : 'asserted'
 
 /**
  * One planned change: the changeset lines that record it, plus what the caller reports back.
@@ -834,12 +824,11 @@ function planEngineRun(
     // The child is spawned BEFORE the claim lands, so its pid can travel inside the claim
     // itself: the crash probe then names the process that actually runs the command from the
     // moment it is claimed, and no second write has to race the apply lock.
-    let child: { pid?: number; kill: () => void; done: Promise<EngineResult> } | undefined
     let finishClaim: ((pid: number) => void) | undefined
     const pidReady = new Promise<number>((resolve) => {
       finishClaim = resolve
     })
-    child = startEngineCommand({
+    const child = startEngineCommand({
       root,
       command,
       timeout,
