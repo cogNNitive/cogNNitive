@@ -199,6 +199,49 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
       assert.equal(draftsOf(res.html).drafts[0].comment, '</script><script>alert(1)</script>', 'and decodes back verbatim')
     })
 
+    it('writes no _concept* runtime keys into the saved model elements (#718)', async () => {
+      const state = bootDoc(document).state
+      assert.ok(
+        state.elements.some((e) => Object.keys(e).some((k) => k.startsWith('_concept'))),
+        'the live state is decorated, so the save has something to strip',
+      )
+      const res = await nnConsole.saveSnapshot(document, state, { forceDownload: true })
+      assert.ok(res.ok, String(res.error))
+      for (const element of modelOf(res.html).elements) {
+        assert.deepEqual(Object.keys(element).filter((k) => k.startsWith('_concept')), [], element.id)
+      }
+      assert.deepEqual(modelOf(res.html).elements.map((e) => e.id), ['threat-slimer', 'equip-trap'])
+    })
+
+    it('saves the exported shell, not the rendered DOM: markup outside <script> is unchanged (#718)', async () => {
+      const markupOutsideScripts = (html) => {
+        const doc = new JSDOM(html).window.document
+        for (const s of [...doc.querySelectorAll('script')]) s.remove()
+        return doc.documentElement.outerHTML
+      }
+      const exported = markupOutsideScripts(createConsoleHtml())
+      const state = bootDoc(document).state
+      assert.notEqual(
+        markupOutsideScripts(document.documentElement.outerHTML),
+        exported,
+        'the boot rendered into the live DOM',
+      )
+      state.store.addDraft({
+        element_id: 'threat-slimer',
+        concept: 'ParanormalThreat',
+        element: 'Slimer',
+        element_slug: 'slimer',
+        kind: 'comment',
+        comment: 'kept',
+        base_hash: 'abcdef0123456789',
+      })
+      const res = await nnConsole.saveSnapshot(document, state, { forceDownload: true })
+      assert.ok(res.ok, String(res.error))
+      assert.equal(markupOutsideScripts(res.html), exported)
+      assert.equal(draftsOf(res.html).drafts[0].comment, 'kept', 'the slots still carry the save')
+      assert.ok(!res.html.includes('data-nn-console-booted'), 'the saved page boots again')
+    })
+
     it('starts from the decoded model, so keys the state does not hold (files) survive a save', async () => {
       const files = {
         inventory: [
