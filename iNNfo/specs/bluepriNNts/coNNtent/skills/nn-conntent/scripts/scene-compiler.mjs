@@ -307,8 +307,15 @@ export function computeSceneDurations(scenes, options = {}) {
 /** A Layer's override key: its reserved slug, else the slug of its name. */
 const layerKey = (layer) => String(layer?.slug || slugify(layer?.name)).toLowerCase();
 
-/** True for a Layer nested under a Preset or a Scene Kind: it is inherited, never owned by position. */
-const isInheritedLayer = (layer) => Boolean(layer?.parentElement && layer.parentElement.concept !== 'Scene');
+/** The concepts whose nested Layers are inherited by every scene that uses them. */
+const INHERITING_CONCEPTS = new Set(['Preset', 'Scene Kind']);
+
+/**
+ * True for a Layer nested under a Preset or a Scene Kind: it is inherited, never owned by
+ * position. A positive check on purpose: `parentElement` may also be a bare concept name
+ * (`'Scene'`) or carry no concept, and those are a scene's own layers.
+ */
+const isInheritedLayer = (layer) => INHERITING_CONCEPTS.has(layer?.parentElement?.concept);
 
 /**
  * The Layer elements a scene inherits (issue #612 item 3), folded in the order of the
