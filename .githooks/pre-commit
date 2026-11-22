@@ -1,12 +1,13 @@
 #!/bin/sh
-# pre-commit: when code or samples are staged, rewrite the committed derived
-# artifacts and stage what changed (scripts/pre-commit-regen.js). A stale mirror is
-# fixed here instead of failing pre-push or CI. The blueprint catalog (~9s) stays
-# with pre-push and CI.
+# pre-commit: guard the primary checkout, then hand over.
 #
-# The primary checkout is read-only first, so the guard runs before any rewrite:
-# building artifacts in a tree that another live session is reading is how a
-# branch swap under someone's feet used to go unnoticed.
+# Derived artifacts used to be rewritten and staged here. They no longer travel in a branch:
+# 21 of 30 PRs in the 19-20 Nov batch carried one, and the same bundle, fixture and catalog
+# appeared in 13 to 17 of them, so two live branches invalidated each other on every merge.
+# `main` gets one regeneration commit after each merge instead (the `regen` job in ci.yml),
+# and the gate accepts a derived artifact that moves with its source
+# (`regen.js --check --tolerant`) while still failing a generator that writes outside its
+# declared surface.
+#
+# The primary checkout is read-only, and the guard runs before anything else.
 node scripts/guard-primary-checkout.mjs "commit" || exit 1
-
-exec node scripts/pre-commit-regen.js

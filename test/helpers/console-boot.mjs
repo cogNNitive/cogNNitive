@@ -37,8 +37,34 @@ export const MODEL = {
   ],
 }
 
+// A plain assignment cannot undo `installSandboxedStorage`'s accessor: a
+// property with a getter and no setter swallows the write, so every later boot
+// would keep throwing. Redefine the property instead, in both directions.
+function setGlobalStorage(value) {
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    writable: true,
+    value,
+  })
+}
+
+/**
+ * Reproduces a sandboxed iframe without `allow-same-origin`: reading
+ * `window.localStorage` throws instead of returning undefined. A `typeof` guard
+ * cannot survive that, which is the failure in issue #779.
+ */
+export function installSandboxedStorage() {
+  const thrower = () => {
+    throw new Error("The document is sandboxed and lacks the 'allow-same-origin' flag.")
+  }
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, get: thrower })
+  if (global.window) {
+    Object.defineProperty(global.window, 'localStorage', { configurable: true, get: thrower })
+  }
+}
+
 // `drafts` fills the nn-drafts slot (`{ drafts, uiState }`); absent, the slot is `{}`.
-export function bootConsole({ registry, model = MODEL, schema, config, url = 'http://localhost', before, runScripts, viewData, drafts } = {}) {
+export function bootConsole({ registry, model = MODEL, schema, config, url = 'http://localhost', before, runScripts, viewData, drafts, sandboxedStorage = false } = {}) {
   const schemaSlot = schema || { concepts: [{ name: 'Fleet' }] }
   const configSlot = config || { needs: ['feedback-export'] }
   // Absent viewData keeps the slot out, so the "no data" path is the real shell path.
@@ -69,8 +95,9 @@ export function bootConsole({ registry, model = MODEL, schema, config, url = 'ht
   )
   global.window = dom.window
   global.document = dom.window.document
-  global.localStorage = dom.window.localStorage
   global.CustomEvent = dom.window.CustomEvent
+  if (sandboxedStorage) installSandboxedStorage()
+  else setGlobalStorage(dom.window.localStorage)
   if (before) before(dom.window.document)
   // The real page decodes nn-model asynchronously before boot; tests pre-decode it with
   // the Node codec so boot stays synchronous.
@@ -97,8 +124,8 @@ export function bootConsoleFromShell() {
   const dom = new JSDOM(html, { url: 'http://localhost' })
   global.window = dom.window
   global.document = dom.window.document
-  global.localStorage = dom.window.localStorage
   global.CustomEvent = dom.window.CustomEvent
+  setGlobalStorage(dom.window.localStorage)
   const res = nnConsole.boot(dom.window.document, { modelText: decodedModelTextOf(dom.window.document) })
   return { dom, document: dom.window.document, res }
 }

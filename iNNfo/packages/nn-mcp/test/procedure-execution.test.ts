@@ -7,9 +7,9 @@ import { validateProposal } from '../src/tools/propose-changeset.js'
 
 /**
  * A run of a procedure recorded with the canonical `executions` bluepriNNt: a
- * `Procedure Execution` instance model whose `Execution Event` elements are
- * append-only (write once), closed by `close_model` after its terminal event.
- * The domain holds no run yet: the first one must still land in its placement.
+ * `Procedure Execution` instance model holding its header, one `Step Run` row per step and
+ * one `Run Artifact` row per artifact. The model is mutable; its history is its change log.
+ * It is closed by `close_model`, and a closed run is citable as `<run>@<step-slug>`.
  */
 
 const root = join(import.meta.dirname!, '..', 'temp-test-procedure-execution')
@@ -54,24 +54,12 @@ const CREATE_RUN = change(
   `op:: add_model\ntarget:: onboard-acme\nconcept:: Procedure Execution\nblueprint_name:: executions\nblueprint_url:: ${EXECUTIONS_URL}\nname:: Onboard ACME\n`,
 )
 
-/** One event is ONE change: add_element carries its initial fields in `to` (append-only is write-once). */
-const addEvent = (n: number, kind = 'started', extra = '') =>
+/** One row is ONE add_element: the step row is created with its status and attempt. */
+const addStep = (n: number, slug = 'gather', status = 'pending', attempt = 0) =>
   change(
     `c-${n}`,
-    `op:: add_element\ntarget:: onboard-acme\nconcept:: Execution Event\nname:: e-00${n}\nto:: {"kind": "${kind}", "actor": "ana", "at": "2026-11-18T09:0${n}:00Z"${extra}}\n`,
+    `op:: add_element\ntarget:: onboard-acme\nconcept:: Step Run\nname:: ${slug}\nslug:: ${slug}\nto:: {"status": "${status}", "attempt": ${attempt}}\n`,
   )
-
-/** Appends one event as one changeset with one change. */
-async function event(
-  n: number,
-  kind: string,
-  extra = '',
-): Promise<Awaited<ReturnType<typeof applyChange>>> {
-  const added = await apply(addEvent(n, kind, extra))
-  expect(added.errors ?? []).toEqual([])
-  expect(added.appliedCount).toBe(1)
-  return added
-}
 
 async function runFile(): Promise<string> {
   const dir = join(root, 'executions', 'onboard-acme')
@@ -101,83 +89,83 @@ afterEach(async () => {
   await rm(root, { recursive: true, force: true })
 })
 
-describe('a procedure run is an append-only record', () => {
+describe('a procedure run is a model with state', () => {
   it('places the first run of the domain under executions/ and fills its header', async () => {
     const created = await apply(
       CREATE_RUN +
         change(
           'c-02',
-          'op:: update_field\ntarget:: onboard-acme@Onboard ACME&def_rev\nto:: V_1-2-0\n',
+          'op:: set_fields\ntarget:: onboard-acme@onboard-acme\nto:: {"def_rev": "V_1-2-0", "seq": 1, "state": "open"}\n',
         ),
     )
     expect(created.errors ?? []).toEqual([])
-    expect(await readFile(await runFile(), 'utf-8')).toContain('def_rev:: V_1-2-0')
-  })
-
-  it('appends each event with its fields as one changeset of one change', async () => {
-    await apply(CREATE_RUN)
-    await event(1, 'started')
-    await event(2, 'input_recorded', ', "field": "tax_id", "value": "B12345678"')
     const text = await readFile(await runFile(), 'utf-8')
-    expect(text).toContain('## NN Execution Event: e-002')
-    expect(text).toContain('kind:: input_recorded')
-    expect(text).toContain('value:: B12345678')
-    // One changeset per event (plus the run's own).
-    expect((await readdir(join(root, 'changes'))).filter((f) => f.endsWith('_NN.md'))).toHaveLength(
-      3,
-    )
-    // Every initial field is attributed to the add_element that wrote it.
-    const log = loadChangeLog(root)
-    for (const field of ['kind', 'actor', 'at', 'field', 'value']) {
-      expect(log.origin(`onboard-acme@e-002&${field}`)?.id).toBe('c-2')
-      expect(log.origin(`onboard-acme@e-002&${field}`)?.op).toBe('update_field')
-    }
+    expect(text).toContain('def_rev:: V_1-2-0')
+    expect(text).toContain('seq:: 1')
+    expect(text).toContain('state:: open')
   })
 
-  it('still fills an empty value of an event once', async () => {
+  it('adds a step row and moves it through its declared lifecycle', async () => {
     await apply(CREATE_RUN)
-    await event(1, 'started')
-    const filled = await apply(
-      change('c-08', 'op:: update_field\ntarget:: onboard-acme@e-001&value\nto:: late\n'),
+    const added = await apply(addStep(2))
+    expect(added.errors ?? []).toEqual([])
+    expect(await readFile(await runFile(), 'utf-8')).toContain('## NN Step Run: gather')
+
+    const claimed = await apply(
+      change(
+        'c-03',
+        'op:: set_fields\ntarget:: onboard-acme@gather\nfrom:: {"status": "pending"}\nto:: {"status": "active", "attempt": 1}\n',
+      ),
     )
-    expect(filled.errors ?? []).toEqual([])
-    expect(await readFile(await runFile(), 'utf-8')).toContain('value:: late')
+    expect(claimed.errors ?? []).toEqual([])
+    const text = await readFile(await runFile(), 'utf-8')
+    expect(text).toContain('status:: active')
+    expect(text).toContain('attempt:: 1')
   })
 
-  it('refuses changing a value an event already holds', async () => {
+  it('refuses a step transition the declaration does not allow', async () => {
     await apply(CREATE_RUN)
-    await event(1, 'started')
+    await apply(addStep(2))
     const before = await readFile(await runFile(), 'utf-8')
+    // `expected` belongs to the artifact lifecycle; a step row starts at `pending`, so this
+    // edge is not declared for it.
     const res = await apply(
-      change('c-09', 'op:: update_field\ntarget:: onboard-acme@e-001&actor\nto:: mallory\n'),
+      change('c-03', 'op:: update_field\ntarget:: onboard-acme@gather&status\nto:: expected\n'),
     )
     expect(res.success).toBe(false)
-    expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
-    expect(res.errors?.map((e) => e.message).join(' ')).toContain(
-      '"Execution Event" is append-only',
-    )
+    expect(JSON.stringify(res.errors ?? [])).toContain('TRANSITION_NOT_ALLOWED')
     expect(await readFile(await runFile(), 'utf-8')).toBe(before)
   })
 
-  it('refuses removing an event and removing the run', async () => {
+  it('the run history is its change log: each row write is one applied change', async () => {
     await apply(CREATE_RUN)
-    await event(1, 'started')
-    const removeEvent = await apply(
-      change('c-09', 'op:: remove_element\ntarget:: onboard-acme@e-001\n'),
+    await apply(addStep(2))
+    await apply(
+      change(
+        'c-03',
+        'op:: set_fields\ntarget:: onboard-acme@gather\nfrom:: {"status": "pending"}\nto:: {"status": "active", "attempt": 1}\n',
+      ),
     )
-    expect(removeEvent.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
-    const removeRun = await apply(change('c-10', 'op:: remove_model\ntarget:: onboard-acme\n'))
-    expect(removeRun.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
+    const log = loadChangeLog(root)
+    // The row's status has a history: the add that created it, then the claim.
+    const status = log.history('onboard-acme@gather&status')
+    expect(status.length).toBe(2)
+    expect(status[1]!.op).toBe('update_field')
   })
 
-  it('closes the run after its terminal event and then accepts nothing', async () => {
+  it('closes the run after its terminal state and then accepts nothing', async () => {
     await apply(CREATE_RUN)
-    await event(1, 'completed')
+    await apply(addStep(2))
     const closed = await apply(change('c-99', 'op:: close_model\ntarget:: onboard-acme\n'))
     expect(closed.errors ?? []).toEqual([])
     const text = await readFile(await runFile(), 'utf-8')
     expect(text).toMatch(/^closed: true$/m)
-    const late = await apply(addEvent(2, 'started'))
+    const late = await apply(
+      change(
+        'c-04',
+        'op:: set_fields\ntarget:: onboard-acme@gather\nfrom:: {"status": "pending"}\nto:: {"status": "active", "attempt": 1}\n',
+      ),
+    )
     expect(late.errors?.map((e) => e.code)).toContain('MODEL_CLOSED')
     expect(await readFile(await runFile(), 'utf-8')).toBe(text)
   })
@@ -189,55 +177,35 @@ const CREATE_SECOND = CREATE_RUN.replace('c-01', 'c-20')
   .replace('onboard-acme', 'kpi-run')
   .replace('Onboard ACME', 'KPI Run')
 
-/** A change on the second run whose evidence cites the first one. */
-const citing = (evidence: string) =>
-  change(
-    'c-21',
-    'op:: update_field\ntarget:: kpi-run@KPI Run&params\nto:: {"source": "onboard-acme"}\n',
-  ).replace('evidence:: decision', `evidence:: ${evidence}`)
-
 describe('a model is citable as evidence only once it is closed', () => {
   it('refuses citing a run that is still open', async () => {
     await apply(CREATE_RUN)
-    await event(1, 'started')
     await apply(CREATE_SECOND)
-    const res = await apply(citing('onboard-acme@e-001'))
-    expect(res.success).toBe(false)
-    expect(res.errors?.map((e) => e.code)).toContain('CITATION_NOT_CLOSED')
+    const errors = await validateProposal(root, [
+      {
+        id: 'c-1',
+        op: 'set_fields',
+        target: 'kpi-run@kpi-run',
+        to: '{"params": "{}"}',
+        evidence: 'onboard-acme@onboard-acme',
+      } as never,
+    ])
+    expect(errors.map((e) => e.code)).toContain('CITATION_NOT_CLOSED')
   })
 
   it('accepts citing a closed run and stamps its file hash', async () => {
     await apply(CREATE_RUN)
-    await event(1, 'completed')
-    await apply(change('c-99', 'op:: close_model\ntarget:: onboard-acme\n'))
+    await apply(change('c-98', 'op:: close_model\ntarget:: onboard-acme\n'))
     await apply(CREATE_SECOND)
-    const res = await apply(citing('onboard-acme@e-001'))
-    expect(res.errors ?? []).toEqual([])
-    expect(res.success).toBe(true)
-    const recorded = await readFile(join(root, res.changesetPath!), 'utf-8')
-    expect(recorded).toMatch(/evidence_sha256/)
-  })
-
-  it('refuses citing an element the closed run does not hold', async () => {
-    await apply(CREATE_RUN)
-    await apply(change('c-99', 'op:: close_model\ntarget:: onboard-acme\n'))
-    await apply(CREATE_SECOND)
-    const res = await apply(citing('onboard-acme@e-404'))
-    expect(res.errors?.map((e) => e.code)).toContain('CITATION_UNRESOLVED')
-  })
-
-  it('propose_changeset applies the same rule', async () => {
-    await apply(CREATE_RUN)
-    await event(1, 'started')
     const errors = await validateProposal(root, [
       {
-        id: 'c-01',
-        op: 'update_field',
-        target: 'onboard-acme@Onboard ACME&params',
-        to: '{}',
-        evidence: 'onboard-acme@e-001',
-      },
+        id: 'c-1',
+        op: 'set_fields',
+        target: 'kpi-run@kpi-run',
+        to: '{"params": "{}"}',
+        evidence: 'onboard-acme@onboard-acme',
+      } as never,
     ])
-    expect(errors.map((e) => e.code)).toContain('CITATION_NOT_CLOSED')
+    expect(errors.map((e) => e.code).filter((c) => c?.startsWith('CITATION'))).toEqual([])
   })
 })

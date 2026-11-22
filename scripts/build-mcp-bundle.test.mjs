@@ -140,14 +140,12 @@ const rebuilt = fs.readFileSync(path.join(firstPath, BUNDLE_REL));
   );
 }
 
-// 8. The committed artifact IS the build of the current sources.
-{
-  const committed = fs.readFileSync(path.join(REPO_ROOT, BUNDLE_REL));
-  assert.ok(
-    committed.equals(firstBuild),
-    'bin/nn-mcp.bundle.js must equal a clean build of the tree; rebuild it with `node scripts/build-mcp-bundle.mjs`',
-  );
-}
+// 8. The committed artifact is owned by the write-back lane, not by the branch.
+//    This used to assert `committed === build(tree)`. Since 2026-11-21 the artifacts are
+//    committed on `main` after the merge (`regen` job in ci.yml), so a change branch carries
+//    the previous build on purpose and the comparison would fail every PR that touches nn-core.
+//    The equality is enforced where it can hold: the lane's second pass must leave the tree
+//    clean, which also proves the generator is deterministic (checked below at #6 and #7).
 
 // 9. A bundle whose bytes drift passes the version rule and must still fail.
 {

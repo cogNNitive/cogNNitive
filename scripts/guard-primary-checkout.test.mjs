@@ -73,7 +73,8 @@ test('a path outside any repository is not the primary checkout', () => {
 
 test('guard blocks the primary checkout and names the refused action', () => {
   const writes = []
-  const code = guard('commit', { cwd: primaryCheckout(), stderr: captureStderr(writes) })
+  // Explicit env: the suite must not depend on whether the runner exports GITHUB_ACTIONS.
+  const code = guard('commit', { cwd: primaryCheckout(), stderr: captureStderr(writes), env: {} })
 
   assert.strictEqual(code, 1)
   assert.match(writes.join(''), /BLOCKED: commit in the primary checkout/)
@@ -82,16 +83,47 @@ test('guard blocks the primary checkout and names the refused action', () => {
 
 test('guard allows a linked worktree silently', () => {
   const writes = []
-  const code = guard('commit', { cwd: linkedWorktree(), stderr: captureStderr(writes) })
+  const code = guard('commit', { cwd: linkedWorktree(), stderr: captureStderr(writes), env: {} })
 
   assert.strictEqual(code, 0)
   assert.deepStrictEqual(writes, [])
 })
 
+test('guard steps aside in GitHub Actions, where the only checkout is the primary', () => {
+  // The write-back lane commits regenerated artifacts on `main`; before this, its first real
+  // merge ran, regenerated, and then had the commit refused by this very guard.
+  const writes = []
+  const code = guard('commit', {
+    cwd: primaryCheckout(),
+    stderr: captureStderr(writes),
+    env: { GITHUB_ACTIONS: 'true' },
+  })
+
+  assert.strictEqual(code, 0)
+  assert.deepStrictEqual(writes, [])
+})
+
+test('the escape hatch is GitHub-specific: a bare CI variable keeps the guard', () => {
+  const code = guard('commit', {
+    cwd: primaryCheckout(),
+    stderr: captureStderr([]),
+    env: { CI: 'true' },
+  })
+
+  assert.strictEqual(code, 1)
+})
+
 test('the CLI exits 1 in a primary checkout and 0 in a worktree', () => {
+  // A local run, so the CI escape hatch is explicitly cleared: the runner exports
+  // GITHUB_ACTIONS, and inheriting it here is what made this suite fail in CI while it
+  // passed on a developer machine.
+  const local = { ...process.env }
+  delete local.GITHUB_ACTIONS
+
   const blocked = spawnSync(process.execPath, [GUARD, 'rebase'], {
     cwd: primaryCheckout(),
     encoding: 'utf8',
+    env: local,
   })
   assert.strictEqual(blocked.status, 1)
   assert.match(blocked.stderr, /BLOCKED: rebase/)
@@ -99,6 +131,17 @@ test('the CLI exits 1 in a primary checkout and 0 in a worktree', () => {
   const allowed = spawnSync(process.execPath, [GUARD, 'rebase'], {
     cwd: linkedWorktree(),
     encoding: 'utf8',
+    env: local,
   })
   assert.strictEqual(allowed.status, 0)
+})
+
+test('the CLI steps aside with GITHUB_ACTIONS, through the real process', () => {
+  const ci = spawnSync(process.execPath, [GUARD, 'commit'], {
+    cwd: primaryCheckout(),
+    encoding: 'utf8',
+    env: { ...process.env, GITHUB_ACTIONS: 'true' },
+  })
+  assert.strictEqual(ci.status, 0)
+  assert.doesNotMatch(ci.stderr, /BLOCKED/)
 })

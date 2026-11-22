@@ -36,6 +36,11 @@ export interface LoggedChange {
   readonly appliedAt?: string
   /** Execution fact: the batch identity, the changeset stem. */
   readonly batch?: string
+  /**
+   * Run context (design B1): `<run-id>@<step-slug>` of the changeset that carried this
+   * change. Absent outside a procedure step and on a human gate verdict.
+   */
+  readonly run?: string
   readonly author?: string
   readonly op: ChangeOp
   readonly target: string
@@ -110,6 +115,12 @@ export interface ChangeLog {
   readonly elements: ReadonlyMap<string, LoggedChange>
   /** The change that created or removed the element at `elementKey`, if any. */
   elementOrigin(elementKey: string): LoggedChange | undefined
+  /**
+   * Applied changes written under a run context (design B1): the changes of the
+   * changesets whose frontmatter `run` names this run id, or, with a step slug, only
+   * this step. Canonical order. This is "what did this step produce".
+   */
+  runChanges(runId: string, stepSlug?: string): readonly LoggedChange[]
   /**
    * The applied `remove_model` that removed this model id, when nothing has
    * re-created it since (`undefined` for an id that was never removed, and for one
@@ -198,7 +209,8 @@ class ChangeLogImpl implements ChangeLog {
     for (const rekey of this.fold.rekeys) {
       if (rekey.kind === 'extract') continue
       if (current === rekey.from) current = rekey.to
-      else if (current.startsWith(`${rekey.from}/`)) current = `${rekey.to}${current.slice(rekey.from.length)}`
+      else if (current.startsWith(`${rekey.from}/`))
+        current = `${rekey.to}${current.slice(rekey.from.length)}`
       else continue
       moved = true
     }
@@ -224,6 +236,17 @@ class ChangeLogImpl implements ChangeLog {
     if (!this.fold.units.has(unit)) return undefined
     const bucket = this.history(unit)
     return bucket.length > 0 ? bucket[bucket.length - 1] : undefined
+  }
+
+  runChanges(runId: string, stepSlug?: string): readonly LoggedChange[] {
+    const wanted = stepSlug !== undefined ? `${runId}@${stepSlug}` : runId
+    const matches = (change: LoggedChange): boolean => {
+      if (!change.run) return false
+      if (stepSlug !== undefined) return change.run === wanted
+      // Run-wide: the run id is the part before the `@` that separates it from the step.
+      return change.run === runId || change.run.startsWith(`${runId}@`)
+    }
+    return this.all.filter((change) => change.applied && matches(change))
   }
 
   units(model?: string): Iterable<UnitState> {

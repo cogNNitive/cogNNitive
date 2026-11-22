@@ -189,14 +189,16 @@ Gentle-AI's ODD runs the agent; this repository narrows it:
 - **One thread, one area, 3–5 items.** Fifteen threads for one work area is not parallelism,
   it is fifteen rebases queued in advance. When two sides of the work must agree on a
   contract, land the contract first and start both from that commit.
-- **Derived artifacts regenerate themselves.** The pre-commit hook reruns the fast
-  generators when code or samples are staged and stages what changed. If a push or CI
-  still reports a stale artifact, run `npm run regen` and commit. A change under
-  `iNNfo/packages/nn-core` also needs `node scripts/build-core-mirrors.mjs` and
-  `node scripts/export-console.mjs test/fixtures/testlab --domain --no-open` — the
-  fixture embeds a CSP hash of the bundle, so it moves when core moves. A conflicted
-  generated artifact is resolved with `node scripts/regen.js`, never by hand: the CC
-  hooks refuse `checkout --theirs` and `restore --worktree` on it.
+- **Derived artifacts belong to `main`, not to your branch.** The pre-commit hook no longer
+  regenerates and stages them, and the gate accepts the ones your change moves
+  (`regen.js --check --tolerant`); after the merge the `regen` job commits them, plus the
+  derived version, before `auto-tag` plans. So do not commit a bundle, fixture or catalog into
+  a PR: it collides with every other live branch by construction. A change under
+  `iNNfo/packages/nn-core` still needs `node scripts/build-core-mirrors.mjs` and
+  `node scripts/export-console.mjs test/fixtures/testlab --domain --no-open` to see its effect
+  locally — the fixture embeds a CSP hash of the bundle — but the lane is what commits them.
+  A conflicted generated artifact is resolved with `node scripts/regen.js`, never by hand: the
+  CC hooks refuse `checkout --theirs` and `restore --worktree` on it.
 
 ## 4. Land on `main`
 
@@ -252,16 +254,24 @@ never fires because nothing creates a `merge_group` event.
 
 ## 5. Release = merge to `main`
 
-After every green push to `main`, CI's `auto-tag` job
-(`scripts/release/plan-auto-tags.js`) tags each release key that changed and runs
-`release.yml` once per tag, `blueprints` first:
+After every green push to `main`, a `regen` job regenerates the derived artifacts and writes the
+derived version back, and only then CI's `auto-tag` job (`scripts/release/plan-auto-tags.js`)
+tags each key that changed and runs `release.yml` once per tag, `blueprints` first:
 
-| Key | Ships when | Version |
+| Key | Ships when a commit touched | Version |
 |---|---|---|
-| `blueprints` (`iNNfo/specs`) | a commit touched it since its last tag | from commits: breaking → major, `feat` → minor, else patch |
-| `skills` (`skills/`) | same | same |
-| `nn-mcp` | `iNNfo/packages/nn-mcp/package.json` has an untagged version | that version |
-| `nn-console` | `iNNfo/specs/bluepriNNts/console/package.json` has an untagged version | that version |
+| `blueprints` | `iNNfo/specs` | from commits: breaking → major, `feat` → minor, else patch |
+| `skills` | `skills/` | same |
+| `nn-mcp` | `iNNfo/packages/nn-mcp/src` and `test` | same |
+| `nn-console` | `iNNfo/specs/bluepriNNts/console`, `scripts/export-console.mjs`, `scripts/console-views.mjs` | same |
+
+`repoPaths` and `changePaths` are different on purpose: `repoPaths` is what gets copied into the
+distribution repo, `changePaths` is what counts as a change. For `nn-mcp` the only repo path is
+the generated bundle, so deriving from it would mean the key never ships.
+
+Generated files and version mirrors are never a trigger: `plan-auto-tags` excludes every tracked
+file its `changePaths` contains that `scripts/lib/shared-artifacts.js` calls generated, so a
+regeneration or version write-back commit cannot plan the release that produced it.
 
 Consumers resolve these tag names (`nn-mcp` resolver, skills-manager, catalog), so the
 tag shapes are a contract. Nobody tags by hand.
@@ -287,11 +297,12 @@ tag shapes are a contract. Nobody tags by hand.
   release copies the tag's tree — a commit that regenerates after `auto-tag` publishes the
   stale bundle. Both are why moving artifacts out of PRs is a release-contract change, not
   a hook tweak.
-- **To release nn-mcp or the console:** bump its `package.json` version in the PR, then
-  run `npm run sync:versions`, `npm install --package-lock-only` and `npm run regen`.
-  The `release-bump` CI job enforces it: a PR that changes a path of `nn-mcp` or
-  `nn-console` (`scripts/release/release-keys.js`) without moving that key to an
-  untagged version fails (`node scripts/release/check-authored-bump.js --base origin/main`).
+- **You do not bump a release version.** The `regen` job derives it from the commits and writes
+  it into the key's `package.json` (`scripts/release/write-pending-versions.js`), then
+  `npm run sync:versions` propagates it and the regeneration rebuilds what embeds it, all before
+  the tag exists. `release-bump` and `check-authored-bump` were retired with the authored model:
+  a hand bump travelled in 14 of 30 branches and was the only thing that could make a merge
+  release nothing (#650, #670, #683).
 - **Close with evidence:** record the PR, exact head SHA, and observed checks.
   Report merged, tagged, and published as separate states; verify publication at
   the destination when it is in scope. For locking or rollback changes, include

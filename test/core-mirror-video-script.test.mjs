@@ -11,7 +11,9 @@
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -51,9 +53,20 @@ test('the mirror target exists and the generated file exports the contract', () 
 });
 
 test('the mirror is fresh against its nn-core sources', () => {
-  const res = spawnSync(process.execPath, ['scripts/build-core-mirrors.mjs', '--check', '--target', 'coNNtent'], {
-    cwd: ROOT,
-    encoding: 'utf8',
-  });
+  // Rendered into a scratch file and checked there, because the committed copy is regenerated
+  // on `main` by the write-back lane: a change branch carries the previous one by design.
+  const out = path.join(mkdtempSync(path.join(tmpdir(), 'core-mirror-')), 'nn-core.generated.cjs');
+  const built = spawnSync(
+    process.execPath,
+    ['scripts/build-core-mirrors.mjs', '--target', 'coNNtent', '--out', out],
+    { cwd: ROOT, encoding: 'utf8' },
+  );
+  assert.equal(built.status, 0, built.stderr || built.stdout);
+
+  const res = spawnSync(
+    process.execPath,
+    ['scripts/build-core-mirrors.mjs', '--check', '--target', 'coNNtent', '--out', out],
+    { cwd: ROOT, encoding: 'utf8' },
+  );
   assert.equal(res.status, 0, res.stderr || res.stdout);
 });

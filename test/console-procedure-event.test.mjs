@@ -1,4 +1,5 @@
 import { describe, it } from 'node:test'
+import { runModelOfEvents } from './helpers/run-model-of-events.mjs'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { join, dirname, resolve } from 'node:path'
@@ -125,26 +126,32 @@ condition:: outcome == decline
 
     const before = core.foldRun(
       graph,
-      [
-        { kind: 'started' },
-        { kind: 'step_started', step: 'draft', attempt: 1 },
-        { kind: 'step_completed', step: 'draft', next: 'review' },
-        { kind: 'step_started', step: 'review', attempt: 1 },
-      ],
-      { defRev: 'V_1-0-0', lockFree: true },
+      runModelOfEvents(
+        [
+          { kind: 'started' },
+          { kind: 'step_started', step: 'draft', attempt: 1 },
+          { kind: 'step_completed', step: 'draft', next: 'review' },
+          { kind: 'step_started', step: 'review', attempt: 1 },
+        ],
+        { defRev: 'V_1-0-0' },
+      ),
+      { defRev: 'V_1-0-0' },
     )
     assert.equal(before.currentStep, 'review')
 
     const after = core.foldRun(
       graph,
-      [
-        { kind: 'started' },
-        { kind: 'step_started', step: 'draft', attempt: 1 },
-        { kind: 'step_completed', step: 'draft', next: 'review' },
-        { kind: 'step_started', step: 'review', attempt: 1 },
-        event,
-      ],
-      { defRev: 'V_1-0-0', lockFree: true },
+      runModelOfEvents(
+        [
+          { kind: 'started' },
+          { kind: 'step_started', step: 'draft', attempt: 1 },
+          { kind: 'step_completed', step: 'draft', next: 'review' },
+          { kind: 'step_started', step: 'review', attempt: 1 },
+          event,
+        ],
+        { defRev: 'V_1-0-0' },
+      ),
+      { defRev: 'V_1-0-0' },
     )
     assert.equal(after.currentStep, 'publish', 'the recorded decision advanced the walk')
     assert.equal(after.steps.review.outcome, 'approve')

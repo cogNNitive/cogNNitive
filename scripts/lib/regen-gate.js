@@ -20,27 +20,20 @@
  */
 
 const { execFileSync } = require('node:child_process');
+const { sharedArtifactLabel } = require('./shared-artifacts.js');
 
 /**
  * Committed artifacts the byte diff must not judge, each with the reason.
  *
- * `release_tag` is read from the `blueprints-v*` git tags: the same catalog content
- * renders different bytes under a different tag set, which is why
- * `blueprint-catalog.mjs --check` compares it with that field normalised away and
- * `pre-commit-regen.js` has always left the catalog to a human. Its freshness step stays
- * in `scripts/verify.js`; this gate regenerates it in write mode and ignores it in check
- * mode.
+ * Empty: the one entry here was the blueprint catalog, which the regeneration pass no longer
+ * writes (`WRITE_SKIPS` in `scripts/regen.js`). Its `release_tag` comes from the `blueprints-v*`
+ * tags and is re-resolved against HEAD's trees, so rewriting it produced a bookkeeping commit
+ * after every release. It is now judged by its own `--check` (which compares it with that field
+ * normalised away), and `verify` runs that step.
  *
  * @type {Array<{ path: string, reason: string }>}
  */
-const REGEN_EXCLUDED_PATHS = [
-  {
-    path: 'iNNfo/specs/bluepriNNts/catalog.json',
-    reason:
-      'release_tag comes from the blueprints-v* git tags, so identical content renders different bytes ' +
-      'in a different tag set; blueprint-catalog --check compares it with release_tag normalised away',
-  },
-];
+const REGEN_EXCLUDED_PATHS = [];
 
 /**
  * Reads the mode out of the command line. `--check` means "run the pass, then compare";
@@ -127,11 +120,15 @@ function formatFailure(paths) {
  *   root: string,
  *   runPass?: null | (() => { status: number, output?: string }),
  *   listChanged?: typeof listChangedPaths,
+ *   tolerant?: boolean,
  * }} options - `runPass` is injected by callers that own the pass (scripts/regen.js) and
  *   by tests; `listChanged` is injectable so the comparison can be exercised without git.
- * @returns {{ ok: boolean, paths: string[], message: string }}
+ *   `tolerant` splits what the pass moved: a shared artifact was regenerated on `main` by the
+ *   write-back lane, so it is reported and the gate passes, while a path the generator is not
+ *   allowed to own still fails.
+ * @returns {{ ok: boolean, paths: string[], allowed?: string[], message: string }}
  */
-function checkRegen({ root, runPass = null, listChanged = listChangedPaths }) {
+function checkRegen({ root, runPass = null, listChanged = listChangedPaths, tolerant = false }) {
   const before = listChanged({ root });
   if (!before.ok) {
     return { ok: false, paths: [], message: `regen: ${before.error}\nfix: run this inside the git work tree` };
@@ -163,7 +160,22 @@ function checkRegen({ root, runPass = null, listChanged = listChangedPaths }) {
   }
   const moved = after.paths.filter((p) => !alreadyDirty.has(p));
   if (moved.length > 0) {
-    return { ok: false, paths: moved, message: formatFailure(moved) };
+    if (!tolerant) {
+      return { ok: false, paths: moved, message: formatFailure(moved) };
+    }
+    const allowed = moved.filter((p) => sharedArtifactLabel(p) !== null);
+    const foreign = moved.filter((p) => sharedArtifactLabel(p) === null);
+    if (foreign.length > 0) return { ok: false, paths: foreign, message: formatFailure(foreign) };
+    return {
+      ok: true,
+      paths: [],
+      allowed,
+      message: [
+        `regen: ${allowed.length} derived artifact(s) move with this change and are committed on`,
+        '`main` after the merge, so they are not part of the branch:',
+        ...allowed.map((p) => `  - ${p} (${sharedArtifactLabel(p)})`),
+      ].join('\n'),
+    };
   }
   const leading = alreadyDirty.size > 0 ? ` (${alreadyDirty.size} path(s) were already modified and left alone)` : '';
   return {

@@ -12,7 +12,7 @@ export * from './slugs.js'
 export * from './impact.js'
 export * from './history.js'
 export * from './conflicts.js'
+export * from './transitions.js'
 export * from './lineage/plan.js'
 export * from './lineage/builder.js'
 export * from './lineage/types.js'
-

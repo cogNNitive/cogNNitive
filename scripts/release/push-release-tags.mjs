@@ -22,12 +22,16 @@
  *
  * Inputs, all environment (the workflow passes the plan output through):
  *   TAGS                     JSON array of tag names to create
- *   GITHUB_SHA               commit the tags point at
+ *   RELEASE_TARGET_SHA       commit the tags point at. This is NOT `GITHUB_SHA`: a step
+ *                            cannot override a default variable, so `env: GITHUB_SHA:` is
+ *                            silently ignored and the tags would point at the merge commit
+ *                            while the write-back lane's regenerated commit sits one ahead.
+ *   GITHUB_SHA               fallback, for a run with no regeneration commit
  *   GITHUB_STEP_SUMMARY      optional file to append the summary lines to
  *   PUSH_RELEASE_TAGS_ATTEMPTS / PUSH_RELEASE_TAGS_DELAY_MS   test seams
  *
  * Usage:
- *   TAGS='["nn-mcp-v0.39.0"]' GITHUB_SHA=$(git rev-parse HEAD) node scripts/release/push-release-tags.mjs
+ *   TAGS='["nn-mcp-v0.39.0"]' RELEASE_TARGET_SHA=$(git rev-parse HEAD) node scripts/release/push-release-tags.mjs
  */
 
 import { execFileSync } from 'node:child_process'
@@ -129,8 +133,8 @@ function main() {
     return
   }
 
-  const sha = (process.env.GITHUB_SHA ?? '').trim()
-  if (!sha) fail('GITHUB_SHA is not set')
+  const sha = (process.env.RELEASE_TARGET_SHA ?? process.env.GITHUB_SHA ?? '').trim()
+  if (!sha) fail('RELEASE_TARGET_SHA (or GITHUB_SHA) is not set')
 
   // Every check runs before the push, so a conflict cannot leave a partial batch.
   const refs = []

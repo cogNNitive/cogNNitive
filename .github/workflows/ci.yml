@@ -110,17 +110,6 @@ jobs:
         continue-on-error: true
         run: node scripts/freshness.js
 
-      # Hand the built docs to publish-web so the public distribution repo
-      # publishes exactly what this job built instead of rebuilding. Only
-      # produced on main (the only ref publish-web runs on).
-      - name: Upload built docs (publish artifact)
-        if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v7
-        with:
-          name: pages-docs
-          path: docs
-          retention-days: 1
-
   # ── iNNfo quality gate: lint, typecheck, unit tests. Previously
   #    lived in iNNfo/.github/workflows/ci.yml, which GitHub Actions never ran
   #    (only the repo-root .github/workflows/ is executed).
@@ -231,60 +220,13 @@ jobs:
       - name: Check spec URLs resolve
         run: npm run check:spec-urls
 
-  # ── Release bump: `nn-mcp` and `nn-console` ship only when their package.json carries
-  #    an untagged version, so a PR that changes their release paths without a bump
-  #    merges and releases nothing (#650 missed 0.37.2, #670/#683 missed 0.37.4). Only the
-  #    PR's own diff is checked, so an older unreleased change on the base blames nobody.
-  #    It also runs on `main`. Two PRs that bump the same key to the same version are
-  #    each green on their own diff, and only the second landing can notice that its
-  #    version is already tagged — which is exactly how a release went missing. On
-  #    `main` the finding is advisory (`continue-on-error`): it describes a commit
-  #    that already landed, so it reports instead of reddening `main`, and it is
-  #    deliberately absent from `auto-tag`'s `needs`.
-  release-bump:
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    continue-on-error: ${{ github.event_name == 'push' }}
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          # Full history and every release tag: the check diffs against the base
-          # branch and reads the latest `nn-mcp-v*` / `nn-console-v*` tags.
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22.23.4
-
-      - name: A changed authored release key carries an unreleased version
-        env:
-          BASE_REF: ${{ github.base_ref }}
-          BEFORE_SHA: ${{ github.event.before }}
-          EVENT_NAME: ${{ github.event_name }}
-        run: |
-          set -euo pipefail
-          BASE="origin/$BASE_REF"
-          if [ "$EVENT_NAME" = "push" ]; then
-            case "$BEFORE_SHA" in
-              0000000000000000000000000000000000000000|"")
-                echo "No previous commit on this ref; nothing to compare against."
-                exit 0
-                ;;
-            esac
-            BASE="$BEFORE_SHA"
-          fi
-          node scripts/release/check-authored-bump.js --base "$BASE"
-
   # One-way publish of the built site to the public distribution repo
   # (`cogNNitive-web`), which owns the GitHub Pages deployment for
   # `cognnitive.com`. The monorepo no longer serves Pages from itself: this job
   # pushes the artifact `site` built (gated by `verify`), append-only and
   # idempotent (a byte-identical artifact is a no-op — no empty commit).
   publish-web:
-    needs: [verify, site, quality, spec-integrity]
+    needs: [verify, site, quality, spec-integrity, regen]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency:
@@ -292,13 +234,8 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
-
-      # Publish exactly what `site` built (with `verify` green) — no npm ci, no rebuild.
-      - name: Download built docs
-        uses: actions/download-artifact@v8
         with:
-          name: pages-docs
-          path: docs
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -306,13 +243,27 @@ jobs:
           node-version: 22.23.4
           cache: npm
 
+      - run: npm ci
+
+      # Publish the tree the release is cut from, not the one this run started on: `regen`
+      # may have pushed a write-back commit with regenerated artifacts and versions, and
+      # publishing before it would ship the previous copy until the next push. `site` stays
+      # the gate that proves the docs build; this job builds what it publishes from `main`.
+      - name: Check out the regenerated main
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          git checkout --detach FETCH_HEAD
+
+      - name: Build Docs
+        run: npm run build:docs
+
       - name: Publish to cogNNitive-web
         env:
           WEB_PUBLISH_TOKEN: ${{ secrets.WEB_PUBLISH_TOKEN }}
           INNFO_DOCS_OUT: ${{ github.workspace }}/docs
           WEB_PUBLISH_REPO: cogNNitive/cogNNitive-web
           WEB_PUBLISH_SUBDIR: docs
-          GITHUB_SHA: ${{ github.sha }}
         run: node scripts/publish-web.mjs
 
   # ── Release = merge to main. After the gate is green, tag every release key that
@@ -322,8 +273,51 @@ jobs:
   #    The tags land in ONE atomic push (scripts/release/push-release-tags.mjs): a
   #    rejection therefore leaves every tag or none, never a half-tagged commit whose
   #    `release` job is skipped (#725).
+  # ── Regeneration: derived artifacts belong to `main`, not to a change branch. A PR carries
+  #    source only (the gate accepts the artifact that moves with it, `--tolerant`); this job
+  #    commits the regenerated files and the derived version write-back here, BEFORE auto-tag
+  #    plans, because the release publishes the tree of the tag it cuts. The commit carries a
+  #    fixed message, and a run whose last commit already has it does nothing: the push below
+  #    triggers that second run, and it must not regenerate again.
+  regen:
+    needs: [verify, quality, spec-integrity]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.23.4
+          cache: npm
+
+      - run: npm ci
+
+      - name: Regenerate and commit when a derived artifact or a version moved
+        # The push can be rejected because another merge landed while the artifacts were
+        # generated: each run checks out the commit its trigger saw, so the generated commit is
+        # behind by the time it is pushed. Inline, that rejection aborted the job and
+        # `auto-tag`/`release` were skipped, so the release lane went quiet without saying so.
+        # `scripts/regen-writeback.js` re-derives on the new tip and retries only a moved branch;
+        # a policy refusal is still a failure. Tests: scripts/lib/regen-writeback.test.js.
+        run: node scripts/regen-writeback.js
+
+      - name: Assert a second pass moves nothing outside the HEAD-dependent artifacts
+        run: |
+          # A second pass must move nothing OUTSIDE the artifacts whose bytes depend on HEAD.
+          # The tag-derived catalogs are excluded by the gate itself: committing changes HEAD,
+          # which changes the release_tag they are stamped with, so they can never be stable
+          # across the commit that created them. Everything else must reproduce exactly, which
+          # is the equality the artifact tests no longer assert from a change branch.
+          node scripts/regen.js --check
+
   auto-tag:
-    needs: [verify, site, quality, spec-integrity]
+    needs: [verify, site, quality, spec-integrity, regen]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
@@ -337,11 +331,22 @@ jobs:
 
       - name: Plan release tags
         id: plan
-        run: node scripts/release/plan-auto-tags.js
+        run: |
+          set -euo pipefail
+          # The regeneration commit is the tree that ships, so plan (and tag) THAT, not the
+          # merge commit this run started on. `regen` has already pushed it by now.
+          git fetch --no-tags origin main
+          git checkout --detach FETCH_HEAD
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          node scripts/release/plan-auto-tags.js
 
       - name: Create and push tags
         env:
           TAGS: ${{ steps.plan.outputs.tags }}
+          # Not GITHUB_SHA: a step cannot override a default variable, so `env: GITHUB_SHA:`
+          # is silently ignored and the tags land on the merge commit while the write-back
+          # commit, which carries the regenerated artifacts, sits one ahead.
+          RELEASE_TARGET_SHA: ${{ steps.plan.outputs.sha }}
         run: node scripts/release/push-release-tags.mjs
 
   release:
@@ -366,19 +371,39 @@ jobs:
         with:
           fetch-depth: 0
 
-      # The smoke only reads test/ui and the committed TestLab fixture, so skip the
-      # Playwright+Chromium install unless those (or this workflow) changed.
-      # Anything unclear (new branch, force push, manual run) runs it.
+      # The smoke reads test/ui and the TestLab export it opens, so skip the Playwright+Chromium
+      # install unless those or the console source that produces the export changed. The export
+      # no longer travels in a PR (the write-back lane commits it on `main`), so without the
+      # console paths here a console change would never run the smoke at all.
       - name: Detect relevant changes
         id: rel
         run: |
           BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
           if [ -n "$BASE" ] && [ "$BASE" != 0000000000000000000000000000000000000000 ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-            if git diff --quiet "$BASE" "${{ github.sha }}" -- test/ui test/fixtures/testlab .github/workflows/ci.yml; then
+            if git diff --quiet "$BASE" "${{ github.sha }}" -- test/ui test/fixtures/testlab iNNfo/specs/bluepriNNts/console scripts/export-console.mjs .github/workflows/ci.yml; then
               echo run=false >> "$GITHUB_OUTPUT"; exit 0
             fi
           fi
           echo run=true >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        if: steps.rel.outputs.run == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.23.4
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.rel.outputs.run == 'true'
+        run: npm ci
+
+      # Export the console from THIS tree, so the smoke opens the PR's bundle instead of the
+      # one committed before the lane existed.
+      - name: Export the TestLab console from source
+        if: steps.rel.outputs.run == 'true'
+        run: |
+          npm --workspace=@cognnitive/nn-core run build
+          node scripts/export-console.mjs test/fixtures/testlab --domain --no-open
 
       - name: Setup Python
         if: steps.rel.outputs.run == 'true'

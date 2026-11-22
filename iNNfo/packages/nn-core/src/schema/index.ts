@@ -19,6 +19,16 @@ export { resolveBlueprintSchema, canonicalizeDefinition, applyAliasToSchema } fr
 export type { IncludeResolver, ResolvedBlueprintSchema } from './compose.js'
 
 export { findDeclaredField } from './declaredField.js'
+export {
+  parseTransitions,
+  transitionsProblems,
+  declaredTransitionsFor,
+  buildDeclaredTransitions,
+  TRANSITIONS_INVALID,
+  TRANSITIONS_UNKNOWN_VALUE,
+  TRANSITIONS_UNKNOWN_OPTION,
+} from './transitions.js'
+export type { FieldTransitions, DeclaredTransitions } from './transitions.js'
 
 export {
   DEFAULT_WRITE_POLICY,
@@ -85,4 +95,3 @@ export type {
   NatureDiagnostic,
   ParsedNature,
 } from './nature.js'
-

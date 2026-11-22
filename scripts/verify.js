@@ -349,6 +349,7 @@ const SLOW_SUITES = new Set([
   'test/console-matrix-cells.test.mjs',
   'test/console-s3b-parity.test.mjs',
   'test/console-sample-custom-view.test.mjs',
+  'test/console-sandbox-storage.test.mjs',
   'test/console-view-context.test.mjs',
   'test/init-domain-blueprints.test.mjs',
   'iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/test/video-engine-cli.test.mjs',
@@ -600,7 +601,10 @@ function buildSteps(repoRoot, options = {}) {
       id: 'regen-gate',
       desc: 'Derived Artifacts Reproduce (npm run check:regen)',
       cmd: process.execPath,
-      args: ['scripts/regen.js', '--check'],
+      // `--tolerant`: a derived artifact that moves with this change is committed on `main` by
+      // the write-back lane, so the branch must not carry it. A path whose generator is not
+      // allowed to own it still fails here.
+      args: ['scripts/regen.js', '--check', '--tolerant'],
     });
   }
   // 5c. Distributed skills are self-contained: referenced `node scripts/<file>` exists in the skill folder.
@@ -618,7 +622,7 @@ function buildSteps(repoRoot, options = {}) {
   // 7. Blueprint Catalog Drift Guard. Deliberately not part of the gate above: its write
   //    path stamps `release_tag` from the `blueprints-v*` git tags while this --check
   //    compares the catalog with that field normalised away, so a byte diff would redden
-  //    on every tag cut instead of on real drift (pre-commit-regen.js excludes it too).
+  //    on every tag cut instead of on real drift (the regen gate excludes it for the same reason).
   steps.push(roFresh('blueprint-catalog'));
   // 7b-ter-bis. The committed console fixture must reproduce a fresh export of its domain
   // (the export itself, not a digest: `regen` exports it but cannot diff it, because the

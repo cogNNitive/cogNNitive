@@ -34,6 +34,18 @@ into the source-of-truth engineering tracker (`cogNNitive/cogNNitive`).
 | 563 | 24 | add_model for a distributed concept (Series) silently falls back to a compact document when its placement folder is absent, and the container is then rejected as CONTAINER_MISSING | 2026-11-06 |
 | 564 | 25 | add_model does not stamp blueprint_version, so produce refuses the coNNtent episode that add_model just created | 2026-11-06 |
 | 565 | 26 | Episode layout drift: the engine writes series/\<s\>/assets/\<slug\>/ while conntent-folder-contract declares series/\<s\>/episodes/\<slug\>/, and produce.modelIdOf drops the series container outside assets/ | 2026-11-06 |
+| 778 | 27 | skills: profile-update path is unreachable for agents (nn-skills-lifecycle is user-invoked only, nothing points at the manifest) | 2026-11-21 |
+| 779 | 28 | console: fails to start in a sandboxed iframe (localStorage guard throws on read) | 2026-11-21 |
+| 780 | 29 | skills-manager: full update hangs and never records catalog state when a catalog declares an unpinned embedded skill (nn-conntent) | 2026-11-21 |
+
+Notes on the 2026-11-21 sweep:
+
+- All three open web issues were maintainer-authored and imported; the web tracker is empty
+  again (**0 issues**), its Issues feature still enabled as the public intake.
+- `web#29` was **closed on arrival as consolidated into `#778`** (`cogNNitive#780`): both are
+  `skills-manager` against the user-profile installation, and one fix has to address both —
+  the update path is unreachable precisely while it is broken. The ledger records the crossing
+  either way.
 
 Notes on the 2026-10-20 sweep:
 

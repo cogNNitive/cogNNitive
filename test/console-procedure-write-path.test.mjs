@@ -4,6 +4,7 @@
    target up in `elementsById`, and an `Execution Event` is not an element, so every
    proposal returned null and the runtime threw "unknown element". */
 import { describe, it, beforeEach } from 'node:test'
+import { runModelOfEvents } from './helpers/run-model-of-events.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -92,7 +93,7 @@ function payload() {
               defRev,
               params: {},
               events: AT_REVIEW,
-              state: core.foldRun(graph, AT_REVIEW, { defRev, lockFree: true }),
+              state: core.foldRun(graph, runModelOfEvents(AT_REVIEW, { defRev }), { defRev }),
             },
           ],
         },
