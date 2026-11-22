@@ -153,6 +153,68 @@ export class ScriptValidationError extends Error {
   }
 }
 
+const INPUT_NAME_RE = /^[A-Za-z_][A-Za-z0-9_-]*$/;
+
+/**
+ * Parses an `animation` Layer's `inputs:: [name=value, ...]` (issue #612 item 4): the keyed
+ * list the `fit` and `components` fields use. Accepts the parsed list, an object map, or the
+ * raw `[a=1, b=2]` string. A value is kept verbatim as a string; the project's declared
+ * variable types are applied later, when the project is read.
+ * @param {unknown} raw
+ * @returns {{ inputs: Record<string, string> | null, errors: string[] }} `inputs` is null when unset
+ */
+export function parseLayerInputs(raw) {
+  if (raw === undefined || raw === null) return { inputs: null, errors: [] };
+  let items;
+  if (Array.isArray(raw)) items = raw.map((x) => String(x));
+  else if (typeof raw === 'object') items = Object.entries(raw).map(([k, v]) => `${k}=${typeof v === 'string' ? v : JSON.stringify(v)}`);
+  else {
+    let text = String(raw).trim();
+    if (text.startsWith('[') && text.endsWith(']')) text = text.slice(1, -1);
+    items = text.split(',');
+  }
+  const inputs = {};
+  const errors = [];
+  for (const item of items.map((s) => s.trim()).filter((s) => s !== '')) {
+    const at = item.indexOf('=');
+    const name = at > 0 ? item.slice(0, at).trim() : '';
+    if (!INPUT_NAME_RE.test(name)) {
+      errors.push(`"${item}" is not a name=value entry`);
+      continue;
+    }
+    if (Object.hasOwn(inputs, name)) {
+      errors.push(`"${name}" is given twice`);
+      continue;
+    }
+    inputs[name] = item.slice(at + 1).trim();
+  }
+  if (Object.keys(inputs).length === 0 && errors.length === 0) return { inputs: null, errors };
+  return { inputs, errors };
+}
+
+/**
+ * Resolves `file:<path>` input values to the file's text, read relative to the script
+ * folder, so the content (not the name) is the value: a changed file changes the scene's
+ * review subject. A missing file throws code `animation-input-file`.
+ */
+function readInputFiles(inputs, layerName, scriptDir) {
+  const out = {};
+  for (const [name, value] of Object.entries(inputs)) {
+    if (!value.startsWith('file:')) {
+      out[name] = value;
+      continue;
+    }
+    const file = path.resolve(scriptDir || process.cwd(), value.slice('file:'.length).trim());
+    if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
+      throw Object.assign(new Error(`animation-input-file: Layer "${layerName}" input "${name}" names ${file}, which does not exist`), {
+        code: 'animation-input-file',
+      });
+    }
+    out[name] = fs.readFileSync(file, 'utf8');
+  }
+  return out;
+}
+
 /** Overlay layers sequenced into non-overlapping slots, and their default seconds. */
 const SEQUENTIAL_OVERLAY_TYPES = { quote: 3, 'b-roll': 4 };
 
@@ -484,6 +546,20 @@ export class SceneCompiler {
         report({ code: 'layer-type-required', message: `Layer "${layer.name}" has no type::` });
         continue;
       }
+      // `inputs` carries data into an animation project; no other Layer type reads it.
+      if (layer.fields?.inputs !== undefined && layer.fields?.inputs !== null) {
+        if (type !== 'animation') {
+          report({
+            code: 'inputs-not-animation',
+            message: `Layer "${layer.name}" (type:: ${type}) declares inputs::, which only an animation Layer accepts`,
+          });
+        } else {
+          const { errors: inputErrors } = parseLayerInputs(layer.fields.inputs);
+          if (inputErrors.length > 0) {
+            report({ code: 'inputs-invalid', message: `Layer "${layer.name}" inputs:: ${inputErrors.join('; ')}` });
+          }
+        }
+      }
       if (type === 'text') {
         const style = layer.fields?.style;
         const binding = style ? TYPE_RENDERERS[style] : null;
@@ -616,7 +692,9 @@ export class SceneCompiler {
       // The scene's Layers: those it inherits from its Kind and Presets (cascade order), minus
       // any it overrides by slug, then its own (issue #612 item 3).
       const inherited = inheritedLayers({ grammar, kindName: fields.kind, bags: sceneBags });
-      const layers = effectiveLayers(inherited, buckets[i]).map((layer, j) => this.lowerLayer(layer, sceneId, j, sceneBags));
+      const layers = effectiveLayers(inherited, buckets[i]).map((layer, j) =>
+        this.lowerLayer(layer, sceneId, j, sceneBags, { scriptDir: options.scriptDir }),
+      );
       // Kind chrome: series wallpaper applied per kind, resolved for the cascaded
       // language (capability video-scene-kinds). It becomes ordinary overlays/music,
       // so the scene document never repeats it.
@@ -736,9 +814,21 @@ export class SceneCompiler {
     };
   }
 
-  /** Lowers one Layer element into the internal layer shape. */
-  lowerLayer(layer, sceneId, index, bags = {}) {
+  /**
+   * Lowers one Layer element into the internal layer shape.
+   * @param {{ scriptDir?: string }} [context] the script folder `file:` inputs resolve against
+   */
+  lowerLayer(layer, sceneId, index, bags = {}, context = {}) {
     const fields = layer.fields || {};
+    // An `animation` Layer's data inputs (issue #612 item 4). Absent, the layer carries no
+    // `layer_inputs`, so its lowered shape and review hash are what they were before inputs.
+    const parsedInputs = parseLayerInputs(fields.inputs);
+    if (parsedInputs.errors.length > 0) {
+      throw Object.assign(new Error(`inputs-invalid: Layer "${layer.name}" inputs:: ${parsedInputs.errors.join('; ')}`), {
+        code: 'inputs-invalid',
+      });
+    }
+    const inputs = parsedInputs.inputs ? readInputFiles(parsedInputs.inputs, layer.name, context.scriptDir) : undefined;
     const declared = fields.type;
     const effectiveType = declared === 'text' ? fields.style : declared;
     const binding = TYPE_RENDERERS[effectiveType] || { kind: 'layer', manifest: declared };
@@ -764,6 +854,7 @@ export class SceneCompiler {
       // Only `inset` changes the projection (spec S6); `full` is the default and stays out
       // of the lowered model, so it never moves the script-gate hash.
       layer_placement: fields.placement === 'inset' ? 'inset' : undefined,
+      layer_inputs: inputs,
     };
     for (const key of Object.keys(properties)) {
       if (properties[key] === undefined) delete properties[key];
@@ -941,6 +1032,7 @@ export class SceneCompiler {
         id: a.id,
         durationInFrames: Math.max(1, Math.ceil((Number(a.durationSeconds) || 0) * fps)),
         sourceDir: a.sourceDir,
+        ...(a.values ? { values: a.values } : {}),
       }));
 
       // 2. Transition from `transition::` (fade | slide-left | slide-right | wipe | none).
