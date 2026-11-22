@@ -92,13 +92,14 @@ function main() {
 
   // A fresh HOME with no cogNNitive state is the whole point: anything read by
   // accident from the developer's machine would hide the defect being hunted.
+  // The override is stripped first so the default is what the smoke tests.
+  const { SM_MANIFEST_URL: _manifestOverride, ...inheritedEnv } = process.env
   const isolatedEnv = {
-    ...process.env,
+    ...inheritedEnv,
     HOME: home,
     USERPROFILE: home,
     XDG_CONFIG_HOME: path.join(home, '.config'),
   }
-  delete isolatedEnv.SM_MANIFEST_URL
 
   step('the source is a committed tree', () => {
     const head = git(['rev-parse', 'HEAD']).trim()
