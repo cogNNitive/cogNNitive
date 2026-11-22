@@ -215,6 +215,20 @@ describe('collectWorkspaceDiagnostics / filterDiagnosticsForModel (AD-4 split)',
     expect(dropped[0].message).toContain('Twin Two')
   })
 
+  it('collectWorkspaceDiagnostics warns SCHEMA_UNRESOLVED when a model bluepriNNt is not in the cache, instead of skipping its graph in silence', async () => {
+    const { betaPath } = await writeWorkspace()
+    const emptyCache: SpecCache = { ...buildCache(), specs: new Map() }
+    const diagnostics = await collectWorkspaceDiagnostics(rootDir, emptyCache)
+    const unresolved = diagnostics.filter((d) => d.code === 'SCHEMA_UNRESOLVED')
+    expect(unresolved.length).toBeGreaterThan(0)
+    expect(unresolved.every((d) => d.severity === 'warning')).toBe(true)
+    expect(unresolved.some((d) => d.path === betaPath || d.path.endsWith('beta_V_0-1-0_linked_test_NN.md'))).toBe(true)
+
+    // With the bluepriNNt cached there is nothing to report.
+    const resolved = await collectWorkspaceDiagnostics(rootDir, buildCache())
+    expect(resolved.filter((d) => d.code === 'SCHEMA_UNRESOLVED')).toEqual([])
+  })
+
   it('collectWorkspaceDiagnostics returns unfiltered cross-model diagnostics for the whole tree with ONE recursiveParse', async () => {
     await writeWorkspace()
     const { recursiveParse: parseSpy } = await import('@cognnitive/nn-core')

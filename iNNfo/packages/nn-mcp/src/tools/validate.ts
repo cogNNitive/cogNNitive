@@ -345,13 +345,15 @@ export async function collectWorkspaceDiagnostics(
   // Parse-level errors name an element the graph DROPPED (today only a repeated
   // slug). A host that reads the graph must report the loss: silent omission is
   // the failure mode this pass exists to prevent. Warnings and info stay with
-  // the per-model validators, which already carry them.
+  // the per-model validators, which already carry them, except SCHEMA_UNRESOLVED:
+  // only this pass knows a model's schema-typed submodels and citations were not
+  // followed, so it reports that degrade as a warning.
   const droppedElements: ReferenceDiagnostic[] = result.issues
-    .filter((issue) => issue.severity === 'error')
+    .filter((issue) => issue.severity === 'error' || issue.code === 'SCHEMA_UNRESOLVED')
     .map((issue) => ({
       path: issue.path,
       message: issue.message,
-      severity: 'error',
+      severity: issue.severity === 'error' ? 'error' : 'warning',
       ...(issue.code ? { code: issue.code } : {}),
     }))
   return [
