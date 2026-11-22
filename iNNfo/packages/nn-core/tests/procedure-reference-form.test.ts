@@ -53,6 +53,8 @@ const SHIPPED = [
   'create_series_procedures_NN.md',
   'create_character_procedures_NN.md',
   'configure_cascade_procedures_NN.md',
+  'draft_scene_visuals_procedures_NN.md',
+  'produce_video_procedures_NN.md',
 ]
 
 /** The three typed reference fields a procedure document links its Work elements with. */

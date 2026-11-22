@@ -1,18 +1,20 @@
-import { spawnSync } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   DEFAULT_STEP_TIMEOUT_MS,
   MAX_STEP_TIMEOUT_MS,
+  chooseNext,
   fillSlots,
   formatUtcStamp,
+  guardOf,
   holderOf,
   loadChangeLog,
   procedureIdOf,
   unresolvedSlots,
 } from '@cognnitive/nn-core'
-import type { ChangeItem, RunState, StepRow, Transition } from '@cognnitive/nn-core'
+import type { ChangeItem, RunState, StepRow } from '@cognnitive/nn-core'
 import { applyChange } from './apply-change.js'
 import { writeProposedChangeset } from './propose-changeset.js'
 import { findKnowledgeFile } from './spec.js'
@@ -290,15 +292,61 @@ export interface RecordResult extends ProcedureStateResult {
   exitCode?: number | null
 }
 
-/** Whether a guard holds for this outcome; prose is asserted only when it is named explicitly. */
-const holds = (t: Transition, outcome: string | undefined): boolean | 'asserted' =>
-  t.guard.kind === 'none'
-    ? true
-    : t.guard.kind === 'outcome'
-      ? t.guard.token === outcome
-      : t.guard.kind === 'artifact'
-        ? t.guard.holds
-        : 'asserted'
+/**
+ * The holder a plain `start` records. It only books the step for a later `run`, so it names
+ * the claim rather than a process; `action=run` records the pid of the child that executes
+ * the command, because that child — not the long-lived MCP server — is what a crash kills.
+ */
+const AGENT_HOLDER = 'agent'
+
+/** A parameter value spliced into a shell command: letters, digits and a safe punctuation set. */
+const SHELL_SAFE = /^[A-Za-z0-9._+\-/:,=@\s]+$/
+
+/**
+ * Spawns one engine command in the domain root. The child is asynchronous, so the MCP server
+ * keeps answering while a step runs, and `onSpawn` hands its pid to the caller, which writes
+ * the claim with that pid as the holder: the crash probe then watches the process that runs
+ * the command, not the long-lived server that only reported it. Nothing is written here, so
+ * the claim stays one atomic changeset.
+ */
+interface EngineResult {
+  exitCode: number | null
+  reason?: string
+}
+
+function startEngineCommand(opts: {
+  root: string
+  command: string
+  timeout: number
+  params: Record<string, unknown>
+  onSpawn: (pid: number) => void
+}): { pid?: number; kill: () => void; done: Promise<EngineResult> } {
+  // Slot values also travel as environment variables, so a procedure can read a parameter
+  // without splicing it into shell text.
+  const env = { ...process.env }
+  for (const [name, value] of Object.entries(opts.params)) env[`NN_SLOT_${name}`] = String(value)
+  const child = spawn(opts.command, { cwd: opts.root, shell: true, env, stdio: 'ignore' })
+  if (child.pid !== undefined) opts.onSpawn(child.pid)
+  const done = new Promise<EngineResult>((resolve) => {
+    let settled = false
+    const finish = (result: EngineResult): void => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      resolve(result)
+    }
+    const timer = setTimeout(() => {
+      child.kill()
+      finish({ exitCode: null, reason: `timed out after ${opts.timeout} ms` })
+    }, opts.timeout)
+    timer.unref?.()
+    child.on('error', (err) => finish({ exitCode: null, reason: err.message }))
+    child.on('close', (code, signal) =>
+      finish({ exitCode: code, reason: code === null ? `signal ${signal}` : undefined }),
+    )
+  })
+  return { pid: child.pid, kill: () => child.kill(), done }
+}
 
 /**
  * One planned change: the changeset lines that record it, plus what the caller reports back.
@@ -312,6 +360,11 @@ interface Planned {
   exitCode?: number | null
   /** The attempt this plan guarded, for a completion fence. */
   attempt?: number
+  /**
+   * The header `seq` this plan already advanced and wrote itself, because the command had to
+   * run after the claim landed. The completion changeset then guards `seq + 1`.
+   */
+  claimedSeq?: number
 }
 
 /** Validates the step a step action names: known, current, and in the status the action needs. */
@@ -341,10 +394,19 @@ function planStepStart(
   f: FoldedRun,
   step: string,
   args: Record<string, unknown>,
+  holder = AGENT_HOLDER,
 ): Planned | ToolError {
   const st = f.state.steps[step]!
-  if ((st.status === 'active' || st.status === 'waiting') && !f.state.crashed)
-    return fail('STEP_ALREADY_STARTED', `Step "${step}" is already ${st.status}.`)
+  // A live engine claim is released only by the crash probe. A `waiting` step is a controlled
+  // stop of the same attempt, so both paths reclaim it as the next attempt instead of the run
+  // being stuck between waiting and done.
+  if (
+    st.status === 'active' &&
+    !f.state.crashed &&
+    f.graph.steps[step]!.executor === 'engine' &&
+    holder === AGENT_HOLDER
+  )
+    return fail('STEP_ALREADY_STARTED', `Step "${step}" is already active.`)
   const row = rowOf(f, step)
   const inputs: Record<string, string> = {}
   for (const a of f.graph.steps[step]!.inputs) {
@@ -375,7 +437,7 @@ function planStepStart(
           attempt,
           claimed_at: new Date().toISOString(),
           timeout_ms: timeout,
-          holder: holderOf(process.pid),
+          holder,
           inputs: JSON.stringify(inputs),
         }),
         evidence: 'decision',
@@ -389,7 +451,7 @@ function plan(
   action: RecordAction,
   args: Record<string, unknown>,
   root: string,
-): Planned | ToolError {
+): Planned | ToolError | Promise<Planned | ToolError> {
   const { state, graph, run } = f
   if (run.closed || ['completed', 'failed', 'cancelled'].includes(state.status))
     return fail('RUN_CLOSED', `Run "${run.id}" is closed (${state.status}).`)
@@ -608,9 +670,23 @@ function plan(
     return fail('STEP_NOT_STARTED', `Step "${step}" is ${status}; record start first.`)
   if (action === 'wait') {
     if (!value) return fail('INVALID_ARGUMENT', 'wait needs value: who or what the step waits on.')
+    // `waiting` is a step STATUS, not only a note: the fold reports the run as waiting while the
+    // current step holds it, and the row may then be completed or failed. A second `wait` only
+    // restates what it waits on.
     return {
       step,
       changes: [
+        ...(status === 'active'
+          ? [
+              {
+                op: 'update_field' as const,
+                target: `${run.id}@${step}&status`,
+                from: 'active',
+                to: 'waiting',
+                evidence: 'decision' as const,
+              },
+            ]
+          : []),
         {
           op: 'update_field',
           target: `${run.id}@${step}&waiting_on`,
@@ -627,7 +703,7 @@ function plan(
         {
           op: 'update_field',
           target: `${run.id}@${step}&status`,
-          from: 'active',
+          from: status,
           to: 'failed',
           evidence: 'decision',
         },
@@ -647,28 +723,25 @@ function plan(
   // complete
   const outcome = text(args['outcome'])
   const targets = state.allowedNext
-  let next = text(args['next'])
-  if (next !== undefined) {
-    const t = targets.find((x) => x.to === next)
-    if (!t || holds(t, outcome) === false)
-      return fail('INVALID_TRANSITION', `"${next}" is not an allowed next step for this outcome.`, {
+  const chosen = chooseNext(targets, outcome, text(args['next']))
+  if (!chosen.ok && chosen.reason === 'invalid')
+    return fail(
+      'INVALID_TRANSITION',
+      `"${chosen.next}" is not an allowed next step for this outcome.`,
+      {
         allowedNext: targets,
-      })
-  } else if (targets.length === 1) {
-    next = targets[0]!.to
-  } else if (targets.length > 1) {
-    const holding = targets.filter((t) => holds(t, outcome) === true)
-    if (holding.length !== 1)
-      return fail(
-        'AMBIGUOUS_TRANSITION',
-        `${holding.length} transitions hold for outcome "${outcome ?? ''}"; give next or an outcome that picks one.`,
-        { allowedNext: targets },
-      )
-    next = holding[0]!.to
-  }
+      },
+    )
+  if (!chosen.ok)
+    return fail(
+      'AMBIGUOUS_TRANSITION',
+      `${chosen.holding.length} transitions hold for outcome "${outcome ?? ''}"; give next or an outcome that picks one.`,
+      { allowedNext: targets },
+    )
+  const next = chosen.next
   const row = rowOf(f, step)
   // Completion (design §3.4): the step row guard (`from` status + attempt) is the fence
-  // against a late completion from an older attempt.
+  // against a late completion from an older attempt. A waiting step completes the same way.
   return {
     step,
     attempt: row.attempt,
@@ -676,7 +749,7 @@ function plan(
       {
         op: 'set_fields',
         target: `${run.id}@${step}`,
-        from: JSON.stringify({ status: 'active', attempt: row.attempt }),
+        from: JSON.stringify({ status, attempt: row.attempt }),
         to: JSON.stringify({
           status: 'done',
           attempt: row.attempt,
@@ -697,132 +770,232 @@ function fileRev(root: string, path: string): string | undefined {
 }
 
 /**
- * `action=run`: claims the engine step, executes its command (slots substituted) in the
- * domain root, maps its exit code through `exit_codes` (§4.6), verifies the `file:` outputs
- * it can, and completes or fails the step — all in the one atomic changeset of the call.
+ * `action=run`: claims the engine step in its own changeset, executes its command (slots
+ * substituted) in the domain root, maps its exit code through `exit_codes` (§4.6), verifies
+ * the `file:` outputs it can, and completes or fails the step in a second atomic changeset.
+ *
+ * The claim lands first on purpose: a second caller then folds the row as `active` and finds
+ * the step taken instead of running the same command twice. It also carries the placeholder
+ * holder that `runEngineCommand` replaces with the pid of the child it spawns.
  */
 function planEngineRun(
   f: FoldedRun,
   step: string,
   args: Record<string, unknown>,
   root: string,
-): Planned | ToolError {
+): Promise<Planned | ToolError> {
   const def = f.graph.steps[step]!
   if (def.executor !== 'engine' || !def.command)
-    return fail('NOT_ENGINE_STEP', `Step "${step}" is not an engine step with a command.`)
+    return Promise.resolve(
+      fail('NOT_ENGINE_STEP', `Step "${step}" is not an engine step with a command.`),
+    )
   const started = planStepStart(f, step, args)
-  if ('ok' in started) return started
+  if ('ok' in started) return Promise.resolve(started)
   const claim = started.changes[0] as { to: string }
   const claimFields = JSON.parse(claim.to) as { timeout_ms: number }
   const command = substitute(def.command, f.run.params)!
   const left = unresolvedSlots(command)
   if (left.length > 0)
-    return fail(
-      'UNRESOLVED_SLOT',
-      `Step "${step}" still carries ${left.map((s) => `{${s}}`).join(', ')}; fill the slots first.`,
-      { missing: left },
+    return Promise.resolve(
+      fail(
+        'UNRESOLVED_SLOT',
+        `Step "${step}" still carries ${left.map((s) => `{${s}}`).join(', ')}; fill the slots first.`,
+        { missing: left },
+      ),
+    )
+  // The command runs through a shell with the run's parameter values spliced in, so a value
+  // carrying shell syntax would execute. Refuse the whole call before anything runs.
+  const unsafe = Object.keys(f.run.params).filter(
+    (name) => !SHELL_SAFE.test(String(f.run.params[name])),
+  )
+  if (unsafe.length > 0)
+    return Promise.resolve(
+      fail(
+        'UNSAFE_COMMAND',
+        `Parameter${unsafe.length > 1 ? 's' : ''} ${unsafe.map((n) => `"${n}"`).join(', ')} carr${unsafe.length > 1 ? 'y' : 'ies'} shell syntax; a command parameter may only hold letters, digits and . _ + - / : , = @`,
+        { unsafe },
+      ),
     )
   const timeout = claimFields.timeout_ms
-  const res = spawnSync(command, { cwd: root, shell: true, timeout, encoding: 'utf-8' })
-  const exitCode = res.status
-  const row = rowOf(f, step)
-  const attempt = (row.attempt ?? 0) + 1
-  const claimTo = JSON.parse((started.changes[0] as { to: string }).to) as Record<string, string>
+  const claimTo = JSON.parse(claim.to) as Record<string, string>
+  const attempt = started.attempt
 
-  // The claim and the completion of one engine call are ONE `set_fields` on the step row:
-  // `from` is evaluated against the model as it stands, so a separate completion change could
-  // not guard the `active` status its sibling in the same batch writes. The claim's guard
-  // (`from` status + attempt) is delivered once and fences the whole column.
-  const finishRow = (
-    status: 'done' | 'waiting' | 'failed',
-    extra: Record<string, string>,
-  ): Change => ({
-    op: 'set_fields',
-    target: `${f.run.id}@${step}`,
-    from: JSON.stringify({ status: row.status, attempt: row.attempt }),
-    to: JSON.stringify({ ...claimTo, status, attempt, ...extra }),
-    evidence: 'decision',
-  })
-
-  if (exitCode !== 0) {
-    // Exit-code mapping (design §4.6): 0 is done, an unmapped nonzero is failed, and
-    // `exit_codes` turns a controlled stop into a wait or a named outcome.
-    const mapped = def.exitCodes?.[String(exitCode)]
-    const reason = res.error
-      ? res.error.message
-      : exitCode === null
-        ? `signal ${res.signal}`
-        : `exit ${exitCode}`
-    if (mapped === 'waiting')
-      return {
-        step,
-        attempt,
+  return (async () => {
+    // The child is spawned BEFORE the claim lands, so its pid can travel inside the claim
+    // itself: the crash probe then names the process that actually runs the command from the
+    // moment it is claimed, and no second write has to race the apply lock.
+    let finishClaim: ((pid: number) => void) | undefined
+    const pidReady = new Promise<number>((resolve) => {
+      finishClaim = resolve
+    })
+    const child = startEngineCommand({
+      root,
+      command,
+      timeout,
+      params: f.run.params,
+      onSpawn: (pid) => finishClaim?.(pid),
+    })
+    const pid = await Promise.race([
+      pidReady,
+      child.done.then(() => undefined as number | undefined),
+    ])
+    if (pid === undefined) {
+      // No process was created, so there is nothing to claim and nothing to wait on.
+      const result = await child.done
+      return fail(
+        'ENGINE_SPAWN_FAILED',
+        `Step "${step}" could not start: ${result.reason ?? 'no process'}.`,
+      )
+    }
+    const claimed = await commit(
+      f.root!,
+      [
+        seqGuard(f.run.id, f.run.seq),
+        {
+          ...(started.changes[0] as Change),
+          to: JSON.stringify({ ...claimTo, holder: holderOf(pid) }),
+        },
+      ],
+      {
+        title: `run ${f.run.id}`,
+        actor: text(args['actor']) ?? 'engine',
         kind: 'engine',
-        exitCode,
-        changes: [finishRow('waiting', { waiting_on: reason })],
+        run: runContext(f.run.id, step),
+      },
+    )
+    if (!claimed.ok) {
+      child.kill()
+      return claimed
+    }
+    const claimedSeq = f.run.seq + 1
+    const { exitCode, reason: runError } = await child.done
+    // The holder is the child's pid, so the crash probe names the process that runs the
+    // command; the completion clears that column.
+    const settledClaim = { ...claimTo, holder: '' }
+
+    // The claim and the completion of one engine call are ONE `set_fields` on the step row:
+    // `from` is evaluated against the model as it stands, so a separate completion change could
+    // not guard the `active` status its sibling in the same batch writes. The claim's guard
+    // (`from` status + attempt) is delivered once and fences the whole column.
+    const finishRow = (
+      status: 'done' | 'waiting' | 'failed',
+      extra: Record<string, string>,
+    ): Change => ({
+      op: 'set_fields',
+      target: `${f.run.id}@${step}`,
+      from: JSON.stringify({ status: 'active', attempt }),
+      to: JSON.stringify({ ...claimTo, ...settledClaim, status, attempt, ...extra }),
+      evidence: 'decision',
+    })
+
+    if (exitCode !== 0) {
+      // Exit-code mapping (design §4.6): 0 is done, an unmapped nonzero is failed, and
+      // `exit_codes` turns a controlled stop into a wait or a named outcome.
+      const mapped = def.exitCodes?.[String(exitCode)]
+      const reason = runError ?? (exitCode === null ? 'terminated by a signal' : `exit ${exitCode}`)
+      if (mapped === 'waiting')
+        return {
+          step,
+          attempt,
+          kind: 'engine',
+          exitCode,
+          claimedSeq,
+          changes: [finishRow('waiting', { waiting_on: reason })],
+        }
+      if (mapped && mapped !== 'failed') {
+        // A named outcome branches exactly like a human one: it is what the guards test.
+        const targets = def.next.map((to) => ({
+          to,
+          guard: guardOf(f.graph, to, f.state.artifacts),
+        }))
+        const chosen = chooseNext(targets, mapped, text(args['next']))
+        if (!chosen.ok && chosen.reason === 'ambiguous')
+          return fail(
+            'AMBIGUOUS_TRANSITION',
+            `Outcome "${mapped}" holds for ${chosen.holding.length} next steps (${chosen.holding.map((t) => t.to).join(', ')}); name one with next.`,
+            { allowedNext: targets },
+          )
+        if (!chosen.ok)
+          return fail(
+            'INVALID_TRANSITION',
+            `next "${chosen.next}" is not an outcome "${mapped}" target.`,
+            { allowedNext: targets },
+          )
+        return {
+          step,
+          attempt,
+          kind: 'engine',
+          exitCode,
+          claimedSeq,
+          changes: [
+            finishRow('done', { outcome: mapped, ...(chosen.next ? { next: chosen.next } : {}) }),
+          ],
+        }
       }
-    if (mapped && mapped !== 'failed')
       return {
         step,
         attempt,
         kind: 'engine',
         exitCode,
+        claimedSeq,
         changes: [
-          finishRow('done', {
-            outcome: mapped,
-            ...(def.next.length === 1 ? { next: def.next[0]! } : {}),
+          finishRow('failed', {
+            failure: mapped && mapped !== 'failed' ? `${mapped}: ${reason}` : reason,
           }),
         ],
       }
+    }
+
+    const missing: string[] = []
+    const artifactChanges: Change[] = []
+    for (const slug of def.outputs) {
+      const verify = substitute(f.graph.artifacts[slug]?.verify, f.run.params)
+      if (!verify?.startsWith('file:')) continue
+      const path = verify.slice('file:'.length).trim()
+      const rev = fileRev(root, path)
+      if (rev)
+        artifactChanges.push({
+          op: 'set_fields',
+          target: `${f.run.id}@${slug}`,
+          to: JSON.stringify({ status: 'validated', value: path, rev, step }),
+          evidence: 'decision',
+        })
+      else {
+        artifactChanges.push({
+          op: 'set_fields',
+          target: `${f.run.id}@${slug}`,
+          to: JSON.stringify({ status: 'rejected', value: path, step }),
+          evidence: 'decision',
+        })
+        missing.push(path)
+      }
+    }
+    // A step with no declared target never asks for one, so nothing can be ambiguous.
+    const targets = def.next.map((to) => ({ to, guard: guardOf(f.graph, to, f.state.artifacts) }))
+    const chosen = chooseNext(targets, text(args['outcome']), text(args['next']))
+    if (!chosen.ok && targets.length > 0)
+      return fail(
+        chosen.reason === 'ambiguous' ? 'AMBIGUOUS_TRANSITION' : 'INVALID_TRANSITION',
+        chosen.reason === 'ambiguous'
+          ? `${chosen.holding.length} transitions hold for this step (${chosen.holding.map((t) => t.to).join(', ')}); name one with next.`
+          : `"${chosen.next}" is not an allowed next step.`,
+        { allowedNext: targets },
+      )
+    const next = chosen.ok ? chosen.next : undefined
     return {
       step,
       attempt,
       kind: 'engine',
       exitCode,
+      claimedSeq,
       changes: [
-        finishRow('failed', {
-          failure: mapped && mapped !== 'failed' ? `${mapped}: ${reason}` : reason,
-        }),
+        ...artifactChanges,
+        missing.length > 0
+          ? finishRow('failed', { failure: `missing ${missing.join(', ')}` })
+          : finishRow('done', { ...(next ? { next } : {}) }),
       ],
     }
-  }
-
-  const missing: string[] = []
-  const artifactChanges: Change[] = []
-  for (const slug of def.outputs) {
-    const verify = substitute(f.graph.artifacts[slug]?.verify, f.run.params)
-    if (!verify?.startsWith('file:')) continue
-    const path = verify.slice('file:'.length).trim()
-    const rev = fileRev(root, path)
-    if (rev)
-      artifactChanges.push({
-        op: 'set_fields',
-        target: `${f.run.id}@${slug}`,
-        to: JSON.stringify({ status: 'validated', value: path, rev, step }),
-        evidence: 'decision',
-      })
-    else {
-      artifactChanges.push({
-        op: 'set_fields',
-        target: `${f.run.id}@${slug}`,
-        to: JSON.stringify({ status: 'rejected', value: path, step }),
-        evidence: 'decision',
-      })
-      missing.push(path)
-    }
-  }
-  return {
-    step,
-    attempt,
-    kind: 'engine',
-    exitCode,
-    changes: [
-      ...artifactChanges,
-      missing.length > 0
-        ? finishRow('failed', { failure: `missing ${missing.join(', ')}` })
-        : finishRow('done', { ...(def.next.length === 1 ? { next: def.next[0]! } : {}) }),
-    ],
-  }
+  })()
 }
 
 export async function procedureRecord(
@@ -839,13 +1012,15 @@ export async function procedureRecord(
   if (!read.ok) return read
   const folded = await foldStoredRun(root, read.run)
   if (!folded.ok) return folded
-  const planned = plan(folded.folded, action, args, root)
+  const planned = await plan(folded.folded, action, args, root)
   if ('ok' in planned) return planned
 
   const kind = planned.kind ?? 'agent'
   const actor = text(args['actor']) ?? kind
   const run = read.run.id
-  const changes: Change[] = [seqGuard(run, read.run.seq), ...planned.changes]
+  // A plan that already wrote its own claim continues the counter it advanced.
+  const seq = planned.claimedSeq ?? read.run.seq
+  const changes: Change[] = [seqGuard(run, seq), ...planned.changes]
   if (planned.close) changes.push({ op: 'close_model', target: run, evidence: 'decision' })
   const committed = await commit(root, changes, {
     title: `${action} ${run}`,

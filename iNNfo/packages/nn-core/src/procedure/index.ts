@@ -1,6 +1,9 @@
 export { procedureGraph, slotNames, fillSlots, unresolvedSlots } from './graph.js'
 export { foldRun } from './fold.js'
 export { runModelOf } from './run.js'
+export { chooseNext, holds, UNSTARTED_STEP_STATUSES } from './transitions.js'
+export { guardOf } from './fold.js'
+export type { TargetChoice } from './transitions.js'
 export {
   crashProbe,
   holderOf,
