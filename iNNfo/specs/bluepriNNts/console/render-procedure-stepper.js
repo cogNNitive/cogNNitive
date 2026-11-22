@@ -948,7 +948,7 @@
       return activeRun && typeof activeRun.seq === 'number' ? activeRun.seq : 0
     }
 
-    function recordAction(action, state, errorEl, pickedOutcome) {
+    function recordAction(action, state, errorEl, pickedOutcome, host) {
       if (errorEl) errorEl.textContent = ''
       var step = state.currentStep
       var fields = {
@@ -957,23 +957,20 @@
         step: step,
         base_seq: runSeq(),
       }
-      if (action === 'fail') {
-        var why =
-          typeof window !== 'undefined' && window.prompt
-            ? window.prompt('Why did this step fail?')
-            : ''
-        if (why) fields.requested_value = why
-      }
-      if (action === 'wait') {
-        var whose =
-          typeof window !== 'undefined' && window.prompt
-            ? window.prompt('Who or what does the step wait on?')
-            : ''
-        if (!whose) {
-          if (errorEl) errorEl.textContent = 'A waiting step names who or what it waits on.'
+      if (action === 'fail' || action === 'wait') {
+        // The value the runner needs (who it waits on, why it failed) comes from the field the
+        // action row renders. A missing one refuses the request instead of sending a blank one.
+        var field = host && host.querySelector ? host.querySelector('[data-proc-request-value]') : null
+        var given = field && field.value ? String(field.value).trim() : ''
+        if (!given) {
+          if (errorEl)
+            errorEl.textContent =
+              action === 'wait'
+                ? 'A waiting step names who or what it waits on.'
+                : 'A failed step names why it failed.'
           return
         }
-        fields.requested_value = whose
+        fields.requested_value = given
       }
       if (action === 'complete') {
         var targets = Array.isArray(state.allowedNext) ? state.allowedNext : []
@@ -1080,12 +1077,22 @@
         box.appendChild(select)
       }
 
+      // A wait or a fail needs a value: the field is rendered here, so the click reads it
+      // instead of opening a blocking dialog.
+      if (askable.indexOf('wait') !== -1 || askable.indexOf('fail') !== -1) {
+        var valueField = make('input', 'proc-action-value')
+        valueField.setAttribute('type', 'text')
+        valueField.setAttribute('data-proc-request-value', '')
+        valueField.setAttribute('placeholder', 'who it waits on, or why it failed')
+        box.appendChild(valueField)
+      }
+
       askable.forEach(function (action) {
         var b = make('button', 'proc-action', ACTION_LABEL[action] || action)
         b.setAttribute('type', 'button')
         b.setAttribute('data-proc-action', action)
         b.addEventListener('click', function () {
-          recordAction(action, state, err, select ? select.value : '')
+          recordAction(action, state, err, select ? select.value : '', box)
         })
         box.appendChild(b)
       })

@@ -203,6 +203,8 @@ describe('procedure view: an action records a Step Request', () => {
   it('creates ONE Step Request pinned to the seq, carrying the step and the action', () => {
     const spy = draftSpy()
     mount(payload([(g) => runOf('r1', g, AT_REVIEW, { seq: 7 })]), spy.ctx)
+    // A failed step names why: the field the action row renders carries it.
+    container.querySelector('[data-proc-request-value]').value = 'no data'
     click(container.querySelector('[data-proc-action="fail"]'))
 
     assert.equal(spy.added.length, 1, 'one request per action')
@@ -238,6 +240,7 @@ describe('procedure view: an action records a Step Request', () => {
   it('never applies anything: the request waits for procedure_record', () => {
     const spy = draftSpy()
     mount(payload([(g) => runOf('r1', g, AT_REVIEW)]), spy.ctx)
+    container.querySelector('[data-proc-request-value]').value = 'no data'
     click(container.querySelector('[data-proc-action="fail"]'))
     assert.equal(spy.added.length, 1, 'the request was proposed, never applied')
     assert.equal(
