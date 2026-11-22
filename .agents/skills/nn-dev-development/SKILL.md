@@ -1,7 +1,7 @@
 ---
 name: nn-dev-development
-version: "2.0.0"
-description: Internal developer skill for cogNNitive maintainers. The whole development and release process for a single maintainer driving several AI agents - session worktrees cut from main, the light/heavy lane, PRs to main, and release by merging (CI tags and publishes). Trigger: any development session, session start, branch decision, worktree, release, version bump, UI feedback loop.
+version: "3.0.0"
+description: Internal developer skill for cogNNitive maintainers. The whole development and release process for a single maintainer driving several AI agents - session worktrees cut from main, collision checks against open PRs, the light/heavy lane, PRs to main, and release by merging (CI tags and publishes). Trigger: any development session, session start, branch decision, worktree, parallel sessions, release, version bump, UI feedback loop.
 ---
 
 # nn-dev-development
@@ -9,6 +9,28 @@ description: Internal developer skill for cogNNitive maintainers. The whole deve
 One maintainer, several AI agents, no external users yet. The process exists to stop
 agents from overwriting each other and to keep `main` releasable. Anything that does
 not serve those two goals is friction: do not add it back.
+
+## What actually collided (measured 2026-11-19/20, keep this before changing the rules)
+
+Thirty PRs landed in 34 hours, +22.5k/-9.9k authored lines, up to **five open at once**.
+89 files were touched by two or more of them, and the eight most shared were *all*
+generated or metadata: `catalog.json` in 17 PRs, the mcp bundle and the console export in
+15, `package.json` 14/14/13. Only a handful of hand-written files were shared —
+`canonical-registry.ts` (6), `procedure-runner.test.ts`, `nn-runtime.js`,
+`render-procedure-stepper.js` (5 each).
+
+The conclusion is not "agents were careless". **Nobody collided on a decision; they
+collided on build output.** A per-PR version bump drags three `package.json` files and the
+lock into every branch, and the pre-commit hook stages the regenerated artifacts into every
+diff, so any two live branches overlap by construction. The rules below follow from that:
+
+- a collision is only a coordination problem when the file is hand-written (§1a);
+- everything else is regenerated after the rebase, never negotiated (§3);
+- what was *invisible* is now printed by `status` and `pr-overlap` (§1, §1a).
+
+`openspec/claims/` was the previous answer: a file an agent had to remember to write before
+its first edit, checked by nothing. It got 2 adoptions in 30 PRs and was deleted on
+2026-11-21 with `claim-audit`, `claim-check` and the CI job that watched them.
 
 ## Greeting (once per conversation)
 
@@ -20,16 +42,24 @@ not serve those two goals is friction: do not add it back.
 
 ```powershell
 node scripts/nn-session.mjs start --id <short-kebab-id>   # worktree ../cogNNitive-<id>, branch session/<id> from origin/main
-node scripts/nn-session.mjs status                        # primary health + every worktree
+gh pr list --state open --json number,headRefName,files > temp/prs.json
+node scripts/nn-session.mjs status --prs temp/prs.json    # every worktree: dirtiness, last write, its PR, links
 ```
 
+- **`status` is the map of who else is working.** Per worktree it prints the HEAD, the
+  branch, how many files are dirty, how long ago somebody last wrote in it, and — with
+  `--prs` — the open PR of that branch. Three clean worktrees and one with `4 dirty ·
+  last write just now` is a live neighbour; that line is the answer to "is anyone else
+  here". Without `--prs` it stays offline.
 - **The worktree is the thread's, not the script's.** Under T3 Code open the thread with
   **New worktree** (or launch it with `workspaceStrategy`), so the thread's own working
   directory *is* the worktree; `nn-session start` is for a harness with no worktree entry
   point. Two live threads in one checkout share files, the git index and the current
   branch: on 2026-11-16 five console threads read `main` while that tree was checked out
   on `fix/conntent-avatar-narration` and being rebased under them. One writer per
-  worktree.
+  worktree. Before the first write, compare Git's absolute worktree path and
+  branch with the harness thread's workspace. If another live writer owns that
+  path, do not edit, rebase, regenerate, or push from it.
 - **The primary checkout is read-only.** A `PreToolUse` hook denies edits and
   `git add/commit/stash` there. Work in the worktree. When the tool cwd resets to the
   primary, use `git -C <literal absolute worktree path>`: the hook reads the `-C`
@@ -50,46 +80,49 @@ node scripts/nn-session.mjs status                        # primary health + eve
     copy, which is exactly how a worktree once got labelled "primary".
 - **Another worktree may be live.** Look at it read-only; never revert, commit or stop a
   worktree you did not create.
-- **`node_modules` is a junction to the primary's.** The workspace link
-  `node_modules/@cognnitive/nn-core` points at whichever worktree built core last;
-  repoint it before trusting nn-mcp tests:
-  `cmd /c "rmdir node_modules\@cognnitive\nn-core"` then
-  `cmd /c "mklink /J node_modules\@cognnitive\nn-core <worktree>\iNNfo\packages\nn-core"`.
-  Never run `npm ci` from a worktree: it corrupts the primary's `node_modules`.
+- **`node_modules` is a junction to the primary's.** `status` prints where each
+  `@cognnitive/*` link resolves and whether the target exists, because that link is the
+  `Cannot find module '@cognnitive/nn-core'` trap: it points at whichever worktree built
+  core last, and it dangles when that worktree was swept. It must point at the core you
+  are testing. `cmd /c rmdir <link>` then
+  `New-Item -ItemType Junction -Path <link> -Target <this worktree>/iNNfo/packages/nn-core`
+  is the whole repair; never fix it by editing the import. For core/MCP work, use an
+  isolated install (`nn-session start --full-install` in the script-managed lane). Never
+  run `npm ci` through a junction or repoint a shared link while another session is using it.
+  `node_modules/.bin` is thin here (only `tsc`/`tsup`): run the tools by module path,
+  `node node_modules/vitest/vitest.mjs run <file>` and
+  `node node_modules/prettier/bin/prettier.cjs`.
 - **Commit early, push early.** `wip:<id>: <reason>` checkpoints are fine on the session
   branch; squash them before landing. Pushing `session/*` skips the heavy local gate:
   the PR's CI is the gate.
 
-## 1a. Claim the area before the first write
+## 1a. Before the first write: read the open PRs
 
-A worktree isolates files, not decisions. Two sessions can cut independent worktrees and
-still write the same file or the same generated artifact; the collision then surfaces as
-a merge conflict, or worse, as one PR regenerating a bundle over the other one's change.
-
-Before the first edit, write `openspec/claims/<id>.md` with the paths you are about to
-touch, then check it against every other claim and open PR:
+A worktree isolates files, not decisions. What you are about to touch may be in a branch
+that is open right now, and the only source of truth for that is the open PRs themselves:
 
 ```powershell
-gh pr list --state open --json number,headRefName,files > prs.json
-node scripts/claim-check.mjs --self openspec/claims/<id>.md --prs prs.json `
-  --area scripts/foo.mjs --area "iNNfo/specs/**"
+gh pr list --state open --json number,headRefName,files > temp/prs.json
+node scripts/pr-overlap.mjs --prs temp/prs.json        # this branch vs every other open PR
 ```
 
-- **Exit 0:** nobody else is writing there.
-- **Exit 1:** a claim or an open PR already covers the path. Do not start as planned. Hand
-  the area over, wait for it, or record the accepted overlap in your claim and say why.
-- A claim whose PR is merged or closed is released; its file gets deleted, not kept as a
-  tombstone.
+- **Exit 0, `MECHANICAL`:** the shared paths are generated or metadata (`catalog.json`,
+  `*.bundle.js`, the console export, `package.json`, the lock). Nobody is stepping on a
+  decision: land in either order and `npm run regen` after the rebase. Do not open a
+  conversation about it.
+- **Exit 1, `BLOCKING`:** another live branch edits the same hand-written file. Land one
+  of them first, or add your work to that branch instead of opening a second PR. Two PRs
+  on `canonical-registry.ts` is two people rewriting one decision.
+- **Exit 2:** the PR list could not be read, so nothing was verified. Not the same as
+  clean. Fix the command, not the conclusion.
 
-Declare **literal paths and narrow globs**, never a topic name: `"the console"` claims
-nothing, `iNNfo/specs/bluepriNNts/console/ui-kit.js` claims something. Generated
-artifacts (`*.bundle.js`, `catalog.json`, exported console HTML) belong to whoever owns
-the source and are regenerated after the rebase, never resolved by hand.
+Run it again before you push and before you ask for a merge: the answer changes as other
+branches land. On `session/*` the pre-push hook is a fast path, so this one is on you.
 
-A claim reserves **paths, not time**. It says who else is writing today; it does not stop
-the same hot file from being rewritten again the moment the first session lands, which is
-what 23 PRs touching `openspec/backlog_NN.md` in one day looked like. Who lands first is
-decided by the integration lane (§4), never by the lock.
+**A hot hand-written file is serial by construction.** Console sources, the TestLab
+sources, `canonical-registry.ts`, `server.ts`, `apply-change.ts`: one session at a time.
+Two threads on a hot file is a rebase you scheduled yourself, and the collision shows up
+as a conflict in the most load-bearing file of the change.
 
 ## 2. Pick the lane
 
@@ -102,7 +135,8 @@ decided by the integration lane (§4), never by the lock.
 4. bumps a **major** version.
 
 Everything else is **light**: work, commit, PR, let CI verify. Touching several packages
-does not make a change heavy.
+does not make a change heavy. A maintainer-only skill under `.agents/skills/` is not a
+release key: editing it is light.
 
 **Heavy adds exactly one thing:** a delta spec at
 `openspec/changes/<slug>/specs/<capability>/spec.md` with only the changed requirements
@@ -116,6 +150,22 @@ moves to `openspec/changes/archive/`; `openspec/specs/` no longer exists.
 session to finish, is several changes. Split it before writing specs, and land each
 part on `main` on its own.
 
+### A lock in the product is a contract, not a file
+
+A filesystem lock in `nn-mcp` (`changes/.lock`, `changes/.lock.procedure-<run>`) is the
+whole single-writer guarantee of a read-decide-write window, and both halves were got
+wrong by copy-paste in the procedure runner:
+
+- the payload carries an owner token and release compares it before unlinking. Unlinking
+  by path lets a holder that was robbed while still running delete its successor's lock,
+  and a third caller then walks in on a run nobody is serializing;
+- every caller-supplied timeout is bounded below the window the lock calls stale. With an
+  unbounded `timeout_ms` (and `0`, which means "no timeout"), a legitimate slow step is
+  indistinguishable from a crash, so it gets robbed mid-write.
+
+Age is not liveness. Probe the holder, and treat a payload that cannot name its holder as
+broken rather than as a permanent `RUN_BUSY`.
+
 ## 3. Solo-maintainer profile for the agent workflow
 
 Gentle-AI's ODD runs the agent; this repository narrows it:
@@ -123,16 +173,32 @@ Gentle-AI's ODD runs the agent; this repository narrows it:
 - **One tracker per change, if any.** A small change has none (the diff is enough). A
   change that genuinely spans sessions keeps one `odd/tasks/<feature>.md`. Progress is
   recorded there and nowhere else: no parallel copy in `openspec/`, no handoff files.
+  **The tracker is a single-writer surface, like the backlog:** only the PR that closes a
+  slice edits it, and it edits it last. Four PRs editing `odd/tasks/procedure-runner.md`
+  is the same conflict as four PRs editing one source file, with none of the value.
 - **No independent verifier, no review receipts.** RDD is off globally
   (`gentle-ai review mode status`). Verification is the focused test plus CI.
 - **Inner loop:** `node --test <file>` for what you touched, or `npm run verify:fast`.
-  The full `node scripts/verify.js` is CI's job.
+  The full `node scripts/verify.js` is CI's job. The PR's format gate checks a file when
+  it was prettier-clean on the base branch or when the PR adds it, and the repo is not
+  prettier-clean as a whole, so run prettier on the files you touched before pushing:
+  one unformatted file reds the PR, and the fix lands as a second PR (#759 → #760).
+- **A known flake is not a failure.** Three nn-mcp suites (`check-workspace`, `layout`)
+  run under 30s timeouts and flake when workers compete for the machine; re-run with
+  `--no-file-parallelism` before you report the change red.
 - **One thread, one area, 3–5 items.** Fifteen threads for one work area is not parallelism,
   it is fifteen rebases queued in advance. When two sides of the work must agree on a
   contract, land the contract first and start both from that commit.
-- **Derived artifacts regenerate themselves.** The pre-commit hook reruns the fast
-  generators when code or samples are staged and stages what changed. If a push or CI
-  still reports a stale artifact, run `npm run regen` and commit.
+- **Derived artifacts belong to `main`, not to your branch.** The pre-commit hook no longer
+  regenerates and stages them, and the gate accepts the ones your change moves
+  (`regen.js --check --tolerant`); after the merge the `regen` job commits them, plus the
+  derived version, before `auto-tag` plans. So do not commit a bundle, fixture or catalog into
+  a PR: it collides with every other live branch by construction. A change under
+  `iNNfo/packages/nn-core` still needs `node scripts/build-core-mirrors.mjs` and
+  `node scripts/export-console.mjs test/fixtures/testlab --domain --no-open` to see its effect
+  locally — the fixture embeds a CSP hash of the bundle — but the lane is what commits them.
+  A conflicted generated artifact is resolved with `node scripts/regen.js`, never by hand: the
+  CC hooks refuse `checkout --theirs` and `restore --worktree` on it.
 
 ## 4. Land on `main`
 
@@ -152,8 +218,16 @@ gate on every PR to provide it. The cheap fix is arithmetic, not machinery.
 - **Never merge, rebase or amend in the primary checkout.** The git hooks refuse it, under every
   harness (`scripts/guard-primary-checkout.mjs`). A branch that fell behind rebases inside its
   own worktree.
-- **Merge with `gh pr merge --merge ...`** once CI is green. Not `--squash`: the merge commit
+- **Merge with `gh pr merge --merge ...`** only after CI is green on the exact
+  remote head SHA. Recheck that the candidate's release versions are still
+  untagged. If the candidate changes, recheck the new head. Use
+  `--match-head-commit <sha>` to guard against a moved head.
+  Not `--squash`: the merge commit
   keeps the session branch an ancestor of `main`, so `nn-session stop`/`sweep` can remove it.
+  Two assertions make "green" mean something: every check is `SUCCESS` in `gh pr checks <n>`
+  (the ruleset requires none, so a red `quality` job still reads MERGEABLE — #759 merged
+  that way), and `git rev-list --count origin/<branch>..origin/main` is `0` (a green head
+  four commits behind is not ready either).
 - **The backlog is a single-writer surface.** Only the PR that lands a batch edits its row, and
   it edits it last, so a conflict is one line and not a rebase of the whole file.
 - **A conflicted generated artifact means rebase + `npm run regen`**, never a hand-resolved
@@ -162,19 +236,12 @@ gate on every PR to provide it. The cheap fix is arithmetic, not machinery.
 **The ruleset is two rules.** `main` (repo ruleset 27391067) forbids force-push and deletion and
 nothing else: no required checks, no pull request rule, no merge queue. `ci.yml` still carries
 the `merge_group` trigger so re-enabling a queue stays a ruleset change and not a PR; today it
-never fires because nothing creates a `merge_group` event. The claims gate it used to carry
-(`release-claim.mjs --check`) was deleted on 2026-11-19: with no queue it could never run, and a
-check that cannot run is upkeep pretending to be a guard.
-
-**Claims are a convention again.** The PR that lands the work deletes `openspec/claims/<id>.md`
-in its last commit. Nothing enforces that without a queue, so `npm run check:claims -- --prs
-<open PRs>` is the net: it names every claim whose PR is no longer open.
+never fires because nothing creates a `merge_group` event.
 
 1. Push the session branch and open a PR to `main` without asking. That is the normal
-   end of a unit.
-2. **Merging the PR is the maintainer's call.** Ask, per PR. The last commit before merging
-   deletes `openspec/claims/<id>.md` — a claim is a live lock, not a tombstone, and merging
-   deletes the branch but never the file.
+   end of a unit. Run `node scripts/pr-overlap.mjs --prs temp/prs.json` first: a `BLOCKING`
+   line means this PR should wait or join the other branch.
+2. **Merging the PR is the maintainer's call.** Ask, per PR.
 3. **A chained PR must be retargeted before its parent merges.** The repo has
    `deleteBranchOnMerge: true`, so merging a PR deletes its head branch. If another open PR
    had that branch as its **base**, GitHub does not retarget the child: it **closes** it, and
@@ -187,25 +254,59 @@ in its last commit. Nothing enforces that without a queue, so `npm run check:cla
 
 ## 5. Release = merge to `main`
 
-After every green push to `main`, CI's `auto-tag` job
-(`scripts/release/plan-auto-tags.js`) tags each release key that changed and runs
-`release.yml` once per tag, `blueprints` first:
+After every green push to `main`, a `regen` job regenerates the derived artifacts and writes the
+derived version back, and only then CI's `auto-tag` job (`scripts/release/plan-auto-tags.js`)
+tags each key that changed and runs `release.yml` once per tag, `blueprints` first:
 
-| Key | Ships when | Version |
+| Key | Ships when a commit touched | Version |
 |---|---|---|
-| `blueprints` (`iNNfo/specs`) | a commit touched it since its last tag | from commits: breaking → major, `feat` → minor, else patch |
-| `skills` (`skills/`) | same | same |
-| `nn-mcp` | `iNNfo/packages/nn-mcp/package.json` has an untagged version | that version |
-| `nn-console` | `iNNfo/specs/bluepriNNts/console/package.json` has an untagged version | that version |
+| `blueprints` | `iNNfo/specs` | from commits: breaking → major, `feat` → minor, else patch |
+| `skills` | `skills/` | same |
+| `nn-mcp` | `iNNfo/packages/nn-mcp/src` and `test` | same |
+| `nn-console` | `iNNfo/specs/bluepriNNts/console`, `scripts/export-console.mjs`, `scripts/console-views.mjs` | same |
+
+`repoPaths` and `changePaths` are different on purpose: `repoPaths` is what gets copied into the
+distribution repo, `changePaths` is what counts as a change. For `nn-mcp` the only repo path is
+the generated bundle, so deriving from it would mean the key never ships.
+
+Generated files and version mirrors are never a trigger: `plan-auto-tags` excludes every tracked
+file its `changePaths` contains that `scripts/lib/shared-artifacts.js` calls generated, so a
+regeneration or version write-back commit cannot plan the release that produced it.
 
 Consumers resolve these tag names (`nn-mcp` resolver, skills-manager, catalog), so the
 tag shapes are a contract. Nobody tags by hand.
 
-- **To release nn-mcp or the console:** bump its `package.json` version in the PR, then
-  run `npm run sync:versions`, `npm install --package-lock-only` and `npm run regen`.
-  The `release-bump` CI job enforces it: a PR that changes a path of `nn-mcp` or
-  `nn-console` (`scripts/release/release-keys.js`) without moving that key to an
-  untagged version fails (`node scripts/release/check-authored-bump.js --base origin/main`).
+- **A tag is not a release.** `auto-tag` invokes `release.yml` once per planned tag in
+  fixed order (blueprints first) and stops at the first failure, so every later tag stays
+  pushed and never published — `blueprints-v0.83.2`, `skills-v4.2.1` and `nn-mcp-v0.49.2`
+  are exactly that. Read the push run's jobs named `release (<tag>)`, not the tag list,
+  and re-run a missing leg one at a time. Consumers follow the manifest, which advertises
+  the newest tag, so an orphan tag is inert — right up until you cite it as a release.
+- **`catalog.json` is stamped at publish time**, not by the PR: `run-release.js`
+  (`stampBlueprintCatalog`) writes the tag it is publishing into both copies. The value
+  committed in the repo is cosmetic, and CI cannot judge it (`blueprint-catalog --check`
+  normalises the field away on purpose). Do not "fix" it with a PR: touching
+  `iNNfo/specs/` for a generated file cuts a blueprints release for nothing.
+- **Bookkeeping is not a release trigger.** `release-keys.js` excludes
+  `iNNfo/specs/bluepriNNts/catalog.json` from the `blueprints` change set for exactly that
+  reason: its bytes come from the tags, so a commit that only restamps it would cut the
+  release that restamps it again, forever. The same rule has to hold for anything a future
+  automatic post-merge commit would touch (`package.json`, `package-lock.json`, the
+  bundles, the console export): an excluded generated file cannot cut its own release, and
+  a non-excluded one loops. And the regeneration must land **before** the tag, because the
+  release copies the tag's tree — a commit that regenerates after `auto-tag` publishes the
+  stale bundle. Both are why moving artifacts out of PRs is a release-contract change, not
+  a hook tweak.
+- **You do not bump a release version.** The `regen` job derives it from the commits and writes
+  it into the key's `package.json` (`scripts/release/write-pending-versions.js`), then
+  `npm run sync:versions` propagates it and the regeneration rebuilds what embeds it, all before
+  the tag exists. `release-bump` and `check-authored-bump` were retired with the authored model:
+  a hand bump travelled in 14 of 30 branches and was the only thing that could make a merge
+  release nothing (#650, #670, #683).
+- **Close with evidence:** record the PR, exact head SHA, and observed checks.
+  Report merged, tagged, and published as separate states; verify publication at
+  the destination when it is in scope. For locking or rollback changes, include
+  a contention or injected-failure test, not just a successful write.
 - **A failed release run:** fix forward on `main`, or re-run one tag with
   `gh workflow run release.yml --ref main -f tag=<tag> -f publish=true` (one at a time;
   concurrent dispatches cancel each other). Never delete or move a published tag.
@@ -224,6 +325,9 @@ tag shapes are a contract. Nobody tags by hand.
 
 `node scripts/nn-session.mjs sweep` removes every session worktree and local branch
 already merged into `main`, skipping (and naming) any with uncommitted changes.
+Before either removal command, confirm that no thread expected to resume is
+bound to the path. If unsure, keep the worktree. A missing `.git` does not make
+ignored files in a leftover directory disposable.
 `stop --id <id>` removes one; it refuses unmerged or dirty worktrees. Never remove a
 worktree with a bare `git worktree remove`: its `node_modules` junctions stop git
 halfway and leave a half-deleted folder; `stop` unlinks them first. Remote branch deletion is the maintainer's, and with
@@ -261,26 +365,22 @@ even propose it to the maintainer. Report the verdict per worktree, never a bare
 | Signal | How | Reads as active |
 |---|---|---|
 | No commits yet | `git reflog show --format=%gs refs/heads/session/<id>` | no `commit` entry |
-| Uncommitted work | `git -C <abs> status --porcelain` | anything |
-| Recent writes | newest mtime among the worktree's **modified** files, next to the current time | within ~15 minutes |
+| Uncommitted work | `nn-session status --prs temp/prs.json` → the worktree's own `N dirty` | anything |
+| Recent writes | the same line → `last write <age>` | within ~15 minutes |
 | A running command | `Get-CimInstance Win32_Process -Filter "Name='node.exe'"`, matching `verify.js`, `--test`, a test filename or `npm` | present |
-| A live claim | `openspec/claims/*.md` in the worktree with no open PR on its branch | present |
 
-`nn-session status` is the starting point, not the answer: it reports the **primary**
-checkout's dirtiness and lists the worktrees, and says nothing about whether a session
-worktree is in use. Windows does not expose a process's working directory cheaply, so do
-not stop at a command line — correlate it with the modified-file mtimes of the worktree you
-are about to delete.
-
-Whole-tree fresh mtimes are noise: a checkout or an install touches every file. Look at the
-files that worktree has actually *modified* against its base.
+`nn-session status` now answers three of those four per worktree, so start there and quote
+its line. It still cannot see a running process: Windows does not expose a process's
+working directory cheaply, so correlate the command line with the modified-file mtime of
+the worktree you are about to delete. Whole-tree mtimes are noise (a checkout or an
+install touches every file); the `last write` column reads only the files that worktree
+has actually modified.
 
 **Stop** — do not sweep, do not propose it — while any worktree has no commit yet,
-a dirty tree, a modified file from the last ~15 minutes, a running verify/test/node
-process, or a claim without an open PR. Name the worktree, name the signal, and hand the
-decision back. Never "save what matters and revert the rest" on work you did not write:
-recovering another session's edits is its owner's call, and a worktree you did not create
-is not yours to clean up.
+a dirty tree, a modified file from the last ~15 minutes, or a running verify/test/node
+process. Name the worktree, name the signal, and hand the decision back. Never "save what
+matters and revert the rest" on work you did not write: recovering another session's edits
+is its owner's call, and a worktree you did not create is not yours to clean up.
 
 Sweeping a genuinely finished set stays a one-liner. The rule is only that git saying
 "merged" is not evidence that nobody is using the worktree.
@@ -288,12 +388,14 @@ Sweeping a genuinely finished set stays a one-liner. The rule is only that git s
 ## Git rules
 
 - Blocked by `.claude/hooks/block-dangerous-git.mjs`: `reset --hard`, `clean`, `stash`,
-  `branch -D`, and `checkout`/`restore` of the whole tree (`.`). Naming a file is allowed,
-  and is the recommended way to revert one: `git checkout HEAD -- <explicit/path>` (the
-  hook's own refusal message says so; this paragraph used to claim otherwise). This applies
-  under Claude Code and Antigravity only; OpenCode reads neither hook config, so there the
-  list is a rule you follow, not a guard that stops you. To drop a commit and keep the tree:
-  `git reset --soft HEAD~1`.
+  `branch -D`, and `checkout`/`restore` of the whole tree (`.`). This applies under Claude
+  Code and Antigravity only; OpenCode reads neither hook config, so there the list is a
+  rule you follow, not a guard that stops you.
+- **A second hook, `CC Safety Net`, refuses more than the first and matches on text.**
+  `git checkout HEAD -- <path>` and `git restore --worktree` are refused even for one
+  named file, so reverting a single file is `cmd /c "git show HEAD:<path> > <path>"`
+  (byte-exact; PowerShell `>` writes UTF-16 and corrupts a JSON or a patch).
+  To drop a commit and keep the tree: `git reset --soft HEAD~1`.
 - PowerShell `>` writes UTF-16. For a byte-exact patch: `cmd /c "git diff -- <path> > out.patch"`.
 - In PowerShell, quote any `@{...}` ref: `git stash show "stash@{0}"`, `git stash drop "stash@{2}"`.
   Bare `stash@{0}` is parsed as a hashtable literal and reaches git mangled

@@ -7685,7 +7685,12 @@ function isConsoleModel(f) {
   const role = roleOf({ path: f.path, parentSpecName });
   if ((role === "knowledge" || role === "procedure") && isUnderRootSources(f.path)) return false;
   if (role === "knowledge") return true;
-  if (role === "procedure") return !segmentsOf(f.path).includes("procedures");
+  if (role === "procedure") {
+    if (!segmentsOf(f.path).includes("procedures")) return true;
+    const linked = f.linkedProcedureModels;
+    if (!linked) return false;
+    return !linked.has(f.path.replace(/\\/g, "/"));
+  }
   return natureOfBlueprint(coreBlueprintKey(parentSpecName))?.structure === "catalog";
 }
 var VERSION_TOKEN_RE = /_V_\d+-\d+-\d+/i;
@@ -7925,6 +7930,25 @@ function formatAddress(address) {
 // iNNfo/packages/nn-core/src/address/index.ts
 function isAddressError(value) {
   return value.kind === "error";
+}
+
+// iNNfo/packages/nn-core/src/sync/address.ts
+var SYNC_DIR = "sources/sync";
+function parseMirrorAddress(raw) {
+  const value = String(raw ?? "").trim();
+  const at = value.indexOf("@");
+  if (at === -1) return null;
+  const location = value.slice(0, at);
+  if (location.includes("\\") || !location.startsWith(`${SYNC_DIR}/`)) return null;
+  const segments = location.slice(SYNC_DIR.length + 1).split("/");
+  if (segments.length < 2) return null;
+  if (segments.some((s) => s === "" || s === "." || s === "..")) return null;
+  const path5 = segments.slice(1).join("/");
+  if (!isNNName(path5) || !/\.md$/i.test(path5)) return null;
+  const unit = parseUnit(value.slice(at + 1));
+  if ("code" in unit) return null;
+  if (unit.kind !== "element" && unit.kind !== "body") return null;
+  return { alias: segments[0], path: path5, unit };
 }
 
 // iNNfo/packages/nn-core/src/sourceRef.ts
@@ -8193,6 +8217,22 @@ function resolveUnitPath(rawPath) {
   const result = resolveUnitPathResult(rawPath);
   return result.ok ? result.value : null;
 }
+function parseMirrorElementRef(clean, at) {
+  const mirror = parseMirrorAddress(clean);
+  if (!mirror) return null;
+  if (mirror.unit.kind !== "element" && mirror.unit.kind !== "body") return null;
+  const location = clean.slice(0, at);
+  const base = {
+    filePath: location,
+    fileName: basename(location),
+    kind: "model",
+    raw: clean,
+    slug: mirror.unit.slug,
+    unit: { kind: "element", slug: mirror.unit.slug }
+  };
+  if (mirror.unit.kind === "body") return { ...base, subunits: ["#body"] };
+  return { ...base, subunits: mirror.unit.field === void 0 ? [] : [mirror.unit.field] };
+}
 function parseModelUnitRef(raw) {
   if (RAW_AREA_RE.test(raw)) return null;
   const address = parseAddress(raw);
@@ -8257,6 +8297,8 @@ function parseKnowledgeUnitRef(input) {
   const clean = input.trim();
   const at = clean.indexOf("@");
   if (at === -1) return null;
+  const mirror = parseMirrorElementRef(clean, at);
+  if (mirror) return mirror;
   if (!SOURCE_FILE_RE.test(clean.slice(0, at))) return parseModelUnitRef(clean);
   const resolved = resolveUnitPath(clean.slice(0, at));
   if (!resolved) return null;
@@ -9827,14 +9869,20 @@ function validateFrontmatter(fm) {
     invalidFrontmatter("missing blueprint_version");
   }
   if (!isChangeStatus(fm.status)) {
-    invalidFrontmatter(
-      "status must be one of proposed|applied|partially_applied|rejected|conflict"
-    );
+    invalidFrontmatter("status must be one of proposed|applied|partially_applied|rejected|conflict");
+  }
+  if (fm.atomic !== void 0 && typeof fm.atomic !== "boolean") {
+    invalidFrontmatter("atomic must be true or false when present");
+  }
+  if (fm.run !== void 0 && (typeof fm.run !== "string" || fm.run.trim() === "")) {
+    invalidFrontmatter('run must be a non-empty "<run-id>@<step-slug>" when present');
   }
   return fm;
 }
 function parseChangeset(rawContent) {
-  const frontmatterMatch = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(rawContent.trimStart());
+  const frontmatterMatch = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(
+    rawContent.trimStart()
+  );
   if (!frontmatterMatch) {
     invalidFrontmatter("missing frontmatter block");
   }
@@ -10008,7 +10056,9 @@ function parseChangeset(rawContent) {
   if (hasGate) {
     for (const key of ["author_kind", "origin", "reviewer"]) {
       if (frontmatter[key] === void 0 || frontmatter[key] === null) {
-        throw new Error(`Invalid review_gate changeset: missing frontmatter "${key}" (required for verdicts)`);
+        throw new Error(
+          `Invalid review_gate changeset: missing frontmatter "${key}" (required for verdicts)`
+        );
       }
     }
   }
@@ -10397,7 +10447,8 @@ var ChangeLogImpl = class {
     for (const rekey of this.fold.rekeys) {
       if (rekey.kind === "extract") continue;
       if (current === rekey.from) current = rekey.to;
-      else if (current.startsWith(`${rekey.from}/`)) current = `${rekey.to}${current.slice(rekey.from.length)}`;
+      else if (current.startsWith(`${rekey.from}/`))
+        current = `${rekey.to}${current.slice(rekey.from.length)}`;
       else continue;
       moved = true;
     }
@@ -10420,6 +10471,15 @@ var ChangeLogImpl = class {
     if (!this.fold.units.has(unit)) return void 0;
     const bucket = this.history(unit);
     return bucket.length > 0 ? bucket[bucket.length - 1] : void 0;
+  }
+  runChanges(runId, stepSlug) {
+    const wanted = stepSlug !== void 0 ? `${runId}@${stepSlug}` : runId;
+    const matches = (change) => {
+      if (!change.run) return false;
+      if (stepSlug !== void 0) return change.run === wanted;
+      return change.run === runId || change.run.startsWith(`${runId}@`);
+    };
+    return this.all.filter((change) => change.applied && matches(change));
   }
   units(model) {
     return unitsFromFold(this.fold, model);
@@ -10525,6 +10585,7 @@ function changesetLikeOf(path5, doc) {
     author: fm.author,
     appliedAt: fm.applied_at,
     ...typeof fm.batch === "string" ? { batch: fm.batch } : {},
+    ...typeof fm.run === "string" && fm.run !== "" ? { run: fm.run } : {},
     ...fm.evidence_sha256 && typeof fm.evidence_sha256 === "object" ? { evidenceSha256: fm.evidence_sha256 } : {},
     changes: doc.changes
   };
@@ -10596,6 +10657,7 @@ function loggedChanges(cs) {
       changesetStatus,
       appliedAt: facts.appliedAt,
       batch: facts.batch,
+      ...cs.run !== void 0 ? { run: cs.run } : {},
       author: facts.author,
       op: change.op,
       target: change.target,
@@ -11311,11 +11373,6 @@ function listSectionFieldsFor(content, heading) {
 // iNNfo/packages/nn-core/src/lineage/fs-snapshot.ts
 var fs = __toESM(require("node:fs"), 1);
 var path = __toESM(require("node:path"), 1);
-
-// iNNfo/packages/nn-core/src/sync/address.ts
-var SYNC_DIR = "sources/sync";
-
-// iNNfo/packages/nn-core/src/lineage/fs-snapshot.ts
 var TEXT_EXTENSIONS = /* @__PURE__ */ new Set([".md", ".csv", ".json", ".html", ".htm"]);
 function walkDir(dir, baseDir, out) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

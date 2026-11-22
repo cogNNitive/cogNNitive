@@ -11,7 +11,15 @@ import { collectProcedureRuns } from '../scripts/export-console.mjs'
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
 const consoleDir = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console')
-const viewPath = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'procedures', 'assets', 'console-view-procedure.js')
+const viewPath = join(
+  repoRoot,
+  'iNNfo',
+  'specs',
+  'bluepriNNts',
+  'procedures',
+  'assets',
+  'console-view-procedure.js',
+)
 const stepperPath = join(consoleDir, 'render-procedure-stepper.js')
 const runtimePath = join(consoleDir, 'nn-runtime.js')
 const require = createRequire(import.meta.url)
@@ -94,8 +102,68 @@ function elementsOf(text, file) {
   return out
 }
 
+/**
+ * The run model a list of events describes (design §3.1): the test fixtures state a run as
+ * events, and the fold now reads state. This is the inverse of `eventsOfRunModel`.
+ */
+function runModelOfEvents(events, state = 'open') {
+  const steps = {}
+  const artifacts = {}
+  let runState = state
+  for (const e of events) {
+    if (e.kind === 'step_started')
+      steps[e.step] = { status: 'active', attempt: e.attempt ?? 1, inputs: e.inputs ?? {} }
+    else if (e.kind === 'step_waiting' && steps[e.step])
+      steps[e.step] = { ...steps[e.step], status: 'waiting', waitingOn: e.value }
+    else if (e.kind === 'step_completed' && steps[e.step])
+      steps[e.step] = {
+        status: 'done',
+        attempt: steps[e.step].attempt,
+        ...(e.outcome ? { outcome: e.outcome } : {}),
+        ...(e.next ? { next: e.next } : {}),
+      }
+    else if (e.kind === 'step_failed' && steps[e.step])
+      steps[e.step] = { ...steps[e.step], status: 'failed', failure: e.value }
+    else if (
+      e.kind === 'artifact_validated' ||
+      e.kind === 'artifact_rejected' ||
+      e.kind === 'artifact_produced'
+    )
+      artifacts[e.field] = {
+        kind: 'file',
+        status: e.kind.slice('artifact_'.length),
+        ...(e.value ? { value: e.value } : {}),
+        ...(e.rev ? { rev: e.rev } : {}),
+        ...(e.step ? { step: e.step } : {}),
+      }
+    else if (e.kind === 'interrupted') runState = 'paused'
+    else if (['completed', 'failed', 'cancelled'].includes(e.kind)) runState = e.kind
+  }
+  return {
+    state: runState,
+    seq: 1,
+    procedure: '',
+    defRev: null,
+    params: {},
+    steps,
+    artifacts,
+    inputs: {},
+    attempts: {},
+  }
+}
+
 function runOf(id, graph, events, defRev = 'V_1-0-0') {
-  return { id, file: `executions/${id}/${id}_executions_NN.md`, closed: false, defRev, params: {}, events, state: core.foldRun(graph, events, { defRev, lockFree: true }) }
+  const model = runModelOfEvents(events)
+  model.defRev = defRev
+  return {
+    id,
+    file: `executions/${id}/${id}_executions_NN.md`,
+    closed: false,
+    defRev,
+    params: {},
+    events,
+    state: core.foldRun(graph, model, { defRev }),
+  }
 }
 
 const APPROVED = [
@@ -184,11 +252,15 @@ describe('procedure view (bluepriNNt)', () => {
     assert.deepEqual(texts('.dag-node .node-title'), ['Draft', 'Review', 'Publish', 'Rework'])
     // The decision forks: one edge per target, the two targets side by side in one layer.
     assert.equal(container.querySelectorAll('.dag-edge').length, 3)
-    const [publish, rework] = ['publish', 'rework'].map((s) => container.querySelector(`.dag-node[data-step="${s}"]`))
+    const [publish, rework] = ['publish', 'rework'].map((s) =>
+      container.querySelector(`.dag-node[data-step="${s}"]`),
+    )
     assert.equal(publish.getAttribute('data-layer'), rework.getAttribute('data-layer'))
     assert.match(container.querySelector('.proc-run-state').textContent, /No run/)
     // The decision step lists each branch with its guard.
-    container.querySelector('.dag-node[data-step="review"]').dispatchEvent(new doc.defaultView.Event('click'))
+    container
+      .querySelector('.dag-node[data-step="review"]')
+      .dispatchEvent(new doc.defaultView.Event('click'))
     const branches = texts('.exec-step-card .branch-outcome')
     assert.deepEqual(branches, ['Publish — outcome == approve', 'Rework — outcome == decline'])
     assert.match(container.querySelector('.exec-step-card').textContent, /Approve the draft\?/)
@@ -198,7 +270,11 @@ describe('procedure view (bluepriNNt)', () => {
     const broken = REVIEW.replace('next:: [@publish, @rework]', 'next:: [@publish, @ghost]')
     mount(payload({ text: broken }), context)
     const items = [...container.querySelectorAll('.proc-defect-item')]
-    assert.ok(items.some((i) => i.getAttribute('data-defect-kind') === 'UNKNOWN_NEXT' && /ghost/.test(i.textContent)))
+    assert.ok(
+      items.some(
+        (i) => i.getAttribute('data-defect-kind') === 'UNKNOWN_NEXT' && /ghost/.test(i.textContent),
+      ),
+    )
   })
 
   it("shows a run's folded state: current step, done steps and the decision outcome taken", (context) => {
@@ -209,13 +285,33 @@ describe('procedure view (bluepriNNt)', () => {
     const state = container.querySelector('.proc-run-state').textContent
     assert.match(state, /Current step: Publish/)
     assert.match(state, /Path: Draft → Review → Publish/)
-    const statusOf = (s) => container.querySelector(`.dag-node[data-step="${s}"]`).getAttribute('data-status')
-    assert.deepEqual(['draft', 'review', 'publish', 'rework'].map(statusOf), ['done', 'done', 'pending', 'off_path'])
-    assert.ok(container.querySelector('.dag-node[data-step="publish"]').classList.contains('current'))
-    container.querySelector('.dag-node[data-step="review"]').dispatchEvent(new doc.defaultView.Event('click'))
-    assert.match(container.querySelector('.exec-step-card').textContent, /Outcome: approve → Publish/)
-    assert.match(container.querySelector('.proc-run-artifacts').textContent, /Draft Doc: validated/)
-    assert.deepEqual(texts('.proc-run-events .audit-item .audit-kind').slice(0, 2), ['started', 'step_started'])
+    const statusOf = (s) =>
+      container.querySelector(`.dag-node[data-step="${s}"]`).getAttribute('data-status')
+    assert.deepEqual(['draft', 'review', 'publish', 'rework'].map(statusOf), [
+      'done',
+      'done',
+      'pending',
+      'off_path',
+    ])
+    assert.ok(
+      container.querySelector('.dag-node[data-step="publish"]').classList.contains('current'),
+    )
+    container
+      .querySelector('.dag-node[data-step="review"]')
+      .dispatchEvent(new doc.defaultView.Event('click'))
+    assert.match(
+      container.querySelector('.exec-step-card').textContent,
+      /Outcome: approve → Publish/,
+    )
+    // The artifact is a chip now: its name, its state and the file, not one flat string.
+    const artifact = container.querySelector('.proc-run-artifacts [data-proc-artifact]')
+    assert.ok(artifact, 'the artifact has a chip')
+    assert.match(artifact.querySelector('.proc-artifact-name').textContent, /Draft Doc/)
+    assert.match(artifact.querySelector('.proc-artifact-state').textContent, /validated/)
+    assert.deepEqual(texts('.proc-run-events .audit-item .audit-kind').slice(0, 2), [
+      'started',
+      'step_started',
+    ])
   })
 
   it('shows the drift of a run pinned to another definition revision', (context) => {
@@ -237,8 +333,17 @@ describe('procedure view (bluepriNNt)', () => {
 
   it('carries no hardcoded decision gate, fake CLI snippet or write controls', (context) => {
     mount(payload({ runs: [(g) => runOf('r1', g, APPROVED)] }), context)
-    container.querySelector('.dag-node[data-step="review"]').dispatchEvent(new doc.defaultView.Event('click'))
-    for (const selector of ['.exec-decision-box', '.btn-branch', '.exec-cli-snippet', '.exec-actions-row', '.btn-export-log', '[data-nn-timer]']) {
+    container
+      .querySelector('.dag-node[data-step="review"]')
+      .dispatchEvent(new doc.defaultView.Event('click'))
+    for (const selector of [
+      '.exec-decision-box',
+      '.btn-branch',
+      '.exec-cli-snippet',
+      '.exec-actions-row',
+      '.btn-export-log',
+      '[data-nn-timer]',
+    ]) {
       assert.equal(container.querySelector(selector), null, `${selector} must not render`)
     }
     const code = readFileSync(stepperPath, 'utf8')
@@ -251,10 +356,22 @@ describe('procedure view (bluepriNNt)', () => {
       file: 'bluepriNNt:procedures/x_procedures_NN.md',
       title: 'bluepriNNt:procedures/x_procedures_NN.md',
       graph: null,
-      runs: [{ id: 'floor-1', file: 'executions/floor-1/floor-1_executions_NN.md', closed: false, defRev: 'V_1-0-0', params: {}, events: [], state: null }],
+      runs: [
+        {
+          id: 'floor-1',
+          file: 'executions/floor-1/floor-1_executions_NN.md',
+          closed: false,
+          defRev: 'V_1-0-0',
+          params: {},
+          events: [],
+          state: null,
+        },
+      ],
     })
     mount(p, context)
-    const tab = [...container.querySelectorAll('.proc-tab')].find((t) => /bluepriNNt:/.test(t.textContent))
+    const tab = [...container.querySelectorAll('.proc-tab')].find((t) =>
+      /bluepriNNt:/.test(t.textContent),
+    )
     tab.click()
     assert.match(container.textContent, /not in this export/)
     assert.ok(container.querySelector('.proc-run[data-run-id="floor-1"]'))
@@ -268,14 +385,20 @@ describe('procedure view (bluepriNNt)', () => {
   it('renders into its own container with no global ids', () => {
     const handle = stepper.mount(container, payload({ runs: [(g) => runOf('r1', g, APPROVED)] }))
     assert.ok(container.querySelector('.nn-procedure-view'), 'built inside the container')
-    assert.equal(container.querySelectorAll('[id]').length, 0, 'no element in the view carries an id')
+    assert.equal(
+      container.querySelectorAll('[id]').length,
+      0,
+      'no element in the view carries an id',
+    )
     handle.unmount()
     assert.equal(container.innerHTML, '')
   })
 
   it('renders Markdown descriptions with references as pills', (context) => {
     global.nnUI = require(join(consoleDir, 'ui-kit.js'))
-    context.after(() => { delete global.nnUI })
+    context.after(() => {
+      delete global.nnUI
+    })
     const opened = []
     global.nnConsole = { ...runtime, renderRefDialog: (_doc, element) => opened.push(element.id) }
     mount(payload(), context)
@@ -289,7 +412,9 @@ describe('procedure view (bluepriNNt)', () => {
 
   it('keeps HTML and unsafe URLs inert in Markdown descriptions', (context) => {
     global.nnUI = require(join(consoleDir, 'ui-kit.js'))
-    context.after(() => { delete global.nnUI })
+    context.after(() => {
+      delete global.nnUI
+    })
     const p = payload()
     p.model.elements.find((e) => e.slug === 'draft').description =
       '**Safe**\n\n<img src=x onerror=1><script>alert(1)</script>\n\n[bad](javascript:alert)'
@@ -311,14 +436,68 @@ describe('procedure view (bluepriNNt)', () => {
       }),
       context,
     )
-    const items = [...container.querySelectorAll('[data-nn-procedures="blueprint"] .proc-blueprint-item')]
-    assert.deepEqual(items.map((i) => i.getAttribute('data-procedure-id')), ['usage', 'generate-docsify-suite'])
+    const items = [
+      ...container.querySelectorAll('[data-nn-procedures="blueprint"] .proc-blueprint-item'),
+    ]
+    assert.deepEqual(
+      items.map((i) => i.getAttribute('data-procedure-id')),
+      ['usage', 'generate-docsify-suite'],
+    )
     assert.equal(items[0].textContent, 'Getting started')
   })
 
   it('renders the procedure ficha from the linked Procedure element', (context) => {
     mount(payload(), context)
-    assert.match(container.querySelector('.proc-ficha').textContent, /Reviews a draft before it is published/)
+    assert.match(
+      container.querySelector('.proc-ficha').textContent,
+      /Reviews a draft before it is published/,
+    )
+  })
+
+  it('draws the step icon through nnIcons, the sprite the console actually provides', (context) => {
+    global.nnIcons = require(join(consoleDir, 'nn-icons.js'))
+    context.after(() => {
+      delete global.nnIcons
+    })
+    mount(payload(), context)
+    // Before this, the view read `nnVisuals.iconSvg`, which the console no longer sets:
+    // the pill rendered as a bare " TASK" with no icon at all.
+    const pill = container.querySelector('.step-type-pill')
+    assert.ok(pill.querySelector('svg'), 'the type pill carries an icon')
+    assert.ok(
+      container.querySelector('.exec-col-header svg'),
+      'the workflow header carries one too',
+    )
+  })
+
+  it('reads the icon module the way nn-runtime does, and never the retired nnVisuals', () => {
+    const code = readFileSync(stepperPath, 'utf8')
+    assert.match(code, /typeof nnIcons !== 'undefined'/, 'same lookup as the shell')
+    // No executable reference to the retired global survives (comments may explain it).
+    const executable = code
+      .split('\n')
+      .filter((l) => !/^\s*\/\//.test(l))
+      .join('\n')
+    assert.doesNotMatch(executable, /nnVisuals/, 'the retired global is gone from the code')
+  })
+
+  it('states every class the run panel relies on, so nothing renders unstyled', () => {
+    // The panel is built from these classes; a missing rule leaves it browser-default,
+    // which is what shipped: the run panel had no shape at all.
+    const css = readFileSync(join(consoleDir, 'nn-ui.css'), 'utf8')
+    const missing = [
+      '.proc-runs',
+      '.proc-runs-label',
+      '.proc-ficha',
+      '.proc-ficha-summary',
+      '.proc-run-state',
+      '.proc-run-next',
+      '.proc-run-drift',
+      '.proc-structure-summary',
+      '.dag-node.current',
+      '.dag-node.selected',
+    ].filter((sel) => !css.includes(sel))
+    assert.deepEqual(missing, [], 'every class the panel builds has a rule')
   })
 })
 
@@ -338,24 +517,24 @@ slug:: r1
 def_rev:: V_1-0-0
 params:: "{}"
 procedure:: ${procedure}
+seq:: 2
+state:: open
 
-# NN Execution Event
-## NN Execution Event: e-001
-slug:: e-001
-kind:: started
-actor:: ana
-
-## NN Execution Event: e-002
-slug:: e-002
-kind:: step_started
-step:: draft
+# NN Step Run
+## NN Step Run: Draft
+slug:: draft
+status:: active
 attempt:: 1
 `
 
   it('carries each procedure graph and its runs folded by nn-core', (context) => {
     const root = mkdtempSync(join(tmpdir(), 'nn-proc-export-'))
     context.after(() => rmSync(root, { recursive: true, force: true }))
-    const model = (rel, content) => ({ filePath: join(root, rel), content, fm: core.parseFrontmatter(content) })
+    const model = (rel, content) => ({
+      filePath: join(root, rel),
+      content,
+      fm: core.parseFrontmatter(content),
+    })
     const procedure = model(FILE, REVIEW)
     const run = model('executions/r1/r1_executions_NN.md', runText(FILE))
     const out = collectProcedureRuns({
@@ -372,8 +551,11 @@ attempt:: 1
     assert.equal(out[0].runs.length, 1)
     const [r1] = out[0].runs
     assert.equal(r1.id, 'r1')
-    assert.deepEqual(r1.events.map((e) => e.kind), ['started', 'step_started'])
-    assert.deepEqual(r1.state, core.foldRun(graphOf(REVIEW), r1.events, { defRev: 'V_1-0-0', lockFree: true }))
+    // The export derives the stepper's event view from the run's rows.
+    assert.deepEqual(
+      r1.events.map((e) => e.kind),
+      ['started', 'step_started'],
+    )
     assert.equal(r1.state.currentStep, 'draft')
   })
 
@@ -381,8 +563,19 @@ attempt:: 1
     const root = mkdtempSync(join(tmpdir(), 'nn-proc-export-'))
     context.after(() => rmSync(root, { recursive: true, force: true }))
     const content = runText('bluepriNNt:procedures/x_procedures_NN.md')
-    const run = { filePath: join(root, 'executions/r1/r1_executions_NN.md'), content, fm: core.parseFrontmatter(content) }
-    const out = collectProcedureRuns({ root, models: [run], payloadModels: [run], wholeDomain: true, helper: core, compare: (a, b) => (a < b ? -1 : a > b ? 1 : 0) })
+    const run = {
+      filePath: join(root, 'executions/r1/r1_executions_NN.md'),
+      content,
+      fm: core.parseFrontmatter(content),
+    }
+    const out = collectProcedureRuns({
+      root,
+      models: [run],
+      payloadModels: [run],
+      wholeDomain: true,
+      helper: core,
+      compare: (a, b) => (a < b ? -1 : a > b ? 1 : 0),
+    })
     assert.equal(out.length, 1)
     assert.equal(out[0].graph, null)
     assert.equal(out[0].runs[0].state, null)

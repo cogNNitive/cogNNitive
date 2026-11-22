@@ -40,11 +40,18 @@ const mode = parseRegenMode(process.argv.slice(2));
 const isCheck = mode === 'check';
 
 /**
- * Guard ids the check pass must not run at all. `blueprint-catalog` cannot be judged
- * by a diff (see the header), and running its generator here would dirty the tree on
- * a pass that is supposed to leave it clean.
+ * Guard ids no regeneration pass may run.
+ *
+ * `blueprint-catalog` stamps `release_tag` from the `blueprints-v*` tags and re-resolves it
+ * against HEAD's trees, so rewriting it produces a bookkeeping commit after every release: the
+ * commit that lands a blueprint change moves the entry's tree away from the tag, the next pass
+ * writes `null`, and the write-back lane commits a file nobody asked to change.
+ *
+ * It stays in `FRESHNESS_GUARDS` for the read-only checks (`pre-push`, `verify` — which compares
+ * it with `release_tag` normalised away), and a blueprint addition regenerates it in the PR that
+ * adds it: `verify` fails until it does.
  */
-const CHECK_SKIPS = new Set(['blueprint-catalog']);
+const WRITE_SKIPS = new Set(['blueprint-catalog']);
 
 /** Runs a command; `quiet` captures its output instead of inheriting it. */
 function exec(cmd, args, quiet = false) {
@@ -98,7 +105,7 @@ function syncCopies() {
   }
 }
 
-const guards = isCheck ? FRESHNESS_GUARDS.filter((g) => !CHECK_SKIPS.has(g.id)) : FRESHNESS_GUARDS;
+const guards = FRESHNESS_GUARDS.filter((g) => !WRITE_SKIPS.has(g.id));
 const generate = [
   ...guards.map((g) => [g.script]),
   ['scripts/generate-docs-facts.mjs'],
@@ -148,7 +155,11 @@ if (run(npm, ['--workspace=@cognnitive/nn-mcp', 'run', 'build:dist']) !== 0) fai
 
 if (isCheck) {
   console.log('regen: regenerating every derived artifact, then diffing against HEAD...');
-  const gate = checkRegen({ root: repoRoot, runPass });
+  const gate = checkRegen({
+    root: repoRoot,
+    runPass,
+    tolerant: process.argv.includes('--tolerant'),
+  });
   console.log(gate.message);
   process.exit(gate.ok ? 0 : 1);
 }

@@ -965,7 +965,8 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       annotations: { readOnlyHint: true },
       description:
         'Read-only: the state of a procedure run, folded from its recorded events (nothing is stored). Returns the run header, the RunState (status, current step, path, steps, artifacts, stale, drift, crashed, canComplete), the graph diagnostics, what the current step needs (executor, decision question and command with slots substituted, input and output artifacts), the allowed next transitions with their guards, and the procedure_record actions allowed now. ' +
-        'An engine step started with no later event is reported as crashed while the apply lock is free. Never writes files. Codes: RUN_NOT_FOUND, PROCEDURE_NOT_FOUND, INVALID_ARGUMENT.',
+        'The actions are exactly the ones procedure_record accepts: a drifted run advertises only rebase, input, pause or resume, cancel and finish, because drift refuses step and artifact facts until rebase. ' +
+        'An engine step started with no later event is reported as crashed while the apply lock is free; action=run writes the start and its terminal in one changeset, so a command that dies leaves no event and the step stays pending. Never writes files. Codes: RUN_NOT_FOUND, PROCEDURE_NOT_FOUND, INVALID_ARGUMENT.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -983,8 +984,9 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'procedure_record',
       annotations: { readOnlyHint: false, destructiveHint: false },
       description:
-        'Record one fact of a procedure run as ONE changeset applied through apply_change (author_kind agent; engine for action run). Actions: start (step_started, attempt and frozen input revs computed), wait (value), complete (outcome; next is taken when one transition holds, else AMBIGUOUS_TRANSITION with the allowed transitions), fail (value), artifact (fact produced|validated|rejected, field = artifact slug, value, rev), input (field, value, rev), pause, resume, rebase (accept the current definition revision), cancel, finish (outcome completed, only when the walk can complete, or failed), and run (execute the engine step command with slots substituted, verify its file: artifacts by sha256, record the exit code). ' +
-        'A terminal event and close_model go in the same changeset. Refusals write nothing: INVALID_ACTION, INVALID_ARGUMENT, RUN_NOT_FOUND, RUN_CLOSED, RUN_DRIFTED, RUN_PAUSED, NOT_PAUSED, NOT_DRIFTED, UNKNOWN_STEP, STEP_NOT_CURRENT, STEP_NOT_STARTED, STEP_ALREADY_STARTED, UNKNOWN_ARTIFACT, INVALID_TRANSITION, AMBIGUOUS_TRANSITION, CANNOT_COMPLETE, NOT_ENGINE_STEP; APPLY_FAILED reports an apply refusal. Returns what was recorded and the new state.',
+        'Record one fact of a procedure run as ONE changeset applied through apply_change (author_kind agent; engine for action run). Actions: start (step_started, attempt and frozen input revs computed), wait (value), complete (outcome; next is taken when one transition holds, else AMBIGUOUS_TRANSITION with the allowed transitions), fail (value), artifact (fact produced|validated|rejected, field = artifact slug, value, rev; only from a step that already started), input (field, value, rev), pause, resume, rebase (accept the current definition revision), cancel, finish (outcome completed, only when the walk can complete, or failed), and run (execute the engine step command with slots substituted, verify its file: artifacts by sha256, record the exit code). ' +
+        'The call holds the run write lock across the fold and the apply, so two callers cannot both fold the same state and append the same fact: a second caller is refused with RUN_BUSY and writes nothing. ' +
+        'A terminal event and close_model go in the same changeset. Refusals write nothing: INVALID_ACTION, INVALID_ARGUMENT, RUN_NOT_FOUND, RUN_BUSY, RUN_CLOSED, RUN_DRIFTED, RUN_PAUSED, NOT_PAUSED, NOT_DRIFTED, UNKNOWN_STEP, STEP_NOT_CURRENT, STEP_NOT_STARTED, STEP_ALREADY_STARTED, UNKNOWN_ARTIFACT, INVALID_TRANSITION, AMBIGUOUS_TRANSITION, CANNOT_COMPLETE, NOT_ENGINE_STEP; APPLY_FAILED reports an apply refusal. Returns what was recorded and the new state.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1031,7 +1033,10 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
             type: 'string',
             description: 'Who records the fact (default agent, or engine for run)',
           },
-          timeout_ms: { type: 'number', description: 'run: command timeout (default 60000)' },
+          timeout_ms: {
+            type: 'number',
+            description: 'run: command timeout (default 60000, clamped to 1000..300000)',
+          },
           domain: { type: 'string', description: 'Optional domain root override' },
           root: { type: 'string', description: 'Optional domain root override (alias for domain)' },
         },

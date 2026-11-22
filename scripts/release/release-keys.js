@@ -10,18 +10,43 @@ const RELEASE_KEYS = Object.freeze(['skills', 'blueprints', 'nn-mcp', 'nn-consol
 const RELEASE_TABLE = Object.freeze({
   skills: Object.freeze({
     repoPaths: Object.freeze(['skills']),
+    changePaths: Object.freeze(['skills']),
     sitePaths: Object.freeze([]),
   }),
   blueprints: Object.freeze({
     repoPaths: Object.freeze(['iNNfo/specs']),
+    changePaths: Object.freeze(['iNNfo/specs']),
+    /**
+     * `catalog.json` is generated *from the release tags*: a commit that only restamps it
+     * is bookkeeping, not a blueprint change. Counting it as one closes a loop —
+     * restamp, tag, and the new tag makes the next restamp different, so it tags again.
+     * `run-release.js` stamps that file at publish time anyway, so nothing is lost.
+     */
+    ignoredRepoPaths: Object.freeze(['iNNfo/specs/bluepriNNts/catalog.json']),
     sitePaths: Object.freeze([]),
   }),
   'nn-mcp': Object.freeze({
     repoPaths: Object.freeze(['iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js']),
+    /**
+     * The only repo path is the generated bundle, which is never a trigger, so the source has
+     * to be listed here: without it the key would only ship when somebody edited a version by
+     * hand, which is the lane this file feeds. `nn-core` belongs on the list because the bundle
+     * embeds it: a core change that never released nn-mcp would leave consumers on the old code.
+     */
+    changePaths: Object.freeze([
+      'iNNfo/packages/nn-mcp/src',
+      'iNNfo/packages/nn-mcp/test',
+      'iNNfo/packages/nn-core/src',
+    ]),
     sitePaths: Object.freeze(['docs/innfo/cdn/manifest.json']),
   }),
   'nn-console': Object.freeze({
     repoPaths: Object.freeze([
+      'iNNfo/specs/bluepriNNts/console',
+      'scripts/export-console.mjs',
+      'scripts/console-views.mjs',
+    ]),
+    changePaths: Object.freeze([
       'iNNfo/specs/bluepriNNts/console',
       'scripts/export-console.mjs',
       'scripts/console-views.mjs',

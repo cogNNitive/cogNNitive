@@ -89,6 +89,10 @@ export interface WriteProposedChangesetInput {
   workspaceId?: string
   /** Provenance of every change in the file (`human`, `agent` or `engine`); sealed with the proposal. */
   authorKind?: 'human' | 'agent' | 'engine'
+  /** Run context (`<run-id>@<step-slug>`, or a bare run id); sealed with the proposal. */
+  run?: string
+  /** Atomic changeset: any conflict writes nothing. Sealed with the proposal. */
+  atomic?: boolean
   now?: Date
 }
 
@@ -114,7 +118,14 @@ function numberChanges(changes: ChangeItem[], author: string): ChangeItem[] {
 /** Builds the sealed, unwritten Level-3 changeset document for `changes`. */
 export function buildProposedChangeset(
   changes: ChangeItem[],
-  meta: { title?: string; author: string; workspaceId: string; authorKind?: string },
+  meta: {
+    title?: string
+    author: string
+    workspaceId: string
+    authorKind?: string
+    run?: string
+    atomic?: boolean
+  },
 ): ChangesetDocument {
   const numbered = numberChanges(changes, meta.author)
   const provenance = meta.authorKind ? { author_kind: meta.authorKind } : undefined
@@ -125,10 +136,16 @@ export function buildProposedChangeset(
       parent_spec: { name: 'changes', url: CHANGES_SPEC_URL },
       blueprint_version: changesBlueprintVersion(),
       status: 'proposed',
-      proposal_sha: computeProposalSha(numbered, provenance),
+      proposal_sha: computeProposalSha(numbered, {
+        ...(provenance ?? {}),
+        ...(meta.run !== undefined ? { run: meta.run } : {}),
+        ...(meta.atomic === true ? { atomic: true } : {}),
+      }),
       ...(meta.title ? { title: meta.title } : {}),
       author: meta.author,
       ...provenance,
+      ...(meta.run !== undefined ? { run: meta.run } : {}),
+      ...(meta.atomic === true ? { atomic: true } : {}),
       workspace_id: meta.workspaceId,
     },
     changes: numbered,
@@ -146,6 +163,8 @@ export async function writeProposedChangeset(
     author,
     workspaceId,
     authorKind: input.authorKind,
+    run: input.run,
+    atomic: input.atomic,
   })
   const text = serializeChangeset(document)
 

@@ -61,6 +61,8 @@ function main() {
       'studio.js',
       'nn-fsa.js',
       'nn-runtime.js',
+      // Defines the fold the stepper projects with, so it must precede the stepper.
+      'nn-procedure-core.js',
       'render-procedure-stepper.js',
     ];
     const actualFiles = SOURCES.map(([f]) => f);

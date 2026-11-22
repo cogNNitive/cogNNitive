@@ -313,14 +313,26 @@ export function isModelCandidate(f: { path: string; frontmatter: Record<string, 
 
 /**
  * The console's model notion: a `knowledge` model, a `procedures` model (a Level-3
- * procedures catalog/stepper in the workspace that feeds the procedures blueprint's
- * Procedure view), or any document whose blueprint declares a `nature` — a declared
- * collection surfaces ("if you declare it, it shows", change A D5). The `procedures/`
- * submodels (execution steppers linked through `procedure_model`) are NOT console
- * models: they are excluded by their `procedures` directory segment. `list_knowledge`,
- * discovery and the lineage projection keep using `isModelCandidate` (knowledge only).
+ * procedure definition or its catalog that feeds the procedures blueprint's Procedure
+ * view), or any document whose blueprint declares a `nature` — a declared collection
+ * surfaces ("if you declare it, it shows", change A D5). `list_knowledge`, discovery and
+ * the lineage projection keep using `isModelCandidate` (knowledge only).
+ *
+ * A `procedures/` submodel (an execution stepper reached through `procedure_model` from
+ * ANOTHER document) is NOT a console model. The distinction is the LINK, never the folder:
+ * a user-authored procedure definition lives wherever the domain puts it, `procedures/`
+ * included, and must surface. A document that names itself in its own `procedure_model`
+ * is a self-contained custom procedure (catalog and steps in one file), not a stepper, so
+ * it surfaces too. The link is graph knowledge that a pure predicate cannot read, so the
+ * caller passes the set of FOREIGN stepper targets (targets whose `procedure_model` lives
+ * in a different file) as `f.linkedProcedureModels` (repo-relative, `/`-separated).
+ * Without that set the conservative default excludes every `procedures/` file.
  */
-export function isConsoleModel(f: { path: string; frontmatter: Record<string, unknown> }): boolean {
+export function isConsoleModel(f: {
+  path: string
+  frontmatter: Record<string, unknown>
+  linkedProcedureModels?: ReadonlySet<string>
+}): boolean {
   if (isExcludedPath(f.path)) return false
   const parentSpecName = parentSpecNameOf(f.frontmatter)
   const role = roleOf({ path: f.path, parentSpecName })
@@ -328,8 +340,15 @@ export function isConsoleModel(f: { path: string; frontmatter: Record<string, un
   // the declared collections below (the `sources` catalog itself) still surface.
   if ((role === 'knowledge' || role === 'procedure') && isUnderRootSources(f.path)) return false
   if (role === 'knowledge') return true
-  // A procedures model surfaces, but never a `procedures/` execution stepper (submodel).
-  if (role === 'procedure') return !segmentsOf(f.path).includes('procedures')
+  // A procedure definition surfaces, but never a `procedures/` execution stepper. The
+  // stepper is excluded by its `procedure_model` link, not by living in `procedures/`:
+  // only when no link set was passed do we fall back to the folder, as before.
+  if (role === 'procedure') {
+    if (!segmentsOf(f.path).includes('procedures')) return true
+    const linked = f.linkedProcedureModels
+    if (!linked) return false
+    return !linked.has(f.path.replace(/\\/g, '/'))
+  }
   // A `catalog` declaration surfaces per document (each catalog doc is a model). A
   // `members`/`projection` collection is materialized by the exporter, not discovered here.
   return natureOfBlueprint(coreBlueprintKey(parentSpecName))?.structure === 'catalog'

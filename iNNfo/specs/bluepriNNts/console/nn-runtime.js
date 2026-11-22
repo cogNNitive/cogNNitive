@@ -109,16 +109,34 @@
     return text || DEFAULT_REVIEWER_NAME
   }
 
+  /**
+   * Web storage access that survives a sandboxed document.
+   *
+   * In an iframe without `allow-same-origin` (IDE side panels, preview panes)
+   * reading `localStorage` THROWS instead of returning undefined, so a
+   * `typeof` guard on it never reaches its fallback: `typeof` still evaluates
+   * the getter. Callers treat null as "unavailable", which keeps the console
+   * working with an in-memory store.
+   */
+  function safeLocalStorage() {
+    try {
+      return localStorage || null
+    } catch {
+      return null
+    }
+  }
+
   function getReviewerName() {
     try {
-      if (typeof localStorage !== 'undefined') {
-        var stored = localStorage.getItem(REVIEWER_STORAGE_KEY)
+      var store = safeLocalStorage()
+      if (store) {
+        var stored = store.getItem(REVIEWER_STORAGE_KEY)
         if (stored && typeof stored === 'string' && stored.trim()) {
           return stored.trim()
         }
       }
     } catch {
-      /* localStorage unavailable (private mode / file://) - fall through to default */
+      /* storage read failed (private mode / file:// / sandboxed) - fall through to default */
     }
     return DEFAULT_REVIEWER_NAME
   }
@@ -126,11 +144,12 @@
   function setReviewerName(name) {
     var val = String(name || '').trim() || DEFAULT_REVIEWER_NAME
     try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(REVIEWER_STORAGE_KEY, val)
+      var store = safeLocalStorage()
+      if (store) {
+        store.setItem(REVIEWER_STORAGE_KEY, val)
       }
     } catch {
-      /* localStorage unavailable (private mode / file://) - name stays in-memory */
+      /* storage write failed (private mode / file:// / sandboxed) - name stays in-memory */
     }
     return val
   }
@@ -3964,7 +3983,7 @@
         return c
       }
       function anchor(a) {
-        return { elementId: a.elementId, field: a.field }
+        return { elementId: a.elementId, field: a.field, knowledge_id: a.knowledge_id }
       }
       return {
         store: {
@@ -4005,6 +4024,13 @@
               }
             }
             var payload = { kind: p.kind, proposed: p.proposed, comment: p.comment }
+            // A `new` draft names what it creates: review.js cannot look it up in the
+            // model, because the instance does not exist yet.
+            if (p.kind === 'new') {
+              if (p.concept) payload.concept = p.concept
+              if (p.element) payload.element = p.element
+              if (p.element_slug) payload.element_slug = p.element_slug
+            }
             if (p.kind === 'verdict') {
               payload.gate = p.gate
               payload.verdict = p.verdict
@@ -4032,7 +4058,15 @@
               }
             }
             var saved = controller().propose(anchor(p), payload)
-            if (!saved) throw new Error('cannot propose: unknown element "' + p.elementId + '"')
+            if (!saved) {
+              // A `new` draft supplies its own concept and element; anything else targets
+              // an element the console must already hold.
+              throw new Error(
+                p.kind === 'new'
+                  ? 'cannot propose: a new element needs `concept` and `element`'
+                  : 'cannot propose: unknown element "' + p.elementId + '"',
+              )
+            }
             return saved
           },
           remove: function (id) {
@@ -6505,7 +6539,28 @@
     if (d.comment) {
       lines.push('notes:: ' + formatChangesetValue(d.comment))
     }
-    if (op !== 'add_element' || !isObject(d.proposed)) return [lines.join('\n')]
+    if (op !== 'add_element') return [lines.join('\n')]
+    // A caller that already holds the element's fields as one JSON value (the procedure
+    // runner builds its `Execution Event` that way) emits them verbatim: `apply_change`
+    // writes `to` in the same `add_element` mutation, so element and values are one change.
+    if (!isObject(d.proposed)) {
+      if (typeof d.proposed === 'string' && d.proposed.trim() !== '') {
+        // The payload is already one JSON object (`apply_change` parses `to` as JSON). It
+        // must reach the file as JSON, not quoted a second time, or the parser's
+        // quote-stripping unwraps the object back into a string.
+        var raw = d.proposed.trim()
+        var asJson = null
+        try {
+          asJson = JSON.parse(raw)
+        } catch {
+          asJson = null
+        }
+        lines.push('to:: ' + (isObject(asJson) ? jsonLine(asJson) : formatChangesetValue(raw)))
+        return [lines.join('\n')]
+      }
+      return [lines.join('\n')]
+    }
+    if (Object.keys(d.proposed).length === 0) return [lines.join('\n')]
     // A change carries no inline fields. The filled fields share the draft's one
     // evidence, so they are set by ONE `set_fields` (a single field stays an
     // `update_field`), with no `from`: the fields do not exist yet.
@@ -7437,6 +7492,11 @@
     var slots = parseSlots(slotText(active, 'nn-schema'), modelText)
     var viewData = parseViewData(slotText(active, 'nn-view-data'))
     var savedDrafts = parseDraftsSlot(slotText(active, 'nn-drafts'))
+    // Wire the procedure fold when the export shipped one, so a view can project a run from
+    // the drafts it holds. Absent slot: views fall back to the exported state.
+    if (typeof nnProcedureCore !== 'undefined' && nnProcedureCore && typeof nnProcedureCore.useFromDocument === 'function') {
+      nnProcedureCore.useFromDocument(active)
+    }
     var uiState = isObject(savedDrafts.uiState) ? savedDrafts.uiState : null
     var schema = slots.schema
     var model = slots.model
@@ -7544,7 +7604,7 @@
       schema: schema,
       concepts: concepts,
       store: Review.createDraftStore(
-        typeof localStorage !== 'undefined' ? localStorage : null,
+        safeLocalStorage(),
         // A domain console keys its drafts by the stable domain id, never by content.
         String(meta.domainId || baseId) + (scopedView ? '::view:' + scopedView : '') + (consoleScope.models.length > 0 ? '::models:' + consoleScope.models.join(',') : ''),
         {

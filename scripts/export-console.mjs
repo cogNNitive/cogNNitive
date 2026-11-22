@@ -239,7 +239,14 @@ const USAGE =
   `${CLI_FLAGS.map((flag) => `[${flag}]`).join(' ')} [<ModelName>]`
 
 /** Flags that take the next token as their value. */
-const VALUE_FLAGS = new Set(['--view', '--new-view', '--template', '--blueprint', '--title', '--filter'])
+const VALUE_FLAGS = new Set([
+  '--view',
+  '--new-view',
+  '--template',
+  '--blueprint',
+  '--title',
+  '--filter',
+])
 
 function parseArgs(argv) {
   const args = {
@@ -300,9 +307,7 @@ function parseArgs(argv) {
       args.changes = false
     } else if (a.startsWith('-')) {
       // Only flag-shaped tokens are refused: a bare word is still the root or a model.
-      args.errors.push(
-        `unknown option "${a}". Accepted flags: ${KNOWN_FLAG_NAMES.join(', ')}.`,
-      )
+      args.errors.push(`unknown option "${a}". Accepted flags: ${KNOWN_FLAG_NAMES.join(', ')}.`)
     } else if (args.root === null) {
       args.root = a
     } else {
@@ -497,15 +502,42 @@ export function coreBlueprintOf(parentSpecName) {
  * documents (Sources, Artifacts, Procedures). The core predicate filters these
  * out by role, so the console opts them back in here.
  */
-function isModelDocument(relPath, content) {
+function isModelDocument(relPath, content, linkedProcedureModels) {
   const frontmatter = frontmatterOf(content)
   // Notes without a YAML header are not models.
   if (!frontmatter) return false
-  if (payloadHelper.isConsoleModel({ path: relPath, frontmatter })) return true
+  if (payloadHelper.isConsoleModel({ path: relPath, frontmatter, linkedProcedureModels }))
+    return true
   const parentName = payloadHelper.parentSpecNameOf(frontmatter)
   const role = payloadHelper.roleOf({ path: relPath, parentSpecName: parentName })
   if (role === 'catalog') return CONSOLE_CORE_BLUEPRINTS.has(coreBlueprintOf(parentName))
   return false
+}
+
+/**
+ * Repo-relative targets of every `procedure_model::` a document declares for a DIFFERENT
+ * file. An execution stepper is reached this way from a catalog `Procedure`; a custom
+ * procedure that names itself is self-contained and is NOT added. Used to exclude steppers
+ * from the console regardless of which folder holds them.
+ */
+function collectForeignProcedureTargets(root, files) {
+  const targets = new Set()
+  for (const f of files) {
+    const rel = relative(root, f).replace(/\\/g, '/')
+    let content
+    try {
+      content = readFileSync(f, 'utf-8')
+    } catch {
+      continue
+    }
+    const re = /^[ \t]*procedure_model::[ \t]*(\S+)[ \t]*$/gim
+    let m
+    while ((m = re.exec(content))) {
+      const target = m[1].replace(/^"|"$/g, '').trim().replace(/\\/g, '/')
+      if (target && target !== rel) targets.add(target)
+    }
+  }
+  return targets
 }
 
 function isLevel3(content) {
@@ -840,6 +872,39 @@ async function renderTree(models, root, consoles, out) {
   }
 }
 
+/**
+ * The body of the `nn-procedure-core` slot, or '' when the payload helper carries no fold.
+ *
+ * It ships the real `foldRun` as source rather than re-implementing it, so a console that
+ * projects a run answers with the same function the exporter used. The slot is inert data:
+ * `nnProcedureCore.use(...)` reads it at boot, and a view that never asks for a projection
+ * costs nothing.
+ */
+
+/**
+ * The body of the `nn-procedure-core` slot, or '' when the fold cannot be bundled.
+ *
+ * `foldRun` is not self-contained: `TERMINAL`, `ARTIFACT_STATUS`, `reachable` and `guardOf`
+ * live in the same module, so shipping the function's source alone would throw on the first
+ * artifact event. esbuild bundles the module instead, and the slot carries that bundle.
+ *
+ * Bundled once per process: `injectSlots` runs several times (the unchanged-console check
+ * calls it again with a different timestamp), and re-bundling on every call would rebuild
+ * the same bytes.
+ */
+let foldSlotCache = null
+async function loadProcedureFoldSlot() {
+  if (foldSlotCache !== null) return foldSlotCache
+  try {
+    const { procedureFoldBrowserSource } = await import('./lib/procedure-fold-browser.js')
+    foldSlotCache = await procedureFoldBrowserSource(repoRoot)
+  } catch {
+    // No bundler available: the console ships without a projection rather than a broken one.
+    foldSlotCache = ''
+  }
+  return foldSlotCache
+}
+
 function injectSlots(shell, config, schema, model, viewData) {
   const serialize = payloadHelper?.serializeConsoleSlot
     ? (json) => payloadHelper.serializeConsoleSlot(json)
@@ -856,6 +921,27 @@ function injectSlots(shell, config, schema, model, viewData) {
     /<script type="[^"]*" id="nn-model">[\s\S]*?<\/script>/,
     () => modelSlot,
   )
+  // The procedure fold, for a console that projects a run from drafts it has not applied.
+  // The implementation is nn-core's own (through the payload helper the exporter already
+  // loads), so the browser folds exactly what the exporter folded. It stays inert unless a
+  // view calls `nnProcedureCore.use(...)`, and a console that ships without it degrades to
+  // the exported state.
+  const foldSource = foldSlotCache || ''
+  if (foldSource) {
+    // The shell ships the slot empty; fill it in place so no second, empty one survives.
+    const foldSlot = new RegExp(
+      `(<script type="application/json" id="nn-procedure-core">)[\\s\\S]*?(</script>)`,
+    )
+    if (foldSlot.test(html)) {
+      html = html.replace(foldSlot, (_m, open, close) => `${open}\n${foldSource}\n${close}`)
+    } else {
+      html = html.replace(
+        modelSlot,
+        () =>
+          `${modelSlot}\n    <script type="application/json" id="nn-procedure-core">\n${foldSource}\n</script>`,
+      )
+    }
+  }
   if (!html.includes('<script type="application/json" id="nn-drafts">')) {
     html = html.replace(
       modelSlot,
@@ -1137,7 +1223,14 @@ async function openConsole(file, { open, launcher, platform, cooldownMs, now = D
  *   payloadModels: Array<{ filePath: string, content: string, fm: any }>, wholeDomain: boolean,
  *   helper: any, compare: (a: string, b: string) => number }} input
  */
-export function collectProcedureRuns({ root, models, payloadModels, wholeDomain, helper, compare }) {
+export function collectProcedureRuns({
+  root,
+  models,
+  payloadModels,
+  wholeDomain,
+  helper,
+  compare,
+}) {
   const relOf = (m) => relative(root, m.filePath).replace(/\\/g, '/')
   const blueprintOf = (m) => coreBlueprintOf(helper.parentSpecNameOf(m.fm))
   const entries = new Map()
@@ -1155,14 +1248,14 @@ export function collectProcedureRuns({ root, models, payloadModels, wholeDomain,
   }
   for (const m of payloadModels) {
     const file = relOf(m)
-    if (helper.roleOf({ path: file, parentSpecName: helper.parentSpecNameOf(m.fm) }) === 'procedure')
+    if (
+      helper.roleOf({ path: file, parentSpecName: helper.parentSpecNameOf(m.fm) }) === 'procedure'
+    )
       addEntry(file, m.content)
   }
-  // The apply lock is the I/O fact the crash derivation needs (as `procedure_state` reads it).
-  const lockFree = !existsSync(join(root, 'changes', '.lock'))
   const runs = models
     .filter((m) => blueprintOf(m) === 'executions')
-    .map((m) => ({ file: relOf(m), record: helper.runRecordOf(helper.parseKnowledge(m.content)) }))
+    .map((m) => ({ file: relOf(m), record: helper.runModelOf(helper.parseKnowledge(m.content)) }))
     .filter((r) => r.record !== null)
     .map((r) => ({ ...r, id: r.file.split('/').slice(-2, -1)[0] || r.file }))
     .sort((a, b) => compare(a.id, b.id))
@@ -1175,21 +1268,69 @@ export function collectProcedureRuns({ root, models, payloadModels, wholeDomain,
         record.procedure !== '' &&
         !record.procedure.startsWith('bluepriNNt:') &&
         !relative(root, abs).startsWith('..')
-      entry = addEntry(record.procedure, inside && existsSync(abs) ? readFileSync(abs, 'utf-8') : null)
+      entry = addEntry(
+        record.procedure,
+        inside && existsSync(abs) ? readFileSync(abs, 'utf-8') : null,
+      )
     }
     entry.runs.push({
       id,
       file,
-      closed: record.closed,
+      closed:
+        record.state === 'completed' || record.state === 'failed' || record.state === 'cancelled',
       defRev: record.defRev,
       params: record.params,
-      events: record.events,
+      // The console stepper reads a run as a list of events (design §2.4 keeps the widget out
+      // of the state-model change). The run model is state, not events, so these are derived
+      // from its rows: the stepper keeps its contract and never sees a stale ledger.
+      events: eventsOfRunModel(record),
       state: entry.graph
-        ? helper.foldRun(entry.graph, record.events, { defRev: record.defRev, lockFree })
+        ? helper.foldRun(entry.graph, record, {
+            defRev: record.defRev,
+            activeStepIsStale: (slug, row) => helper.crashProbe(row, { now: Date.now() }),
+          })
         : null,
     })
   }
   return [...entries.values()].sort((a, b) => compare(a.file, b.file))
+}
+
+/**
+ * The stepper's event view of a run model (design §2.4): every row that carries state becomes
+ * the event that state implies, in a stable order (header, then steps, then artifacts). The
+ * console widget reads events, and the run model is state; this is the one translation between
+ * the two, so the widget keeps working without a second ledger in the domain.
+ */
+function eventsOfRunModel(record) {
+  /** @type {Array<Record<string, unknown>>} */
+  const events = [{ kind: 'started', actor: 'engine' }]
+  for (const [slug, row] of Object.entries(record.steps ?? {})) {
+    if (row.attempt > 0) events.push({ kind: 'step_started', step: slug, attempt: row.attempt })
+    if (row.status === 'waiting')
+      events.push({ kind: 'step_waiting', step: slug, value: row.waitingOn ?? '' })
+    if (row.status === 'done')
+      events.push({
+        kind: 'step_completed',
+        step: slug,
+        ...(row.outcome !== undefined ? { outcome: row.outcome } : {}),
+        ...(row.next !== undefined ? { next: row.next } : {}),
+      })
+    if (row.status === 'failed')
+      events.push({ kind: 'step_failed', step: slug, value: row.failure ?? '' })
+  }
+  for (const [slug, row] of Object.entries(record.artifacts ?? {})) {
+    if (row.status === 'validated' || row.status === 'rejected' || row.status === 'produced')
+      events.push({
+        kind: `artifact_${row.status}`,
+        field: slug,
+        ...(row.value !== undefined ? { value: row.value } : {}),
+        ...(row.rev !== undefined ? { rev: row.rev } : {}),
+      })
+  }
+  if (record.state === 'paused') events.push({ kind: 'interrupted' })
+  if (record.state === 'completed' || record.state === 'failed' || record.state === 'cancelled')
+    events.push({ kind: record.state })
+  return events
 }
 
 /* ── Model discovery ───────────────────────────────────────────── */
@@ -1197,9 +1338,14 @@ export function collectProcedureRuns({ root, models, payloadModels, wholeDomain,
 async function loadModels(root, onWarning = writeExportWarning) {
   const { compareCodeUnits } = await viewsLibOnce()
   const models = []
-  for (const f of await findModelFiles(root, onWarning)) {
+  const files = await findModelFiles(root, onWarning)
+  const linkedProcedureModels = collectForeignProcedureTargets(root, files)
+  for (const f of files) {
     const content = await readFile(f, 'utf-8')
-    if (isModelDocument(relative(root, f).replace(/\\/g, '/'), content) && isLevel3(content)) {
+    if (
+      isModelDocument(relative(root, f).replace(/\\/g, '/'), content, linkedProcedureModels) &&
+      isLevel3(content)
+    ) {
       const stem = payloadHelper.displayStem(basename(f))
       models.push({
         filePath: f,
@@ -1228,7 +1374,8 @@ async function buildExportDomainIndex(root, models, schemaResolutions) {
     const spec = (m.fm ?? frontmatterOf(m.content))?.parent_spec
     const name = typeof spec === 'string' ? spec : spec?.name
     if (typeof name !== 'string' || name === '') continue
-    const url = spec && typeof spec === 'object' && typeof spec.url === 'string' ? spec.url : undefined
+    const url =
+      spec && typeof spec === 'object' && typeof spec.url === 'string' ? spec.url : undefined
     const concepts = schemaResolutions.get(m)?.schema?.concepts || []
     const storage = new Map(concepts.filter((c) => c && c.storage).map((c) => [c.name, c.storage]))
     if (!declared.has(keyOf(name, url))) declared.set(keyOf(name, url), storage)
@@ -1940,7 +2087,9 @@ export async function writeConsole(opts = {}) {
     const exported = new Set(
       payloadModels.map((m) => relative(root, m.filePath).replace(/\\/g, '/')),
     )
-    const log = payloadHelper.buildChangeLogFromChangesets(Array.isArray(changesets) ? changesets : [])
+    const log = payloadHelper.buildChangeLogFromChangesets(
+      Array.isArray(changesets) ? changesets : [],
+    )
     for (const diagnostic of payloadHelper.auditModelRecords(
       log,
       domainIndex.models
@@ -2168,7 +2317,9 @@ export async function writeConsole(opts = {}) {
           if (c[key] === undefined) continue
           const payload = payloadOf(c[key])
           if (!payload) fields[key] = c[key]
-          else for (const [field, value] of Object.entries(payload)) fields[`${key}.${field}`] = String(value)
+          else
+            for (const [field, value] of Object.entries(payload))
+              fields[`${key}.${field}`] = String(value)
         }
         if (c.author) fields.author = c.author
         if (c.status) fields.status = c.status
@@ -2256,8 +2407,14 @@ export async function writeConsole(opts = {}) {
               refEntry = v
               break
             }
-            const kNoVer = k.replace(/-\d+(?:-\d+)*-/, '-').replace(/[-_.]/g, '').toLowerCase()
-            const slugNoVer = slug.replace(/-\d+(?:-\d+)*-/, '-').replace(/[-_.]/g, '').toLowerCase()
+            const kNoVer = k
+              .replace(/-\d+(?:-\d+)*-/, '-')
+              .replace(/[-_.]/g, '')
+              .toLowerCase()
+            const slugNoVer = slug
+              .replace(/-\d+(?:-\d+)*-/, '-')
+              .replace(/[-_.]/g, '')
+              .toLowerCase()
             if (kNoVer === slugNoVer) {
               refEntry = v
               break
@@ -2491,6 +2648,8 @@ export async function writeConsole(opts = {}) {
   }
 
   const outDirAbs = familyDir ? join(root, familyDir) : dirname(join(root, relativePath))
+  // Bundle the fold once, before any render needs it; `buildHtml` runs several times.
+  await loadProcedureFoldSlot()
   const buildHtml = (generated) => {
     domainPayload.model.meta.generated = generated
     let rendered = renderConsole(resolvedShell, null, config, domainPayload, outDirAbs, root)
@@ -2655,7 +2814,8 @@ export async function writeConsole(opts = {}) {
     open,
     launcher,
     platform,
-    cooldownMs: openCooldownMinutes === undefined ? openCooldownMs() : openCooldownMinutes * 60 * 1000,
+    cooldownMs:
+      openCooldownMinutes === undefined ? openCooldownMs() : openCooldownMinutes * 60 * 1000,
   })
   return {
     path: absPath,
@@ -2892,9 +3052,7 @@ async function runMain(argv, options = {}) {
       blueprint: args.blueprint,
       title: args.title,
     })
-    out.out(
-      `Created console view "${created.title}" (${created.slug}):\n  ${created.targetPath}`,
-    )
+    out.out(`Created console view "${created.title}" (${created.slug}):\n  ${created.targetPath}`)
     out.out(
       `To compile the console with this view, run:\n  node scripts/export-console.mjs ${relative(process.cwd(), root) || '.'} --domain`,
     )
@@ -2964,10 +3122,10 @@ async function runMain(argv, options = {}) {
   // full export: a scoped console would leave the domain page stale.
   const staleAssets = Boolean(
     args.stale &&
-      !args.filter &&
-      !args.model &&
-      !args.view &&
-      (await domainConsoleStaleness(models, root)) === 'assets',
+    !args.filter &&
+    !args.model &&
+    !args.view &&
+    (await domainConsoleStaleness(models, root)) === 'assets',
   )
 
   // No scope option narrows the model set: --domain and a lone --view cover the

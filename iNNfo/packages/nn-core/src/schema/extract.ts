@@ -10,6 +10,7 @@ import { normalizeConceptType, normalizeFieldType } from '../types/parser.js'
 import { parseKnowledge } from '../parser/index.js'
 import { readStorage } from './storage.js'
 import { readWritePolicy } from './writePolicy.js'
+import { parseTransitions } from './transitions.js'
 
 /**
  * Root primitives of the Metaplantilla Nivel 1 (V_0-5-0). A level-2 template
@@ -89,7 +90,7 @@ export function extractBlueprintSchema(parsed: ParsedKnowledge): BlueprintSchema
     const concept: Concept = {
       name: el.name,
       parent,
-      type: (normalizeConceptType(asString(el.fields['type']) ?? 'text') as Concept['type']),
+      type: normalizeConceptType(asString(el.fields['type']) ?? 'text') as Concept['type'],
       icon: asString(el.fields['icon']),
       color: asString(el.fields['color']),
       weight: asNumber(el.fields['weight']),
@@ -117,14 +118,21 @@ export function extractBlueprintSchema(parsed: ParsedKnowledge): BlueprintSchema
       scope = '*'
     } else if (Array.isArray(rawConcept)) {
       scope = 'list'
-      targets = rawConcept.map(String).map((s) => s.trim()).filter(Boolean)
+      targets = rawConcept
+        .map(String)
+        .map((s) => s.trim())
+        .filter(Boolean)
     } else if (typeof rawConcept === 'string') {
       const trimmed = rawConcept.trim()
       if (trimmed === '*') {
         scope = '*'
       } else if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
         scope = 'list'
-        targets = trimmed.slice(1, -1).split(',').map((s) => s.trim()).filter(Boolean)
+        targets = trimmed
+          .slice(1, -1)
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
       } else if (trimmed !== '') {
         scope = 'concept'
         owner = trimmed
@@ -139,7 +147,7 @@ export function extractBlueprintSchema(parsed: ParsedKnowledge): BlueprintSchema
     const widgetConfig = asObject(el.fields['widget_config'])
     const field: ConceptField = {
       name: el.name,
-      type: (normalizeFieldType(asString(el.fields['type']) ?? 'string') as ConceptField['type']),
+      type: normalizeFieldType(asString(el.fields['type']) ?? 'string') as ConceptField['type'],
       options: asStringArray(el.fields['options']),
       target_concepts: asStringArray(el.fields['target_concepts']),
       target_blueprint: targetBlueprint,
@@ -152,6 +160,8 @@ export function extractBlueprintSchema(parsed: ParsedKnowledge): BlueprintSchema
     if (fieldDescription) field.description = fieldDescription
     const optionsFrom = asString(el.fields['options_from'])
     if (optionsFrom) field.options_from = optionsFrom
+    const transitions = parseTransitions(el.fields['transitions'])
+    if (transitions) field.transitions = transitions
 
     if (scope === 'concept' && owner) {
       const list = fieldsByConcept.get(owner)

@@ -1,66 +1,53 @@
 import type {
+  ArtifactRow,
   ArtifactState,
   FoldOptions,
   Guard,
   ProcedureGraph,
-  RunEvent,
+  RunModel,
   RunState,
   RunStatus,
+  StepRow,
   StepState,
 } from './types.js'
 
 const TERMINAL: ReadonlySet<string> = new Set(['completed', 'failed', 'cancelled'])
-const ARTIFACT_STATUS = {
-  artifact_produced: 'produced',
-  artifact_validated: 'validated',
-  artifact_rejected: 'rejected',
-} as const
 
 /**
- * Derives the state of a run from its recorded facts (design §5, R1). Pure: the same graph,
- * events and options always give the same state. Loops are not walked (slice 1): a revisited
- * step blocks the run instead of looping.
+ * Derives the state of a run from its stored rows (design §3.3): steps, outcomes, chosen
+ * `next` and attempts are read directly from `Step Run`; artifacts from `Run Artifact`. The
+ * walk, branches, guards, drift and `canComplete` are unchanged from the event fold.
+ *
+ * Reads no change log: it is pure over (graph, run model, options).
  */
-export function foldRun(
-  graph: ProcedureGraph,
-  events: readonly RunEvent[],
-  opts: FoldOptions,
-): RunState {
+export function foldRun(graph: ProcedureGraph, run: RunModel, opts: FoldOptions): RunState {
   const steps: Record<string, StepState> = {}
-  for (const slug of Object.keys(graph.steps)) steps[slug] = { status: 'pending', attempt: 0 }
   const startedInputs: Record<string, Record<string, string>> = {}
+  for (const slug of Object.keys(graph.steps)) {
+    const row: StepRow | undefined = run.steps[slug]
+    steps[slug] = {
+      status: rowStatusOf(row),
+      attempt: row?.attempt ?? 0,
+      ...(row?.outcome !== undefined ? { outcome: row.outcome } : {}),
+      ...(row?.next !== undefined ? { next: row.next } : {}),
+      ...(row?.waitingOn !== undefined ? { waitingOn: row.waitingOn } : {}),
+      ...(row?.failure !== undefined ? { failure: row.failure } : {}),
+    }
+    if (row?.inputs && Object.keys(row.inputs).length > 0) startedInputs[slug] = row.inputs
+  }
+
   const artifacts: Record<string, ArtifactState> = {}
   const validatedRev: Record<string, string | undefined> = {}
-  const inputs: RunState['inputs'] = {}
-  let pinned = opts.defRev
-  let paused = false
-  let terminal: RunStatus | undefined
-
-  for (const e of events) {
-    const prev = e.step !== undefined ? steps[e.step] : undefined
-    if (prev && e.step !== undefined) {
-      if (e.kind === 'step_started') {
-        steps[e.step] = { status: 'active', attempt: e.attempt ?? prev.attempt + 1 }
-        startedInputs[e.step] = e.inputs ?? {}
-      } else if (e.kind === 'step_waiting')
-        steps[e.step] = { ...prev, status: 'waiting', waitingOn: e.value }
-      else if (e.kind === 'step_completed')
-        steps[e.step] = { status: 'done', attempt: prev.attempt, outcome: e.outcome, next: e.next }
-      else if (e.kind === 'step_failed')
-        steps[e.step] = { status: 'failed', attempt: prev.attempt, failure: e.value }
-    }
-    if (e.kind in ARTIFACT_STATUS && e.field !== undefined) {
-      const status = ARTIFACT_STATUS[e.kind as keyof typeof ARTIFACT_STATUS]
-      artifacts[e.field] = { status, rev: e.rev, value: e.value, step: e.step }
-      if (status === 'validated') validatedRev[e.field] = e.rev
-    }
-    if (e.kind === 'input_recorded' && e.field !== undefined)
-      inputs[e.field] = { value: e.value, rev: e.rev }
-    if (e.kind === 'interrupted') paused = true
-    if (e.kind === 'resumed') paused = false
-    if (e.kind === 'rebased') pinned = e.value ?? null
-    if (TERMINAL.has(e.kind)) terminal = e.kind as RunStatus
+  for (const [slug, row] of Object.entries(run.artifacts)) {
+    artifacts[slug] = artifactStateOf(row)
+    if (row.status === 'validated' && row.rev !== undefined) validatedRev[slug] = row.rev
   }
+
+  const pinned = opts.defRev
+  const paused = run.state === 'paused'
+  const terminal: RunStatus | undefined = TERMINAL.has(run.state)
+    ? (run.state as RunStatus)
+    : undefined
 
   // Walk the path from the start step.
   const path: string[] = []
@@ -124,21 +111,28 @@ export function foldRun(
     artifacts[slug] = { status: !def.required || offPath ? 'not_required' : 'expected' }
   }
 
-  const last = events[events.length - 1]
-  const crashed =
-    opts.lockFree === true &&
-    last?.kind === 'step_started' &&
-    last.step !== undefined &&
-    graph.steps[last.step]?.executor === 'engine'
-  if (crashed && !blockedBy)
-    blockedBy = `Engine step "${last.step}" started and never reported back.`
+  // Crash derivation (design §3.3): an engine step left `active` whose holder is gone. The
+  // I/O layer owns the probe; the fold only asks. Never read from the apply lock.
+  let crashed = false
+  if (opts.activeStepIsStale) {
+    for (const [slug, row] of Object.entries(run.steps)) {
+      if (row.status !== 'active') continue
+      if (graph.steps[slug]?.executor !== 'engine') continue
+      if (opts.activeStepIsStale(slug, row)) {
+        crashed = true
+        if (!blockedBy) blockedBy = `Engine step "${slug}" started and never reported back.`
+        break
+      }
+    }
+  }
   if (current && steps[current].status === 'failed' && !blockedBy)
     blockedBy = `Step "${current}" failed: ${steps[current].failure ?? 'no reason recorded'}.`
 
   const drift = pinned !== graph.defRev ? { pinned, current: graph.defRev } : null
   const waiting = paused || (current !== null && steps[current].status === 'waiting')
   const status: RunStatus =
-    terminal ?? (drift ? 'drifted' : blockedBy ? 'blocked' : waiting ? 'waiting' : 'open')
+    terminal ??
+    (drift ? 'drifted' : blockedBy ? 'blocked' : paused ? 'paused' : waiting ? 'waiting' : 'open')
 
   return {
     status,
@@ -156,11 +150,23 @@ export function foldRun(
     paused,
     blockedBy,
     canComplete: terminal === undefined && current === null && path.length > 0 && !blockedBy,
-    inputs,
-    staleInputs: Object.keys(inputs).filter((f) => {
-      const now = opts.currentRevs?.[f]
-      return now !== undefined && now !== inputs[f].rev
-    }),
+    inputs: {},
+    staleInputs: [],
+    attempts: run.attempts,
+  }
+}
+
+function rowStatusOf(row: StepRow | undefined): StepState['status'] {
+  if (!row) return 'pending'
+  return row.status
+}
+
+function artifactStateOf(row: ArtifactRow): ArtifactState {
+  return {
+    status: row.status,
+    ...(row.rev !== undefined ? { rev: row.rev } : {}),
+    ...(row.value !== undefined ? { value: row.value } : {}),
+    ...(row.step !== undefined ? { step: row.step } : {}),
   }
 }
 

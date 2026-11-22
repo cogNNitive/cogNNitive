@@ -20,6 +20,7 @@ title: "Audio Source Import & Transcription Procedure"
 # NN Work
 
 ## NN Work: Import and Transcribe Audio Sources
+slug:: import-and-transcribe-audio-sources
 step_type:: task
 parent:: -
 next:: -
@@ -32,6 +33,7 @@ scope:: internal
 Ingest unprocessed audio recordings, orchestrate speech-to-text transcription via external ASR tooling, normalize transcripts into sources/nn/ with companion media linking, bind normalized sources to target domain model elements, and validate semantic integrity.
 
 ## NN Work: Discover Raw Audio Files
+slug:: discover-raw-audio-files
 parent:: @import-and-transcribe-audio-sources
 step_type:: task
 next:: @verify-and-deduplicate-sources
@@ -44,6 +46,7 @@ scope:: internal
 Scan the audio drop or import folder (e.g., sources/import/ or external watch root) to identify audio files (.mp3, .wav, .m4a, .ogg) that lack corresponding transcript files (.txt, .srt).
 
 ## NN Work: Verify and Deduplicate Sources
+slug:: verify-and-deduplicate-sources
 parent:: @import-and-transcribe-audio-sources
 step_type:: decision
 next:: @transcribe-audio-via-external-asr
@@ -56,6 +59,7 @@ scope:: internal
 Compute SHA-256 hashes for discovered audio files and verify against existing normalized sources in sources/nn/ and sources/archive/ to prevent duplicate processing.
 
 ## NN Work: Transcribe Audio via External ASR
+slug:: transcribe-audio-via-external-asr
 parent:: @import-and-transcribe-audio-sources
 step_type:: task
 next:: @stage-transcriptions-with-media-link
@@ -68,6 +72,7 @@ scope:: external
 Convert audio to 16 kHz mono WAV via ffmpeg (chunking long files if needed) and transcribe speech using an external ASR engine (faster-whisper, Whisper API, or whisper.cpp). Generate text transcripts and timestamped SRT subtitle files.
 
 ## NN Work: Stage Transcriptions with Media Link
+slug:: stage-transcriptions-with-media-link
 parent:: @import-and-transcribe-audio-sources
 step_type:: task
 next:: @normalize-sources-via-scanner
@@ -80,6 +85,7 @@ scope:: internal
 Place generated .txt transcriptions into sources/import/ matching the base name of the source audio file to enable automatic same-stem companion media pairing.
 
 ## NN Work: Normalize Sources via Scanner
+slug:: normalize-sources-via-scanner
 parent:: @import-and-transcribe-audio-sources
 step_type:: task
 next:: @bind-normalized-source-to-target-entity
@@ -92,6 +98,7 @@ scope:: internal
 Run the nn-sources scanner to convert staged text into sources/nn/ Markdown files with mandatory provenance frontmatter (source_file, media_file, sha256, normalized_at).
 
 ## NN Work: Bind Normalized Source to Target Entity
+slug:: bind-normalized-source-to-target-entity
 parent:: @import-and-transcribe-audio-sources
 step_type:: task
 next:: @validate-target-model
@@ -104,6 +111,7 @@ scope:: internal
 Update the sources:: field of the target Element in the active domain model with the normalized source path. Confirm entity mappings with the user when ambiguous.
 
 ## NN Work: Validate Target Model
+slug:: validate-target-model
 parent:: @import-and-transcribe-audio-sources
 step_type:: task
 next:: -
@@ -118,67 +126,81 @@ Execute validate_knowledge on the target domain model via nn-mcp to ensure refer
 # NN Tools
 
 ## NN Tools: AI Agent
+slug:: ai-agent
 scope:: internal
 LLM agent orchestrating the multi-step audio ingestion, file handling, and model enrichment procedure.
 
 ## NN Tools: Command Line Interface
+slug:: command-line-interface
 scope:: internal
 Terminal environment for directory inspection, hash calculations, and file management.
 
 ## NN Tools: ASR Transcription Engine
+slug:: asr-transcription-engine
 scope:: external
 External speech-to-text tool (e.g., faster-whisper, Whisper API, whisper.cpp, ffmpeg) providing automated audio transcription.
 
 ## NN Tools: nn-sources Scanner
+slug:: nn-sources-scanner
 scope:: internal
 Built-in scanner script normalizing staged imports into Markdown with provenance frontmatter.
 
 ## NN Tools: File Editor
+slug:: file-editor
 scope:: internal
 Tool for writing staged transcripts and editing Level 3 model files.
 
 ## NN Tools: nn-mcp
+slug:: nn-mcp
 scope:: internal
 Deterministic MCP server validating iNNfo models against Level 2 templates.
 
 # NN Artifact
 
 ## NN Artifact: Raw Audio Recordings Directory
+slug:: raw-audio-recordings-directory
 type:: spec
 format:: directory
 Directory containing raw input audio files (.mp3, .wav, .m4a).
 
 ## NN Artifact: Unprocessed Audio List
+slug:: unprocessed-audio-list
 type:: data
 format:: json
 List of discovered audio recordings missing companion transcripts.
 
 ## NN Artifact: Verified Audio Ingestion Queue
+slug:: verified-audio-ingestion-queue
 type:: data
 format:: json
 Queue of audio files cleared of duplicates and ready for transcription.
 
 ## NN Artifact: Raw Transcript and Subtitles
+slug:: raw-transcript-and-subtitles
 type:: deliverable
 format:: markdown
 Text (.txt) and subtitle (.srt) transcripts produced by the ASR engine.
 
 ## NN Artifact: Staged Source Import Files
+slug:: staged-source-import-files
 type:: data
 format:: directory
 Files staged in sources/import/ ready for scanner normalization.
 
 ## NN Artifact: Normalized Markdown Sources
+slug:: normalized-markdown-sources
 type:: spec
 format:: markdown
 Traceable Markdown files in sources/nn/ with origin frontmatter and media linking.
 
 ## NN Artifact: Updated Domain Model
+slug:: updated-domain-model
 type:: spec
 format:: markdown
 Domain model file enriched with provenance citations in its sources:: fields.
 
 ## NN Artifact: Verified Target Domain Model
+slug:: verified-target-domain-model
 type:: report
 format:: status
 Validation confirmation confirming model integrity and zero broken references.
@@ -186,10 +208,12 @@ Validation confirmation confirming model integrity and zero broken references.
 # NN Roles
 
 ## NN Roles: iNNfo Agent
+slug:: innfo-agent
 scope:: internal
 AI agent executing procedural steps, file normalization, and model updates.
 
 ## NN Roles: Workspace Maintainer
+slug:: workspace-maintainer
 scope:: external
 Human owner reviewing transcripts, confirming entity mappings, and approving model changes.
 

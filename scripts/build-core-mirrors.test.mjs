@@ -72,12 +72,23 @@ async function runTests() {
     }
   }
 
-  // Test 2: --check succeeds when clean
+  // Test 2: --check succeeds against a mirror it just rendered.
+  // The committed copies are deliberately NOT compared here: the write-back lane regenerates
+  // them on `main` after the merge, so a change branch carries stale ones by design
+  // (nn-dev-development §3). Comparing against them would fail every PR that moves the source.
   {
-    const res = run(['--check'])
-    assert.strictEqual(res.status, 0, res.stderr)
-    assert.ok(res.stdout.includes('is up to date'), 'stdout confirms up to date')
-    console.log('✔ Test 2: --check succeeds when mirrors match')
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'core-mirrors-check-'))
+    try {
+      const target = path.join(tmp, 'nn-core.generated.cjs')
+      const built = run(['--target', 'trannsform', '--out', target])
+      assert.strictEqual(built.status, 0, built.stderr)
+      const res = run(['--check', '--target', 'trannsform', '--out', target])
+      assert.strictEqual(res.status, 0, res.stderr)
+      assert.ok(res.stdout.includes('is up to date'), 'stdout confirms up to date')
+      console.log('✔ Test 2: --check succeeds when mirrors match')
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true })
+    }
   }
 
   // Test 3: drift detection in temp file

@@ -7,8 +7,10 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  readlinkSync,
   rmdirSync,
   rmSync,
+  statSync,
   symlinkSync,
   unlinkSync,
 } from 'node:fs'
@@ -285,6 +287,12 @@ function worktreeRegistered(root, target) {
 /**
  * One-block health report for the primary checkout — the single command that
  * replaces the five manual git calls of §1b. Informational: always exits 0.
+ *
+ * Since 2026-11-21 it also reports every session worktree — dirty count, how long ago
+ * somebody last wrote in it, and the open PR of its branch when `--prs` names the JSON
+ * that `gh pr list --state open --json number,headRefName` writes. That is the piece
+ * that was missing when five live branches stepped on each other for two days: the
+ * report said nothing about whether a worktree was in use.
  */
 function status(argv) {
   const root = repoRoot(argv)
@@ -296,7 +304,6 @@ function status(argv) {
   const main = (
     tryGit(['rev-list', '--left-right', '--count', 'origin/main...main'], root).out || '? ?'
   ).split(/\s+/)
-  const worktrees = tryGit(['worktree', 'list'], root).out
   const stash = tryGit(['reflog', 'show', 'refs/stash'], root).out
 
   console.log('🌿 nn-session status')
@@ -304,11 +311,136 @@ function status(argv) {
     `- primary: ${branch} @ ${head} · ${dirtyCount === 0 ? 'clean' : `${dirtyCount} dirty`}`,
   )
   console.log(`- origin/main...main: ${main[0]} behind · ${main[1]} ahead`)
+
+  const prsFile = option(argv, '--prs')
+  const prByBranch = readPrNumbers(prsFile)
+  const now = Date.now()
   console.log('- worktrees:')
-  for (const line of (worktrees || '').split(/\r?\n/).filter(Boolean)) console.log(`    ${line}`)
+  for (const wt of readWorktrees(root)) {
+    const porcelain = tryGit(['status', '--porcelain'], wt.path).out || ''
+    const count = porcelain ? porcelain.split(/\r?\n/).filter(Boolean).length : 0
+    const newest = newestModifiedMs(wt.path, porcelain)
+    const pr = prByBranch.get(wt.branch)
+    const facts = [
+      count === 0 ? 'clean' : `${count} dirty`,
+      ...(newest > 0 ? [`last write ${ageLabel(now - newest)}`] : []),
+      ...(pr !== undefined ? [`PR #${pr}`] : []),
+    ]
+    console.log(`    ${wt.path}  ${wt.sha} [${wt.branch}] · ${facts.join(' · ')}`)
+  }
+  if (prsFile && prByBranch.size === 0) {
+    console.log(`- prs: could not read ${prsFile} (PR numbers omitted)`)
+  }
+
+  const links = workspaceLinks(root)
+  if (links.length > 0) {
+    // Classified against the worktree the command runs *in*, not the primary: the point
+    // of the line is whether this checkout's typecheck would read its own core.
+    const cwdRoot = tryGit(['rev-parse', '--show-toplevel'], process.cwd()).out || root
+    console.log('- workspace links:')
+    for (const link of links) {
+      const state = !link.exists
+        ? 'MISSING — repoint it before trusting a typecheck'
+        : insidePath(link.target, cwdRoot)
+          ? 'this worktree'
+          : 'another checkout'
+      console.log(`    @cognnitive/${link.name} -> ${link.target ?? '(not a link)'}  (${state})`)
+    }
+  }
+
   console.log(
     `- stash: ${stash ? `${stash.split(/\r?\n/).filter(Boolean).length} entry(ies)` : 'none'}`,
   )
+}
+
+/** `just now`, `12m ago`, `3h ago`, `2d ago` — coarse on purpose. */
+function ageLabel(ms) {
+  if (!Number.isFinite(ms) || ms < 0) return '?'
+  const minutes = Math.floor(ms / 60_000)
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  return hours < 24 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`
+}
+
+/**
+ * Newest mtime among the files this worktree has modified. Whole-tree mtimes are noise
+ * (a checkout or an install touches everything); the modified set is what says whether
+ * an agent is typing in there right now.
+ */
+function newestModifiedMs(worktreePath, porcelain) {
+  let newest = 0
+  for (const line of porcelain.split(/\r?\n/)) {
+    if (!line.trim()) continue
+    const rel = line
+      .slice(3)
+      .trim()
+      .split(' -> ')
+      .pop()
+      .replace(/^"(.*)"$/, '$1')
+    try {
+      newest = Math.max(newest, statSync(join(worktreePath, rel)).mtimeMs)
+    } catch {
+      // deleted, renamed or unreadable: it contributes no timestamp
+    }
+  }
+  return newest
+}
+
+/** `path`, `sha` and `branch` for every registered worktree, in git's order (primary first). */
+function readWorktrees(root) {
+  const out = tryGit(['worktree', 'list', '--porcelain'], root).out || ''
+  return out
+    .split(/\r?\n\r?\n/)
+    .filter((block) => block.trim())
+    .map((block) => ({
+      path: ((block.match(/^worktree (.+)$/m) || [])[1] || '?').replace(/\\/g, '/'),
+      sha: ((block.match(/^HEAD ([0-9a-f]+)$/m) || [])[1] || '?').slice(0, 8),
+      branch: (block.match(/^branch refs\/heads\/(.+)$/m) || [])[1] || '(detached)',
+    }))
+}
+
+/** branch -> PR number, from the JSON `gh pr list --state open --json number,headRefName` writes. */
+function readPrNumbers(file) {
+  const byBranch = new Map()
+  if (!file || !existsSync(file)) return byBranch
+  try {
+    for (const pr of JSON.parse(readFileSync(file, 'utf8'))) {
+      if (pr && pr.headRefName && pr.number !== undefined) byBranch.set(pr.headRefName, pr.number)
+    }
+  } catch {
+    // an unreadable list leaves the map empty and the caller says so
+  }
+  return byBranch
+}
+
+const normalizePath = (p) => resolve(p).replace(/\\/g, '/').toLowerCase()
+
+/** True when `target` points inside `root` — the only state that makes a typecheck honest. */
+function insidePath(target, root) {
+  if (!target) return false
+  return normalizePath(target).startsWith(`${normalizePath(root)}/`)
+}
+
+/**
+ * Where `node_modules/@cognnitive/*` resolves from this checkout. A junction to another
+ * worktree is the trap that made `npm run typecheck` report a missing export that the
+ * source clearly had; a junction to a swept worktree dangles and breaks it for everyone
+ * sharing that `node_modules`.
+ */
+function workspaceLinks(root) {
+  const dir = join(root, 'node_modules', '@cognnitive')
+  if (!existsSync(dir)) return []
+  return readdirSync(dir).map((name) => {
+    const link = join(dir, name)
+    let target = null
+    try {
+      if (lstatSync(link).isSymbolicLink()) target = readlinkSync(link)
+    } catch {
+      // a real directory is reported without a target
+    }
+    return { name, target, exists: target ? existsSync(target) : existsSync(link) }
+  })
 }
 
 /**
@@ -353,8 +485,13 @@ function stop(argv) {
  * @returns {string | null}
  */
 function stopSession(root, id, { force = false, registeredPath = null } = {}) {
-  const target = registeredPath || worktreePath(root, id)
   const branch = `session/${id}`
+  // The path git reports for this branch, before falling back to a reconstruction.
+  // Guessing `<parent>/cogNNitive-<id>` finds nothing the moment the worktree lives
+  // anywhere else, and the old code still printed `removed` for that guessed path
+  // while the real directory survived (#721).
+  const registeredForBranch = (readWorktrees(root).find((w) => w.branch === branch) || {}).path
+  const target = registeredPath || registeredForBranch || worktreePath(root, id)
 
   const branchExists = tryGit(['rev-parse', '--verify', '--quiet', branch], root).ok
   const isIn = (ref) => tryGit(['merge-base', '--is-ancestor', branch, ref], root).ok
@@ -370,6 +507,7 @@ function stopSession(root, id, { force = false, registeredPath = null } = {}) {
 
   const registered = worktreeRegistered(root, target)
   let dirExists = existsSync(target)
+  const hadDir = dirExists
 
   if (registered && dirExists) {
     // An empty or foreign target (Windows lock, partial removal) is not dirty;
@@ -401,15 +539,20 @@ function stopSession(root, id, { force = false, registeredPath = null } = {}) {
   }
 
   if (branchExists) tryGit(['branch', '-D', branch], root)
+  const branchGone = branchExists && !tryGit(['rev-parse', '--verify', '--quiet', branch], root).ok
 
-  if (!registered && !branchExists && !dirExists) {
+  if (dirExists) {
+    return `refusing: ${target} still exists (locked); nothing was removed. Delete it once the lock holder closes.`
+  }
+  if (!hadDir && !branchGone) {
     console.log(`nothing to stop for session/${id}`)
     return null
   }
-  console.log(`removed ${target}`)
-  if (dirExists) {
-    console.error(`note: ${target} still exists (locked); delete it once the lock holder closes.`)
-  }
+  // Report what actually happened. The old code printed `removed <path>` for a path it
+  // had merely guessed, so a session whose worktree lived elsewhere read as cleaned up
+  // while the directory survived (#721).
+  if (hadDir) console.log(`removed ${target}`)
+  if (branchGone) console.log(`deleted branch ${branch}`)
   return null
 }
 
@@ -452,15 +595,26 @@ function sweep(argv) {
   }
 }
 
-const cmd = process.argv[2]
-if (cmd === 'start') start(process.argv.slice(2))
-else if (cmd === 'list') list(process.argv.slice(2))
-else if (cmd === 'status') status(process.argv.slice(2))
-else if (cmd === 'stop') stop(process.argv.slice(2))
-else if (cmd === 'sweep') sweep(process.argv.slice(2))
+const USAGE =
+  'usage: nn-session.mjs start|list|status|stop|sweep [--id <id>] [--no-install] [--full-install] [--force] [--root <path>] [--prs <file>]'
+
+const argv = process.argv.slice(2)
+const cmd = argv[0]
+
+// Asking for help must never run a command. `--help` used to be ignored as an unknown
+// flag, so `start --help` cut a session branch from origin/main and created a worktree
+// named after the host and pid, at a path nobody chose (#770, #721).
+if (cmd === 'help' || argv.includes('--help') || argv.includes('-h')) {
+  console.log(USAGE)
+  process.exit(0)
+}
+
+if (cmd === 'start') start(argv)
+else if (cmd === 'list') list(argv)
+else if (cmd === 'status') status(argv)
+else if (cmd === 'stop') stop(argv)
+else if (cmd === 'sweep') sweep(argv)
 else {
-  console.error(
-    'usage: nn-session.mjs start|list|status|stop|sweep [--id <id>] [--no-install] [--full-install] [--force] [--root <path>]',
-  )
+  console.error(USAGE)
   process.exit(2)
 }

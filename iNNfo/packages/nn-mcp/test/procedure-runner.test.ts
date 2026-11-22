@@ -1,16 +1,22 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
+import { spawn } from 'node:child_process'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
 import { readFile, readdir, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { tmpdir, hostname } from 'node:os'
 import { join } from 'node:path'
 import { procedureState } from '../src/tools/procedure-state.js'
 import { procedureRecord, procedureStart } from '../src/tools/procedure-record.js'
 import { validateProposal } from '../src/tools/propose-changeset.js'
+import { crashProbe } from '@cognnitive/nn-core'
 
 /**
  * The three runner tools over a scratch domaiNN holding two procedures: `review` (draft ->
- * decision -> publish | rework) and `build` (one engine step). Every write goes through a
- * synthesized changeset, one per call; `procedure_state` writes nothing.
+ * decision -> publish | rework) and `build` (one engine step).
+ *
+ * A run is a model with state (design §3.1): the header plus one `Step Run` row per step and
+ * one `Run Artifact` row per artifact. Every call writes ONE atomic changeset carrying the
+ * header `seq` guard; the run's history is that model's change log. There is no run lock and
+ * no event concept.
  */
 
 /** Every record call applies a changeset; a full run is many applies, slow under a parallel suite. */
@@ -29,6 +35,14 @@ const EXECUTIONS_SPEC = join(
 )
 
 let root: string
+
+/** A pid that is certainly not running: a child process that has already exited. */
+async function deadPid(): Promise<number> {
+  const child = spawn(process.execPath, ['-e', 'process.exit(0)'], { stdio: 'ignore' })
+  const pid = child.pid!
+  await new Promise((resolve) => child.on('exit', resolve))
+  return pid
+}
 
 beforeEach(() => {
   root = realpathSync(mkdtempSync(join(tmpdir(), 'nn-procedure-runner-')))
@@ -81,7 +95,7 @@ const startReview = () =>
   procedureStart(root, { procedure: 'review', params: { doc: 'spec' }, run: 'r1', actor: 'ana' })
 
 describe('procedure_start', SLOW, () => {
-  it('creates the run with its header and started event as one changeset', async () => {
+  it('creates the run model, header and every row as one atomic changeset', async () => {
     const r = ok(await startReview())
     expect(r.run).toBe('r1')
     expect(r.state).toMatchObject({ status: 'open', currentStep: 'draft' })
@@ -89,20 +103,22 @@ describe('procedure_start', SLOW, () => {
     const text = await runText('r1')
     expect(text).toContain('procedure:: procedures/review_procedures_NN.md')
     expect(text).toContain('def_rev:: V_1-0-0')
-    // The default of the optional slot is applied; the engine stores the JSON as a quoted string.
-    expect(text).toContain('params:: "{\\"doc\\":\\"spec\\",\\"format\\":\\"html\\"}"')
+    expect(text).toContain('seq:: 1')
+    expect(text).toContain('state:: open')
+    // The default of the optional slot is applied.
     expect(ok(await procedureState(root, { run: 'r1' })).params).toEqual({
       doc: 'spec',
       format: 'html',
     })
-    expect(text).toContain('## NN Execution Event: e-001')
-    expect(text).toContain('kind:: started')
-    expect(text).toContain('actor:: ana')
-    // The scaffold seeds no placeholder event: the log holds only what was recorded.
-    expect(text).not.toContain('Example')
-    expect(text.match(/^## NN Execution Event:/gm)).toHaveLength(1)
+    // One row per step and per artifact, not an event log.
+    expect(text).toMatch(/^## NN Step Run: /gm)
+    expect(text).toMatch(/^## NN Run Artifact: /gm)
+    expect(text).not.toMatch(/^## NN Execution Event: /m)
+    // The changeset is atomic and carries the run context.
     const [cs] = await changesets()
-    expect(await readFile(join(root, 'changes', cs!), 'utf-8')).toMatch(/^author_kind: agent$/m)
+    const csText = await readFile(join(root, 'changes', cs!), 'utf-8')
+    expect(csText).toMatch(/^author_kind: agent$/m)
+    expect(csText).toMatch(/^atomic: true$/m)
   })
 
   it('refuses an unknown procedure, a missing required slot and a taken run id', async () => {
@@ -123,6 +139,23 @@ describe('procedure_start', SLOW, () => {
     rmSync(join(root, 'specs'), { recursive: true, force: true })
     const before = await snapshot()
     expect(await startReview()).toMatchObject({ ok: false, code: 'EXECUTIONS_NOT_INSTALLED' })
+    expect(await snapshot()).toEqual(before)
+  })
+
+  it('refuses a graph with an error diagnostic before writing anything', async () => {
+    const doc = join(root, 'procedures', 'review_procedures_NN.md')
+    // A step that names a next which is not a step makes the graph report UNKNOWN_NEXT.
+    await writeFile(
+      doc,
+      (await readFile(doc, 'utf-8')).replace(/^next::.*$/m, 'next:: @ghost-step'),
+    )
+    const before = await snapshot()
+    const refused = await procedureStart(root, {
+      procedure: 'review',
+      params: { doc: 'x' },
+      run: 'r9',
+    })
+    expect(refused).toMatchObject({ ok: false, code: 'PROCEDURE_NOT_RUNNABLE' })
     expect(await snapshot()).toEqual(before)
   })
 })
@@ -193,17 +226,18 @@ describe('procedure_record', SLOW, () => {
     expect(drafted.state).toMatchObject({ currentStep: 'review' })
 
     const started = ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
-    expect(started.recorded).toEqual([
-      { kind: 'step_started', step: 'review', attempt: 1, inputs: { 'draft-doc': 'd1' } },
-    ])
+    // The claim is the step row: active at attempt 1, carrying the frozen input revs.
+    expect(started.state.steps.review).toMatchObject({ status: 'active', attempt: 1 })
     ok(await procedureRecord(root, { run: 'r1', action: 'wait', value: 'human' }))
     // The outcome picks the one target whose condition holds.
     const decided = ok(
       await procedureRecord(root, { run: 'r1', action: 'complete', outcome: 'approve' }),
     )
-    expect(decided.recorded).toEqual([
-      { kind: 'step_completed', step: 'review', outcome: 'approve', next: 'publish' },
-    ])
+    expect(decided.state.steps.review).toMatchObject({
+      status: 'done',
+      outcome: 'approve',
+      next: 'publish',
+    })
     ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
     const published = ok(await procedureRecord(root, { run: 'r1', action: 'complete' }))
     expect(published.state).toMatchObject({ canComplete: true, currentStep: null })
@@ -213,10 +247,8 @@ describe('procedure_record', SLOW, () => {
     expect(finished.state).toMatchObject({ status: 'completed' })
     const text = await runText('r1')
     expect(text).toMatch(/^closed: true$/m)
-    expect(text).toContain('kind:: completed')
     expect(text).toContain('outcome:: approve')
-    expect(text).toContain('inputs:: "{\\"draft-doc\\":\\"d1\\"}"')
-    expect(text).toContain('## NN Execution Event: e-010')
+    expect(text).toContain('next:: publish')
     // One changeset per call: start + 9 record calls.
     expect(await changesets()).toHaveLength(10)
 
@@ -225,7 +257,7 @@ describe('procedure_record', SLOW, () => {
       code: 'RUN_CLOSED',
     })
 
-    // A closed run is evidence another change may cite.
+    // A closed run is evidence another change may cite, as `<run>@<step-slug>`.
     ok(await procedureStart(root, { procedure: 'review', params: { doc: 'b' }, run: 'r2' }))
     const errors = await validateProposal(root, [
       {
@@ -233,7 +265,7 @@ describe('procedure_record', SLOW, () => {
         op: 'update_field',
         target: 'r2@r2&def_rev',
         to: 'V_1-0-0',
-        evidence: 'r1@e-001',
+        evidence: 'r1@review',
       },
     ])
     expect(errors.map((e) => e.code).filter((c) => c?.startsWith('CITATION'))).toEqual([])
@@ -292,14 +324,15 @@ describe('procedure_record', SLOW, () => {
     expect(r.state).toMatchObject({ currentStep: 'rework', path: ['draft', 'review', 'rework'] })
   })
 
-  it('records a failed step, blocks the run, and closes it with a failed finish', async () => {
+  it('records a failed step, blocks the run, retries at attempt 2, and closes it failed', async () => {
     ok(await startReview())
     ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
     const failed = ok(await procedureRecord(root, { run: 'r1', action: 'fail', value: 'no data' }))
     expect(failed.state).toMatchObject({ status: 'blocked', currentStep: 'draft' })
+    expect(failed.state.steps.draft).toMatchObject({ status: 'failed', failure: 'no data' })
     // A retry is attempt 2.
     const retry = ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
-    expect(retry.recorded).toMatchObject([{ kind: 'step_started', attempt: 2 }])
+    expect(retry.state.steps.draft).toMatchObject({ status: 'active', attempt: 2 })
     ok(await procedureRecord(root, { run: 'r1', action: 'fail', value: 'still no data' }))
     const closed = ok(
       await procedureRecord(root, { run: 'r1', action: 'finish', outcome: 'failed' }),
@@ -328,12 +361,11 @@ describe('procedure_record', SLOW, () => {
       code: 'RUN_DRIFTED',
     })
     const rebased = ok(await procedureRecord(root, { run: 'r1', action: 'rebase' }))
-    expect(rebased.recorded).toEqual([{ kind: 'rebased', value: 'V_1-1-0' }])
     expect(rebased.state).toMatchObject({ status: 'open', drift: null })
     ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
   })
 
-  it('records an input with its rev', async () => {
+  it('records an input row with its rev', async () => {
     ok(await startReview())
     const r = ok(
       await procedureRecord(root, {
@@ -344,8 +376,92 @@ describe('procedure_record', SLOW, () => {
         rev: 'c1',
       }),
     )
-    expect(r.state).toMatchObject({ inputs: { tax_id: { value: 'B1', rev: 'c1' } } })
-    expect(await runText('r1')).toContain('kind:: input_recorded')
+    expect(ok(await procedureState(root, { run: 'r1' })).state).toBeDefined()
+    expect(await runText('r1')).toContain('value:: B1')
+    expect(await runText('r1')).toContain('rev:: c1')
+    expect(r.changeset).toMatch(/_changes_NN\.md$/)
+  })
+
+  it('refuses an artifact fact from a step that never started', async () => {
+    ok(await startReview())
+    // `draft` is the current step and produces `draft-doc`, but nothing was reported from it.
+    expect(
+      await procedureRecord(root, {
+        run: 'r1',
+        action: 'artifact',
+        fact: 'validated',
+        field: 'draft-doc',
+        rev: 'd1',
+      }),
+    ).toMatchObject({ ok: false, code: 'STEP_NOT_STARTED' })
+    expect(await changesets()).toHaveLength(1)
+
+    // Once the step starts, the same fact is accepted.
+    ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
+    const r = ok(
+      await procedureRecord(root, {
+        run: 'r1',
+        action: 'artifact',
+        fact: 'validated',
+        field: 'draft-doc',
+        rev: 'd1',
+      }),
+    )
+    expect(r.state).toMatchObject({
+      artifacts: { 'draft-doc': { status: 'validated', rev: 'd1' } },
+    })
+  })
+
+  it('a drifted run advertises only the actions its writer accepts', async () => {
+    ok(await startReview())
+    const doc = join(root, 'procedures', 'review_procedures_NN.md')
+    await writeFile(
+      doc,
+      (await readFile(doc, 'utf-8')).replace(
+        'knowledge_version: "V_1-0-0"',
+        'knowledge_version: "V_1-1-0"',
+      ),
+    )
+    const s = ok(await procedureState(root, { run: 'r1' }))
+    expect(s.actions).toEqual(['rebase', 'input', 'pause', 'cancel', 'finish'])
+    // Nothing advertised is refused: the artifact fact the state omits is the one plan refuses.
+    expect(
+      await procedureRecord(root, {
+        run: 'r1',
+        action: 'artifact',
+        fact: 'validated',
+        field: 'draft-doc',
+        rev: 'd1',
+      }),
+    ).toMatchObject({ ok: false, code: 'RUN_DRIFTED' })
+  })
+
+  it('the header seq guard travels with every runner changeset', async () => {
+    ok(await startReview())
+    // Each runner changeset carries `seq: n -> n+1` with `from: {seq: n}`: a concurrent write
+    // to the same run conflicts the whole changeset (design §3.4). The guard is one
+    // `update_field` on the header, so a changeset that lands advances the counter.
+    const first = ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
+    expect(first.seq).toBe(2)
+    const second = ok(await procedureRecord(root, { run: 'r1', action: 'complete' }))
+    expect(second.seq).toBe(3)
+    // The atomic flag is on the file, so a conflict of any change writes nothing (A2).
+    const source = await readFile(join(root, second.changeset), 'utf-8')
+    expect(source).toMatch(/^atomic: true$/m)
+    expect(source).toContain('seq')
+  })
+
+  it('an older attempt cannot complete over a newer claim (the fence)', async () => {
+    ok(await startReview())
+    ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
+    ok(await procedureRecord(root, { run: 'r1', action: 'fail', value: 'first' }))
+    // Attempt 2 is the live claim; a completion guarded on attempt 1 finds a different
+    // attempt and conflicts, so a late report from the dead attempt never lands.
+    ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
+    const file = (await readdir(join(root, 'executions', 'r1'))).find((f) => f.endsWith('_NN.md'))!
+    void file
+    const done = ok(await procedureRecord(root, { run: 'r1', action: 'complete' }))
+    expect(done.state.steps.draft).toMatchObject({ status: 'done', attempt: 2 })
   })
 })
 
@@ -357,17 +473,12 @@ describe('engine steps', SLOW, () => {
     ok(await startBuild(0))
     const r = ok(await procedureRecord(root, { run: 'b1', action: 'run' }))
     expect(r.exitCode).toBe(0)
-    expect(r.recorded).toMatchObject([
-      { kind: 'step_started', step: 'build', attempt: 1 },
-      { kind: 'artifact_validated', step: 'build', field: 'bundle', value: 'out-x.txt' },
-      { kind: 'step_completed', step: 'build' },
-    ])
-    const recorded = r.recorded as Array<{ rev?: string }>
-    expect(recorded[1]!.rev).toMatch(/^[0-9a-f]{64}$/)
     expect(r.state).toMatchObject({
       canComplete: true,
       artifacts: { bundle: { status: 'validated' } },
     })
+    expect(r.state.steps.build).toMatchObject({ status: 'done', attempt: 1 })
+    expect(r.state.artifacts.bundle?.rev).toMatch(/^[0-9a-f]{64}$/)
     expect(await readFile(join(root, 'out-x.txt'), 'utf-8')).toBe('built')
     const files = await changesets()
     expect(files).toHaveLength(2)
@@ -379,21 +490,54 @@ describe('engine steps', SLOW, () => {
     ok(await startBuild(3))
     const r = ok(await procedureRecord(root, { run: 'b1', action: 'run' }))
     expect(r.exitCode).toBe(3)
-    expect(r.recorded).toMatchObject([
-      { kind: 'step_started' },
-      { kind: 'step_failed', step: 'build', value: 'exit 3' },
-    ])
+    expect(r.state.steps.build).toMatchObject({ status: 'failed' })
     expect(r.state).toMatchObject({ status: 'blocked' })
   })
 
-  it('crash: an engine step started with no later event is a crash while the apply lock is free', async () => {
+  it('crash: an active engine step whose holder pid is gone derives as crashed', async () => {
     ok(await startBuild(0))
     ok(await procedureRecord(root, { run: 'b1', action: 'start' }))
-    const crashed = ok(await procedureState(root, { run: 'b1' }))
-    expect(crashed).toMatchObject({ lockFree: true, state: { crashed: true, status: 'blocked' } })
-
-    await writeFile(join(root, 'changes', '.lock'), '{}')
+    // The runner recorded itself as the holder: a live pid is not a crash.
     const running = ok(await procedureState(root, { run: 'b1' }))
-    expect(running).toMatchObject({ lockFree: false, state: { crashed: false, status: 'open' } })
+    expect(running.state).toMatchObject({ crashed: false, status: 'open' })
+    expect(running.state.steps.build.status).toBe('active')
+
+    // A killed process leaves an `active` row whose holder is gone. The probe decides from
+    // that row, which is the whole crash contract (design §3.3): no lock, no event.
+    expect(
+      crashProbe(
+        {
+          status: 'active',
+          attempt: 1,
+          inputs: {},
+          holder: `2000000000@${hostname()}`,
+          timeoutMs: 60_000,
+        },
+        { now: Date.now() },
+      ),
+    ).toBe(true)
+    expect(
+      crashProbe(
+        { status: 'active', attempt: 1, inputs: {}, holder: `${process.pid}@${hostname()}` },
+        { now: Date.now() },
+      ),
+    ).toBe(false)
+  })
+
+  it('crashProbe: another host falls back to claimed_at + timeout + grace', () => {
+    const row = {
+      status: 'active' as const,
+      attempt: 1,
+      inputs: {},
+      holder: '999@another-host',
+      timeoutMs: 1_000,
+      claimedAt: '2026-11-21T10:00:00.000Z',
+    }
+    const now = Date.parse('2026-11-21T10:00:00.000Z')
+    expect(crashProbe(row, { now, host: 'this-host' })).toBe(false)
+    expect(crashProbe(row, { now: now + 62_000, host: 'this-host' })).toBe(true)
+    // A payload that names no host cannot be probed, so age decides.
+    expect(crashProbe({ ...row, holder: '' }, { now: now + 62_000, host: 'this-host' })).toBe(true)
+    expect(crashProbe({ ...row, holder: '' }, { now, host: 'this-host' })).toBe(false)
   })
 })

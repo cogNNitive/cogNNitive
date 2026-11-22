@@ -2,8 +2,17 @@ import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { formatUtcStamp, procedureIdOf } from '@cognnitive/nn-core'
-import type { ChangeItem, RunEvent, RunState, Transition } from '@cognnitive/nn-core'
+import {
+  DEFAULT_STEP_TIMEOUT_MS,
+  MAX_STEP_TIMEOUT_MS,
+  fillSlots,
+  formatUtcStamp,
+  holderOf,
+  loadChangeLog,
+  procedureIdOf,
+  unresolvedSlots,
+} from '@cognnitive/nn-core'
+import type { ChangeItem, RunState, StepRow, Transition } from '@cognnitive/nn-core'
 import { applyChange } from './apply-change.js'
 import { writeProposedChangeset } from './propose-changeset.js'
 import { findKnowledgeFile } from './spec.js'
@@ -19,11 +28,15 @@ import {
 import type { FoldedRun, ProcedureStateResult, RecordAction, ToolError } from './procedure-state.js'
 
 /**
- * Writing side of the procedure runner (design §4, §6). Every call writes ONE synthesized
- * changeset applied through `applyChange`, so the ledger, the `append-only` write policy, the
- * apply lock and `close_model` all hold. Each event is one `add_element` change carrying its
- * fields (`to:: {json}`). The fold decides what may be recorded; a forbidden fact is refused
- * with a stable code and nothing is written.
+ * Writing side of the procedure runner (design §3.1-3.4).
+ *
+ * A run is a model with state: the header (`seq`, `state`), one `Step Run` row per step and
+ * one `Run Artifact` row per artifact. Every call reads the model, folds it, plans one
+ * changeset and applies it. The changeset is ATOMIC and holds the header's `seq: n -> n+1`
+ * with `from: {seq: n}`, so a concurrent write to the same run conflicts the whole
+ * changeset and is reported as `RUN_BUSY`; the caller re-reads and retries. A step
+ * completion also guards the step's `status` and `attempt`, the fence against a late
+ * completion from an older attempt. There is no run lock and no event log.
  */
 
 /** Where a domain carries the `executions` bluepriNNt package; else the canonical URL. */
@@ -31,49 +44,58 @@ const EXECUTIONS_LOCAL = 'specs/bluepriNNts/executions/spec_NN.md'
 const EXECUTIONS_URL =
   'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/executions/spec_NN.md'
 const RUN_ID = /^[a-z0-9][a-z0-9-]*$/
-const DEFAULT_TIMEOUT_MS = 60_000
 
-type Fields = Partial<Record<keyof RunEvent, string>>
 type Change = Omit<ChangeItem, 'id'>
 
-const eventFields = (e: RunEvent, actor: string): Fields => {
-  const f: Fields = {}
-  for (const [k, v] of Object.entries(e)) {
-    if (v === undefined) continue
-    f[k as keyof RunEvent] = typeof v === 'string' ? v : JSON.stringify(v)
-  }
-  return { ...f, actor, at: new Date().toISOString() }
-}
+/**
+ * The run context every runner changeset carries (design §3.2): `<run-id>@<step-slug>`. A
+ * run-wide write (pause, cancel, finish) has no step and stamps only the run id.
+ */
+const runContext = (run: string, step?: string): string => (step ? `${run}@${step}` : run)
 
-const eventChange = (run: string, n: number, fields: Fields): Change => ({
-  op: 'add_element',
-  target: run,
-  concept: 'Execution Event',
-  name: `e-${String(n).padStart(3, '0')}`,
-  to: JSON.stringify(fields),
-  evidence: 'decision',
-})
-
-/** Writes one changeset and applies it. A refused apply is reported with the engine's errors. */
+/**
+ * Writes one changeset and applies it. The changeset is atomic: either every change lands or
+ * the file is recorded as `conflict` and nothing is written. A conflict of the header `seq`
+ * guard is `RUN_BUSY`, the signal to re-read and re-plan.
+ */
 async function commit(
   root: string,
   changes: Change[],
-  meta: { title: string; actor: string; kind: 'agent' | 'engine' },
+  meta: { title: string; actor: string; kind: 'agent' | 'engine'; run: string },
 ): Promise<{ ok: true; changeset: string } | ToolError> {
   const written = await writeProposedChangeset(root, {
     changes: changes as ChangeItem[],
     title: meta.title,
     author: meta.actor,
     authorKind: meta.kind,
+    run: meta.run,
+    atomic: true,
   })
   const applied = await applyChange(root, written.path)
-  if (!applied.success || (applied.errors ?? []).length > 0)
+  if (!applied.success || (applied.errors ?? []).length > 0) {
+    const busy = (applied.errors ?? []).some(
+      (e) => e.code === 'ATOMIC_CHANGESET_CONFLICT' && /seq/.test(e.message),
+    )
+    if (busy)
+      return fail('RUN_BUSY', 'Another caller wrote this run; re-read its state and retry.', {
+        changeset: written.path,
+      })
     return fail('APPLY_FAILED', 'The run changeset was not applied.', {
       changeset: written.path,
       errors: applied.errors ?? [],
     })
+  }
   return { ok: true, changeset: written.path }
 }
+
+/** The header `seq` guard every runner changeset carries first. */
+const seqGuard = (run: string, seq: number): Change => ({
+  op: 'update_field',
+  target: `${run}@${run}&seq`,
+  from: String(seq),
+  to: String(seq + 1),
+  evidence: 'decision',
+})
 
 const text = (v: unknown): string | undefined =>
   typeof v === 'string' && v.trim() !== ''
@@ -92,6 +114,12 @@ export interface StartResult {
   state: RunState
 }
 
+/**
+ * Starts a run: refuses a graph with an error diagnostic or an unresolved declared slot
+ * before writing anything (design §3.1), then writes ONE atomic changeset — the model, the
+ * header and one row per step and per artifact. Either the whole run exists or none of it
+ * does.
+ */
 export async function procedureStart(
   root: string,
   args: Record<string, unknown>,
@@ -109,6 +137,16 @@ export async function procedureStart(
   if (!resolved.ok) return resolved
   const { address, slots, graph } = resolved.procedure
 
+  // Start-time refusal (design §3.1): structural errors are fatal to a run, because the
+  // runner is the only validator of the run-to-procedure relation.
+  const errors = graph.diagnostics.filter((d) => d.severity === 'error')
+  if (errors.length > 0)
+    return fail(
+      'PROCEDURE_NOT_RUNNABLE',
+      `Procedure "${ref}" cannot be run: ${errors.map((d) => d.code).join(', ')}.`,
+      { diagnostics: graph.diagnostics },
+    )
+
   // Slots of kind `value` are the run parameters; `procedure` slots are filled by scopes.
   const params: Record<string, unknown> = { ...(given as Record<string, unknown>) }
   for (const slot of slots) {
@@ -122,6 +160,15 @@ export async function procedureStart(
     return fail('MISSING_REQUIRED_SLOT', `Procedure "${ref}" requires ${missing.join(', ')}.`, {
       missing,
     })
+  // A declared slot the procedure declares but the run cannot fill leaves a `{name}` that
+  // would be executed verbatim: refuse at start.
+  const unfilled = graph.slots.filter((s) => params[s] === undefined)
+  if (unfilled.length > 0)
+    return fail(
+      'MISSING_REQUIRED_SLOT',
+      `Procedure "${ref}" declares slots ${unfilled.map((s) => `{${s}}`).join(', ')} with no value.`,
+      { missing: unfilled },
+    )
 
   const procId = procedureIdOf(ref)
   const run = text(args['run']) ?? `${procId}-${formatUtcStamp(new Date()).toLowerCase()}`
@@ -145,30 +192,60 @@ export async function procedureStart(
     )
 
   const actor = text(args['actor']) ?? 'agent'
-  const header: Record<string, string> = { procedure: address, params: JSON.stringify(params) }
+  const header: Record<string, string> = {
+    procedure: address,
+    params: JSON.stringify(params),
+    seq: '1',
+    state: 'open',
+  }
   if (graph.defRev) header['def_rev'] = graph.defRev
-  const committed = await commit(
-    root,
-    [
-      {
-        op: 'add_model',
-        target: run,
-        concept: 'Procedure Execution',
-        blueprint_name: 'executions',
-        blueprint_url: blueprintUrl,
-        name: run,
-        evidence: 'decision',
-      },
-      {
-        op: 'set_fields',
-        target: `${run}@${run}`,
-        to: JSON.stringify(header),
-        evidence: 'decision',
-      },
-      eventChange(run, 1, eventFields({ kind: 'started' }, actor)),
-    ],
-    { title: `Start ${run}`, actor, kind: 'agent' },
-  )
+
+  const slotValues = Object.fromEntries(
+    Object.entries(params).map(([k, v]) => [k, String(v)]),
+  ) as Record<string, string>
+  slotValues['run'] = run
+
+  const changes: Change[] = [
+    {
+      op: 'add_model',
+      target: run,
+      concept: 'Procedure Execution',
+      blueprint_name: 'executions',
+      blueprint_url: blueprintUrl,
+      name: run,
+      evidence: 'decision',
+    },
+    { op: 'set_fields', target: `${run}@${run}`, to: JSON.stringify(header), evidence: 'decision' },
+    ...Object.values(graph.steps).map((def): Change => ({
+      op: 'add_element',
+      target: run,
+      concept: 'Step Run',
+      name: def.name,
+      slug: def.slug,
+      to: JSON.stringify({ status: 'pending', attempt: 0 }),
+      evidence: 'decision',
+    })),
+    ...Object.values(graph.artifacts).map((art): Change => ({
+      op: 'add_element',
+      target: run,
+      concept: 'Run Artifact',
+      name: art.name,
+      slug: art.slug,
+      to: JSON.stringify({
+        kind: art.kind,
+        status: 'expected',
+        ...(art.at !== undefined ? { value: fillSlots(art.at, slotValues) } : {}),
+      }),
+      evidence: 'decision',
+    })),
+  ]
+
+  const committed = await commit(root, changes, {
+    title: `Start ${run}`,
+    actor,
+    kind: 'agent',
+    run,
+  })
   if (!committed.ok) return committed
   const after = await reload(root, run)
   if (!after.ok) return after
@@ -198,14 +275,17 @@ const ACTIONS: readonly RecordAction[] = [
   'cancel',
   'finish',
 ]
-const ARTIFACT_FACTS = {
-  produced: 'artifact_produced',
-  validated: 'artifact_validated',
-  rejected: 'artifact_rejected',
+const ARTIFACT_STATUS = {
+  produced: 'produced',
+  validated: 'validated',
+  rejected: 'rejected',
 } as const
 
+/** A step reports an artifact fact only once it has started. */
+const ARTIFACT_REPORTING: ReadonlySet<string> = new Set(['active', 'waiting', 'done', 'reopened'])
+
 export interface RecordResult extends ProcedureStateResult {
-  recorded: RunEvent[]
+  /** The applied changeset path (the run context is on it); replaces the old event list. */
   changeset: string
   exitCode?: number | null
 }
@@ -220,8 +300,19 @@ const holds = (t: Transition, outcome: string | undefined): boolean | 'asserted'
         ? t.guard.holds
         : 'asserted'
 
-type Planned =
-  { events: RunEvent[]; close?: boolean; kind?: 'engine'; exitCode?: number | null } | ToolError
+/**
+ * One planned change: the changeset lines that record it, plus what the caller reports back.
+ * `step` is the step the write belongs to, for the run context.
+ */
+interface Planned {
+  changes: Change[]
+  step?: string
+  close?: boolean
+  kind?: 'engine'
+  exitCode?: number | null
+  /** The attempt this plan guarded, for a completion fence. */
+  attempt?: number
+}
 
 /** Validates the step a step action names: known, current, and in the status the action needs. */
 function stepFor(
@@ -237,27 +328,59 @@ function stepFor(
     return fail(
       'STEP_NOT_CURRENT',
       `"${named}" is not the current step; the current step is "${current}".`,
-      {
-        currentStep: current,
-      },
+      { currentStep: current },
     )
   return { ok: true, step: current }
 }
 
-function planStepStart(f: FoldedRun, step: string): RunEvent | ToolError {
+/** The engine row for a step, or a fresh pending row when the model has none. */
+const rowOf = (f: FoldedRun, step: string): StepRow =>
+  f.run.steps[step] ?? { status: 'pending', attempt: 0, inputs: {} }
+
+function planStepStart(
+  f: FoldedRun,
+  step: string,
+  args: Record<string, unknown>,
+): Planned | ToolError {
   const st = f.state.steps[step]!
   if ((st.status === 'active' || st.status === 'waiting') && !f.state.crashed)
     return fail('STEP_ALREADY_STARTED', `Step "${step}" is already ${st.status}.`)
+  const row = rowOf(f, step)
   const inputs: Record<string, string> = {}
   for (const a of f.graph.steps[step]!.inputs) {
     const art = f.state.artifacts[a]
     if (art?.status === 'validated' && art.rev !== undefined) inputs[a] = art.rev
   }
+  const attempt = (row.attempt ?? 0) + 1
+  const requested =
+    typeof args['timeout_ms'] === 'number' ? args['timeout_ms'] : DEFAULT_STEP_TIMEOUT_MS
+  // The step's length is the crash window (design §3.3), so it is bounded: an unbounded
+  // (or zero, which means "no timeout") value makes a live holder indistinguishable from a
+  // crashed one.
+  const timeout = Number.isFinite(requested)
+    ? Math.min(Math.max(requested, 1_000), MAX_STEP_TIMEOUT_MS)
+    : DEFAULT_STEP_TIMEOUT_MS
+  // Claim (design §3.4): pending|failed -> active, attempt + 1, the claim facts. The `from`
+  // guards make it a compare-and-set, so only one caller wins.
   return {
-    kind: 'step_started',
     step,
-    attempt: st.attempt + 1,
-    ...(Object.keys(inputs).length > 0 ? { inputs } : {}),
+    attempt,
+    changes: [
+      {
+        op: 'set_fields',
+        target: `${f.run.id}@${step}`,
+        from: JSON.stringify({ status: row.status, attempt: row.attempt }),
+        to: JSON.stringify({
+          status: 'active',
+          attempt,
+          claimed_at: new Date().toISOString(),
+          timeout_ms: timeout,
+          holder: holderOf(process.pid),
+          inputs: JSON.stringify(inputs),
+        }),
+        evidence: 'decision',
+      },
+    ],
   }
 }
 
@@ -266,7 +389,7 @@ function plan(
   action: RecordAction,
   args: Record<string, unknown>,
   root: string,
-): Planned {
+): Planned | ToolError {
   const { state, graph, run } = f
   if (run.closed || ['completed', 'failed', 'cancelled'].includes(state.status))
     return fail('RUN_CLOSED', `Run "${run.id}" is closed (${state.status}).`)
@@ -276,9 +399,7 @@ function plan(
     return fail(
       'RUN_DRIFTED',
       'The procedure changed since the run started; record rebase first.',
-      {
-        drift: state.drift,
-      },
+      { drift: state.drift },
     )
   if (state.paused && stepAction)
     return fail('RUN_PAUSED', 'The run is paused; record resume first.')
@@ -288,30 +409,97 @@ function plan(
       const field = text(args['field'])
       if (!field) return fail('INVALID_ARGUMENT', 'input needs field.')
       const rev = text(args['rev'])
+      // One row per input name: slug it, and set the row's value and rev.
+      const slug = field
+        .replace(/[^A-Za-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .toLowerCase()
+      const exists = f.run.inputs[slug] !== undefined
+      const fields: Record<string, string> = {}
+      if (value !== undefined) fields['value'] = value
+      if (rev !== undefined) fields['rev'] = rev
       return {
-        events: [
-          { kind: 'input_recorded', field, ...(value ? { value } : {}), ...(rev ? { rev } : {}) },
+        changes: [
+          exists
+            ? {
+                op: 'set_fields',
+                target: `${run.id}@${slug}`,
+                to: JSON.stringify(fields),
+                evidence: 'decision',
+              }
+            : {
+                op: 'add_element',
+                target: run.id,
+                concept: 'Input',
+                name: field,
+                slug,
+                to: JSON.stringify(fields),
+                evidence: 'decision',
+              },
         ],
       }
     }
     case 'artifact': {
-      const fact = ARTIFACT_FACTS[text(args['fact']) as keyof typeof ARTIFACT_FACTS]
-      if (!fact)
+      const status = ARTIFACT_STATUS[text(args['fact']) as keyof typeof ARTIFACT_STATUS]
+      if (!status)
         return fail('INVALID_ARGUMENT', 'artifact needs fact: produced, validated or rejected.')
       const field = text(args['field'])
       if (!field || !graph.artifacts[field])
         return fail('UNKNOWN_ARTIFACT', `"${field ?? ''}" is not an artifact of the procedure.`)
-      const step =
-        text(args['step']) ?? graph.artifacts[field]!.producers[0] ?? state.currentStep ?? undefined
+      const named = text(args['step'])
+      if (named !== undefined && !graph.steps[named])
+        return fail('UNKNOWN_STEP', `"${named}" is not a step of the procedure.`)
+      const step = named ?? graph.artifacts[field]!.producers[0] ?? state.currentStep ?? undefined
+      if (step === undefined)
+        return fail(
+          'STEP_NOT_STARTED',
+          `Artifact "${field}" has no producer step to report it from; start a step first.`,
+        )
+      const stepStatus = state.steps[step]!.status
+      if (!ARTIFACT_REPORTING.has(stepStatus))
+        return fail(
+          'STEP_NOT_STARTED',
+          `Step "${step}" is ${stepStatus}; an artifact can only be reported by a step that started.`,
+          { step, status: stepStatus },
+        )
       const rev = text(args['rev'])
+      // An element artifact's rev is the element's last applied change id, computed by the
+      // runner and never passed by the agent (design §4.3): the agent records the output, the
+      // run model pins what the change log says it is now.
+      const kind = f.graph.artifacts[field]!.kind
+      let elementRev: string | undefined
+      if (kind === 'element') {
+        const address =
+          text(args['value']) ?? substitute(f.graph.artifacts[field]!.at, f.run.params) ?? undefined
+        if (!address)
+          return fail(
+            'INVALID_ARGUMENT',
+            `Artifact "${field}" is an element artifact with no address; give value as model@element.`,
+          )
+        const at = address.indexOf('@')
+        const unit = at !== -1 ? address.slice(at + 1) : address
+        elementRev = loadChangeLog(root).origin(`${address.slice(0, at)}@${unit}`)?.id
+        if (!elementRev)
+          return fail(
+            'ARTIFACT_NOT_RECORDED',
+            `No applied change records element "${address}"; write it with a change before recording the artifact.`,
+            { artifact: field, address },
+          )
+      }
       return {
-        events: [
+        step,
+        changes: [
           {
-            kind: fact,
-            field,
-            ...(step ? { step } : {}),
-            ...(value ? { value } : {}),
-            ...(rev ? { rev } : {}),
+            op: 'set_fields',
+            target: `${run.id}@${field}`,
+            to: JSON.stringify({
+              status,
+              ...(value !== undefined ? { value } : {}),
+              ...(kind === 'element' && elementRev !== undefined ? { rev: elementRev } : {}),
+              ...(kind !== 'element' && rev !== undefined ? { rev } : {}),
+              step,
+            }),
+            evidence: 'decision',
           },
         ],
       }
@@ -319,32 +507,94 @@ function plan(
     case 'pause':
       return state.paused
         ? fail('RUN_PAUSED', 'The run is already paused.')
-        : { events: [{ kind: 'interrupted' }] }
+        : {
+            changes: [
+              {
+                op: 'update_field',
+                target: `${run.id}@${run.id}&state`,
+                from: run.state,
+                to: 'paused',
+                evidence: 'decision',
+              },
+            ],
+          }
     case 'resume':
       return state.paused
-        ? { events: [{ kind: 'resumed' }] }
+        ? {
+            changes: [
+              {
+                op: 'update_field',
+                target: `${run.id}@${run.id}&state`,
+                from: 'paused',
+                to: 'open',
+                evidence: 'decision',
+              },
+            ],
+          }
         : fail('NOT_PAUSED', 'The run is not paused.')
-    case 'rebase':
+    case 'rebase': {
       if (!state.drift)
         return fail('NOT_DRIFTED', 'The run follows the current definition revision.')
-      return { events: [{ kind: 'rebased', value: value ?? state.drift.current ?? '' }] }
+      const next = value ?? state.drift.current ?? ''
+      return {
+        changes: [
+          {
+            op: 'update_field',
+            target: `${run.id}@${run.id}&def_rev`,
+            to: next,
+            evidence: 'decision',
+          },
+        ],
+      }
+    }
     case 'cancel':
-      return { events: [{ kind: 'cancelled' }], close: true }
+      return {
+        close: true,
+        changes: [
+          {
+            op: 'update_field',
+            target: `${run.id}@${run.id}&state`,
+            from: run.state,
+            to: 'cancelled',
+            evidence: 'decision',
+          },
+        ],
+      }
     case 'finish': {
       const outcome = text(args['outcome']) ?? 'completed'
       if (outcome === 'failed')
-        return { events: [{ kind: 'failed', ...(value ? { value } : {}) }], close: true }
+        return {
+          close: true,
+          changes: [
+            {
+              op: 'update_field',
+              target: `${run.id}@${run.id}&state`,
+              from: run.state,
+              to: 'failed',
+              evidence: 'decision',
+            },
+          ],
+        }
       if (outcome !== 'completed')
         return fail('INVALID_ARGUMENT', 'finish outcome is completed or failed.')
       if (!state.canComplete)
         return fail(
           'CANNOT_COMPLETE',
           state.blockedBy ?? 'The walk has not reached a done terminal step.',
-          {
-            currentStep: state.currentStep,
-          },
+          { currentStep: state.currentStep },
         )
-      return { events: [{ kind: 'completed' }], close: true }
+      return {
+        close: true,
+        changes: [
+          {
+            op: 'update_field',
+            target: `${run.id}@${run.id}&state`,
+            from: run.state,
+            to: 'completed',
+            evidence: 'decision',
+          },
+        ],
+      }
     }
   }
 
@@ -352,19 +602,47 @@ function plan(
   if (!located.ok) return located
   const step = located.step
   const status = state.steps[step]!.status
-  if (action === 'start') {
-    const started = planStepStart(f, step)
-    return 'ok' in started ? started : { events: [started] }
-  }
+  if (action === 'start') return planStepStart(f, step, args)
   if (action === 'run') return planEngineRun(f, step, args, root)
   if (status !== 'active' && status !== 'waiting')
     return fail('STEP_NOT_STARTED', `Step "${step}" is ${status}; record start first.`)
   if (action === 'wait') {
     if (!value) return fail('INVALID_ARGUMENT', 'wait needs value: who or what the step waits on.')
-    return { events: [{ kind: 'step_waiting', step, value }] }
+    return {
+      step,
+      changes: [
+        {
+          op: 'update_field',
+          target: `${run.id}@${step}&waiting_on`,
+          to: value,
+          evidence: 'decision',
+        },
+      ],
+    }
   }
   if (action === 'fail')
-    return { events: [{ kind: 'step_failed', step, ...(value ? { value } : {}) }] }
+    return {
+      step,
+      changes: [
+        {
+          op: 'update_field',
+          target: `${run.id}@${step}&status`,
+          from: 'active',
+          to: 'failed',
+          evidence: 'decision',
+        },
+        ...(value
+          ? [
+              {
+                op: 'update_field' as const,
+                target: `${run.id}@${step}&failure`,
+                to: value,
+                evidence: 'decision',
+              },
+            ]
+          : []),
+      ],
+    }
 
   // complete
   const outcome = text(args['outcome'])
@@ -388,9 +666,25 @@ function plan(
       )
     next = holding[0]!.to
   }
+  const row = rowOf(f, step)
+  // Completion (design §3.4): the step row guard (`from` status + attempt) is the fence
+  // against a late completion from an older attempt.
   return {
-    events: [
-      { kind: 'step_completed', step, ...(outcome ? { outcome } : {}), ...(next ? { next } : {}) },
+    step,
+    attempt: row.attempt,
+    changes: [
+      {
+        op: 'set_fields',
+        target: `${run.id}@${step}`,
+        from: JSON.stringify({ status: 'active', attempt: row.attempt }),
+        to: JSON.stringify({
+          status: 'done',
+          attempt: row.attempt,
+          ...(outcome ? { outcome } : {}),
+          ...(next ? { next } : {}),
+        }),
+        evidence: 'decision',
+      },
     ],
   }
 }
@@ -403,53 +697,132 @@ function fileRev(root: string, path: string): string | undefined {
 }
 
 /**
- * `action=run`: executes the engine step's command (slots substituted) in the domain root,
- * then records step_started, the `file:` artifacts it can verify, and step_completed or
- * step_failed with the exit code, all in the one changeset of the call.
+ * `action=run`: claims the engine step, executes its command (slots substituted) in the
+ * domain root, maps its exit code through `exit_codes` (§4.6), verifies the `file:` outputs
+ * it can, and completes or fails the step — all in the one atomic changeset of the call.
  */
 function planEngineRun(
   f: FoldedRun,
   step: string,
   args: Record<string, unknown>,
   root: string,
-): Planned {
+): Planned | ToolError {
   const def = f.graph.steps[step]!
   if (def.executor !== 'engine' || !def.command)
     return fail('NOT_ENGINE_STEP', `Step "${step}" is not an engine step with a command.`)
-  const started = planStepStart(f, step)
+  const started = planStepStart(f, step, args)
   if ('ok' in started) return started
+  const claim = started.changes[0] as { to: string }
+  const claimFields = JSON.parse(claim.to) as { timeout_ms: number }
   const command = substitute(def.command, f.run.params)!
-  const timeout = typeof args['timeout_ms'] === 'number' ? args['timeout_ms'] : DEFAULT_TIMEOUT_MS
+  const left = unresolvedSlots(command)
+  if (left.length > 0)
+    return fail(
+      'UNRESOLVED_SLOT',
+      `Step "${step}" still carries ${left.map((s) => `{${s}}`).join(', ')}; fill the slots first.`,
+      { missing: left },
+    )
+  const timeout = claimFields.timeout_ms
   const res = spawnSync(command, { cwd: root, shell: true, timeout, encoding: 'utf-8' })
   const exitCode = res.status
-  const events: RunEvent[] = [started]
+  const row = rowOf(f, step)
+  const attempt = (row.attempt ?? 0) + 1
+  const claimTo = JSON.parse((started.changes[0] as { to: string }).to) as Record<string, string>
+
+  // The claim and the completion of one engine call are ONE `set_fields` on the step row:
+  // `from` is evaluated against the model as it stands, so a separate completion change could
+  // not guard the `active` status its sibling in the same batch writes. The claim's guard
+  // (`from` status + attempt) is delivered once and fences the whole column.
+  const finishRow = (
+    status: 'done' | 'waiting' | 'failed',
+    extra: Record<string, string>,
+  ): Change => ({
+    op: 'set_fields',
+    target: `${f.run.id}@${step}`,
+    from: JSON.stringify({ status: row.status, attempt: row.attempt }),
+    to: JSON.stringify({ ...claimTo, status, attempt, ...extra }),
+    evidence: 'decision',
+  })
+
   if (exitCode !== 0) {
+    // Exit-code mapping (design §4.6): 0 is done, an unmapped nonzero is failed, and
+    // `exit_codes` turns a controlled stop into a wait or a named outcome.
+    const mapped = def.exitCodes?.[String(exitCode)]
     const reason = res.error
       ? res.error.message
       : exitCode === null
         ? `signal ${res.signal}`
         : `exit ${exitCode}`
-    events.push({ kind: 'step_failed', step, value: reason })
-    return { events, kind: 'engine', exitCode }
+    if (mapped === 'waiting')
+      return {
+        step,
+        attempt,
+        kind: 'engine',
+        exitCode,
+        changes: [finishRow('waiting', { waiting_on: reason })],
+      }
+    if (mapped && mapped !== 'failed')
+      return {
+        step,
+        attempt,
+        kind: 'engine',
+        exitCode,
+        changes: [
+          finishRow('done', {
+            outcome: mapped,
+            ...(def.next.length === 1 ? { next: def.next[0]! } : {}),
+          }),
+        ],
+      }
+    return {
+      step,
+      attempt,
+      kind: 'engine',
+      exitCode,
+      changes: [
+        finishRow('failed', {
+          failure: mapped && mapped !== 'failed' ? `${mapped}: ${reason}` : reason,
+        }),
+      ],
+    }
   }
+
   const missing: string[] = []
+  const artifactChanges: Change[] = []
   for (const slug of def.outputs) {
     const verify = substitute(f.graph.artifacts[slug]?.verify, f.run.params)
     if (!verify?.startsWith('file:')) continue
     const path = verify.slice('file:'.length).trim()
     const rev = fileRev(root, path)
-    if (rev) events.push({ kind: 'artifact_validated', step, field: slug, value: path, rev })
+    if (rev)
+      artifactChanges.push({
+        op: 'set_fields',
+        target: `${f.run.id}@${slug}`,
+        to: JSON.stringify({ status: 'validated', value: path, rev, step }),
+        evidence: 'decision',
+      })
     else {
-      events.push({ kind: 'artifact_rejected', step, field: slug, value: path })
+      artifactChanges.push({
+        op: 'set_fields',
+        target: `${f.run.id}@${slug}`,
+        to: JSON.stringify({ status: 'rejected', value: path, step }),
+        evidence: 'decision',
+      })
       missing.push(path)
     }
   }
-  events.push(
-    missing.length > 0
-      ? { kind: 'step_failed', step, value: `missing ${missing.join(', ')}` }
-      : { kind: 'step_completed', step, ...(def.next.length === 1 ? { next: def.next[0] } : {}) },
-  )
-  return { events, kind: 'engine', exitCode }
+  return {
+    step,
+    attempt,
+    kind: 'engine',
+    exitCode,
+    changes: [
+      ...artifactChanges,
+      missing.length > 0
+        ? finishRow('failed', { failure: `missing ${missing.join(', ')}` })
+        : finishRow('done', { ...(def.next.length === 1 ? { next: def.next[0]! } : {}) }),
+    ],
+  }
 }
 
 export async function procedureRecord(
@@ -459,7 +832,10 @@ export async function procedureRecord(
   const action = text(args['action']) as RecordAction | undefined
   if (!action || !ACTIONS.includes(action))
     return fail('INVALID_ACTION', `action must be one of ${ACTIONS.join(', ')}.`)
-  const read = await readRun(root, args['run'])
+  const runId = text(args['run'])
+  if (!runId) return fail('INVALID_ARGUMENT', 'run must be a non-empty run id.')
+
+  const read = await readRun(root, runId)
   if (!read.ok) return read
   const folded = await foldStoredRun(root, read.run)
   if (!folded.ok) return folded
@@ -469,18 +845,19 @@ export async function procedureRecord(
   const kind = planned.kind ?? 'agent'
   const actor = text(args['actor']) ?? kind
   const run = read.run.id
-  const base = read.run.events.length + 1
-  const changes: Change[] = planned.events.map((e, i) =>
-    eventChange(run, base + i, eventFields(e, actor)),
-  )
+  const changes: Change[] = [seqGuard(run, read.run.seq), ...planned.changes]
   if (planned.close) changes.push({ op: 'close_model', target: run, evidence: 'decision' })
-  const committed = await commit(root, changes, { title: `${action} ${run}`, actor, kind })
+  const committed = await commit(root, changes, {
+    title: `${action} ${run}`,
+    actor,
+    kind,
+    run: runContext(run, planned.step),
+  })
   if (!committed.ok) return committed
   const after = await reload(root, run)
   if (!after.ok) return after
   return {
     ...after,
-    recorded: planned.events,
     changeset: committed.changeset,
     ...(planned.kind === 'engine' ? { exitCode: planned.exitCode } : {}),
   }

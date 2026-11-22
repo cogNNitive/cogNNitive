@@ -2,9 +2,8 @@
 
 /**
  * Single list of the cheap (<1s each, offline) `--check` freshness guards for
- * committed derived artifacts. `scripts/regen.js` runs every entry in write mode,
- * `scripts/pre-push-check.js` and `scripts/pre-commit-regen.js` consume the same
- * list, so the three can never drift.
+ * committed derived artifacts. `scripts/regen.js` runs every entry in write mode and
+ * `scripts/pre-push-check.js` consumes the same list, so the two can never drift.
  *
  * `scripts/verify.js` no longer runs these one by one: it runs the single
  * `regen-gate` step (`npm run check:regen`), which regenerates every artifact and
