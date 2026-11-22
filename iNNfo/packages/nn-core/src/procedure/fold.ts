@@ -182,17 +182,17 @@ function reachable(graph: ProcedureGraph, from: string | null): Set<string> {
 }
 
 /** Evaluable guards: `outcome == <token>` and `[[artifact]] validated`; anything else is prose (asserted). */
-function guardOf(
+export function guardOf(
   graph: ProcedureGraph,
-  to: string,
+  step: string,
   artifacts: Record<string, ArtifactState>,
 ): Guard {
-  const text = graph.steps[to].condition?.trim()
-  if (!text) return { kind: 'none' }
-  const outcome = /^outcome\s*==\s*["']?([\w-]+)["']?$/.exec(text)
-  if (outcome) return { kind: 'outcome', token: outcome[1] }
-  const art = /^(?:\[\[([^\]]+)\]\]|@([\w-]+))\s+validated$/.exec(text)
-  const ref = art ? (art[1] ?? art[2]).trim() : undefined
+  const condition = graph.steps[step]?.condition?.trim()
+  if (!condition) return { kind: 'none' }
+  const outcome = /^outcome\s*==\s*["']?([\w-]+)["']?$/.exec(condition)
+  if (outcome) return { kind: 'outcome', token: outcome[1]! }
+  const art = /^(?:\[\[([^\]]+)\]\]|@([\w-]+))\s+validated$/.exec(condition)
+  const ref = art ? (art[1] ?? art[2])!.trim() : undefined
   const slug =
     ref === undefined
       ? undefined
@@ -202,5 +202,5 @@ function guardOf(
             ?.slug
   if (slug)
     return { kind: 'artifact', artifact: slug, holds: artifacts[slug]?.status === 'validated' }
-  return { kind: 'prose', text }
+  return { kind: 'prose', text: condition }
 }
