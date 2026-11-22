@@ -2,6 +2,7 @@
 
 Objective: make `template::` and `beats::` real, validated Layer fields of the coNNtent blueprint; have `produce` invoke the template builder and track freshness; move template code out of every episode into the domain library.
 Branch: session/conntent-animation-unify (tracker). Delivery: chained slices, PR to main per slice. Test runner: `node --test`.
+Status: closed 2026-11-22 into issue #612; S2/S3 delivered by package A of `odd/tasks/conntent-packages.md` (branch `session/conntent-layer-contract`), S4/S5 deferred to the backlog Idea.
 
 ## Specs
 
@@ -19,9 +20,9 @@ Assumptions: A1 the domain `D:\Users\lucas\Documents\_NN\coNNtent_NN` is not a g
 | ID | Specs | Route | Status | Evidence |
 |---|---|---|---|---|
 | T0 | S1 | inline | complete | 8035be81; `node --test test/qa.test.mjs test/qa-overlay-presence.test.mjs` 31/31 |
-| T1 | S2 | inline | pending | spec_NN.md Layer fields + field registry + validator |
-| T2 | S3, S6 | inline | pending | compile/pipeline builder hook + freshness hash + derived mount id |
-| T3 | S4, S5 | inline | pending | builder contract doc; template moved to domain library |
+| T1 | S2 | delegated (package A) | closed | delivered as `inputs::` + `asset:: component:<name>` by `conntent-packages` T1 (the `template` name stays retired) |
+| T2 | S3, S6 | delegated (package A) | closed | S3: inputs feed the per-scene review hash (`conntent-packages` T1); S6: handled by #618 |
+| T3 | S4, S5 | — | deferred | backlog Idea "coNNtent animation unification" in `openspec/backlog_NN.md`, waits for a real episode |
 
 Risk: T1 item 3 (changes the published coNNtent spec: Layer fields), so the slice is heavy lane with a delta spec.
 
@@ -31,3 +32,4 @@ Risk: T1 item 3 (changes the published coNNtent spec: Layer fields), so the slic
 - L2 (2026-11-13, user, verbatim): "Supongo que la mejor decisión es que esté en la biblioteca del dominio de momento y luego, ya si funciona y una vez esté probado, lo podríamos promover al blueprint. ¿Es correcto?" Confirmed.
 - L3: earlier claim "~14 files differ between installed engine and repo" was wrong: it compared against a stale local `dev`. Against origin/main only `qa.mjs` (and the generated nn-core mirror) differ.
 - L4: T0 done in 8035be81.
+- L5 (2026-11-22): tracker closed into #612. S1 done in 8035be81. S6 handled by #618. S2 and S3 delivered by package A of `odd/tasks/conntent-packages.md`: an `animation` Layer takes validated `inputs::` (and `asset:: component:<name>` mounts a library component), and the inputs feed the per-scene review hash, so a changed input reopens only its scene; no separate builder hash. S4 and S5 are deferred as the backlog Idea "coNNtent animation unification" until a real episode justifies moving template code into the domain library.
