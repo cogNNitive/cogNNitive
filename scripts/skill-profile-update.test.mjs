@@ -32,7 +32,11 @@ test('nn names updating the cogNNitive installation as a trigger', () => {
 
 test('nn-preflight points a profile update at the manifest', () => {
   const { field } = frontmatter('nn-preflight')
-  assert.notStrictEqual(field('disable-model-invocation'), 'true', 'nn-preflight stays model-invocable')
+  assert.notStrictEqual(
+    field('disable-model-invocation'),
+    'true',
+    'nn-preflight stays model-invocable',
+  )
   assert.ok(field('description').includes(MANIFEST), 'description names the manifest URL')
 })
 
@@ -47,7 +51,11 @@ test('nn body holds the profile-update steps: status first, bootstrap on consent
   assert.ok(status >= 0, 'the section names the read-only status step')
   assert.ok(bootstrap > status, 'bootstrap comes after status')
   assert.match(section, /consent/i, 'bootstrap runs only with consent')
-  assert.match(section, /git clone[^.]*not the installation/i, 'a git clone is not the installation')
+  assert.match(
+    section,
+    /git clone[^.]*not the installation/i,
+    'a git clone is not the installation',
+  )
 })
 
 test('nn-skills-lifecycle stays user-invoked only', () => {
