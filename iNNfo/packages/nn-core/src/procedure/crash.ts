@@ -41,7 +41,8 @@ export interface CrashProbeOptions {
  * `claimed_at + timeout_ms + grace`.
  *
  * Age alone is weaker than a pid probe — a legitimate slow step would be mistaken for a
- * crash — so the probe comes first and age is only the fallback.
+ * crash — so the probe comes first and age is only the fallback. A claim that names no
+ * holder AND no claim time cannot be bounded at all: it is broken, not a permanent holder.
  */
 export function crashProbe(row: StepRow, opts: CrashProbeOptions = {}): boolean {
   const now = opts.now ?? Date.now()
@@ -58,9 +59,10 @@ export function crashProbe(row: StepRow, opts: CrashProbeOptions = {}): boolean 
     return !alive(pid)
   }
 
-  // Another host, or a payload that cannot name a live probe: fall back to age.
-  if (!row.claimedAt) return false
+  // Another host, or a payload that cannot name a live probe: fall back to age. Without a
+  // claim time there is no window to outlive, so the claim is already broken.
+  if (!row.claimedAt) return true
   const claimed = Date.parse(row.claimedAt)
-  if (!Number.isFinite(claimed)) return false
+  if (!Number.isFinite(claimed)) return true
   return now > claimed + timeout + CRASH_GRACE_MS
 }

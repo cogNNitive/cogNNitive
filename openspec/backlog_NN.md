@@ -9,7 +9,7 @@ title: "Backlog"
 
 # NN Idea
 
-## NN Idea: coNNtent animation unification, T1+T2 - make `template::` and `beats::` validated Layer fields, invoke the template builder from `produce` with an input hash so a changed beat or template makes the clip stale and it is rebuilt, and derive the mounted composition id per mount instead of reading it from the authored project (closes #608). T3, moving template code out of every episode into the domain library, waits for a real episode to justify it. Tracker: `odd/tasks/conntent-animation-unify.md`, specs S2, S3, S4, S5 and S6. T1 changes the published coNNtent spec, so the slice is heavy: delta spec plus a `blueprint_version` bump
+## NN Idea: coNNtent animation unification, T3 - move animation template code out of every episode into the domain library, so an episode holds data only (`asset:: component:<name>` plus `inputs::`) and ships no per-episode `kit.js`, `harness.js`, `gsap.min.js` or `score.wav`; templates are promotable to the blueprint later by an explicit act. Waits for a real episode to justify it. The engine side (validated `inputs::`, library components, input-driven review staleness) shipped with #612; tracker `odd/tasks/conntent-animation-unify.md` is closed, specs S4 and S5
 captured:: 2026-11-19
 
 ## NN Idea: Product site generated from an iNNfo blueprint (deferred until the first real external user exists; building a marketing site for zero readers is maintenance without payoff)
@@ -82,7 +82,8 @@ risk:: M
 status:: open
 lane:: heavy
 verdict:: current
-evidence:: The coNNtent blueprint's procedures/ folder now holds configure_cascade, create_character, create_series and usage (checked 2026-11-22), but neither draft-scene-visuals nor produce-video exists. The old video-template requirement on generate_video_script_procedures_NN.md survives only in the archive (openspec/changes/archive/2026-11-10-conntent-blueprint-redesign/specs/conntent-template/spec.md); openspec/specs/ no longer exists. The real draft-scene-visuals procedure lives only in the external workspace video_NN and as a test fixture under iNNfo/packages/nn-core/tests/fixtures/video-golden/procedures/, which has no media-collection gate.
+ref:: #807
+evidence:: The coNNtent blueprint's procedures/ folder now holds configure_cascade, create_character, create_series and usage (checked 2026-11-22), but neither draft-scene-visuals nor produce-video exists. PR #807 was merged on 2026-11-22 and ships both (coNNtent V_0-31-0, merge f431b8a70), so what remains is a smoke run of the shipped procedure, not the shipping itself. The old video-template requirement on generate_video_script_procedures_NN.md survives only in the archive (openspec/changes/archive/2026-11-10-conntent-blueprint-redesign/specs/conntent-template/spec.md); openspec/specs/ no longer exists.
 done_when:: The coNNtent blueprint declares and ships a procedures/ folder with two generic procedures promoted from video_NN: draft-scene-visuals (cleaned of series, language, vendor and machine specifics, and carrying the pre-draft gate that clean screenshots and rendered HyperFrames clips must exist under assets/<slug>/media/ before the draft JSON or build-draft-html.mjs) and produce-video (a router that lists series through their scope documents and hands off to the procedure each series declares). select-news is not shipped here: it moves to the iNNbox_NN domain, which specializes in acquiring sources. A test asserts the folder is declared and every shipped procedure resolves, and the blueprint version is bumped and repinned. Open decisions before the change: procedure language, file naming against the video-template requirement, and whether the gate also becomes a hard check in build-draft-html.mjs.
 batch:: b5d-conntent-procedures
 
@@ -99,5 +100,5 @@ order:: 54
 lane:: heavy
 items:: coNNtent-procedures
 risk:: M
-state:: planned
+state:: in-review
 

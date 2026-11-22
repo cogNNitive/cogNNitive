@@ -159,6 +159,8 @@ export interface FoldedRun {
   run: RunRecord
   graph: ProcedureGraph
   state: RunState
+  /** The domaiNN root the run was read from, for a plan that must write before it executes. */
+  root: string
 }
 
 /**
@@ -176,7 +178,7 @@ export async function foldStoredRun(
     defRev: run.defRev,
     activeStepIsStale: (_slug, row) => crashProbe(row, { now: Date.now() }),
   })
-  return { ok: true, folded: { run, graph: loaded.graph, state } }
+  return { ok: true, folded: { run, graph: loaded.graph, state, root } }
 }
 
 export type RecordAction =
@@ -210,6 +212,7 @@ export function allowedActions({ run, graph, state }: FoldedRun): RecordAction[]
     const status = state.steps[current]!.status
     const def = graph.steps[current]!
     if (status === 'active' || status === 'waiting') {
+      // `waiting` is already waiting; the two facts that end it are complete and fail.
       if (status === 'active') actions.push('wait')
       actions.push('complete', 'fail')
     }
