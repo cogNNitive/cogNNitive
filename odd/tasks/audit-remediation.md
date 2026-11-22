@@ -33,7 +33,7 @@ maintainer's call. Test runner: `node --test`, `npm run verify:fast`.
 | A1 | S1 | inline | complete | `ci-session-tooling`: `release-claim` deleted, `merge_group` step gone, doc/skill text aligned |
 | A2 | — | inline | complete | same PR: `build:dist` in CI, full-history format check with `set -e`, `release-bump` on `main` |
 | A3 | — | inline | complete | `session-tooling`: `neverCommitted` counts only commits, `sweep` uses the path git reports (#721), `claim-check` shares one loose JSON reader, skill/hook wording corrected. `skills status --json` dropped, see L2 |
-| B1 | — | blocked | pending | `remove-model-hardening`: waits for #730 → #731 → T5 to merge (all rewrite `apply-change.ts`) |
+| B1 | — | inline | pending | `remove-model-hardening`: unblocked 2026-11-22 (#730, #731 and the runner tools all merged) |
 | C1a | S2 | inline | complete | `console-cleanup`: the size gate also reads the model's **uncompressed** bytes, because the slot ships deflate-raw + base64 and the file size cannot see the inflation |
 | C1b | S6 | inline | pending | console: history cap of 12 **with its Changes-tab notice**, changeset-aware freshness, dead code in `nn-runtime.js`, one `nn-model` reader, CSP hashes, deep link, output name, "QA passed" |
 | D1 | — | complete | `conntent-avatar`: avatar resolutions keyed by exact `api_id` in `video-guard.mjs`. #657 is a different bug (`output_formats master`) and is untouched here |
