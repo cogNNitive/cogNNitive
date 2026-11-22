@@ -17467,6 +17467,13 @@ var init_run = __esm({
   }
 });
 
+// iNNfo/packages/nn-core/dist/procedure/transitions.js
+var init_transitions2 = __esm({
+  "iNNfo/packages/nn-core/dist/procedure/transitions.js"() {
+    "use strict";
+  }
+});
+
 // iNNfo/packages/nn-core/dist/procedure/crash.js
 var init_crash = __esm({
   "iNNfo/packages/nn-core/dist/procedure/crash.js"() {
@@ -17481,6 +17488,8 @@ var init_procedure = __esm({
     init_graph2();
     init_fold2();
     init_run();
+    init_transitions2();
+    init_fold2();
     init_crash();
   }
 });
@@ -18629,7 +18638,7 @@ function transitionDiagnostic2(fieldName, transitions, current, next) {
   return `${TRANSITION_NOT_ALLOWED}: field "${fieldName}" cannot move from ${from} to ${to} (${options})`;
 }
 var TRANSITION_NOT_ALLOWED, UNSET;
-var init_transitions2 = __esm({
+var init_transitions3 = __esm({
   "iNNfo/packages/nn-core/dist/changeset/transitions.js"() {
     "use strict";
     TRANSITION_NOT_ALLOWED = "TRANSITION_NOT_ALLOWED";
@@ -19014,7 +19023,7 @@ var init_conflicts = __esm({
     init_element_hash();
     init_history();
     init_utils();
-    init_transitions2();
+    init_transitions3();
     init_transitions();
   }
 });
@@ -19059,7 +19068,7 @@ var init_changeset = __esm({
     init_impact();
     init_history();
     init_conflicts();
-    init_transitions2();
+    init_transitions3();
     init_plan2();
     init_builder();
     init_types3();
