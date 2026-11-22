@@ -18383,7 +18383,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     // `document` is shadowed with the container's own document, so every element below
     // stays inside this view's DOM tree.
-    var document = container.ownerDocument || (typeof globalThis !== 'undefined' ? globalThis.document : null)
+    var document =
+      container.ownerDocument || (typeof globalThis !== 'undefined' ? globalThis.document : null)
     var schema = (payload && payload.schema) || {}
     var model = (payload && payload.model) || {}
     var elements = Array.isArray(model.elements) ? model.elements : []
@@ -18398,11 +18399,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     // The console hands an editable view a `store` facade when a human may propose. A
     // console without it is read-only: the view renders, and offers no write.
-    var store = viewCtx && viewCtx.store && typeof viewCtx.store.propose === 'function' ? viewCtx.store : null
+    var store =
+      viewCtx && viewCtx.store && typeof viewCtx.store.propose === 'function' ? viewCtx.store : null
     var draftNote = null
 
     if (!GLOBAL.nnConsole) {
-      container.innerHTML = '<div class="nn-empty-state"><p>Procedure runtime is not available.</p></div>'
+      container.innerHTML =
+        '<div class="nn-empty-state"><p>Procedure runtime is not available.</p></div>'
       return {
         ok: false,
         unmount: function () {
@@ -18428,7 +18431,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       return n + (Array.isArray(e.runs) ? e.runs.length : 0)
     }, 0)
     var strip = make('div', 'proc-structure-strip')
-    strip.appendChild(make('div', 'proc-structure-summary', entries.length + ' procedures · ' + runCount + ' runs'))
+    strip.appendChild(
+      make('div', 'proc-structure-summary', entries.length + ' procedures · ' + runCount + ' runs'),
+    )
     root.appendChild(strip)
     var defectsEl = make('div', 'proc-structure-defects')
     strip.appendChild(defectsEl)
@@ -18559,7 +18564,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         })
         var pill = UI.Ku(
           'element',
-          { model: meta.modelId || '', id: target.id, label: target.name || label, concept: target.concept, color: cMeta && cMeta.color },
+          {
+            model: meta.modelId || '',
+            id: target.id,
+            label: target.name || label,
+            concept: target.concept,
+            color: cMeta && cMeta.color,
+          },
           { doc: document },
         )
         var badge = pill.querySelector('[data-nn-component="ku-unit"]')
@@ -18607,7 +18618,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var last = 0
       var match
       while ((match = re.exec(text)) !== null) {
-        if (match.index > last) hostEl.appendChild(document.createTextNode(text.slice(last, match.index)))
+        if (match.index > last)
+          hostEl.appendChild(document.createTextNode(text.slice(last, match.index)))
         hostEl.appendChild(refPill(byName[match[0]], match[0]))
         last = re.lastIndex
       }
@@ -18639,7 +18651,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     function renderTabs() {
       tabsHost.innerHTML = ''
       entries.forEach(function (entry) {
-        var b = make('button', 'proc-tab' + (entry === active ? ' active' : ''), entry.title || entry.file)
+        var b = make(
+          'button',
+          'proc-tab' + (entry === active ? ' active' : ''),
+          entry.title || entry.file,
+        )
         b.setAttribute('type', 'button')
         b.addEventListener('click', function () {
           selectEntry(entry)
@@ -18651,7 +18667,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     function renderDiagnostics() {
       defectsEl.innerHTML = ''
-      var list = active.graph && Array.isArray(active.graph.diagnostics) ? active.graph.diagnostics : []
+      var list =
+        active.graph && Array.isArray(active.graph.diagnostics) ? active.graph.diagnostics : []
       list.forEach(function (d) {
         var item = make('div', 'proc-defect-item', d.code + ': ' + d.detail)
         item.setAttribute('data-defect-kind', d.code)
@@ -18664,7 +18681,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     function renderFicha(host) {
       var linked = null
       elements.forEach(function (el) {
-        if (el && el.concept === 'Procedure' && el.fields && el.fields.procedure_model === active.file) linked = linked || el
+        if (
+          el &&
+          el.concept === 'Procedure' &&
+          el.fields &&
+          el.fields.procedure_model === active.file
+        )
+          linked = linked || el
       })
       var ficha = make('div', 'proc-ficha')
       if (!linked) {
@@ -18680,7 +18703,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         ['inputs_required', 'Inputs required'],
         ['outputs_expected', 'Outputs expected'],
       ].forEach(function (pair) {
-        if (f[pair[0]]) ficha.appendChild(make('div', 'proc-ficha-' + pair[0], pair[1] + ': ' + f[pair[0]]))
+        if (f[pair[0]])
+          ficha.appendChild(make('div', 'proc-ficha-' + pair[0], pair[1] + ': ' + f[pair[0]]))
       })
       host.appendChild(ficha)
     }
@@ -18694,7 +18718,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var runs = Array.isArray(active.runs) ? active.runs : []
       var bar = make('div', 'proc-runs')
       bar.appendChild(make('span', 'proc-runs-label', 'Runs'))
-      var def = make('button', 'proc-run proc-run-definition' + (activeRun ? '' : ' active'), 'Definition')
+      var def = make(
+        'button',
+        'proc-run proc-run-definition' + (activeRun ? '' : ' active'),
+        'Definition',
+      )
       def.setAttribute('type', 'button')
       def.addEventListener('click', function () {
         activeRun = null
@@ -18703,7 +18731,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
       bar.appendChild(def)
       runs.forEach(function (run) {
-        var b = make('button', 'proc-run' + (run === activeRun ? ' active' : ''), run.id + ' · ' + runStatus(run))
+        var b = make(
+          'button',
+          'proc-run' + (run === activeRun ? ' active' : ''),
+          run.id + ' · ' + runStatus(run),
+        )
         b.setAttribute('type', 'button')
         b.setAttribute('data-run-id', run.id)
         b.setAttribute('data-status', runStatus(run))
@@ -18870,7 +18902,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     function guardText(guard) {
       if (!guard || guard.kind === 'none') return 'always'
       if (guard.kind === 'outcome') return 'outcome == ' + guard.token
-      if (guard.kind === 'artifact') return guard.artifact + ' validated (' + (guard.holds ? 'holds' : 'not yet') + ')'
+      if (guard.kind === 'artifact')
+        return guard.artifact + ' validated (' + (guard.holds ? 'holds' : 'not yet') + ')'
       return guard.text
     }
 
@@ -18977,7 +19010,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     /** The artifact definition the chip that owns this button was built for. */
     function defOfArtifact(button) {
       var chip = button.parentNode
-      while (chip && chip.getAttribute && !chip.getAttribute('data-proc-artifact')) chip = chip.parentNode
+      while (chip && chip.getAttribute && !chip.getAttribute('data-proc-artifact'))
+        chip = chip.parentNode
       var slug = chip && chip.getAttribute('data-proc-artifact')
       return slug && active.graph.artifacts ? active.graph.artifacts[slug] : null
     }
@@ -19051,7 +19085,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     function renderStepCard(host) {
       var graph = active.graph
-      var slug = selectedStep || (activeRun && activeRun.state && activeRun.state.currentStep) || graph.start || Object.keys(graph.steps)[0]
+      var slug =
+        selectedStep ||
+        (activeRun && activeRun.state && activeRun.state.currentStep) ||
+        graph.start ||
+        Object.keys(graph.steps)[0]
       var col = make('div', 'exec-active-col')
       host.appendChild(col)
       if (!slug || !graph.steps[slug]) {
@@ -19069,9 +19107,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       type.innerHTML = vIcon(step.stepType || 'task', 14) + ' '
       type.appendChild(document.createTextNode((step.stepType || 'task').toUpperCase()))
       head.appendChild(type)
-      if (step.executor) head.appendChild(make('span', 'step-executor-pill', 'Executor: ' + step.executor))
+      if (step.executor)
+        head.appendChild(make('span', 'step-executor-pill', 'Executor: ' + step.executor))
       if (step.condition) head.appendChild(make('span', 'step-cond-pill', 'IF: ' + step.condition))
-      head.appendChild(make('span', 'step-state-badge state-' + status, status === 'definition' ? 'Definition' : status))
+      head.appendChild(
+        make(
+          'span',
+          'step-state-badge state-' + status,
+          status === 'definition' ? 'Definition' : status,
+        ),
+      )
       card.appendChild(head)
       card.appendChild(make('h2', 'exec-step-title', step.name || slug))
       var el = elementOf(slug)
@@ -19094,7 +19139,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         fact('Attempt', st.attempt ? String(st.attempt) : '')
         fact('Waiting on', st.waitingOn)
         fact('Failure', st.failure)
-        if (st.outcome || st.next) fact('Outcome', (st.outcome || '—') + (st.next ? ' → ' + stepName(st.next) : ''))
+        if (st.outcome || st.next)
+          fact('Outcome', (st.outcome || '—') + (st.next ? ' → ' + stepName(st.next) : ''))
       }
       if (facts.children.length) card.appendChild(facts)
       renderRequestBox(card, slug)
@@ -19102,7 +19148,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var branches = make('div', 'branch-outcomes')
         step.next.forEach(function (t) {
           var target = graph.steps[t]
-          branches.appendChild(make('div', 'branch-outcome', stepName(t) + ' — ' + ((target && target.condition) || 'no guard')))
+          branches.appendChild(
+            make(
+              'div',
+              'branch-outcome',
+              stepName(t) + ' — ' + ((target && target.condition) || 'no guard'),
+            ),
+          )
         })
         card.appendChild(branches)
       }
@@ -19133,14 +19185,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       mine.forEach(function (r) {
         var row = make('div', 'proc-request')
         row.setAttribute('data-proc-request-status', r.status)
-        row.appendChild(make('span', 'proc-request-action', r.action))
-        row.appendChild(make('span', 'proc-request-status status-' + r.status, r.status))
+        var head = make('div', 'proc-request-head')
+        head.appendChild(make('span', 'proc-request-action', r.action))
+        head.appendChild(make('span', 'proc-request-status status-' + r.status, r.status))
+        row.appendChild(head)
         var bits = []
         if (r.value) bits.push(r.value)
         if (r.outcome) bits.push('outcome ' + r.outcome)
         if (r.baseSeq !== undefined) bits.push('seq ' + r.baseSeq)
         if (r.reason) bits.push(r.reason)
-        if (bits.length) row.appendChild(make('span', 'proc-request-detail', bits.join(' · ')))
+        if (bits.length) row.appendChild(make('div', 'proc-request-detail', bits.join(' · ')))
         box.appendChild(row)
       })
       card.appendChild(box)
@@ -19241,11 +19295,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         base_seq: runSeq(),
       }
       if (action === 'fail') {
-        var why = typeof window !== 'undefined' && window.prompt ? window.prompt('Why did this step fail?') : ''
+        var why =
+          typeof window !== 'undefined' && window.prompt
+            ? window.prompt('Why did this step fail?')
+            : ''
         if (why) fields.requested_value = why
       }
       if (action === 'wait') {
-        var whose = typeof window !== 'undefined' && window.prompt ? window.prompt('Who or what does the step wait on?') : ''
+        var whose =
+          typeof window !== 'undefined' && window.prompt
+            ? window.prompt('Who or what does the step wait on?')
+            : ''
         if (!whose) {
           if (errorEl) errorEl.textContent = 'A waiting step names who or what it waits on.'
           return
@@ -19256,14 +19316,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var targets = Array.isArray(state.allowedNext) ? state.allowedNext : []
         if (targets.length > 1) {
           if (!pickedOutcome) {
-            if (errorEl) errorEl.textContent = 'This step branches: choose which branch the outcome takes before completing it.'
+            if (errorEl)
+              errorEl.textContent =
+                'This step branches: choose which branch the outcome takes before completing it.'
             return
           }
           var chosen = outcomeChoices(state).filter(function (c) {
             return c.outcome === pickedOutcome
           })[0]
           if (!chosen) {
-            if (errorEl) errorEl.textContent = '"' + pickedOutcome + '" does not select a known branch of this step.'
+            if (errorEl)
+              errorEl.textContent =
+                '"' + pickedOutcome + '" does not select a known branch of this step.'
             return
           }
           fields.requested_outcome = chosen.outcome
@@ -19276,14 +19340,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         // The console refuses the proposal (a read-only export, a malformed draft). Say
         // so here: an exception thrown under a click is invisible otherwise, and the
         // person is left wondering why nothing happened.
-        if (errorEl) errorEl.textContent = 'The console refused this request: ' + String(err && err.message ? err.message : err)
+        if (errorEl)
+          errorEl.textContent =
+            'The console refused this request: ' + String(err && err.message ? err.message : err)
         return
       }
       if (!saved) {
         if (errorEl) errorEl.textContent = 'The console did not accept this request.'
         return
       }
-      draftNote = { run: activeRun.id, kind: 'request', name: 'q-' + String(requestsOf(activeRun).length + 1).padStart(3, '0') }
+      draftNote = {
+        run: activeRun.id,
+        kind: 'request',
+        name: 'q-' + String(requestsOf(activeRun).length + 1).padStart(3, '0'),
+      }
       render()
     }
 
@@ -19303,7 +19373,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var note = make(
           'div',
           'proc-action-waiting',
-          'Waiting for the agent: a "' + waiting.action + '" request on this step is pending. It acts on procedure_record.',
+          'Waiting for the agent: a "' +
+            waiting.action +
+            '" request on this step is pending. It acts on procedure_record.',
         )
         note.setAttribute('data-proc-waiting', waiting.action)
         box.appendChild(note)
@@ -19363,7 +19435,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         make(
           'div',
           'proc-draft-pending',
-          'Draft created: ' + draftNote.name + ' (' + draftNote.kind + '). It is pending until apply_change runs; ' +
+          'Draft created: ' +
+            draftNote.name +
+            ' (' +
+            draftNote.kind +
+            '). It is pending until apply_change runs; ' +
             'this view keeps showing the exported state until then.',
         ),
       )
@@ -19376,36 +19452,89 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var panel = make('div', 'proc-run-state')
       col.appendChild(panel)
       if (!activeRun) {
-        panel.appendChild(make('p', null, 'No run selected: the procedure definition. An agent starts a run with procedure_start.'))
+        panel.appendChild(
+          make(
+            'p',
+            null,
+            'No run selected: the procedure definition. An agent starts a run with procedure_start.',
+          ),
+        )
         return
       }
       var state = activeRun.state
-      panel.appendChild(make('div', 'proc-run-title', 'Run ' + activeRun.id + (activeRun.closed ? ' (closed)' : '')))
+      panel.appendChild(
+        make(
+          'div',
+          'proc-run-title',
+          'Run ' + activeRun.id + (activeRun.closed ? ' (closed)' : ''),
+        ),
+      )
       if (!state) {
-        panel.appendChild(make('p', null, 'The definition of this procedure is not in this export; its state cannot be folded here.'))
+        panel.appendChild(
+          make(
+            'p',
+            null,
+            'The definition of this procedure is not in this export; its state cannot be folded here.',
+          ),
+        )
         renderRequestQueue(col)
         return
       }
       panel.appendChild(make('div', 'proc-run-status', 'Status: ' + state.status))
-      panel.appendChild(make('div', 'proc-run-current', 'Current step: ' + (state.currentStep ? stepName(state.currentStep) : 'none')))
-      panel.appendChild(make('div', 'proc-run-path', 'Path: ' + state.path.map(stepName).join(' → ')))
-      if (state.blockedBy) panel.appendChild(make('div', 'proc-run-blocked', 'Blocked: ' + state.blockedBy))
-      if (state.crashed) panel.appendChild(make('div', 'proc-run-crashed', 'An engine step started and never reported: the run crashed.'))
+      panel.appendChild(
+        make(
+          'div',
+          'proc-run-current',
+          'Current step: ' + (state.currentStep ? stepName(state.currentStep) : 'none'),
+        ),
+      )
+      panel.appendChild(
+        make('div', 'proc-run-path', 'Path: ' + state.path.map(stepName).join(' → ')),
+      )
+      if (state.blockedBy)
+        panel.appendChild(make('div', 'proc-run-blocked', 'Blocked: ' + state.blockedBy))
+      if (state.crashed)
+        panel.appendChild(
+          make(
+            'div',
+            'proc-run-crashed',
+            'An engine step started and never reported: the run crashed.',
+          ),
+        )
       if (state.paused) panel.appendChild(make('div', 'proc-run-paused', 'Paused.'))
       if (state.drift) {
         panel.appendChild(
           make(
             'div',
             'proc-run-drift',
-            'Definition changed: the run is pinned to ' + state.drift.pinned + ', the procedure is now ' + state.drift.current + '.',
+            'Definition changed: the run is pinned to ' +
+              state.drift.pinned +
+              ', the procedure is now ' +
+              state.drift.current +
+              '.',
           ),
         )
       }
-      if (state.stale.length) panel.appendChild(make('div', 'proc-run-stale', 'Stale artifacts: ' + state.stale.join(', ')))
-      if (state.reopened.length) panel.appendChild(make('div', 'proc-run-reopened', 'Reopened steps: ' + state.reopened.map(stepName).join(', ')))
+      if (state.stale.length)
+        panel.appendChild(
+          make('div', 'proc-run-stale', 'Stale artifacts: ' + state.stale.join(', ')),
+        )
+      if (state.reopened.length)
+        panel.appendChild(
+          make(
+            'div',
+            'proc-run-reopened',
+            'Reopened steps: ' + state.reopened.map(stepName).join(', '),
+          ),
+        )
       // "Allowed next" is what the step's guards permit, which is meaningless when the fold
       // says the run cannot advance. A blocked step would read as if its branches were open.
-      if (state.allowedNext.length && !state.blockedBy && !state.drift && !TERMINAL_RUN[state.status]) {
+      if (
+        state.allowedNext.length &&
+        !state.blockedBy &&
+        !state.drift &&
+        !TERMINAL_RUN[state.status]
+      ) {
         panel.appendChild(
           make(
             'div',
@@ -19436,8 +19565,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           make(
             'div',
             'proc-run-next',
-            'Next action (agent): procedure_state ' + ref + ' lists the allowed actions; procedure_record ' + ref.slice(0, -1) + ', "action": …} records ' +
-              (state.drift ? 'the rebase onto the new definition.' : state.currentStep ? 'the next fact of step ' + stepName(state.currentStep) + '.' : 'the terminal event.'),
+            'Next action (agent): procedure_state ' +
+              ref +
+              ' lists the allowed actions; procedure_record ' +
+              ref.slice(0, -1) +
+              ', "action": …} records ' +
+              (state.drift
+                ? 'the rebase onto the new definition.'
+                : state.currentStep
+                  ? 'the next fact of step ' + stepName(state.currentStep) + '.'
+                  : 'the terminal event.'),
           ),
         )
       }
@@ -19462,13 +19599,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         item.setAttribute('data-proc-request-status', r.status)
         var text = make('div', 'request-text')
         text.appendChild(make('span', 'request-kind', r.action))
+        item.appendChild(text)
+        item.appendChild(make('span', 'request-status status-' + r.status, r.status))
         var bits = []
         if (r.step) bits.push(stepName(r.step))
         if (r.value) bits.push(r.value)
         if (r.outcome) bits.push('outcome ' + r.outcome)
-        if (bits.length) text.appendChild(document.createTextNode(' ' + bits.join(' · ')))
-        item.appendChild(text)
-        item.appendChild(make('span', 'request-status status-' + r.status, r.status))
+        if (r.baseSeq !== undefined) bits.push('seq ' + r.baseSeq)
+        if (bits.length) item.appendChild(make('div', 'request-detail', bits.join(' · ')))
         if (r.reason) item.appendChild(make('div', 'request-reason', r.reason))
         box.appendChild(item)
       })
@@ -19483,7 +19621,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       renderFicha(body)
       renderRunList(body)
       if (!active.graph) {
-        body.appendChild(make('div', 'empty-state', 'The definition of ' + active.file + ' is not in this export.'))
+        body.appendChild(
+          make(
+            'div',
+            'empty-state',
+            'The definition of ' + active.file + ' is not in this export.',
+          ),
+        )
         var ws0 = make('div', 'exec-workspace')
         body.appendChild(ws0)
         if (activeRun) renderRunPanel(ws0)
