@@ -90,7 +90,7 @@ import { resolveModelCitation } from './model-citation.js'
 import { canonicalizeTarget, modelIdAliases } from './model-id.js'
 import { artifactTargetProblem } from './produce-artifact.js'
 import { findElementInModel, mutationArgsForChange, parseTargetAddress } from './change-args.js'
-import { writeProposedChangeset } from './propose-changeset.js'
+import { resolveDefaultAuthor, writeProposedChangeset } from './propose-changeset.js'
 import { findDanglingReferrers, findDanglingReferrersForRemoval } from './move-referrers.js'
 
 import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
@@ -3279,14 +3279,14 @@ async function synthesizeAndExecuteChangeset(
       : (opArgs.newName as string) || (opArgs.elementName as string) || undefined,
     slug: (opArgs.slug as string) || undefined,
     seed: matrixSeed && Object.keys(matrixSeed).length > 0 ? matrixSeed : undefined,
-    author: (opArgs.author as string) || 'agent',
+    author: (opArgs.author as string)?.trim() || resolveDefaultAuthor(rootDir),
     notes: (opArgs.rationale as string) || undefined,
   }
 
   const written = await writeProposedChangeset(rootDir, {
     changes: [changeItem],
     title: `Synthesized change: ${op}`,
-    author: (opArgs.author as string) || 'agent',
+    author: (opArgs.author as string)?.trim() || resolveDefaultAuthor(rootDir),
   })
   return executeChangesetApply(rootDir, written.path)
 }

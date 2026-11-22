@@ -93,7 +93,6 @@ export async function initKnowledge(
   const written = await writeProposedChangeset(rootDir, {
     changes: [change],
     title: `Create model ${cleanId}`,
-    author: 'agent',
   })
   const payload = (await applyWithConsole(rootDir, () => applyChange(rootDir, written.path), {
     open: opts.open ?? false,

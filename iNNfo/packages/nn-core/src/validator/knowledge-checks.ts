@@ -98,7 +98,7 @@ export function checkFrontmatterInvariants(model: ParsedKnowledge, d: Diagnostic
     if (hasUnfrozen) {
       d.warn(
         'model',
-        'Model contains elements without explicit slugs and is not frozen. Any mutation will automatically freeze slugs.',
+        'Model contains elements without explicit slugs and is not frozen. Element mutations freeze them as a side effect, but bump_version does not; run freeze_slugs to freeze them explicitly.',
         { code: 'UNFROZEN_MODEL' },
       )
     }

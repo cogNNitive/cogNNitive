@@ -359,6 +359,7 @@ export {
 export { unitsFromFold, type UnitState } from './units.js'
 export {
   checkProvenance,
+  touchedModels,
   type ProvenanceDiagnostic,
   type ProvenanceModel,
   type ProvenanceOptions,

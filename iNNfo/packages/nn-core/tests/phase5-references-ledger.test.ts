@@ -244,6 +244,10 @@ describe('Phase 5: Reference Resolution, Diagnostics & Legacy Ledger', () => {
     const unfrozen = d.warnings.find((w) => w.code === 'UNFROZEN_MODEL')
     expect(unfrozen).toBeDefined()
     expect(unfrozen!.severity).toBe('warning')
+    // #560 D: bump_version does not freeze, so the warning must not promise that every
+    // mutation does; it names the explicit remedy instead.
+    expect(unfrozen!.message).not.toContain('Any mutation will automatically freeze')
+    expect(unfrozen!.message).toContain('freeze_slugs')
   })
 
   it('5.1.5 Typed references resolve by exact slug address only; matrix headers keep slug then exact display name, no separator-normalized fallback', () => {

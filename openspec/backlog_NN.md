@@ -97,17 +97,6 @@ evidence:: The coNNtent blueprint's procedures/ folder now holds configure_casca
 done_when:: The coNNtent blueprint declares and ships a procedures/ folder with two generic procedures promoted from video_NN: draft-scene-visuals (cleaned of series, language, vendor and machine specifics, and carrying the pre-draft gate that clean screenshots and rendered HyperFrames clips must exist under assets/<slug>/media/ before the draft JSON or build-draft-html.mjs) and produce-video (a router that lists series through their scope documents and hands off to the procedure each series declares). select-news is not shipped here: it moves to the iNNbox_NN domain, which specializes in acquiring sources. A test asserts the folder is declared and every shipped procedure resolves, and the blueprint version is bumped and repinned. Open decisions before the change: procedure language, file naming against the video-template requirement, and whether the gate also becomes a hard check in build-draft-html.mjs.
 batch:: b5d-conntent-procedures
 
-## NN Item: changeset-real-author
-value:: M
-effort:: S
-risk:: M
-status:: open
-lane:: light
-verdict:: current
-evidence:: `iNNfo/packages/nn-mcp/src/tools/apply-change.ts:2520` and `propose-changeset.ts:95` both fall back to the literal `agent` when the caller omits the author, so every changeset written by any agent, any session and any human reads `author:: agent` and the trace is worthless (observed 2026-11-16 while splitting kb-change-governance). The change is a default, not a schema change: `author` already round-trips through the serializer (`changeset/serializer.ts:100`) and the proposal hash (`changeset/hasher.ts:47`).
-done_when:: A changeset written without an explicit author records an identity that distinguishes the actor (derived from the environment, the git config, or a required caller argument), never the literal `agent`; an explicitly supplied author is preserved verbatim; a test pins both paths; and no approval or review flow is added.
-batch:: b20-changeset-real-author
-
 # NN Batch
 ## NN Batch: b4e-okf-export
 order:: 55
@@ -130,9 +119,3 @@ items:: coNNtent-procedures
 risk:: M
 state:: planned
 
-## NN Batch: b20-changeset-real-author
-order:: 60
-lane:: light
-items:: changeset-real-author
-risk:: M
-state:: planned

@@ -406,7 +406,8 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           title: { type: 'string', description: 'Title of the changeset.' },
           author: {
             type: 'string',
-            description: 'Author recorded on the changeset (default agent).',
+            description:
+              'Author recorded on the changeset (default: the NN_AUTHOR environment variable, else git user.name, else the OS user).',
           },
           domain: {
             type: 'string',
@@ -1059,7 +1060,10 @@ const handlersByName = new Map<string, ToolHandler>(
   TOOL_REGISTRY.map((entry) => [entry.definition.name, entry.handler]),
 )
 
-async function dispatchTool(name: string, args: Record<string, unknown>): Promise<CallToolResult> {
+export async function dispatchTool(
+  name: string,
+  args: Record<string, unknown>,
+): Promise<CallToolResult> {
   try {
     const handler = handlersByName.get(name)
     if (!handler) return errorResult(`Unknown tool: ${name}`)
@@ -1193,7 +1197,9 @@ async function handleApplyChange(args: Record<string, unknown>): Promise<CallToo
     )
   }
 
-  if (!changesetPath && (!id || !op || !args.args)) {
+  // freeze_slugs takes no args and bump_version defaults to patch: neither needs the key.
+  const argsOptional = op === 'freeze_slugs' || op === 'bump_version'
+  if (!changesetPath && (!id || !op || (!args.args && !argsOptional))) {
     return errorResult('Missing required arguments: id, op, args')
   }
 

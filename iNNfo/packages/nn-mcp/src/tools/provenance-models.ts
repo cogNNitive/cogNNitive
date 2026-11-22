@@ -10,25 +10,55 @@ import { readFile } from 'node:fs/promises'
 import {
   canonicalUnitModelId,
   parseKnowledge,
+  touchedModels,
+  type ChangeLog,
   type ParsedKnowledge,
   type ProvenanceModel,
 } from '@cognnitive/nn-core'
 import { listKnowledge } from './list-read.js'
+import { findKnowledgeFile } from './spec.js'
 
-/** Every level-3 model of the workspace, ordered by id. */
-export async function collectProvenanceModels(rootDir: string): Promise<ProvenanceModel[]> {
+async function parseLevel3(path: string): Promise<ParsedKnowledge | null> {
+  try {
+    const parsed = parseKnowledge(await readFile(path, 'utf-8'))
+    return parsed.frontmatter.level === 3 ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Every level-3 model of the workspace, ordered by id.
+ *
+ * Discovery lists only `knowledge` documents, but `apply_change` also writes level-3
+ * documents that discovery leaves out on purpose: a `procedures` document is a
+ * `procedure` or a `catalog` (#637). With the change log, each id it touched that the
+ * listing does not cover is looked up with the same resolver `apply_change` used to
+ * write it, so a file that exists is never reported as missing.
+ */
+export async function collectProvenanceModels(
+  rootDir: string,
+  log?: ChangeLog,
+): Promise<ProvenanceModel[]> {
   const models: ProvenanceModel[] = []
   for (const info of await listKnowledge(rootDir)) {
-    let parsed: ParsedKnowledge
-    try {
-      parsed = parseKnowledge(await readFile(info.path, 'utf-8'))
-    } catch {
-      continue
-    }
-    if (parsed.frontmatter.level !== 3) continue
+    const parsed = await parseLevel3(info.path)
+    if (!parsed) continue
     // `listKnowledge` ids come from the domain index and never carry `_NN`.
     const modelId = canonicalUnitModelId(info.id)
     models.push({ modelId, model: parsed, path: info.path })
+  }
+
+  if (log) {
+    const listed = new Set(models.map((entry) => entry.modelId))
+    for (const modelId of touchedModels(log).keys()) {
+      if (listed.has(modelId)) continue
+      const path = await findKnowledgeFile(rootDir, modelId).catch(() => null)
+      if (!path) continue
+      const parsed = await parseLevel3(path)
+      if (parsed) models.push({ modelId, model: parsed, path })
+    }
+    models.sort((a, b) => (a.modelId < b.modelId ? -1 : a.modelId > b.modelId ? 1 : 0))
   }
   return models
 }

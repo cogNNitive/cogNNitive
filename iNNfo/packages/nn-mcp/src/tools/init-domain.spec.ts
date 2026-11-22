@@ -42,6 +42,7 @@ async function stubSpecs(root: string) {
 }
 
 beforeEach(async () => {
+  vi.stubEnv('NN_AUTHOR', 'tester')
   process.env.INNFO_CACHE_DIR = join(base, '.cache')
   vi.spyOn(global, 'fetch').mockRejectedValue(new Error('network disabled in tests'))
   await rm(base, { recursive: true, force: true })
@@ -49,6 +50,7 @@ beforeEach(async () => {
 })
 
 afterEach(async () => {
+  vi.unstubAllEnvs()
   delete process.env.INNFO_CACHE_DIR
   vi.restoreAllMocks()
   await rm(base, { recursive: true, force: true })
@@ -114,7 +116,7 @@ describe('init_domain', () => {
       { writer: async () => ({ path: join(domainDir, 'domaiNN_console.html'), status: 'written', opened: false }) },
     )
     expect(proposed.success).toBe(true)
-    expect(proposed.changeset).toMatch(/^changes\/acme_agent_/)
+    expect(proposed.changeset).toMatch(/^changes\/acme_tester_/)
 
     const applied = await applyChange(domainDir, proposed.changeset!)
     expect(applied.status).toBe('applied')
