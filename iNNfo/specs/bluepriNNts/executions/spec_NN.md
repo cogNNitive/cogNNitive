@@ -137,7 +137,7 @@ description:: The budget of the current attempt. At most 300000.
 ## NN Field Definition: holder
 concept:: Step Run
 type:: string
-description:: Who holds the claim, as pid@host. A step whose holder is gone is a crash, derived from it.
+description:: Who holds the claim, as pid@host. For an engine step it is the process that runs the command, not the server that reports it. A step whose holder is gone is a crash, derived from it; a claim that names neither a holder nor a claim time is broken, never a permanent holder.
 
 ## NN Field Definition: evidence
 concept:: Step Run
@@ -193,7 +193,7 @@ A step's status, attempt, outcome, chosen `next` and frozen `inputs` live on its
 
 ### Concurrency
 
-Every runner changeset holds the header's `seq: n -> n+1` with `from: {seq: n}`, so any concurrent write to the same run conflicts the whole changeset. A step claim and completion also guard the step's `status` and `attempt`, so a late completion from an older attempt conflicts (the fence). A process that dies between claim and completion leaves `active`; the step is derived as crashed from its `holder`, and the next caller records `active -> failed` and may retry.
+Every runner changeset holds the header's `seq: n -> n+1` with `from: {seq: n}`, so any concurrent write to the same run conflicts the whole changeset. A step claim and completion also guard the step's `status` and `attempt`, so a late completion from an older attempt conflicts (the fence). `action=run` writes its claim before the command executes, with the pid of the child that runs it as the holder, so a second caller finds the step claimed instead of running the same command twice. A process that dies between claim and completion leaves `active`; the step is derived as crashed from its `holder`, and the next caller records `active -> failed` and may retry. A command parameter carrying shell syntax is refused (`UNSAFE_COMMAND`) before anything runs.
 
 ### Artifacts
 
