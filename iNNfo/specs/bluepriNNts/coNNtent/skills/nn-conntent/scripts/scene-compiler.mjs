@@ -20,7 +20,9 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { isKnowledgeModel, slugify } from './lib/knowledge-model.mjs';
 import { resolve, resolveFit } from './lib/cascade.mjs';
-import { chromeFieldsFor, kindBagOf, loadSeriesGrammar, validateLanguage, validateSceneKinds } from './lib/kinds.mjs';
+import { chromeFieldsFor, kindBagOf, kindLayersOf, loadSeriesGrammar, validateLanguage, validateSceneKinds } from './lib/kinds.mjs';
+import { bagsToChain } from './lib/video-scope.mjs';
+import { lookupPreset } from './lib/presets.mjs';
 
 /**
  * @typedef {Object} LowerThirdProps
@@ -240,6 +242,62 @@ export function computeSceneDurations(scenes, options = {}) {
   });
 }
 
+/** A Layer's override key: its reserved slug, else the slug of its name. */
+const layerKey = (layer) => String(layer?.slug || slugify(layer?.name)).toLowerCase();
+
+/** True for a Layer nested under a Preset or a Scene Kind: it is inherited, never owned by position. */
+const isInheritedLayer = (layer) => Boolean(layer?.parentElement && layer.parentElement.concept !== 'Scene');
+
+/**
+ * The Layer elements a scene inherits (issue #612 item 3), folded in the order of the
+ * Universal Parameter Cascade: each level's Presets in list order, then that level's own
+ * node, where the `kind` node carries the Layers nested under the Scene Kind. The fold
+ * walks the very chain `bagsToChain` builds for parameters, so layers and parameters
+ * never disagree on precedence. A nearer contribution replaces an outer one of the same
+ * slug. Without a preset index the Preset nodes cannot be expanded; only the kind layers fold.
+ * @param {{ grammar: object, kindName: unknown, bags: Record<string, any> }} input
+ * @returns {object[]} Layer elements, outer first
+ */
+export function inheritedLayers({ grammar, kindName, bags }) {
+  const chainBags = bags.presetIndex ? bags : withoutPresets(bags);
+  const byKey = new Map();
+  for (const node of bagsToChain(chainBags).nodes) {
+    const at = node.id.indexOf(':preset:');
+    const layers =
+      at !== -1
+        ? lookupPreset(chainBags.presetIndex, node.id.slice(at + ':preset:'.length)).layers || []
+        : node.id === 'kind'
+          ? kindLayersOf(grammar, kindName)
+          : [];
+    for (const layer of layers) {
+      byKey.delete(layerKey(layer));
+      byKey.set(layerKey(layer), layer);
+    }
+  }
+  return [...byKey.values()];
+}
+
+function withoutPresets(bags) {
+  const out = {};
+  for (const [level, bag] of Object.entries(bags || {})) {
+    if (bag && typeof bag === 'object' && !Array.isArray(bag) && Object.hasOwn(bag, 'presets')) {
+      const { presets: _presets, ...rest } = bag;
+      out[level] = rest;
+    } else out[level] = bag;
+  }
+  return out;
+}
+
+/**
+ * A scene's effective Layer elements: the inherited ones not overridden, in fold order,
+ * then the scene's own in document order. A scene Layer replaces an inherited one of the
+ * same slug whole; no inherited field leaks into it.
+ */
+export function effectiveLayers(inherited, own) {
+  const ownKeys = new Set(own.map(layerKey));
+  return [...inherited.filter((layer) => !ownKeys.has(layerKey(layer))), ...own];
+}
+
 /**
  * Assigns Layers to Scenes. The L3 `# NN index` cannot carry element nesting
  * (the validator rejects element entries), so ownership is derived from the
@@ -351,20 +409,42 @@ export class SceneCompiler {
     // its owning Scene (same ownership rule), that Scene's Kind presets, the Video,
     // and the outer levels in `bags`. A conditional field may be satisfied there.
     const grammar = options.grammar || (options.scriptDir ? loadSeriesGrammar(options.scriptDir) : { kinds: {}, chrome: {} });
-    const layerSceneFields = new Map();
-    // The owning Scene element, kept whole: the avatar guard needs its body, not just its fields.
-    const layerScene = new Map();
-    assignLayersToScenes(elements.Scene || [], elements.Layer || []).forEach((bucket, i) => {
+    // Each Layer the guard checks, with the Scene it renders in: the Scene's own Layers (same
+    // ownership rule as lowering; a Layer nested under a Preset or Scene Kind is never owned
+    // by position) and, per Scene, the Layers it inherits from its Kind and Presets.
+    const entries = [];
+    const ownLayers = (elements.Layer || []).filter((l) => !isInheritedLayer(l));
+    const ownBuckets = assignLayersToScenes(elements.Scene || [], ownLayers);
+    const ownerOf = new Map();
+    ownBuckets.forEach((bucket, i) => {
+      for (const l of bucket) ownerOf.set(l, elements.Scene[i] || {});
+    });
+    for (const l of ownLayers) {
+      const owner = ownerOf.get(l);
+      entries.push({ layer: l, scene: owner, sceneFields: owner?.fields || sceneFieldsBySlug.get(l.parentSlug) || {}, inherited: false });
+    }
+    ownBuckets.forEach((bucket, i) => {
       const owner = elements.Scene[i] || {};
-      for (const l of bucket) {
-        layerSceneFields.set(l, owner.fields || {});
-        layerScene.set(l, owner);
+      const fields = owner.fields || {};
+      const kindBag = kindBagOf(grammar, fields.kind);
+      let inherited = [];
+      try {
+        inherited = inheritedLayers({
+          grammar,
+          kindName: fields.kind,
+          bags: { ...(guardBags || {}), ...(kindBag ? { kind: kindBag } : {}), video: videoFields, scene: fields },
+        });
+      } catch (err) {
+        // A broken preset reference is reported once by the preset check below.
+        if (!err?.code) throw err;
+      }
+      for (const l of effectiveLayers(inherited, bucket).filter((x) => !bucket.includes(x))) {
+        entries.push({ layer: l, scene: owner, sceneFields: fields, inherited: true });
       }
     });
-    const layerBags = (layer) => {
-      const sceneFields = layerSceneFields.get(layer) || sceneFieldsBySlug.get(layer.parentSlug) || {};
-      const kindBag = kindBagOf(grammar, sceneFields.kind);
-      return { ...(guardBags || {}), ...(kindBag ? { kind: kindBag } : {}), video: videoFields, scene: sceneFields, layer: layer.fields || {} };
+    const layerBags = (entry) => {
+      const kindBag = kindBagOf(grammar, entry.sceneFields.kind);
+      return { ...(guardBags || {}), ...(kindBag ? { kind: kindBag } : {}), video: videoFields, scene: entry.sceneFields, layer: entry.layer.fields || {} };
     };
     // Preset reference errors are reported by the same guard, before any spend.
     if (guardBags) {
@@ -389,17 +469,26 @@ export class SceneCompiler {
         }
       }
     }
-    for (const layer of elements.Layer || []) {
+    // An inherited Layer is checked in every Scene that uses it, but reported once.
+    const reported = new Set();
+    for (const entry of entries) {
+      const { layer } = entry;
+      const report = (error) => {
+        const key = error.code + '|' + error.message;
+        if (entry.inherited && reported.has(key)) return;
+        reported.add(key);
+        errors.push(error);
+      };
       const type = layer.fields?.type;
       if (!type) {
-        errors.push({ code: 'layer-type-required', message: `Layer "${layer.name}" has no type::` });
+        report({ code: 'layer-type-required', message: `Layer "${layer.name}" has no type::` });
         continue;
       }
       if (type === 'text') {
         const style = layer.fields?.style;
         const binding = style ? TYPE_RENDERERS[style] : null;
         if (!style || !binding || binding.kind !== 'overlay') {
-          errors.push({
+          report({
             code: 'unknown-text-style',
             message: `Layer "${layer.name}" (type:: text) has unknown or missing style:: "${style}"`,
           });
@@ -408,16 +497,16 @@ export class SceneCompiler {
       }
       const required = conditional[type];
       if (!required) {
-        errors.push({ code: 'unknown-layer-type', message: `Layer "${layer.name}" has type:: "${type}"` });
+        report({ code: 'unknown-layer-type', message: `Layer "${layer.name}" has type:: "${type}"` });
         continue;
       }
       // An `avatar` Layer is a paid lip-sync job driven by its Scene's narration, so a Scene
       // with no narration has nothing to sync. Refuse it here, before any spend, and name the
       // type that draws a still: the still image the animatic shows is a pipeline state, not a
       // mode of the Layer (spec "Animatic and Avatars").
-      if (type === 'avatar' && !String(layerScene.get(layer)?.description || '').trim()) {
-        const sceneName = layerScene.get(layer)?.name || '(unowned)';
-        errors.push({
+      if (type === 'avatar' && !String(entry.scene?.description || '').trim()) {
+        const sceneName = entry.scene?.name || '(unowned)';
+        report({
           code: 'avatar-requires-narration',
           message:
             `Layer "${layer.name}" (type:: avatar) belongs to Scene "${sceneName}", which has no narration. ` +
@@ -438,12 +527,12 @@ export class SceneCompiler {
         // still runs before any spend.
         const isAvatar = type === 'avatar' || type === 'presenter';
         if ((field === 'avatar' || (field === 'asset' && isAvatar)) && guardBags) {
-          return present(resolve('avatar', layerBags(layer)).value);
+          return present(resolve('avatar', layerBags(entry)).value);
         }
         return false;
       });
       if (!hasAny) {
-        errors.push({
+        report({
           code: 'missing-conditional-field',
           message: `Layer "${layer.name}" (type:: ${type}) requires one of: ${required.join(', ')}`,
         });
@@ -464,7 +553,8 @@ export class SceneCompiler {
     const sceneElements = elements.Scene || [];
     const layerElements = elements.Layer || [];
     const bags = options.bags || {};
-    const buckets = assignLayersToScenes(sceneElements, layerElements);
+    // A Layer nested under a Preset or a Scene Kind is inherited, never owned by position.
+    const buckets = assignLayersToScenes(sceneElements, layerElements.filter((l) => !isInheritedLayer(l)));
     const videoEl = videos[0] || {};
 
     // The series grammar: Scene Kinds and Chrome declared by the Series document
@@ -523,7 +613,10 @@ export class SceneCompiler {
       // `voice_tone` is authoring guidance only and is deliberately not read
       // here: it must never reach the TTS payload or the cache key (design D6).
 
-      const layers = buckets[i].map((layer, j) => this.lowerLayer(layer, sceneId, j, sceneBags));
+      // The scene's Layers: those it inherits from its Kind and Presets (cascade order), minus
+      // any it overrides by slug, then its own (issue #612 item 3).
+      const inherited = inheritedLayers({ grammar, kindName: fields.kind, bags: sceneBags });
+      const layers = effectiveLayers(inherited, buckets[i]).map((layer, j) => this.lowerLayer(layer, sceneId, j, sceneBags));
       // Kind chrome: series wallpaper applied per kind, resolved for the cascaded
       // language (capability video-scene-kinds). It becomes ordinary overlays/music,
       // so the scene document never repeats it.
