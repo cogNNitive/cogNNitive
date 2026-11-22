@@ -1313,6 +1313,86 @@ agent-bootstrap:
   console.log('ok status ref column widens a release tag (#710)');
 }
 
+// #793: an installed bluepriNNt the catalog no longer lists reads `retired`, never the
+// same word as an unreadable catalog; stray copies and flat files are reported by their
+// on-disk name, and nothing is deleted.
+{
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-retired-'));
+  const home = path.join(tmpDir, 'home');
+  const blueprintsDir = path.join(tmpDir, 'bluepriNNts');
+  const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+  const writeSpec = (dir, name, version) => {
+    fs.mkdirSync(path.join(blueprintsDir, dir), { recursive: true });
+    fs.writeFileSync(
+      path.join(blueprintsDir, dir, 'spec_NN.md'),
+      `---\nblueprint_name: "${name}"\nblueprint_version: "${version}"\n---\n`,
+    );
+  };
+  fs.mkdirSync(home, { recursive: true });
+  writeSpec('organization', 'organization', 'V_0-3-0');
+  writeSpec('video', 'video', 'V_0-2-0');
+  writeSpec('_video-script.bak-2026-10-26', 'video-script', 'V_0-2-0');
+  writeSpec('tracked-copy', 'tracked-copy', 'V_0-1-0');
+  fs.writeFileSync(path.join(blueprintsDir, 'video.md'), '# flat copy\n');
+  fs.writeFileSync(
+    stateFile,
+    JSON.stringify({
+      manifest: '',
+      skills: {},
+      blueprints: {
+        gone: { commit: 'blueprints-v0.1.0' },
+        'Tracked-Copy': { commit: 'blueprints-v0.1.0', path: path.join(blueprintsDir, 'tracked-copy') },
+      },
+      mcp: {},
+      console: {},
+      projections: {},
+    }),
+  );
+  const catalogPath = path.join(tmpDir, 'catalog.json');
+  fs.writeFileSync(
+    catalogPath,
+    JSON.stringify({
+      blueprints: {
+        organization: { name: 'organization', adopted: 'V_0-3-0', release_tag: 'blueprints-v0.9.0' },
+        'tracked-copy': { name: 'tracked-copy', adopted: 'V_0-1-0', release_tag: 'blueprints-v0.1.0' },
+      },
+    }),
+  );
+  const manifest = await serveManifestOnce('---\nagent-bootstrap:\n  version: "2.0"\n  skills: []\n---\n# Manifest\n');
+  const flags = ['--templates-dir', blueprintsDir, '--skills-dir', path.join(tmpDir, 'skills'), '--state', stateFile];
+  const baseEnv = { ...process.env, USERPROFILE: home, HOME: home, SM_MANIFEST_URL: manifest.url };
+  try {
+    const st = await spawnAsync([managerScript, 'status', ...flags], { env: { ...baseEnv, COGNNITIVE_CATALOG: catalogPath } });
+    assert.strictEqual(st.status, 0, `status must succeed. stderr: ${st.stderr}`);
+    const row = (name) => st.stdout.split('\n').find((l) => l.split('|')[1] && l.split('|')[1].trim() === name);
+    assert.ok(!/\bunknown\b/.test(st.stdout), `no row may read "unknown" any more:\n${st.stdout}`);
+    assert.match(row('gone') || '', /retired/, 'a tracked bluepriNNt missing from the catalog is retired');
+    assert.match(row('video') || '', /retired/, 'an untracked directory missing from the catalog is retired');
+    assert.match(row('video.md') || '', /retired/, 'a flat .md nothing records is reported');
+    assert.match(
+      row('_video-script.bak-2026-10-26 (declares video-script)') || '',
+      /retired/,
+      'a stray copy is reported under its directory name, not the declared one',
+    );
+    assert.ok(!row('video-script'), 'the declared name of a stray copy is never a row of its own');
+    assert.match(row('organization') || '', /up-to-date/, 'a catalog bluepriNNt still compares normally');
+    assert.ok(!row('tracked-copy'), 'a directory tracked by its state path is not reported twice');
+    assert.match(st.stdout, /not in the catalog \(retired\)\. No update will ever touch them/, 'the retired summary names the consequence');
+    assert.ok(fs.existsSync(path.join(blueprintsDir, 'video')), 'status deletes nothing');
+
+    const down = await spawnAsync([managerScript, 'status', ...flags], {
+      env: { ...baseEnv, COGNNITIVE_CATALOG: path.join(tmpDir, 'missing-catalog.json') },
+    });
+    assert.strictEqual(down.status, 0, `status must succeed without a catalog. stderr: ${down.stderr}`);
+    assert.ok(!/\bretired\b/.test(down.stdout.split('\n\n')[0]), 'an unreadable catalog never reports a row as retired');
+    assert.match(down.stdout, /catalog-unavailable/, 'an unreadable catalog reads catalog-unavailable');
+  } finally {
+    await manifest.close();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+  console.log('ok status separates retired bluepriNNts from an unreadable catalog (#793)');
+}
+
 console.log('All skills-manager unit tests passed successfully!');
 }
 

@@ -990,7 +990,7 @@ async function cmdStatus(args) {
     const catalogEntry = findCatalogEntry(catalog, name);
     const installedTag = entry && entry.commit;
     let status;
-    if (!catalogEntry) status = 'unknown';
+    if (!catalogEntry) status = unmatchedCatalogStatus(catalog);
     else if (!catalogEntry.release_tag) status = 'unreleased';
     else if (installedTag === catalogEntry.release_tag) status = 'up-to-date';
     else status = 'outdated';
@@ -1006,16 +1006,19 @@ async function cmdStatus(args) {
   // Catalog bluepriNNts hydrated outside the manager: compare the installed
   // spec's blueprint_version with the catalog's adopted version.
   const behindBlueprints = [];
-  for (const { name, version } of untrackedInstalledBlueprints(args.blueprintsDir, state, manifestNames)) {
-    const catalogEntry = findCatalogEntry(catalog, name);
+  for (const item of untrackedInstalledBlueprints(args.blueprintsDir, state, manifestNames)) {
+    const { name, version } = item;
+    // A flat file is never a catalog package: only its absence from the catalog is judged.
+    const catalogEntry = item.kind === 'dir' ? findCatalogEntry(catalog, name) : null;
     let status;
-    if (!catalogEntry || !catalogEntry.adopted) status = 'unknown';
+    if (!catalogEntry) status = unmatchedCatalogStatus(catalog);
+    else if (!catalogEntry.adopted) status = 'unreleased';
     else if (compareBlueprintVersions(version, catalogEntry.adopted) < 0) status = 'outdated';
     else status = 'up-to-date';
-    if (status === 'outdated') behindBlueprints.push({ name: (catalogEntry && catalogEntry.name) || name, version, adopted: catalogEntry.adopted });
+    if (status === 'outdated') behindBlueprints.push({ name: catalogEntry.name || name, version, adopted: catalogEntry.adopted });
     rows.push({
       type: 'catalog',
-      name,
+      name: untrackedDisplayName(item),
       pinned: catalogEntry && catalogEntry.adopted ? String(catalogEntry.adopted) : '-',
       installed: version || '-',
       status,
@@ -1026,6 +1029,13 @@ async function cmdStatus(args) {
 
   for (const bp of behindBlueprints) {
     console.log(`\nbluepriNNt ${bp.name} ${bp.version || '(unknown version)'} is older than the catalog (${bp.adopted}). Run: ${blueprintInstallCommand(bp.name)}`);
+  }
+  const retired = rows.filter((r) => r.type === 'catalog' && r.status === 'retired');
+  if (retired.length > 0) {
+    console.log(`\n${retired.length} installed bluepriNNt(s) are not in the catalog (retired). No update will ever touch them; nothing deletes them either. Remove them by hand from ${args.blueprintsDir} if no domaiNN uses them: ${retired.map((r) => r.name).join(', ')}`);
+  }
+  if (!catalog) {
+    console.log('\nThe bluepriNNt catalog could not be read, so catalog bluepriNNts were not compared (catalog-unavailable). Re-run status when the catalog is reachable.');
   }
 
   if (outdatedSkills.length > 0 || outdatedBlueprints.length > 0 || outdatedConsoleAssets.length > 0 || outdatedMcp.length > 0) {
@@ -1319,18 +1329,43 @@ function compareBlueprintVersions(a, b) {
 }
 
 /**
+ * Status of an installed bluepriNNt that has no catalog entry. The two causes
+ * must not share a word: `retired` is a permanent orphan (the catalog was read
+ * and does not list it, so no `update` will ever touch it), while
+ * `catalog-unavailable` is transient (the catalog could not be read, so nothing
+ * on disk can be judged).
+ * @param {object | null} catalog
+ * @returns {'retired' | 'catalog-unavailable'}
+ */
+function unmatchedCatalogStatus(catalog) {
+  return catalog ? 'retired' : 'catalog-unavailable';
+}
+
+/**
  * Catalog bluepriNNt packages present under `blueprintsDir` (`<name>/spec_NN.md`)
  * that neither the manifest nor the state file records — hydrated outside the
  * manager (e.g. by nn-mcp). Their installed version is the spec's
  * `blueprint_version`, the only record of what is on disk.
+ *
+ * Each entry is keyed on what is on disk, never on what the spec declares: a
+ * renamed or backed-up copy (`_video-script.bak-<date>/` declaring
+ * `blueprint_name: video-script`) is reported under its own directory name, so it
+ * cannot resurrect a retired bluepriNNt under a version nobody can trace. Flat
+ * `<name>.md` files that nothing records are reported too (`kind: 'file'`):
+ * a directory-only scan left them invisible.
  * @param {string} blueprintsDir
  * @param {object} state
  * @param {Set<string>} manifestNames
- * @returns {{ name: string, version: string | null }[]}
+ * @returns {{ name: string, declared: string | null, version: string | null, kind: 'dir' | 'file' }[]}
  */
 function untrackedInstalledBlueprints(blueprintsDir, state, manifestNames) {
+  const trackedPaths = Object.values(state.blueprints || {})
+    .map((entry) => (entry && entry.path ? path.basename(String(entry.path)) : null))
+    .filter(Boolean);
   const known = new Set(
-    [...manifestNames, ...Object.keys(state.blueprints || {})].map((n) => String(n).toLowerCase()),
+    [...manifestNames, ...Object.keys(state.blueprints || {}), ...trackedPaths].map((n) =>
+      String(n).toLowerCase(),
+    ),
   );
   let entries;
   try {
@@ -1340,7 +1375,14 @@ function untrackedInstalledBlueprints(blueprintsDir, state, manifestNames) {
   }
   const found = [];
   for (const entry of entries) {
-    if (!entry.isDirectory() || known.has(entry.name.toLowerCase())) continue;
+    const lower = entry.name.toLowerCase();
+    if (known.has(lower)) continue;
+    if (entry.isFile() && lower.endsWith('.md')) {
+      if (known.has(lower.slice(0, -3))) continue;
+      found.push({ name: entry.name, declared: null, version: null, kind: 'file' });
+      continue;
+    }
+    if (!entry.isDirectory()) continue;
     let text;
     try {
       text = fs.readFileSync(path.join(blueprintsDir, entry.name, 'spec_NN.md'), 'utf-8');
@@ -1351,11 +1393,24 @@ function untrackedInstalledBlueprints(blueprintsDir, state, manifestNames) {
       const m = new RegExp(`^${key}:\\s*["']?([^"'\\r\\n]+?)["']?\\s*$`, 'm').exec(text);
       return m ? m[1] : null;
     };
-    const name = field('blueprint_name') || entry.name;
-    if (known.has(name.toLowerCase())) continue;
-    found.push({ name, version: field('blueprint_version') });
+    found.push({
+      name: entry.name,
+      declared: field('blueprint_name'),
+      version: field('blueprint_version'),
+      kind: 'dir',
+    });
   }
   return found.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Display name of an untracked install: the on-disk name, plus the declared
+ * name when the two disagree, so a stray copy reads as one.
+ * @param {{ name: string, declared: string | null }} item
+ */
+function untrackedDisplayName(item) {
+  if (!item.declared || item.declared.toLowerCase() === item.name.toLowerCase()) return item.name;
+  return `${item.name} (declares ${item.declared})`;
 }
 
 /**
@@ -1569,7 +1624,8 @@ async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString(
   }
   // Catalog bluepriNNts hydrated outside the manager (no state entry) whose
   // installed blueprint_version is older than the catalog's adopted version.
-  for (const { name, version } of untrackedInstalledBlueprints(args.blueprintsDir, state, manifestNames)) {
+  for (const { name, version, kind } of untrackedInstalledBlueprints(args.blueprintsDir, state, manifestNames)) {
+    if (kind !== 'dir') continue;
     if (args.positional.length > 0 && !args.positional.includes(name)) continue;
     const catalogEntry = findCatalogEntry(catalog, name);
     if (!catalogEntry || !catalogEntry.adopted) continue;
@@ -2227,6 +2283,7 @@ module.exports = {
   loadBlueprintCatalog,
   findCatalogEntry,
   untrackedInstalledBlueprints,
+  unmatchedCatalogStatus,
   blueprintInstallCommand,
   DEFAULT_BLUEPRINT_REPO,
   DEFAULT_CATALOG_PATH,
