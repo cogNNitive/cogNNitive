@@ -195,6 +195,22 @@ prompt:: a red barn at dawn
 
 function estimate(source) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'img-size-est-'));
+  // The blueprint pins no vendor model: the domain defaults plug the image model in.
+  fs.writeFileSync(
+    path.join(dir, 'video-defaults_NN.md'),
+    `---
+level: 3
+title: "Video Defaults"
+---
+
+# NN Video Defaults
+
+## NN Video Defaults: Defaults
+slug:: defaults
+image_model:: wavespeed-ai/z-image/turbo
+`,
+    'utf8',
+  );
   const scriptPath = path.join(dir, 'script_NN.md');
   fs.writeFileSync(scriptPath, source, 'utf8');
   try {

@@ -155,6 +155,12 @@ test('episode whose Series declares kind Gancho resolves without unknown-kind in
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'av-gancho-'))
   try {
     fs.writeFileSync(path.join(dir, 'domaiNN_NN.md'), '# NN DomaiNN\n', 'utf8')
+    // The blueprint pins no vendor model: the domain defaults plug the avatar model in.
+    fs.writeFileSync(
+      path.join(dir, 'video-defaults_NN.md'),
+      '---\nlevel: 3\ntitle: "Video Defaults"\n---\n\n# NN Video Defaults\n\n## NN Video Defaults: Defaults\nslug:: defaults\navatar_model:: wavespeed-ai/infinitetalk-fast\n',
+      'utf8',
+    )
     const seriesDir = path.join(dir, 'series', 's')
     const episodeDir = path.join(seriesDir, 'assets', 'e')
     fs.mkdirSync(episodeDir, { recursive: true })

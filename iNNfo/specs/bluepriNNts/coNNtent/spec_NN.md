@@ -755,7 +755,9 @@ resolved value through the Universal Parameter Cascade.
 | `text` | `text` or `text_from` |
 | `animation` | `asset` |
 
-`avatar_model` is never required: it has a blueprint default. `style` is required on `text`
+`avatar_model` is not a Layer requirement, and it has no blueprint default: the package pins
+no vendor model, so a domain plugs one in at its `video-defaults_NN.md` (or a nearer cascade
+level), and an avatar job with none resolved is refused before any spend. `style` is required on `text`
 and `placement`/`timing` on `media` through their Field Definitions, not through this table.
 
 ## Objectives
@@ -1013,7 +1015,10 @@ One `## NN Video Defaults:` element carries every cascade parameter's baseline. 
 ships one at `defaults/video-defaults_NN.md` (the `blueprint` level). A domain MAY hold one
 at its root as `video-defaults_NN.md` (the `domain` level); when absent the `domain` level is
 skipped. The package instance declares no `budget` and no `language`: an unset budget always
-asks at the budget gate and an unset language is a validation error. `daily_budget` is
+asks at the budget gate and an unset language is a validation error. It pins no vendor
+model id either: `image_model` and `avatar_model` (the still image and the lip-sync clip of an
+`avatar` Layer) are the domain's plug point, declared in the domain copy as a merged-catalog
+`api_id`. `daily_budget` is
 settable only here. Changing the package instance MUST bump `blueprint_version`. A domain
 copy MAY define Presets after its `Video Defaults` section.
 
@@ -1022,11 +1027,13 @@ copy MAY define Presets after its `Video Defaults` section.
 - Adopt the domain copy by copying the package document unchanged, then tune the copy.
 - Never hardcode a default in engine code; it lives here.
 - Never add a `budget` or `language` default to the package instance.
+- Never pin a vendor model id in the package instance; declare `image_model` and `avatar_model` in the domain copy.
 
 ### Prompts
 
 - "Copy the package `defaults/video-defaults_NN.md` to the domain root and tune it."
 - "Declare `language:: es` and `budget:: 1.5` in the domaiNN copy."
+- "Plug `avatar_model:: <api_id>` and `image_model:: <api_id>` from the merged catalog into the domaiNN copy."
 
 ## Provider
 

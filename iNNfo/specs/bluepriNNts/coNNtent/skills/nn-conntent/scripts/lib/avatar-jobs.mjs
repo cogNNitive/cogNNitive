@@ -277,7 +277,8 @@ export function ttsCachePathFor(sc, opts) {
  * @param {object} [o.bags]
  * @param {{ models: object }} [o.catalog] Merged catalog whose avatar Models declare `resolutions` (default: the reference catalog).
  * @returns {{ jobs: any[], problems: string[], skipped: Array<{ sceneId: string, layerName: string }> }}
- *   `problems` lists missing images/audio (no job is created for them); `skipped` lists avatar
+ *   `problems` lists missing images/audio (no job is created for them) and an unresolved
+ *   `avatar_model` (its job is still listed, so the pickup reports it missing); `skipped` lists avatar
  *   Layers whose Scene carries no narration, which render as their still image.
  */
 export function collectAvatarJobs({
@@ -341,6 +342,17 @@ export function collectAvatarJobs({
         continue
       }
       const model = normalizeModelId(layer.properties?.layer_avatar_model)
+      if (!model) {
+        // The blueprint pins no vendor model: the domain plugs one in. synthesize-avatar refuses
+        // on any problem (before any spend); the job itself is still listed, so the compile
+        // pickup reports its clip as missing and render refuses instead of drawing a still.
+        problems.push(
+          'Scene ' +
+            sc.id +
+            ': no avatar_model resolved for the avatar layer. The blueprint pins no vendor model: declare `avatar_model:: <api_id>` ' +
+            '(a merged-catalog avatar Model) in the domain video-defaults_NN.md, or on the Series, Character, Scene or Layer.',
+        )
+      }
       const resolution = normalizeAvatarResolution(layer.properties?.layer_avatar_resolution, declaredAvatarModel(catalog, model))
       jobs.push({
         sceneId: sc.id,
