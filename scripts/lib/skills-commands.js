@@ -1373,6 +1373,7 @@ function untrackedInstalledBlueprints(blueprintsDir, state, manifestNames) {
   } catch (_) {
     return [];
   }
+  /** @type {{ name: string, declared: string | null, version: string | null, kind: 'dir' | 'file' }[]} */
   const found = [];
   for (const entry of entries) {
     const lower = entry.name.toLowerCase();
