@@ -70,7 +70,7 @@ repository, which owns the GitHub Pages deployment for `cognnitive.com`.
 ## AI Agent Bootstrap
 
 If you are an AI Agent (Claude Code, Antigravity, OpenCode, Cursor):
-- Bootstrap entrypoint: [https://cognnitive.com/use](https://cognnitive.com/use) (served from `docs/use/manifest.md`)
+- Bootstrap entrypoint: [https://cognnitive.com/use](https://cognnitive.com/use) (generated into the `cogNNitive-web` repository as `docs/use/manifest.md`)
 - Semantic kNNowledge entrypoint: `domaiNN_NN.md`
 
 ## Development & Philosophy
