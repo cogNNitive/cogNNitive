@@ -151,7 +151,10 @@ describe('procedure view: an action records a Step Request', () => {
     mount(payload([(g) => runOf('r1', g, AT_REVIEW)]), draftSpy().ctx)
     assert.deepEqual(enabled().sort(), ['complete', 'fail', 'wait'])
     assert.ok(!actionIds().includes('start'), 'start is not a request: the agent claims a step')
-    assert.ok(!actionIds().includes('finish'), 'finish needs close_model, which a request cannot emit')
+    assert.ok(
+      !actionIds().includes('finish'),
+      'finish needs close_model, which a request cannot emit',
+    )
     assert.ok(!actionIds().includes('cancel'), 'cancel needs close_model too')
     assert.ok(!actionIds().includes('pause'), 'pause is run-level, not a step request')
   })

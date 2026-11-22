@@ -93,7 +93,9 @@ function requestRowOf(fields: Record<string, unknown>): StepRequestRow | null {
   return {
     action: action as StepRequestAction,
     status:
-      status !== undefined && REQUEST_STATES.has(status) ? (status as StepRequestStatus) : 'pending',
+      status !== undefined && REQUEST_STATES.has(status)
+        ? (status as StepRequestStatus)
+        : 'pending',
     ...(num(fields['base_seq']) !== undefined ? { baseSeq: num(fields['base_seq']) } : {}),
     ...(str(fields['step']) !== undefined ? { step: str(fields['step']) } : {}),
     ...(str(fields['requested_outcome']) !== undefined
@@ -130,7 +132,8 @@ function artifactRowOf(fields: Record<string, unknown>): ArtifactRow {
   const kind = str(fields['kind'])
   return {
     kind: kind === 'element' || kind === 'changeset' ? kind : 'file',
-    status: artifactStatusOf(fields['status']),    ...(str(fields['value']) !== undefined ? { value: str(fields['value']) } : {}),
+    status: artifactStatusOf(fields['status']),
+    ...(str(fields['value']) !== undefined ? { value: str(fields['value']) } : {}),
     ...(str(fields['rev']) !== undefined ? { rev: str(fields['rev']) } : {}),
   }
 }

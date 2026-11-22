@@ -91,7 +91,8 @@ async function requestRow(id: string, fields: Record<string, string | number>): 
     atomic: true,
   })
   const applied = await applyChange(root, written.path)
-  if (!applied.success) throw new Error(`request ${id} not applied: ${JSON.stringify(applied.errors)}`)
+  if (!applied.success)
+    throw new Error(`request ${id} not applied: ${JSON.stringify(applied.errors)}`)
 }
 
 /** The run's header seq, which is what a request pins. */
@@ -173,10 +174,15 @@ describe('Step Request queue', SLOW, () => {
 
   it('a request and an action together are refused', async () => {
     ok(await startReview())
-    await requestRow('q1', { action: 'wait', step: 'draft', value: 'ana', base_seq: await runSeq() })
-    expect(
-      await procedureRecord(root, { run: 'r1', request: 'q1', action: 'wait' }),
-    ).toMatchObject({ ok: false, code: 'INVALID_ARGUMENT' })
+    await requestRow('q1', {
+      action: 'wait',
+      step: 'draft',
+      value: 'ana',
+      base_seq: await runSeq(),
+    })
+    expect(await procedureRecord(root, { run: 'r1', request: 'q1', action: 'wait' })).toMatchObject(
+      { ok: false, code: 'INVALID_ARGUMENT' },
+    )
   })
 
   it('an unknown request is refused and nothing is written', async () => {
@@ -191,7 +197,12 @@ describe('Step Request queue', SLOW, () => {
 
   it('procedure_pending without a run lists every run of the domaiNN', async () => {
     ok(await startReview())
-    await requestRow('q1', { action: 'wait', step: 'draft', value: 'ana', base_seq: await runSeq() })
+    await requestRow('q1', {
+      action: 'wait',
+      step: 'draft',
+      value: 'ana',
+      base_seq: await runSeq(),
+    })
     ok(await procedureStart(root, { procedure: 'review', params: { doc: 'b' }, run: 'r2' }))
     const all = ok(await procedurePending(root, {}))
     expect(all.run).toBeNull()
@@ -202,7 +213,12 @@ describe('Step Request queue', SLOW, () => {
   it('a request waits on a step, and a fail request carries its reason', async () => {
     ok(await startReview())
     ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
-    await requestRow('q-wait', { action: 'wait', step: 'draft', value: 'ana', base_seq: await runSeq() })
+    await requestRow('q-wait', {
+      action: 'wait',
+      step: 'draft',
+      value: 'ana',
+      base_seq: await runSeq(),
+    })
     const waited = ok(await procedureRecord(root, { run: 'r1', request: 'q-wait' }))
     expect(waited.state.steps.draft).toMatchObject({ status: 'waiting', waitingOn: 'ana' })
 
@@ -218,7 +234,12 @@ describe('Step Request queue', SLOW, () => {
 
   it('the model keeps every request, resolved or not', async () => {
     ok(await startReview())
-    await requestRow('q1', { action: 'wait', step: 'draft', value: 'ana', base_seq: await runSeq() })
+    await requestRow('q1', {
+      action: 'wait',
+      step: 'draft',
+      value: 'ana',
+      base_seq: await runSeq(),
+    })
     ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
     await requestRow('q2', { action: 'complete', step: 'draft', base_seq: await runSeq() })
     ok(await procedureRecord(root, { run: 'r1', request: 'q2' }))

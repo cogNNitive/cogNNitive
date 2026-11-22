@@ -651,11 +651,7 @@ describe('engine steps', SLOW, () => {
 
 describe('step requests', SLOW, () => {
   /** Records a Step Request row the way the console does: one add_element, no run change. */
-  const ask = (
-    run: string,
-    id: string,
-    fields: Record<string, string | number>,
-  ) =>
+  const ask = (run: string, id: string, fields: Record<string, string | number>) =>
     procedureRecord(root, {
       run,
       action: 'input',
