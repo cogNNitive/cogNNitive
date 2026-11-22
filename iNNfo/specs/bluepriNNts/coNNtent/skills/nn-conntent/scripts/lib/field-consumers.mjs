@@ -76,6 +76,7 @@ export const FIELD_CONSUMERS = {
   capability: ['lib/catalog.mjs'],
   controls: ['lib/catalog.mjs', 'adapters/_intent.mjs'],
   adapter: ['lib/catalog.mjs'],
+  request_map: ['asset-synthesizer.mjs', 'lib/avatar-request.mjs'],
   allowed: ['lib/catalog.mjs'],
   voice_id: ['lib/catalog.mjs'],
   price: ['lib/catalog.mjs'],

@@ -37,6 +37,19 @@ export class CatalogError extends Error {
   }
 }
 
+/** Parses a catalog keyed list (`[a=b, c=d]`) into an object; an entry without `=` is an error. */
+export function parseKeyedList(value, what) {
+  const out = {};
+  const items = Array.isArray(value) ? value : value === undefined || value === null || String(value).trim() === '' ? [] : [value];
+  for (const item of items) {
+    const text = String(item).trim();
+    const eq = text.indexOf('=');
+    if (eq <= 0) throw new CatalogError('invalid-keyed-list', `${what} entry "${text}" is not a key=value pair.`);
+    out[text.slice(0, eq).trim()] = text.slice(eq + 1).trim();
+  }
+  return out;
+}
+
 const asList = (value) => (Array.isArray(value) ? value.map(String) : value === undefined ? [] : [String(value)]);
 
 /** Parses a catalog document into `{ providers, models, voices }`, keyed by slug. */

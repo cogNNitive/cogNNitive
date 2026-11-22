@@ -101,6 +101,7 @@ Legend: ● can be written at this scope, · cannot.
 | `capability` | select | `tts`, `image`, `avatar`, `video` | · | · | · | · | · | · | · | · | · | · | ● | · |
 | `controls` | select (multi) | `speed`, `emotion`, `size`, `resolution` | · | · | · | · | · | · | · | · | · | · | ● | · |
 | `sizes` | select (multi) | — | · | · | · | · | · | · | · | · | · | · | ● | · |
+| `request_map` | select (multi) | — | · | · | · | · | · | · | · | · | · | · | ● | · |
 | `adapter` | string | — | · | · | · | · | · | · | · | · | · | · | ● | · |
 | `price` | number | — | · | · | · | · | · | · | · | · | · | · | ● | · |
 | `price_unit` | select | `per_1k_chars`, `per_image`, `per_second` | · | · | · | · | · | · | · | · | · | · | ● | · |
@@ -576,6 +577,12 @@ Settable at: `Model`.
 ### `sizes`
 
 Image sizes the Model accepts, as `<W>x<H>` entries. `image_size` must be one of them.
+
+Settable at: `Model`.
+
+### `request_map`
+
+Optional keyed list that renames the engine's avatar inputs to the Model's own request fields (`[image=<field>, audio=<field>, resolution=<field>]`); only the mapped inputs are sent. A Model with no `request_map` gets the default body `{image, audio, resolution}`. An input the engine does not produce fails before any spend.
 
 Settable at: `Model`.
 

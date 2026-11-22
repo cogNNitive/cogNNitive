@@ -844,6 +844,18 @@
       "cascade": false,
       "description": "Slug of the `Provider` element this Model belongs to."
     },
+    "request_map": {
+      "concepts": [
+        "Model"
+      ],
+      "scope": "record",
+      "levels": [],
+      "type": "select",
+      "options": [],
+      "multiple": true,
+      "cascade": false,
+      "description": "Optional keyed list that renames the engine's avatar inputs to the Model's own request fields (`[image=<field>, audio=<field>, resolution=<field>]`); only the mapped inputs are sent. A Model with no `request_map` gets the default body `{image, audio, resolution}`. An input the engine does not produce fails before any spend."
+    },
     "review": {
       "concepts": [
         "Scene"

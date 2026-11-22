@@ -591,6 +591,12 @@ type:: select
 multiple:: true
 description:: Image sizes the Model accepts, as `<W>x<H>` entries. `image_size` must be one of them.
 
+## NN Field Definition: request_map
+concept:: Model
+type:: select
+multiple:: true
+description:: Optional keyed list that renames the engine's avatar inputs to the Model's own request fields (`[image=<field>, audio=<field>, resolution=<field>]`); only the mapped inputs are sent. A Model with no `request_map` gets the default body `{image, audio, resolution}`. An input the engine does not produce fails before any spend.
+
 ## NN Field Definition: adapter
 concept:: Model
 type:: string
@@ -1058,8 +1064,10 @@ One callable model: capability, declared controls, adapter and price.
 ### Description
 
 One `## NN Model: <slug>` element declares `provider`, `api_id`, `capability`
-(`tts`/`image`/`avatar`/`video`), `controls`, `sizes` (image models), `adapter`, `price`,
-`price_unit`, `price_date` and `status`. The domaiNN overlay declares the same element with
+(`tts`/`image`/`avatar`/`video`), `controls`, `sizes` (image models), `request_map`
+(avatar models whose request fields differ from the default body), `adapter`, `price`,
+`price_unit`, `price_date` and `status`. A model whose request names its inputs differently
+becomes callable by declaring its `request_map`, never by editing engine code. The domaiNN overlay declares the same element with
 `allowed`, an invoice `price`, `price_date` and `price_source:: invoice`; merging is per
 Model slug and the overlay wins. A Model defined only in the overlay must declare every
 field and name an existing adapter. Capability is declared, never inferred from the id.

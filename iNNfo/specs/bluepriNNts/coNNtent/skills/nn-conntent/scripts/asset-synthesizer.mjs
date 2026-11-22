@@ -17,7 +17,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { CacheManager } from './cache-manager.mjs';
 import { SpendGuard, loadGuard, isSystemVoice, assertModelAllowed } from './lib/video-guard.mjs';
-import { loadMergedCatalog } from './lib/catalog.mjs';
+import { loadMergedCatalog, resolveModel } from './lib/catalog.mjs';
 import {
   providerRoute,
   envKeyFor,
@@ -193,6 +193,15 @@ export class AssetSynthesizer {
     if (envKey) return { envKey, value: this.env[envKey] };
     const any = declaredEnvKeys(this._catalog()).find((k) => this.env[k]);
     return { envKey: null, value: any ? this.env[any] : undefined };
+  }
+
+  /** The catalog Model a call names, or null when the catalog does not declare it. @private */
+  _declaredModel(model) {
+    try {
+      return resolveModel(this._catalog(), model);
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -517,7 +526,7 @@ export class AssetSynthesizer {
     let route = resumeId ? this._routeFor(model, { checkGuard: false }) : null;
     if (!resumeId) {
       // Everything that can be checked is checked BEFORE any spend: inputs (fail closed), duration, cap.
-      request = buildAvatarRequest({ imagePath, audioPath, resolution });
+      request = buildAvatarRequest({ imagePath, audioPath, resolution, requestMap: this._declaredModel(model)?.request_map });
       const seconds =
         Number(meta.durationSeconds) || Number(avatarOptions.durationSeconds) || (await probeAudioDuration(audioPath, this.probeDeps)) || 0;
       if (!(seconds > 0)) {

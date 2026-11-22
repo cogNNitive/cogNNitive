@@ -39,3 +39,20 @@ A Model whose Provider credential is not set MUST produce the offline placeholde
 - WHEN it is synthesized with a provider credential set
 - THEN the call fails with `unknown-model`
 - AND no network request was made
+
+### Requirement: An avatar Model declares its own request shape
+
+An avatar `Model` MAY declare `request_map`, a keyed list that renames the engine inputs `image`, `audio` and `resolution` to the Model's own request fields, and the engine MUST send only the mapped inputs under those names.
+A Model with no `request_map` MUST receive the default body `{image, audio, resolution}` unchanged.
+A `request_map` that names an input the engine does not produce MUST fail before any spend.
+
+#### Scenario: A model with different field names is callable from the catalog alone
+- GIVEN a catalog avatar Model with `request_map:: [image=image_url, audio=audio_file, resolution=output_resolution]`
+- WHEN an avatar clip is synthesized with it against a stub transport
+- THEN the posted body is `{image_url, audio_file, output_resolution}`
+- AND no engine code names that model
+
+#### Scenario: The default body is unchanged
+- GIVEN the shipped avatar Model, which declares no `request_map`
+- WHEN an avatar clip is synthesized
+- THEN the posted body is `{image, audio, resolution}` in that order

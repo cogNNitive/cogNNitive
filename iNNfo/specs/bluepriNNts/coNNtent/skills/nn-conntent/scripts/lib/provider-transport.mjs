@@ -19,7 +19,7 @@
  * Zero external dependencies. ESM module.
  */
 
-import { CatalogError, resolveModel } from './catalog.mjs';
+import { CatalogError, parseKeyedList, resolveModel } from './catalog.mjs';
 
 /** Transport fields a Provider must declare before any of its models can be called. */
 export const REQUIRED_TRANSPORT_FIELDS = ['api_base', 'env_key', 'auth_scheme', 'submit_path', 'poll_path'];
@@ -28,19 +28,6 @@ export const REQUIRED_TRANSPORT_FIELDS = ['api_base', 'env_key', 'auth_scheme', 
 export const SIZE_FORMATS = ['star', 'aspect_ratio'];
 
 const blank = (value) => value === undefined || value === null || String(value).trim() === '';
-
-/** Parses a keyed list (`[a=b, c=d]`) into an object; an entry without `=` is an error. */
-export function parseKeyedList(value, what) {
-  const out = {};
-  const items = Array.isArray(value) ? value : blank(value) ? [] : [value];
-  for (const item of items) {
-    const text = String(item).trim();
-    const eq = text.indexOf('=');
-    if (eq <= 0) throw new CatalogError('invalid-keyed-list', `${what} entry "${text}" is not a key=value pair.`);
-    out[text.slice(0, eq).trim()] = text.slice(eq + 1).trim();
-  }
-  return out;
-}
 
 function fill(template, vars, what) {
   return String(template).replace(/\{(\w+)\}/g, (_, name) => {
