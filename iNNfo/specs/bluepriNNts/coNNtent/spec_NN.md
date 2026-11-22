@@ -1016,9 +1016,10 @@ ships one at `defaults/video-defaults_NN.md` (the `blueprint` level). A domain M
 at its root as `video-defaults_NN.md` (the `domain` level); when absent the `domain` level is
 skipped. The package instance declares no `budget` and no `language`: an unset budget always
 asks at the budget gate and an unset language is a validation error. It pins no vendor
-model id either: `image_model` and `avatar_model` (the still image and the lip-sync clip of an
-`avatar` Layer) are the domain's plug point, declared in the domain copy as a merged-catalog
-`api_id`. `daily_budget` is
+model id either: `image_model` (the model of every generated image Layer, including the
+still of an `avatar` Layer) and `avatar_model` (the lip-sync clip of an `avatar` Layer) are the
+domain's plug point, declared in the domain copy as a merged-catalog `api_id`; a prompted
+Layer or an avatar job with no model resolved is refused before any spend. `daily_budget` is
 settable only here. Changing the package instance MUST bump `blueprint_version`. A domain
 copy MAY define Presets after its `Video Defaults` section.
 

@@ -70,10 +70,11 @@ A requested `avatar_resolution` for a Model that does not declare the `resolutio
 - THEN the first defaults to `480p` and the second to `720p`
 - AND `1080p` is accepted for the second and refused for the first
 
-### Requirement: The blueprint pins no vendor model for the avatar layer
+### Requirement: The blueprint pins no vendor model
 
 The package `defaults/video-defaults_NN.md` MUST NOT declare `image_model` or `avatar_model`, and MUST document that a domain plugs them into its own `video-defaults_NN.md` as merged-catalog `api_id` values.
 An avatar job whose `avatar_model` resolves at no cascade level MUST be refused before any spend with an error that names the domain `video-defaults_NN.md` plug point.
+A generated image Layer whose `image_model` resolves at no cascade level MUST be refused before any spend and before any plan line, with an error that names `image_model:: <api_id>` in the domain `video-defaults_NN.md`.
 No binary actor asset is added to the blueprint package.
 
 #### Scenario: A domain plugs its avatar model in

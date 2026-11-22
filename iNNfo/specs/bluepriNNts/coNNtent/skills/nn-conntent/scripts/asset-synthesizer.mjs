@@ -607,7 +607,15 @@ export class AssetSynthesizer {
   async resolveMedia(prompt, options = {}, meta = {}) {
     const cleanPrompt = (prompt || '').trim();
     const sha256 = this.cacheManager.computeHash(cleanPrompt, options);
-    const billable = Boolean(this._credentialFor(this._resolveMediaModel(options, meta)).value);
+    const imageModel = this._resolveMediaModel(options, meta);
+    const billable = Boolean(this._credentialFor(imageModel).value);
+    if (billable && !imageModel) {
+      // The blueprint pins no vendor model: the domain plugs one in (refused before any spend or plan line).
+      throw new Error(
+        'No image_model resolved for this prompted layer. The blueprint pins no vendor model: declare `image_model:: <api_id>` ' +
+          '(a merged-catalog image Model) in the domain video-defaults_NN.md, or on the Series, Preset, Video or Scene. Nothing was spent.',
+      );
+    }
     const cacheKey = billable ? sha256 : sha256 + '-offline';
     const cachedPath = await this.cacheManager.get(cacheKey, 'png', 'images');
     if (cachedPath) {

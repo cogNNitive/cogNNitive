@@ -32,9 +32,11 @@ the bluepriNNt package. A domain adopts it by copying this document to its root 
 `video-defaults_NN.md` and tuning the copy. It declares no `budget` and no `language`: an
 unset budget always asks at the budget gate, and an unset language is a validation error.
 
-It pins no vendor model for the avatar layer either: the still image of an `avatar` Layer
-(`image_model`) and its lip-sync clip (`avatar_model`) are the domain's plug point. A domain
+It pins no vendor model either: `image_model` (the model of every generated image Layer,
+including the still of an `avatar` Layer) and `avatar_model` (the lip-sync clip of an
+`avatar` Layer) are the domain's plug point. A domain
 declares them in its own `video-defaults_NN.md` copy as `image_model:: <api_id>` and
 `avatar_model:: <api_id>`, each naming a Model of the merged catalog (the shipped reference
 catalog lists the available ones); a Series, Character, Preset, Scene or Layer may override
-them. An avatar job whose model resolves nowhere is refused before any spend.
+them. A generated image or an avatar job whose model resolves nowhere is refused before any
+spend.

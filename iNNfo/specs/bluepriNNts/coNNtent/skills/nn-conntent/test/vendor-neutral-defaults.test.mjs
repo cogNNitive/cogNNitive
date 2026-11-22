@@ -56,3 +56,32 @@ test('an avatar job with no resolved model is refused before spend and names the
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('an image with no image_model at any level is refused before spend, naming the plug point (B2)', async () => {
+  const { AssetSynthesizer } = await import('../scripts/asset-synthesizer.mjs');
+  const { CacheManager } = await import('../scripts/cache-manager.mjs');
+  const { SpendGuard, DEFAULT_GUARD } = await import('../scripts/lib/video-guard.mjs');
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'vendor-neutral-img-')));
+  try {
+    for (const dryRun of [false, true]) {
+      const calls = [];
+      const guard = new SpendGuard({ config: structuredClone(DEFAULT_GUARD), root, dryRun, approval: () => ({ ok: true }) });
+      const synth = new AssetSynthesizer({
+        cacheManager: new CacheManager({ baseDir: path.join(root, 'cache') }),
+        guard,
+        bags: {},
+        env: { WAVESPEED_API_KEY: 'fake-key' },
+        fetch: async (...args) => {
+          calls.push(args);
+          throw new Error('no network in tests');
+        },
+        sleep: async () => {},
+      });
+      await assert.rejects(synth.resolveMedia('a lake', {}), (err) => /image_model:: <api_id>/.test(err.message) && /video-defaults_NN\.md/.test(err.message));
+      assert.equal(calls.length, 0);
+      assert.ok(!guard.planned.some((p) => p.model === undefined || p.model === 'undefined'), 'no undefined plan line');
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

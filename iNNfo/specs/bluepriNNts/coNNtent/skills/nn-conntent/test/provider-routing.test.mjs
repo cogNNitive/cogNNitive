@@ -146,7 +146,7 @@ describe('fail closed before any network call', () => {
   it('refuses an image call that names no model instead of picking a provider default', async () => {
     const ctx = setup();
     const provider = fakeFetch();
-    await assert.rejects(synth(ctx, provider, { env: { REPLICATE_API_TOKEN: 'fake-replicate' } }).resolveMedia('x', {}), ModelBlockedError);
+    await assert.rejects(synth(ctx, provider, { env: { REPLICATE_API_TOKEN: 'fake-replicate' } }).resolveMedia('x', {}), /image_model:: <api_id>/);
     assert.equal(provider.calls.length, 0);
   });
 });
