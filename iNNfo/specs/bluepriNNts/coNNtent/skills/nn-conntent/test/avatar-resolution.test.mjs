@@ -234,3 +234,13 @@ asset:: media/face.png
     fs.rmSync(dir, { recursive: true, force: true })
   }
 })
+
+test('a model with the resolution control but no declared resolutions is refused before spend (B1)', () => {
+  // An overlay written before resolutions existed: the control is declared, its values are not.
+  const legacy = avatarModel('p-video-avatar', PRUNA_PVIDEO, undefined)
+  const refusal = (err) => /p-video\/avatar/.test(err.message) && /resolutions:: \[/.test(err.message)
+  assert.throws(() => normalizeAvatarResolution(undefined, legacy), refusal)
+  assert.throws(() => normalizeAvatarResolution('480p', legacy), refusal)
+  assert.throws(() => normalizeAvatarResolution('1080p', legacy), refusal)
+  assert.throws(() => defaultResolutionFor(legacy), refusal)
+})

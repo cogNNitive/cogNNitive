@@ -167,7 +167,25 @@ export function checkAvatarUpscale({
  * @param {{ resolutions?: string[] } | null} model the resolved catalog Model
  */
 export function defaultResolutionFor(model) {
-  return resolutionsOf(model)[0] || DEFAULT_AVATAR_RESOLUTION
+  return declaredResolutions(model)[0] || DEFAULT_AVATAR_RESOLUTION
+}
+
+/**
+ * The Model's declared `resolutions`. A Model that declares the `resolution` control but no
+ * values (an overlay written before `resolutions` existed) is refused before any spend: no
+ * value can be requested or defaulted safely for it.
+ */
+function declaredResolutions(model) {
+  const list = resolutionsOf(model)
+  if (list.length === 0 && (model?.controls || []).map(String).includes('resolution')) {
+    throw new Error(
+      'Avatar model ' +
+        (model.api_id || model.slug) +
+        ' declares the resolution control but no resolutions: declare `resolutions:: [...]` on it in the catalog ' +
+        '(the first value is its default). Nothing was spent.',
+    )
+  }
+  return list
 }
 
 /**
@@ -179,7 +197,7 @@ export function defaultResolutionFor(model) {
  */
 export function normalizeAvatarResolution(requested, model) {
   if (requested && model) translateIntent({ avatar_resolution: requested }, model)
-  const allowed = resolutionsOf(model)
+  const allowed = declaredResolutions(model)
   const r = requested ? String(requested) : defaultResolutionFor(model)
   if (allowed.length > 0 && !allowed.includes(r)) {
     throw new Error(
