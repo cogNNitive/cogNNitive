@@ -62,7 +62,11 @@ function step(name, fn) {
     steps.push({ name, ok: true, evidence, ms: Date.now() - started })
     log(`  ok   ${name}\n         ${evidence}`)
   } catch (error) {
-    const message = String(error?.stderr || error?.message || error).trim().split('\n').slice(-4).join(' | ')
+    const message = String(error?.stderr || error?.message || error)
+      .trim()
+      .split('\n')
+      .slice(-4)
+      .join(' | ')
     steps.push({ name, ok: false, error: message, ms: Date.now() - started })
     log(`  FAIL ${name}\n         ${message}`)
     throw error
@@ -70,7 +74,8 @@ function step(name, fn) {
 }
 
 function exit(code) {
-  if (asJson) process.stdout.write(`${JSON.stringify({ ok: code === 0, steps, scratch }, null, 2)}\n`)
+  if (asJson)
+    process.stdout.write(`${JSON.stringify({ ok: code === 0, steps, scratch }, null, 2)}\n`)
   if (scratch) {
     if (code === 0) fs.rmSync(scratch, { recursive: true, force: true })
     else log(`\nscratch kept for inspection: ${scratch}`)
@@ -114,7 +119,8 @@ function main() {
       ['-e', "process.stdout.write(require('./scripts/lib/skills-commands.js').getManifestUrl())"],
       { cwd: repoRoot, env: isolatedEnv },
     )
-    if (url !== 'https://cognnitive.com/use/manifest.md') throw new Error(`default manifest is ${url}`)
+    if (url !== 'https://cognnitive.com/use/manifest.md')
+      throw new Error(`default manifest is ${url}`)
     return 'https://cognnitive.com/use/manifest.md'
   })
 
@@ -129,25 +135,37 @@ function main() {
   step('the skills manager answers on a HOME that has never seen cogNNitive', () => {
     // `status` is the command the manifest's own install flow tells a fresh
     // agent to run first, so it must not crash where nothing is installed.
-    const out = run(process.execPath, [path.join(repoRoot, 'scripts', 'skills-manager.js'), 'status'], {
-      cwd: repoRoot,
-      env: isolatedEnv,
-    })
+    const out = run(
+      process.execPath,
+      [path.join(repoRoot, 'scripts', 'skills-manager.js'), 'status'],
+      {
+        cwd: repoRoot,
+        env: isolatedEnv,
+      },
+    )
     const rows = out.split('\n').filter((l) => /^(skill|template|catalog|mcp|console)\s*\|/.test(l))
     if (rows.length === 0) throw new Error('status reported no rows at all')
     return `${rows.length} rows reported on an empty HOME`
   })
 
   step('every core blueprint names a tag a client can fetch', () => {
-    const catalog = JSON.parse(fs.readFileSync(path.join(repoRoot, 'iNNfo/specs/bluepriNNts/catalog.json'), 'utf8'))
+    const catalog = JSON.parse(
+      fs.readFileSync(path.join(repoRoot, 'iNNfo/specs/bluepriNNts/catalog.json'), 'utf8'),
+    )
     const core = Object.entries(catalog.blueprints).filter(([, e]) => e.tier === 'core')
 
     // A core entry with no release_tag is one no client can install, and the
     // release that should have stamped it has already finished by now.
     const unreleased = core.filter(([, e]) => !e.release_tag).map(([n]) => n)
-    if (unreleased.length) throw new Error(`core blueprints with no release_tag: ${unreleased.join(', ')}`)
+    if (unreleased.length)
+      throw new Error(`core blueprints with no release_tag: ${unreleased.join(', ')}`)
 
-    const tags = new Set(git(['tag', '--list', 'blueprints-v*']).split('\n').map((t) => t.trim()).filter(Boolean))
+    const tags = new Set(
+      git(['tag', '--list', 'blueprints-v*'])
+        .split('\n')
+        .map((t) => t.trim())
+        .filter(Boolean),
+    )
     for (const [name, entry] of core) {
       if (!tags.has(entry.release_tag)) {
         throw new Error(`${name} names ${entry.release_tag}, which is not a tag in this repository`)
@@ -159,21 +177,32 @@ function main() {
   step('every catalog entry a user may install is publicly fetchable', () => {
     // `tier: free` bluepriNNts are installed by name, not by the bootstrap, so
     // their reachability is the same promise in a different flow.
-    const catalog = JSON.parse(fs.readFileSync(path.join(repoRoot, 'iNNfo/specs/bluepriNNts/catalog.json'), 'utf8'))
-    const targets = Object.entries(catalog.blueprints).map(([name, e]) => ({ name, url: e.versions.at(-1)?.url }))
+    const catalog = JSON.parse(
+      fs.readFileSync(path.join(repoRoot, 'iNNfo/specs/bluepriNNts/catalog.json'), 'utf8'),
+    )
+    const targets = Object.entries(catalog.blueprints).map(([name, e]) => ({
+      name,
+      url: e.versions.at(-1)?.url,
+    }))
     const missingUrl = targets.filter((t) => !t.url).map((t) => t.name)
-    if (missingUrl.length) throw new Error(`catalog entries with no spec url: ${missingUrl.join(', ')}`)
+    if (missingUrl.length)
+      throw new Error(`catalog entries with no spec url: ${missingUrl.join(', ')}`)
     return `${targets.length} entries carry a spec url`
   })
 
   step('nn-mcp answers initialize over stdio', () => {
     const bundle = path.join(repoRoot, 'iNNfo', 'packages', 'nn-mcp', 'bin', 'nn-mcp.bundle.js')
-    if (!fs.existsSync(bundle)) throw new Error('the bundle is not built; run the package build first')
+    if (!fs.existsSync(bundle))
+      throw new Error('the bundle is not built; run the package build first')
     const request = JSON.stringify({
       jsonrpc: '2.0',
       id: 1,
       method: 'initialize',
-      params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'install-smoke', version: '1' } },
+      params: {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'install-smoke', version: '1' },
+      },
     })
     const out = run(process.execPath, [bundle], {
       env: isolatedEnv,
@@ -183,7 +212,8 @@ function main() {
     const first = out.split('\n').find((l) => l.trim().startsWith('{'))
     if (!first) throw new Error('nn-mcp wrote no JSON-RPC response')
     const response = JSON.parse(first)
-    if (response.error) throw new Error(`initialize returned an error: ${JSON.stringify(response.error)}`)
+    if (response.error)
+      throw new Error(`initialize returned an error: ${JSON.stringify(response.error)}`)
     return `serverInfo.name = ${response.result?.serverInfo?.name ?? 'unknown'}`
   })
 }
