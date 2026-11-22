@@ -68,8 +68,11 @@ function warmBlueprintCache(): Map<string, unknown> {
     if (!spec.endsWith('_NN.md') || !existsSync(spec)) continue
     const slug = entry.isDirectory() ? entry.name : entry.name.replace(/_NN\.md$/, '')
     try {
-      const { schema } = resolveBlueprintSchema(readFileSync(spec, 'utf-8'), (ref: string) => {
-        const included = join(TEMPLATES, ref, 'spec_NN.md')
+      // The include resolver receives the `{ name, url }` ref, not a string: typing it
+      // as a string made every bluepriNNt with `includes` fail to compose and drop out
+      // of the cache in silence, until SCHEMA_UNRESOLVED reported the degrade.
+      const { schema } = resolveBlueprintSchema(readFileSync(spec, 'utf-8'), (ref) => {
+        const included = join(TEMPLATES, ref.name, 'spec_NN.md')
         return existsSync(included) ? readFileSync(included, 'utf-8') : null
       })
       cache.set(slug.toLowerCase(), schema)

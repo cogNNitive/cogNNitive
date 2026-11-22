@@ -8,7 +8,13 @@ export interface ParseIssue {
   message: string
   severity?: 'info' | 'warning' | 'error'
   /** Stable machine-readable discriminator. Additive; existing issues keep it undefined. */
-  code?: 'CYCLE_DETECTED' | 'DEPTH_LIMIT' | 'MODEL_NOT_FOUND' | 'MISSING_ENTRYPOINT' | 'DUPLICATE_SLUG'
+  code?:
+    | 'CYCLE_DETECTED'
+    | 'DEPTH_LIMIT'
+    | 'MODEL_NOT_FOUND'
+    | 'MISSING_ENTRYPOINT'
+    | 'DUPLICATE_SLUG'
+    | 'SCHEMA_UNRESOLVED'
 }
 
 import type { ModelDagTopology } from './topology.js'

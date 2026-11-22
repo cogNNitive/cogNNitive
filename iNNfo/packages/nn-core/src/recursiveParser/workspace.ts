@@ -4,6 +4,7 @@ import type { BlueprintSchema } from '../schema/index.js'
 import { IdentityRegistry } from '../identity.js'
 import type {
   ParseContext,
+  ParseIssue,
   RecursiveParseOptions,
   RecursiveParseResult,
   WorklistItem,
@@ -269,26 +270,49 @@ function linkParentChild(
  * Resolves a node's composed template schema via the host-supplied
  * `options.resolveBlueprintSchema`, when one was supplied. A throwing or
  * absent resolver degrades that node to today's behavior (no `type:: knowledge`
- * field following) instead of aborting the whole parse (AD-04).
+ * field following) instead of aborting the parse (AD-04).
+ *
+ * The degrade is never silent: when a resolver was supplied and the model
+ * declares a `parent_spec` the resolver could not turn into a schema, a
+ * `SCHEMA_UNRESOLVED` warning names the model, because its schema-typed
+ * submodels and citations are then not followed and their diagnostics vanish.
  */
 function schemaFor(
   options: RecursiveParseOptions | undefined,
   path: string,
   name: string,
   content: string,
+  issues: ParseIssue[],
 ): BlueprintSchema | undefined {
   if (!options?.resolveBlueprintSchema) return undefined
+  const unresolved = (reason: string): undefined => {
+    issues.push({
+      path,
+      code: 'SCHEMA_UNRESOLVED',
+      severity: 'warning',
+      message: `bluepriNNt schema for "${name || path}" could not be resolved (${reason}); its schema-typed submodels and citations were not followed`,
+    })
+    return undefined
+  }
+  let fm: Record<string, unknown>
   try {
-    const fm = (parseFrontmatter(content) ?? {}) as Record<string, unknown>
-    return options.resolveBlueprintSchema({ path, name, content, frontmatter: fm }) ?? undefined
+    fm = (parseFrontmatter(content) ?? {}) as Record<string, unknown>
   } catch (err) {
-    /* v8 ignore start */
+    return unresolved(`frontmatter unreadable: ${err}`)
+  }
+  let schema: BlueprintSchema | undefined
+  try {
+    schema = options.resolveBlueprintSchema({ path, name, content, frontmatter: fm }) ?? undefined
+  } catch (err) {
     // swallow deliberately: an unresolvable template schema degrades to "no
     // schema" for this model (AD-04 contract), never aborts the parse.
-    console.warn(`[workspace] Template schema resolution failed for ${path}: ${err}`)
-    return undefined
-    /* v8 ignore stop */
+    return unresolved(`resolver failed: ${err}`)
   }
+  const parent = fm.parent_spec as { name?: unknown } | undefined
+  if (!schema && parent && typeof parent === 'object' && parent.name) {
+    return unresolved(`parent_spec "${String(parent.name)}" is not resolvable`)
+  }
+  return schema
 }
 
 /**
@@ -397,6 +421,7 @@ export async function recursiveParse(
     entrypointPath,
     primary?.name ?? '',
     entrypointContent,
+    ctx.issues,
   )
   const initialRefs = extractSubmodelRefs(entrypointContent, entrypointPath, entrypointSchema)
   const entrypointKey = normalizePathKey(entrypointPath)
@@ -495,7 +520,7 @@ export async function recursiveParse(
     // C1: resolve this node's composed template schema (if a resolver was
     // supplied) and stash it on the freshly linked child node immediately,
     // reusing the childNode already returned by linkParentChild (no extra lookup).
-    const schema = schemaFor(options, resolvedPath, item.name, content)
+    const schema = schemaFor(options, resolvedPath, item.name, content, ctx.issues)
     if (childNode && schema) {
       childNode.templateSchema = schema
     }

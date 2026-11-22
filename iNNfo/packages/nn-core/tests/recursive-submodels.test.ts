@@ -686,6 +686,28 @@ title: Notes
             i.code === 'CYCLE_DETECTED' || i.code === 'DEPTH_LIMIT' || i.code === 'MODEL_NOT_FOUND',
         ),
       ).toHaveLength(0)
+
+      // ...but the degrade is reported: the unfollowed field's diagnostics would vanish otherwise
+      const unresolved = result.issues.filter((i) => i.code === 'SCHEMA_UNRESOLVED')
+      expect(unresolved.length).toBeGreaterThan(0)
+      expect(unresolved.every((i) => i.severity === 'warning')).toBe(true)
+      expect(unresolved.some((i) => i.path.includes('acme_startup_01.md'))).toBe(true)
+      expect(unresolved[0].message).toMatch(/host resolver boom/)
+    })
+
+    it('c1-resolver-null-is-reported: a resolver that returns no schema for a declared parent_spec warns SCHEMA_UNRESOLVED', async () => {
+      const nullResolver: BlueprintSchemaResolver = () => undefined
+      const root = createFakeDirectoryHandle(files)
+      const result = await recursiveParse(root, undefined, {
+        resolveBlueprintSchema: nullResolver,
+      })
+
+      const unresolved = result.issues.filter((i) => i.code === 'SCHEMA_UNRESOLVED')
+      expect(unresolved.some((i) => i.path.includes('acme_startup_01.md'))).toBe(true)
+      expect(unresolved.every((i) => i.severity === 'warning')).toBe(true)
+      expect(unresolved.find((i) => i.path.includes('acme_startup_01.md'))!.message).toMatch(
+        /parent_spec ".+" is not resolvable/,
+      )
     })
 
     it('c1-diamond-from-model-field: a model reached both directly and via a type:: knowledge field is one node with two parent edges, not a cycle', async () => {
