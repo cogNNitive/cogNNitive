@@ -29,6 +29,13 @@ export {
   canonicalizeDefinition,
   applyAliasToSchema,
   findDeclaredField,
+  parseTransitions,
+  transitionsProblems,
+  declaredTransitionsFor,
+  buildDeclaredTransitions,
+  TRANSITIONS_INVALID,
+  TRANSITIONS_UNKNOWN_VALUE,
+  TRANSITIONS_UNKNOWN_OPTION,
   WRITE_POLICIES,
   WRITE_POLICY_KEY,
   MODEL_CLOSED_KEY,
@@ -49,6 +56,8 @@ export type {
   CanonicalBlueprint,
   WritePolicy,
   WritePolicyResolution,
+  FieldTransitions,
+  DeclaredTransitions,
 } from './schema/index.js'
 
 export {

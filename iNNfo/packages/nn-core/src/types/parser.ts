@@ -134,6 +134,12 @@ export interface ConceptField {
   widget?: string
   widgetConfig?: Record<string, unknown>
   scope?: 'concept' | 'list' | '*'
+  /**
+   * Declared lifecycle of a `select` field (iNNfo V_0-9-0): current value (`""` = unset)
+   * -> the values it may move to. Every key and every target is one of `options`. A field
+   * without `transitions` accepts any option, as before.
+   */
+  transitions?: Record<string, string[]>
 }
 
 export interface Concept {
@@ -153,7 +159,6 @@ export interface Concept {
   /** Write policy declaration (`write_policy::`). Absent means the bluepriNNt default. */
   writePolicy?: ConceptWritePolicy
 }
-
 
 export interface MatrixDecl {
   name: string

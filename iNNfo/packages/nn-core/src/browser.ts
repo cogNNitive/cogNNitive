@@ -71,12 +71,15 @@ export {
   extractHeadings,
   resolveHeadingSection,
 } from './sourceRef.js'
-export type { Citation, CitationResult, UnitPathResult, SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
-export {
-  serializeKnowledgeUnitRef,
-  slugifyUnitHeading,
-  normalizeName,
+export type {
+  Citation,
+  CitationResult,
+  UnitPathResult,
+  SourceRef,
+  HeadingInfo,
+  ResolvedHeadingSection,
 } from './sourceRef.js'
+export { serializeKnowledgeUnitRef, slugifyUnitHeading, normalizeName } from './sourceRef.js'
 export type { KnowledgeUnit, HeaderUnit, RowUnit, PointerUnit } from './sourceRef.js'
 export { unitLabel } from './sourceRef.js'
 export { assertNever } from './assertNever.js'
@@ -87,7 +90,12 @@ export type { CsvTable, CsvTableOptions } from './csvTable.js'
 export { resolveUnit } from './unitResolve.js'
 export type { ResolvedUnit } from './unitResolve.js'
 export { parseKnowledgeQuery, runQuery } from './queryUnits.js'
-export type { KnowledgeQuery, KnowledgeQueryFilter, FileSnapshot, QueryResult } from './queryUnits.js'
+export type {
+  KnowledgeQuery,
+  KnowledgeQueryFilter,
+  FileSnapshot,
+  QueryResult,
+} from './queryUnits.js'
 export { scanSections } from './querySections.js'
 export type { SectionFields } from './querySections.js'
 export { applyMutation, updateReferenceString } from './mutate.js'
@@ -160,7 +168,7 @@ export type {
   FoldOptions,
   Guard,
   ProcedureGraph,
-  RunEvent,
+  RunModel,
   RunState,
   RunStatus,
   StepState,

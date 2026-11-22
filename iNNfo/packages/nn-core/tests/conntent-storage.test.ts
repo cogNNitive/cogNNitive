@@ -60,8 +60,8 @@ const codesOf = (...inputs: DomainModelInput[]) =>
   buildDomainIndex(inputs, resolver).diagnostics.map((d) => d.code)
 
 describe('coNNtent declares its storage (video-blueprint; design A16, section 5)', () => {
-  it('pins bluepriNNt V_0-28-0 against iNNfo V_0-7-0', () => {
-    expect(CONNTENT).toMatch(/^blueprint_version: "V_0-28-0"$/m)
+  it('pins bluepriNNt V_0-29-0 against iNNfo V_0-7-0', () => {
+    expect(CONNTENT).toMatch(/^blueprint_version: "V_0-29-0"$/m)
     expect(CONNTENT).toMatch(/^ {2}name: "iNNfo_V_0-7-0"$/m)
   })
 
@@ -207,7 +207,7 @@ describe('changes regression (changes-collection)', () => {
   it('keeps nature: members/derived and declares no storage', () => {
     expect(CHANGES).toMatch(/^nature:\n {2}structure: members\n {2}ownership: derived$/m)
     expect(CHANGES).not.toContain('storage:: ')
-    expect(CHANGES).toMatch(/^blueprint_version: "V_0-10-0"$/m)
+    expect(CHANGES).toMatch(/^blueprint_version: "V_0-15-0"$/m)
   })
 
   it('keeps a Change unit id as <batch>#<change-id> and never an instance model', () => {

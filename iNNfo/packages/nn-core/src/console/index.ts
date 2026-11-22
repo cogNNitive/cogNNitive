@@ -22,7 +22,7 @@ export { auditModelRecords, type RecordedModel } from '../changelog/audit.js'
 export { parseFrontmatter, parseKnowledge, parseYaml } from '../parser/index.js'
 // The procedure graph and run fold: the export folds each run of the domaiNN so the
 // console stepper shows real runs without a second implementation in the browser.
-export { foldRun, procedureGraph, runRecordOf } from '../procedure/index.js'
+export { foldRun, procedureGraph, runModelOf } from '../procedure/index.js'
 // The sources catalog's Synchronization elements feed the exporter's origins.
 export { readSynchronizations } from '../sync/declarations.js'
 // Naming-contract predicates for scripts that load only the console payload mirror.

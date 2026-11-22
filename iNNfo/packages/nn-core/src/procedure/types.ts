@@ -15,14 +15,22 @@ export interface ProcedureStep {
   decision?: string
   command?: string
   produces?: string
+  /** Exit code -> outcome name (`waiting`, `failed`, or any outcome the walk branches on). */
+  exitCodes?: Record<string, string>
   /** Artifact slugs consumed / produced. */
   inputs: string[]
   outputs: string[]
 }
 
+/** How an output artifact is carried (design §4.1). */
+export type ArtifactKind = 'file' | 'element' | 'changeset'
+
 export interface ProcedureArtifact {
   slug: string
   name: string
+  kind: ArtifactKind
+  /** The single owner of the output's location: a path, a `model@element` address, or a changeset path. */
+  at?: string
   verify?: string
   /** Default true; only meaningful for producers on the walked path. */
   required: boolean
@@ -31,7 +39,7 @@ export interface ProcedureArtifact {
 }
 
 export type GraphDiagnosticCode =
-  'MISSING_SLUG' | 'UNKNOWN_NEXT' | 'NO_START' | 'MULTIPLE_STARTS' | 'CYCLE'
+  'MISSING_SLUG' | 'UNKNOWN_NEXT' | 'NO_START' | 'MULTIPLE_STARTS' | 'CYCLE' | 'UNRESOLVED_SLOT'
 
 export interface GraphDiagnostic {
   code: GraphDiagnosticCode
@@ -49,48 +57,81 @@ export interface ProcedureGraph {
   start: string | null
   /** Steps with no `next`. */
   terminals: string[]
+  /** Slot names the procedure declares (`{name}` placeholders). */
+  slots: string[]
   diagnostics: GraphDiagnostic[]
 }
 
-export type RunEventKind =
-  | 'started'
-  | 'step_started'
-  | 'step_waiting'
-  | 'step_completed'
-  | 'step_failed'
-  | 'input_recorded'
-  | 'artifact_produced'
-  | 'artifact_validated'
-  | 'artifact_rejected'
-  | 'interrupted'
-  | 'resumed'
-  | 'rebased'
-  | 'completed'
-  | 'failed'
-  | 'cancelled'
+/**
+ * The stored lifecycle of a run (design §3.1). The header holds `state`; the tools return the
+ * fold's derived `RunStatus`, which reports `paused` when `state` is `paused`.
+ */
+export type RunStateValue = 'open' | 'paused' | 'completed' | 'failed' | 'cancelled'
 
-/** One recorded fact of a run (design §4). Steps and artifacts are referenced by slug (R4). */
-export interface RunEvent {
-  kind: RunEventKind
-  step?: string
-  outcome?: string
-  next?: string
-  attempt?: number
-  /** Frozen input revisions at `step_started`: artifact slug -> rev. */
-  inputs?: Record<string, string>
-  field?: string
-  value?: string
-  rev?: string
-  actor?: string
-  at?: string
-}
+/** The stored lifecycle of one step row. `""` (unset) reads as `pending`. */
+export type StepRowStatus = 'pending' | 'active' | 'waiting' | 'done' | 'failed'
 
+/** The stored lifecycle of one artifact row. `""` (unset) reads as `expected`. */
+export type ArtifactRowStatus = 'expected' | 'produced' | 'validated' | 'rejected'
+
+/** What the tools return: the fold's derived status. Unchanged names for existing consumers. */
 export type RunStatus =
-  'open' | 'waiting' | 'blocked' | 'drifted' | 'completed' | 'failed' | 'cancelled'
+  'open' | 'waiting' | 'blocked' | 'drifted' | 'completed' | 'failed' | 'cancelled' | 'paused'
 export type StepStatus =
   'pending' | 'active' | 'waiting' | 'done' | 'failed' | 'reopened' | 'off_path'
 export type ArtifactStatus =
   'expected' | 'produced' | 'validated' | 'rejected' | 'stale' | 'not_required'
+
+/** One `Step Run` row as stored (design §3.1). Slug = step slug. */
+export interface StepRow {
+  status: StepRowStatus
+  attempt: number
+  outcome?: string
+  next?: string
+  /** Frozen input artifact revs at claim time: artifact slug -> rev. */
+  inputs: Record<string, string>
+  waitingOn?: string
+  failure?: string
+  claimedAt?: string
+  timeoutMs?: number
+  /** `pid@host` of the claimant, for crash derivation. */
+  holder?: string
+}
+
+/** One `Run Artifact` row as stored (design §3.1). Slug = artifact slug. */
+export interface ArtifactRow {
+  kind: ArtifactKind
+  value?: string
+  rev?: string
+  status: ArtifactRowStatus
+  /** The step that produced it, from the producing change's run context. */
+  step?: string
+}
+
+/** The run as its model holds it: header + one row per step and per artifact (design §3.1). */
+export interface RunModel {
+  state: RunStateValue
+  seq: number
+  procedure: string
+  defRev: string | null
+  params: Record<string, unknown>
+  /** Step slug -> row. A step the model has no row for reads as pending. */
+  steps: Record<string, StepRow>
+  /** Artifact slug -> row. An artifact the model has no row for reads as expected. */
+  artifacts: Record<string, ArtifactRow>
+  /** Input name -> the value and revision the run recorded. */
+  inputs: Record<string, { value?: string; rev?: string }>
+  /** Each step's attempts as the model's change log recorded them, oldest first. */
+  attempts: Record<string, AttemptRecord[]>
+}
+
+/** One attempt of a step, rebuilt from the run model's change log (design B2 acceptance). */
+export interface AttemptRecord {
+  attempt: number
+  inputs: Record<string, string>
+  failure?: string
+  actor?: string
+}
 
 export interface StepState {
   status: StepStatus
@@ -139,24 +180,30 @@ export interface RunState {
   reopened: string[]
   /** Set when the pinned def_rev differs from the definition's (R5). */
   drift: { pinned: string | null; current: string | null } | null
-  /** An engine step started with no later event while the apply lock is free. Derived, never written. */
+  /** An engine step left `active` whose holder is gone (or whose attempt outlived its timeout). Derived, never written. */
   crashed: boolean
   paused: boolean
   /** Why the run is blocked, when it is. */
   blockedBy?: string
   /** The walk reached a done terminal step and nothing is stale: the terminal `completed` may be recorded. */
   canComplete: boolean
-  /** Latest `input_recorded` per field (design §7). */
+  /** Latest recorded input per field (design §7). */
   inputs: Record<string, { value?: string; rev?: string }>
   /** Recorded inputs whose rev differs from the caller-supplied current rev: the computed value must be recomputed. */
   staleInputs: string[]
+  /** Every attempt of every step, as the run model's change log recorded them (design B2). */
+  attempts: Record<string, AttemptRecord[]>
 }
 
 export interface FoldOptions {
   /** The run's pinned `def_rev` from its header. */
   defRev: string | null
-  /** Whether the apply lock is free (supplied by the I/O layer). Default false: no crash is claimed. */
-  lockFree?: boolean
+  /**
+   * Crash derivation input (design §3.3): whether the holder of an `active` step is gone.
+   * The I/O layer probes the pid for this host and falls back to `claimed_at + timeout_ms +
+   * grace` when the pid cannot be probed. Never read from the apply lock.
+   */
+  activeStepIsStale?: (step: string, row: StepRow) => boolean
   /** Current revisions of recorded input fields, for computed values (design §7). */
   currentRevs?: Record<string, string>
 }

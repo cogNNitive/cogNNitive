@@ -290,7 +290,9 @@ target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline
     // ...but the field gains no companion citation pointing at the change.
     expect(liveContent).not.toContain('statement_source:: changes/')
     // An untouched field keeps its previous citation.
-    expect(liveContent).toContain('target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline')
+    expect(liveContent).toContain(
+      'target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline',
+    )
 
     // No replaced_sources annotation is written anywhere.
     const written = await readFile(csFile, 'utf-8')
@@ -481,6 +483,154 @@ target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline
     // Whole-file rejection: even the otherwise-valid clear is not persisted.
     expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toBe(before)
     expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
+  })
+
+  it('Atomic changeset: one conflicted change writes nothing and reports conflict (design D8)', async () => {
+    const csFile = join(changesDir, 'atomic_batch_changes_NN.md')
+    const changes: ChangeItem[] = [
+      {
+        id: 'c-clean',
+        op: 'update_field',
+        target: 'strategy@Vision&statement',
+        from: 'Accelerate green energy',
+        to: 'Accelerate clean energy',
+        evidence: 'decision',
+      },
+      {
+        id: 'c-conflict',
+        op: 'update_field',
+        target: 'strategy@Vision&target_year',
+        from: '2099',
+        to: '2040',
+        evidence: 'decision',
+      },
+    ]
+    const csDoc: ChangesetDocument = {
+      frontmatter: {
+        spec_version: 'V_0-4-0',
+        level: 3,
+        parent_spec: { name: 'changes', url: 'https://example.test/changes/spec_NN.md' },
+        blueprint_version: '0.1.0',
+        status: 'proposed',
+        proposal_sha: computeProposalSha(changes, { atomic: true }),
+        title: 'Atomic Test Changeset',
+        author: 'agent-writer',
+        workspace_id: 'ws-1',
+        atomic: true,
+      },
+      changes,
+    }
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/atomic_batch_changes_NN.md')
+    expect(res.status).toBe('conflict')
+    expect(res.status).toBe('conflict')
+    expect(res.appliedCount).toBe(0)
+    expect(res.conflictedCount).toBe(2)
+
+    // Nothing was written: the clean change of the same file did not land either.
+    const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+    expect(live).toContain('Accelerate green energy')
+    expect(live).not.toContain('Accelerate clean energy')
+    expect(live).toContain('target_year:: 2030')
+
+    // Every change is annotated, and the reason names the atomic rule.
+    const annotated = parseChangeset(await readFile(csFile, 'utf-8'))
+    expect(annotated.frontmatter.status).toBe('conflict')
+    expect(annotated.changes.length).toBe(2)
+    for (const change of annotated.changes) {
+      expect(change.resolution).toContain('ATOMIC_CHANGESET_CONFLICT')
+    }
+    expect(res.errors?.some((e) => e.code === 'ATOMIC_CHANGESET_CONFLICT')).toBe(true)
+  })
+
+  it('Atomic changeset with no conflict applies every change (design D8)', async () => {
+    const csFile = join(changesDir, 'atomic_clean_changes_NN.md')
+    const changes: ChangeItem[] = [
+      {
+        id: 'c-one',
+        op: 'update_field',
+        target: 'strategy@Vision&statement',
+        from: 'Accelerate green energy',
+        to: 'Accelerate clean energy',
+        evidence: 'decision',
+      },
+      {
+        id: 'c-two',
+        op: 'add_element',
+        target: 'strategy@Work',
+        name: 'Mission',
+        evidence: 'decision',
+      },
+    ]
+    const csDoc: ChangesetDocument = {
+      frontmatter: {
+        spec_version: 'V_0-4-0',
+        level: 3,
+        parent_spec: { name: 'changes', url: 'https://example.test/changes/spec_NN.md' },
+        blueprint_version: '0.1.0',
+        status: 'proposed',
+        proposal_sha: computeProposalSha(changes, { atomic: true }),
+        title: 'Atomic Clean Changeset',
+        author: 'agent-writer',
+        workspace_id: 'ws-1',
+        atomic: true,
+      },
+      changes,
+    }
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/atomic_clean_changes_NN.md')
+    expect(res.success).toBe(true)
+    expect(res.status).toBe('applied')
+    expect(res.appliedCount).toBe(2)
+
+    const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+    expect(live).toContain('Accelerate clean energy')
+    expect(live).toContain('## NN Work: Mission')
+  })
+
+  it('Non-atomic changeset keeps applying its clean subset (regression)', async () => {
+    const csFile = join(changesDir, 'non_atomic_batch_changes_NN.md')
+    const changes: ChangeItem[] = [
+      {
+        id: 'n-clean',
+        op: 'update_field',
+        target: 'strategy@Vision&statement',
+        from: 'Accelerate green energy',
+        to: 'Accelerate clean energy',
+        evidence: 'decision',
+      },
+      {
+        id: 'n-conflict',
+        op: 'update_field',
+        target: 'strategy@Vision&target_year',
+        from: '2099',
+        to: '2040',
+        evidence: 'decision',
+      },
+    ]
+    const csDoc: ChangesetDocument = {
+      frontmatter: {
+        spec_version: 'V_0-4-0',
+        level: 3,
+        parent_spec: { name: 'changes', url: 'https://example.test/changes/spec_NN.md' },
+        blueprint_version: '0.1.0',
+        status: 'proposed',
+        proposal_sha: computeProposalSha(changes),
+        title: 'Non-Atomic Batch',
+        author: 'agent-writer',
+        workspace_id: 'ws-1',
+      },
+      changes,
+    }
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/non_atomic_batch_changes_NN.md')
+    expect(res.success).toBe(true)
+    expect(res.status).toBe('partially_applied')
+    expect(res.appliedCount).toBe(1)
+    expect(res.conflictedCount).toBe(1)
   })
 
   describe('Slice S2b: Partitioning, Slugs, and Delete Impact', () => {
@@ -686,7 +836,9 @@ statement:: Execute plan
 
     it('remove_element cascades matrix cells and records count in resolution', async () => {
       // Add Matrix Definition to template
-      const templateWithMatrix = BLUEPRINT_CONTENT + `
+      const templateWithMatrix =
+        BLUEPRINT_CONTENT +
+        `
 # NN Matrix Definition
 ## NN Matrix Definition: Access
 concept:: Work
@@ -695,7 +847,9 @@ type:: binary
       await writeFile(join(specsDir, 'strategy_V_0-2-0_NN.md'), templateWithMatrix, 'utf-8')
 
       // Add a matrix with a cell referencing Vision to strategy_NN.md
-      const modelWithMatrix = LIVE_STRATEGY_MODEL + `
+      const modelWithMatrix =
+        LIVE_STRATEGY_MODEL +
+        `
 # NN matrices: Access
 | Work \\ Work | read |
 | :--- | :---: |
