@@ -13,11 +13,12 @@
  * that test.
  */
 
-const { test } = require('node:test');
-const assert = require('node:assert');
-const path = require('node:path');
+const { test } = require('node:test')
+const assert = require('node:assert')
+const fs = require('node:fs')
+const path = require('node:path')
 
-const commands = require('./skills-commands.js');
+const commands = require('./skills-commands.js')
 const preflightScript = path.join(
   __dirname,
   '..',
@@ -26,30 +27,30 @@ const preflightScript = path.join(
   'nn-preflight',
   'scripts',
   'preflight-check.js',
-);
+)
 
 /** Runs a probe without the env override, so the module default is what answers. */
 function withoutOverride(fn) {
-  const saved = process.env.SM_MANIFEST_URL;
-  delete process.env.SM_MANIFEST_URL;
+  const saved = process.env.SM_MANIFEST_URL
+  delete process.env.SM_MANIFEST_URL
   try {
-    return fn();
+    return fn()
   } finally {
-    if (saved !== undefined) process.env.SM_MANIFEST_URL = saved;
+    if (saved !== undefined) process.env.SM_MANIFEST_URL = saved
   }
 }
 
 test('the default manifest URL is the public distribution host', () => {
-  const url = withoutOverride(() => commands.getManifestUrl());
-  assert.strictEqual(url, 'https://cognnitive.com/use/manifest.md');
-});
+  const url = withoutOverride(() => commands.getManifestUrl())
+  assert.strictEqual(url, 'https://cognnitive.com/use/manifest.md')
+})
 
 test('the fallback manifest URL is the public intake repository', () => {
   assert.strictEqual(
     commands.FALLBACK_MANIFEST_URL,
     'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/docs/use/manifest.md',
-  );
-});
+  )
+})
 
 test('no distribution default points at the retired source repository', () => {
   // The retired repo is private, so every raw/codeload URL under it answers 404.
@@ -60,26 +61,31 @@ test('no distribution default points at the retired source repository', () => {
     assert.ok(
       !/(^|\/)cogNNitive\/cogNNitive(\/|$)/.test(url),
       `${name} still points at the retired repo: ${url}`,
-    );
+    )
   }
-});
+})
 
 test('the preflight CLI resolves the same default manifest URL', () => {
   // Two independent readers of one contract: if they disagree, `preflight` and
   // `skills-manager` report a different install state for the same machine.
-  // `SM_MANIFEST_URL` is cleared for the whole require: this module bakes the
-  // override into its default at load time (preflight-check.js:44).
-  const preflight = withoutOverride(() => require(preflightScript));
-  assert.strictEqual(preflight.DEFAULT_MANIFEST_URL, commands.DEFAULT_MANIFEST_URL);
-  assert.strictEqual(preflight.DEFAULT_MANIFEST_URL, 'https://cognnitive.com/use/manifest.md');
-  assert.strictEqual(preflight.FALLBACK_MANIFEST_URL, commands.FALLBACK_MANIFEST_URL);
-});
+  // The CLI keeps its default private and never exported it - exporting it
+  // would mean reshaping a published skill just to reach a constant - so this
+  // reads the source: a divergence names the URL it disagrees on.
+  const source = fs.readFileSync(preflightScript, 'utf8')
+  const literal = (name) => {
+    const match = source.match(new RegExp(`${name} =[\\s\\S]{0,80}?'(https://[^']+)'`))
+    assert.ok(match, `preflight-check.js does not declare ${name} as an https literal`)
+    return match[1]
+  }
+  assert.strictEqual(literal('DEFAULT_MANIFEST_URL'), commands.DEFAULT_MANIFEST_URL)
+  assert.strictEqual(literal('FALLBACK_MANIFEST_URL'), commands.FALLBACK_MANIFEST_URL)
+})
 
 test('an explicit override still wins over the default', () => {
-  process.env.SM_MANIFEST_URL = 'http://127.0.0.1:9/manifest.md';
+  process.env.SM_MANIFEST_URL = 'http://127.0.0.1:9/manifest.md'
   try {
-    assert.strictEqual(commands.getManifestUrl(), 'http://127.0.0.1:9/manifest.md');
+    assert.strictEqual(commands.getManifestUrl(), 'http://127.0.0.1:9/manifest.md')
   } finally {
-    delete process.env.SM_MANIFEST_URL;
+    delete process.env.SM_MANIFEST_URL
   }
-});
+})

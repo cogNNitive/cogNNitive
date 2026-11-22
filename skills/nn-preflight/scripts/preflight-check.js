@@ -1857,7 +1857,6 @@ module.exports = {
   binaryOnPath,
   nodeBelowFloor,
   FRESHNESS_URL,
-  DEFAULT_MANIFEST_URL,
   FALLBACK_MANIFEST_URL,
   formatAge,
 };
