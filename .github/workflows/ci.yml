@@ -299,31 +299,16 @@ jobs:
       - run: npm ci
 
       - name: Regenerate and commit when a derived artifact or a version moved
+        # The push can be rejected because another merge landed while the artifacts were
+        # generated: each run checks out the commit its trigger saw, so the generated commit is
+        # behind by the time it is pushed. Inline, that rejection aborted the job and
+        # `auto-tag`/`release` were skipped, so the release lane went quiet without saying so.
+        # `scripts/regen-writeback.js` re-derives on the new tip and retries only a moved branch;
+        # a policy refusal is still a failure. Tests: scripts/lib/regen-writeback.test.js.
+        run: node scripts/regen-writeback.js
+
+      - name: Assert a second pass moves nothing outside the HEAD-dependent artifacts
         run: |
-          set -euo pipefail
-          GUARD='chore(regen): regenerate derived artifacts and write back the pending versions'
-          if [ "$(git log -1 --format=%s)" = "$GUARD" ]; then
-            echo "the last commit is already a regeneration: nothing to do"
-            exit 0
-          fi
-          # The version is written back BEFORE the tag exists: version-agreement compares the
-          # tag against package.json, and the release copies the tag's tree.
-          node scripts/release/write-pending-versions.js
-          npm run sync:versions
-          # The lockfile pins each workspace package's version, and `lockfile-agreement` fails
-          # when it drifts from the manifest after the write-back. This is the fourth step of
-          # the documented bump flow, and the lane is the only place that bumps now.
-          npm install --package-lock-only
-          npm run regen
-          if [ -z "$(git status --porcelain)" ]; then
-            echo "no derived artifact and no pending version moved"
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          git commit -m "$GUARD"
-          git push origin HEAD:main
           # A second pass must move nothing OUTSIDE the artifacts whose bytes depend on HEAD.
           # The tag-derived catalogs are excluded by the gate itself: committing changes HEAD,
           # which changes the release_tag they are stamped with, so they can never be stable
