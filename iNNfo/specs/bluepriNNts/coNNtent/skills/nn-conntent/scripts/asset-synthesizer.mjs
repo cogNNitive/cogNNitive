@@ -518,7 +518,7 @@ export class AssetSynthesizer {
 
     if (this._alreadyPlanned('avatar:' + sha256)) return this._skipped(sha256);
     const resumeId = meta.resumeTaskId;
-    const resolution = avatarOptions.resolution || defaultResolutionFor(model);
+    const resolution = avatarOptions.resolution || defaultResolutionFor(this._declaredModel(model));
     let ticket = null;
     let estUsd = 0;
     let request = null;

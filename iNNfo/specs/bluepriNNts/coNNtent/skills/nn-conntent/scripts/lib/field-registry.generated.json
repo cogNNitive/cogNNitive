@@ -3,18 +3,6 @@
   "blueprint_version": "V_0-30-0",
   "generated_from": "spec_NN.md",
   "fields": {
-    "adapter": {
-      "concepts": [
-        "Model"
-      ],
-      "scope": "record",
-      "levels": [],
-      "type": "string",
-      "options": [],
-      "multiple": false,
-      "cascade": false,
-      "description": "Adapter id that translates intent fields into this provider's request parameters (`scripts/adapters/<id>.mjs`)."
-    },
     "allowed": {
       "concepts": [
         "Model"
@@ -128,15 +116,11 @@
       "levels": [
         "layer"
       ],
-      "type": "select",
-      "options": [
-        "480p",
-        "720p",
-        "768p"
-      ],
+      "type": "string",
+      "options": [],
       "multiple": false,
       "cascade": true,
-      "description": "Optional output resolution for an `avatar` clip. The engine validates it against the model's declared `controls` and falls back to a model-appropriate default. Ignored by other Layer types."
+      "description": "Optional output resolution label for an `avatar` clip (for example `720p`). It has no global enum: its values are the resolved avatar Model's declared `resolutions`, it requires the Model to declare the `resolution` control, and when absent the Model's first declared resolution applies. Validated before any spend. Ignored by other Layer types."
     },
     "background": {
       "concepts": [
@@ -855,6 +839,18 @@
       "multiple": true,
       "cascade": false,
       "description": "Optional keyed list that renames the engine's avatar inputs to the Model's own request fields (`[image=<field>, audio=<field>, resolution=<field>]`); only the mapped inputs are sent. A Model with no `request_map` gets the default body `{image, audio, resolution}`. An input the engine does not produce fails before any spend."
+    },
+    "resolutions": {
+      "concepts": [
+        "Model"
+      ],
+      "scope": "record",
+      "levels": [],
+      "type": "select",
+      "options": [],
+      "multiple": true,
+      "cascade": false,
+      "description": "Output resolution labels an avatar Model accepts (for example `[720p, 1080p]`); the first is the Model's default. `avatar_resolution` must be one of them. A Model that declares none is not constrained."
     },
     "review": {
       "concepts": [

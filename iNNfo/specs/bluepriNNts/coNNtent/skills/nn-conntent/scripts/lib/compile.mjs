@@ -918,6 +918,7 @@ export async function compileVideo(options) {
     config,
     models,
     bags,
+    catalog,
   });
   // The avatar stage of this run: the cache pickup. Counting it keeps the fixed stage order
   // even when the episode has no avatar Layer (and records the clips still missing).

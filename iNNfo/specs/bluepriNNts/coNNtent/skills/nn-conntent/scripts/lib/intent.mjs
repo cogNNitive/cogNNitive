@@ -1,10 +1,10 @@
 /**
- * nn-conntent/scripts/adapters/_intent.mjs
+ * nn-conntent/scripts/lib/intent.mjs
  *
- * The one intent → provider-parameter translation shared by every per-model adapter
- * (capability video-model-catalog "Intent Adapters Translate Intent Fields"). An intent field
- * is translated only when the Model declares the matching control; a non-default value for an
- * undeclared control fails before any spend.
+ * The one intent → provider-parameter translation. The catalog Model is authoritative: an
+ * intent field is translated only when the Model declares the matching control in its
+ * `controls`, and a value for an undeclared control fails before any spend. (The per-model
+ * adapter files that repeated each Model's controls are gone; #752.)
  */
 
 const CONTROL_OF = {

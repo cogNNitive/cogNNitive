@@ -399,9 +399,8 @@ description:: Avatar/lip-sync model id for an `avatar` Layer, or a cascade defau
 ## NN Field Definition: avatar_resolution
 concept:: Layer
   scope:: render
-type:: select
-options:: [480p, 720p, 768p]
-description:: Optional output resolution for an `avatar` clip. The engine validates it against the model's declared `controls` and falls back to a model-appropriate default. Ignored by other Layer types.
+type:: string
+description:: Optional output resolution label for an `avatar` clip (for example `720p`). It has no global enum: its values are the resolved avatar Model's declared `resolutions`, it requires the Model to declare the `resolution` control, and when absent the Model's first declared resolution applies. Validated before any spend. Ignored by other Layer types.
 
 ## NN Field Definition: fit
 concept:: [Layer, Scene, Video, Preset, Series, Video Defaults]
@@ -597,10 +596,11 @@ type:: select
 multiple:: true
 description:: Optional keyed list that renames the engine's avatar inputs to the Model's own request fields (`[image=<field>, audio=<field>, resolution=<field>]`); only the mapped inputs are sent. A Model with no `request_map` gets the default body `{image, audio, resolution}`. An input the engine does not produce fails before any spend.
 
-## NN Field Definition: adapter
+## NN Field Definition: resolutions
 concept:: Model
-type:: string
-description:: Adapter id that translates intent fields into this provider's request parameters (`scripts/adapters/<id>.mjs`).
+type:: select
+multiple:: true
+description:: Output resolution labels an avatar Model accepts (for example `[720p, 1080p]`); the first is the Model's default. `avatar_resolution` must be one of them. A Model that declares none is not constrained.
 
 ## NN Field Definition: price
 concept:: Model
@@ -1059,23 +1059,26 @@ placeholder instead of a call.
 
 ### Summary
 
-One callable model: capability, declared controls, adapter and price.
+One callable model: capability, declared controls with their values, request shape and price.
 
 ### Description
 
 One `## NN Model: <slug>` element declares `provider`, `api_id`, `capability`
-(`tts`/`image`/`avatar`/`video`), `controls`, `sizes` (image models), `request_map`
-(avatar models whose request fields differ from the default body), `adapter`, `price`,
-`price_unit`, `price_date` and `status`. A model whose request names its inputs differently
-becomes callable by declaring its `request_map`, never by editing engine code. The domaiNN overlay declares the same element with
-`allowed`, an invoice `price`, `price_date` and `price_source:: invoice`; merging is per
-Model slug and the overlay wins. A Model defined only in the overlay must declare every
-field and name an existing adapter. Capability is declared, never inferred from the id.
+(`tts`/`image`/`avatar`/`video`), `controls`, the values of those controls (`sizes` for
+image models, `resolutions` for avatar models), `request_map` (avatar models whose request
+fields differ from the default body), `price`, `price_unit`, `price_date` and `status`. The
+catalog is the only place a Model's controls and their values are declared: there is no
+per-model adapter file and no engine table keyed by vendor, so adding a model of an existing
+Provider is a catalog edit. The domaiNN overlay declares the same element with `allowed`, an
+invoice `price`, `price_date` and `price_source:: invoice`; merging is per Model slug and the
+overlay wins. A Model defined only in the overlay must declare `provider`, `api_id`,
+`capability`, `price`, `price_unit` and `price_date`. Capability is declared, never inferred
+from the id.
 
 ### Methodologies
 
 - Ship reference prices with their date; never hide a price in code.
-- Declare the controls the model really supports; an undeclared control fails at estimate.
+- Declare the controls the model really supports and their values; an undeclared control or value fails before any spend.
 - Override prices in the domaiNN overlay with invoice values, not in the reference catalog.
 
 ### Prompts

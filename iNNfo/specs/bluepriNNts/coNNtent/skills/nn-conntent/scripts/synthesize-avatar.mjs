@@ -148,6 +148,7 @@ export async function synthesizeAvatars(o) {
 
   // 1. Collect and validate every job BEFORE any spend: image, audio (fresh), measurable, not too long.
   const readCache = new CacheManager({ baseDir: cacheDir, readOnly: true });
+  const catalog = o.catalog || loadMergedCatalog({ domainRoot: loaded.root });
   const { jobs: raw, problems, skipped } = collectAvatarJobs({
     parsed,
     scriptDir,
@@ -156,6 +157,7 @@ export async function synthesizeAvatars(o) {
     config: loaded.config,
     models,
     bags,
+    catalog,
   });
   if (problems.length) throw new Error(problems.join('\n'));
 
@@ -274,7 +276,6 @@ export async function synthesizeAvatars(o) {
     const blocked = todo.map((j) => ({ job: j, rec: outstandingOf(j) })).filter((x) => x.rec);
     if (blocked.length > 0) throw new OutstandingJobError(outstandingMessage(blocked), blocked);
   }
-  const catalog = o.catalog || loadMergedCatalog({ domainRoot: loaded.root });
   for (const j of todo) {
     const envKey = envKeyFor(catalog, j.model);
     if (!envKey) continue; // an undeclared model is refused by the synthesizer, before any spend

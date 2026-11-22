@@ -56,3 +56,34 @@ A `request_map` that names an input the engine does not produce MUST fail before
 - GIVEN the shipped avatar Model, which declares no `request_map`
 - WHEN an avatar clip is synthesized
 - THEN the posted body is `{image, audio, resolution}` in that order
+
+### Requirement: A Model declares the values of its controls
+
+An avatar `Model` that declares the `resolution` control MUST declare its accepted labels in `resolutions`, and the first declared label MUST be its default.
+The engine MUST validate `avatar_resolution` against the resolved Model's `resolutions` before any spend and MUST NOT hold a resolution table keyed by model id or vendor name.
+A requested `avatar_resolution` for a Model that does not declare the `resolution` control MUST fail with `unsupported-control` before any spend.
+
+#### Scenario: Two models of one family are validated from their declarations
+- GIVEN a catalog Model `pruna-ai/p-video-2-pro/avatar` with `resolutions:: [480p, 768p]`
+- AND a catalog Model `pruna-ai/p-video/avatar` with `resolutions:: [720p, 1080p]`
+- WHEN each is planned with no `avatar_resolution`
+- THEN the first defaults to `480p` and the second to `720p`
+- AND `1080p` is accepted for the second and refused for the first
+
+## MODIFIED Requirements
+
+### Requirement: avatar_resolution has no global enum
+
+`avatar_resolution` MUST be a string whose allowed values are the resolved avatar Model's declared `resolutions`, not a fixed select of `480p`, `720p` and `768p`.
+
+#### Scenario: A resolution only one model offers is reachable
+- GIVEN an avatar Layer whose resolved Model declares `resolutions:: [720p, 1080p]`
+- WHEN the Layer declares `avatar_resolution:: 1080p`
+- THEN the job is planned at `1080p`
+
+## REMOVED Requirements
+
+### Requirement: A Model names an adapter
+
+**Reason**: the per-model adapter files repeated each Model's `controls` and were never imported; the catalog is now the only place controls and their values are declared.
+**Migration**: delete `adapter::` from catalog overlays; an overlay-only Model declares `provider`, `api_id`, `capability`, `price`, `price_unit` and `price_date`.

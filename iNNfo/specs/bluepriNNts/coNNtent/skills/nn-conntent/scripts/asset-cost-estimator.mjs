@@ -203,7 +203,7 @@ export function estimateScriptCost(scriptContentOrPath, options = {}) {
   const cachedAvatarLayers = new Set();
   if (cache && scriptDir) {
     try {
-      const { jobs } = collectAvatarJobs({ parsed, scriptDir, cacheManager: cache, config, models, bags: bags });
+      const { jobs } = collectAvatarJobs({ parsed, scriptDir, cacheManager: cache, config, models, bags: bags, catalog });
       for (const j of jobs) if (cache.getSync(j.cacheKey, AVATAR_CACHE_EXT, AVATAR_CACHE_CATEGORY)) cachedAvatarLayers.add(j.layer);
     } catch {
       // An input that cannot be resolved leaves the avatar priced: never under-estimate.

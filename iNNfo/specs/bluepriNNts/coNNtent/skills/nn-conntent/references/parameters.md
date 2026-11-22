@@ -69,7 +69,7 @@ Legend: ● can be written at this scope, · cannot.
 | `exit_animation` | string | — | · | · | · | · | · | · | ● | · | · | · | · | · |
 | `z_index` | string | — | · | · | · | · | · | · | ● | · | · | · | · | · |
 | `avatar_model` | string | — | ● | ● | · | ● | ● | ● | ● | · | · | · | · | · |
-| `avatar_resolution` | select | `480p`, `720p`, `768p` | · | · | · | · | · | · | ● | · | · | · | · | · |
+| `avatar_resolution` | string | — | · | · | · | · | · | · | ● | · | · | · | · | · |
 | `fit` | select (multi) | — | ● | ● | · | ● | ● | ● | ● | · | · | · | · | · |
 | `voice` | string | — | ● | ● | · | ● | ● | ● | · | · | · | · | · | · |
 | `voice_model` | string | — | ● | ● | · | ● | ● | ● | · | · | · | · | · | · |
@@ -102,7 +102,7 @@ Legend: ● can be written at this scope, · cannot.
 | `controls` | select (multi) | `speed`, `emotion`, `size`, `resolution` | · | · | · | · | · | · | · | · | · | · | ● | · |
 | `sizes` | select (multi) | — | · | · | · | · | · | · | · | · | · | · | ● | · |
 | `request_map` | select (multi) | — | · | · | · | · | · | · | · | · | · | · | ● | · |
-| `adapter` | string | — | · | · | · | · | · | · | · | · | · | · | ● | · |
+| `resolutions` | select (multi) | — | · | · | · | · | · | · | · | · | · | · | ● | · |
 | `price` | number | — | · | · | · | · | · | · | · | · | · | · | ● | · |
 | `price_unit` | select | `per_1k_chars`, `per_image`, `per_second` | · | · | · | · | · | · | · | · | · | · | ● | · |
 | `price_date` | string | — | · | · | · | · | · | · | · | · | · | · | ● | · |
@@ -390,7 +390,7 @@ Settable at: `Layer`, `Scene`, `Video`, `Preset`, `Series`, `Video Defaults`.
 
 ### `avatar_resolution`
 
-Optional output resolution for an `avatar` clip. The engine validates it against the model's declared `controls` and falls back to a model-appropriate default. Ignored by other Layer types.
+Optional output resolution label for an `avatar` clip (for example `720p`). It has no global enum: its values are the resolved avatar Model's declared `resolutions`, it requires the Model to declare the `resolution` control, and when absent the Model's first declared resolution applies. Validated before any spend. Ignored by other Layer types.
 
 Settable at: `Layer`.
 
@@ -586,9 +586,9 @@ Optional keyed list that renames the engine's avatar inputs to the Model's own r
 
 Settable at: `Model`.
 
-### `adapter`
+### `resolutions`
 
-Adapter id that translates intent fields into this provider's request parameters (`scripts/adapters/<id>.mjs`).
+Output resolution labels an avatar Model accepts (for example `[720p, 1080p]`); the first is the Model's default. `avatar_resolution` must be one of them. A Model that declares none is not constrained.
 
 Settable at: `Model`.
 
