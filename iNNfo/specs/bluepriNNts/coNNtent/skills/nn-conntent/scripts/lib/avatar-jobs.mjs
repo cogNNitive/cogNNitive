@@ -371,7 +371,10 @@ export function collectAvatarJobs({
             '(a merged-catalog avatar Model) in the domain video-defaults_NN.md, or on the Series, Character, Scene or Layer.',
         )
       }
-      const resolution = normalizeAvatarResolution(layer.properties?.layer_avatar_resolution, declaredAvatarModel(catalog, model))
+      const resolution = normalizeAvatarResolution(
+        layer.properties?.layer_avatar_resolution,
+        declaredAvatarModel(catalog, model),
+      )
       jobs.push({
         sceneId: sc.id,
         layerName: layer.name,
@@ -392,8 +395,24 @@ export function collectAvatarJobs({
  * only: it never synthesizes or spends.
  * @returns {{ applied: number, missing: number, clips: string[] }} `clips` are the cached clip paths that were applied.
  */
-export function applyCachedAvatars({ parsed, scriptDir, cacheManager, config, models, bags, catalog }) {
-  const { jobs } = collectAvatarJobs({ parsed, scriptDir, cacheManager, config, models, bags, catalog })
+export function applyCachedAvatars({
+  parsed,
+  scriptDir,
+  cacheManager,
+  config,
+  models,
+  bags,
+  catalog,
+}) {
+  const { jobs } = collectAvatarJobs({
+    parsed,
+    scriptDir,
+    cacheManager,
+    config,
+    models,
+    bags,
+    catalog,
+  })
   let applied = 0
   let missing = 0
   const missingLayers = []

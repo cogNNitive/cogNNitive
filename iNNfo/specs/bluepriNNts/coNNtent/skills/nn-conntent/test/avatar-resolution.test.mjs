@@ -19,8 +19,16 @@ for (const k of ['WAVESPEED_API_KEY', 'REPLICATE_API_TOKEN', 'TTS_PROVIDER', 'ME
 const PRUNA = 'pruna-ai/p-video-2-pro/avatar'
 const PRUNA_PVIDEO = 'pruna-ai/p-video/avatar'
 const avatarModel = (slug, apiId, resolutions, controls = ['resolution']) => ({
-  slug, provider: 'wavespeed', api_id: apiId, capability: 'avatar', controls, resolutions,
-  price: 0.02, price_unit: 'per_second', price_date: '2026-11-02', status: 'active',
+  slug,
+  provider: 'wavespeed',
+  api_id: apiId,
+  capability: 'avatar',
+  controls,
+  resolutions,
+  price: 0.02,
+  price_unit: 'per_second',
+  price_date: '2026-11-02',
+  status: 'active',
 })
 // Two models of the same provider and family, declared as catalog data only (#752 step 3).
 const reference = loadMergedCatalog({ overlay: null })
@@ -238,7 +246,8 @@ asset:: media/face.png
 test('a model with the resolution control but no declared resolutions is refused before spend (B1)', () => {
   // An overlay written before resolutions existed: the control is declared, its values are not.
   const legacy = avatarModel('p-video-avatar', PRUNA_PVIDEO, undefined)
-  const refusal = (err) => /p-video\/avatar/.test(err.message) && /resolutions:: \[/.test(err.message)
+  const refusal = (err) =>
+    /p-video\/avatar/.test(err.message) && /resolutions:: \[/.test(err.message)
   assert.throws(() => normalizeAvatarResolution(undefined, legacy), refusal)
   assert.throws(() => normalizeAvatarResolution('480p', legacy), refusal)
   assert.throws(() => normalizeAvatarResolution('1080p', legacy), refusal)
