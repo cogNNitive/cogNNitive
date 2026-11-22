@@ -80,15 +80,18 @@ node scripts/nn-session.mjs status --prs temp/prs.json    # every worktree: dirt
     copy, which is exactly how a worktree once got labelled "primary".
 - **Another worktree may be live.** Look at it read-only; never revert, commit or stop a
   worktree you did not create.
-- **`node_modules` is a junction to the primary's.** `status` prints where each
+- **Dependencies are shared per entry; `@cognnitive` is not.** `status` prints where each
   `@cognnitive/*` link resolves and whether the target exists, because that link is the
   `Cannot find module '@cognnitive/nn-core'` trap: it points at whichever worktree built
-  core last, and it dangles when that worktree was swept. It must point at the core you
-  are testing. `cmd /c rmdir <link>` then
-  `New-Item -ItemType Junction -Path <link> -Target <this worktree>/iNNfo/packages/nn-core`
-  is the whole repair; never fix it by editing the import. For core/MCP work, use an
-  isolated install (`nn-session start --full-install` in the script-managed lane). Never
-  run `npm ci` through a junction or repoint a shared link while another session is using it.
+  core last, and it dangles when that worktree was swept. It must point at the copy you
+  are testing.
+  **`node scripts/nn-session.mjs relink` is the whole repair** — idempotent, repairs
+  every checkout of this repository, and prints what it changed. Do not repair it by hand.
+  Neither `rmdir` + `New-Item` from inside a worktree nor editing the import is allowed:
+  a hand-repointed link is how five checkouts ended up running one worktree's core
+  (measured 2026-11-22), and it silently dragged every other session with it.
+  For core/MCP work, use an isolated install (`nn-session start --full-install` in the
+  script-managed lane). Never run `npm ci` through a junction.
   `node_modules/.bin` is thin here (only `tsc`/`tsup`): run the tools by module path,
   `node node_modules/vitest/vitest.mjs run <file>` and
   `node node_modules/prettier/bin/prettier.cjs`.

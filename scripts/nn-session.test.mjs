@@ -9,6 +9,7 @@ import {
   symlinkSync,
   lstatSync,
   cpSync,
+  readlinkSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
@@ -176,7 +177,7 @@ test('start --no-install skips the install', () => {
   }
 })
 
-test('start reuses matching node_modules via a junction without npm ci', () => {
+test('start reuses matching node_modules by sharing each dependency without npm ci', () => {
   const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
   const repo = makeRepo(base)
   const target = join(dirname(repo), 'cogNNitive-j1')
@@ -194,12 +195,19 @@ test('start reuses matching node_modules via a junction without npm ci', () => {
 
     const s = runAll(['start', '--id', 'j1', '--root', repo], { NN_SESSION_TEST_NPM_STUB: '1' })
     assert.equal(s.code, 0)
-    assert.ok(
-      lstatSync(join(target, 'node_modules')).isSymbolicLink(),
-      'junction created on lockfile match',
-    )
-    assert.ok(s.out.includes('linked node_modules'), 'reports the junction reuse')
+    assert.ok(s.out.includes('linked node_modules'), 'reports the shared install reuse')
     assert.ok(!s.out.includes('npm ci'), 'no npm ci ran')
+
+    const modules = join(target, 'node_modules')
+    // Sharing the whole directory made `@cognnitive` one reparse point for every
+    // checkout, so a worktree could not own its workspaces. Sharing per entry keeps
+    // the ~400MB install shared while each checkout owns `@cognnitive`.
+    assert.ok(!lstatSync(modules).isSymbolicLink(), 'node_modules is a real directory')
+    assert.equal(
+      readlinkSync(join(modules, 'marker.txt')),
+      join(repo, 'node_modules', 'marker.txt'),
+      'an ordinary entry is a junction to the primary install, not a copy',
+    )
   } finally {
     run(['stop', '--id', 'j1', '--root', repo])
     rmSync(base, { recursive: true, force: true })
@@ -639,7 +647,7 @@ test('--help prints usage and mutates nothing', () => {
     for (const args of invocations) {
       const r = run(args)
       assert.equal(r.code, 0, `${args.join(' ')} must exit 0: ${r.out}`)
-      assert.match(r.out, /usage: nn-session\.mjs start\|list\|status\|stop\|sweep/)
+      assert.match(r.out, /usage: nn-session\.mjs start\|list\|status\|relink\|stop\|sweep/)
     }
     assert.equal(
       git(['worktree', 'list', '--porcelain'], repo),

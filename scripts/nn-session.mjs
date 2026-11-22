@@ -2,6 +2,7 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
+  cpSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -121,12 +122,20 @@ function npmCi(dir) {
 /**
  * Reuses the primary checkout's installed dependencies when the worktree's
  * `package-lock.json` SHA-256 matches the primary's and `node_modules` is present
- * (design D6): the worktree gets a `node_modules` directory junction instead of a
- * ~90s `npm ci`. Falls back to a real `npm ci` when lockfiles differ, the primary
- * has no `node_modules`, or `--full-install` is passed.
+ * (design D6): the worktree gets the primary's install instead of a ~90s `npm ci`.
+ * Falls back to a real `npm ci` when lockfiles differ, the primary has no
+ * `node_modules`, or `--full-install` is passed.
  *
  * A real install makes @cognnitive/* resolve to THIS worktree's source, so tests
  * and gates exercise the session's own edits. (#1624/#2009)
+ *
+ * The shared install is adopted package by package rather than as one `node_modules`
+ * junction. A junction of the whole directory made `node_modules/@cognnitive` a single
+ * reparse point shared by every checkout, so "point my worktree at its own core" could
+ * only ever rewrite the primary's link — measured: `rmdir` from a session worktree
+ * changed the primary's target, and deleting the scope there deleted the primary's
+ * directory. Sharing every dependency is fine; sharing the workspaces is not, because
+ * those are the code under test.
  * @param {string} target - the session worktree root
  * @param {string} root - the primary checkout
  * @param {boolean} fullInstall
@@ -147,7 +156,7 @@ function hydrateDependencies(target, root, fullInstall) {
     if (reusable) {
       removeLink(linkPath) // drop a stale junction before re-pointing
       try {
-        symlinkSync(primaryModules, linkPath, 'junction')
+        adoptSharedModules(primaryModules, linkPath)
         console.error(`nn-session: linked node_modules in ${dir} (lockfile match)`)
         continue
       } catch (err) {
@@ -158,6 +167,190 @@ function hydrateDependencies(target, root, fullInstall) {
     }
     npmCi(dir)
   }
+}
+
+/**
+ * Gives `target` the primary's installed packages without sharing its workspaces.
+ *
+ * Every entry of `primaryModules` becomes a junction to that same entry, except the
+ * `@cognnitive` scope, which stays a real directory of the target so each package in
+ * it can resolve to the target's own copy.
+ *
+ * Dotfile *files* (`.package-lock.json`) are copied rather than linked: npm reads and
+ * rewrites them, and a link there would let one worktree's install mutate the
+ * primary's bookkeeping. Dotfile *directories* are linked like everything else —
+ * `.pnpm` is the package store and holds thousands of files, so copying it per
+ * checkout turned `relink` from instant into a multi-minute stall on Windows.
+ * @param {string} primaryModules
+ * @param {string} targetModules
+ */
+function adoptSharedModules(primaryModules, targetModules) {
+  mkdirSync(targetModules, { recursive: true })
+  for (const entry of readdirSync(primaryModules, { withFileTypes: true })) {
+    if (entry.name === '@cognnitive') continue
+    const from = join(primaryModules, entry.name)
+    const to = join(targetModules, entry.name)
+    if (entry.name.startsWith('.') && entry.isFile()) {
+      rmSync(to, { recursive: true, force: true })
+      cpSync(from, to)
+      continue
+    }
+    try {
+      symlinkSync(from, to, 'junction')
+    } catch (err) {
+      // A real directory already there (an older install) is left as it is.
+      if (!existsSync(to)) throw err
+    }
+  }
+  mkdirSync(join(targetModules, '@cognnitive'), { recursive: true })
+}
+
+/**
+ * True when `checkout`'s real `node_modules` already carries the shared install,
+ * judged by the only cheap signal available: it has every top-level entry the
+ * fallback checkout has, apart from the `@cognnitive` scope it is meant to own.
+ *
+ * This is what makes `relink` able to repair a half-built install. A crashed or
+ * interrupted run leaves a `node_modules` with a handful of entries and no junction
+ * to adopt from, and without this the repair would silently leave the checkout
+ * unable to resolve a single dependency.
+ * @param {string} checkout
+ * @param {string} fallback
+ */
+function hasSharedInstall(checkout, fallback) {
+  const mine = join(checkout, 'node_modules')
+  const theirs = join(fallback, 'node_modules')
+  if (!existsSync(theirs)) return true
+  let present
+  try {
+    present = new Set(readdirSync(mine))
+  } catch {
+    return false
+  }
+  for (const name of readdirSync(theirs)) {
+    if (name === '@cognnitive') continue
+    if (!present.has(name)) return false
+  }
+  return true
+}
+
+/**
+ * True when `<checkout>/node_modules` is a reparse point — the shared install that
+ * `hydrateDependencies` used to create when the lockfiles matched.
+ *
+ * Every path under it resolves to the PRIMARY's inode, so writing
+ * `node_modules/@cognnitive/nn-core` from a session worktree rewrites the primary's
+ * link (and every other worktree's, since they share it). Measured, not assumed:
+ * `rmdir` of the link from a junctioned worktree changed the primary's target, and
+ * removing `@cognnitive` there deleted the primary's directory. No repair of the
+ * inner link can be per-checkout while this is true.
+ * @param {string} checkout
+ */
+function sharesNodeModules(checkout) {
+  try {
+    return lstatSync(join(checkout, 'node_modules')).isSymbolicLink()
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Gives `checkout` its own `@cognnitive` scope: a real directory whose links all
+ * resolve into `checkout`'s copy of the workspace packages.
+ *
+ * Every `@cognnitive/*` link is repaired, not just `nn-core`: `nn-mcp` is the same
+ * trap, and a checkout that tests one package locally while reading another from a
+ * neighbour is exactly the silent mixed state this command exists to end.
+ *
+ * The package list comes from the checkout's own `iNNfo/packages`, so a workspace
+ * added later is picked up without hardcoding names here.
+ * @param {string} checkout
+ * @param {string} fallback - checkout to borrow a package missing from `checkout`
+ * @returns {{ checkout: string, before: string|null, after: string|null, changed: boolean, broken: boolean }}
+ */
+function relinkCore(checkout, fallback) {
+  const scopeDir = join(checkout, 'node_modules', '@cognnitive')
+
+  // A legacy checkout whose `node_modules` is still one junction to the primary's:
+  // nothing written through it is local, so break the sharing first. Reading the
+  // inherited list before getting rid of it is what keeps the names complete.
+  if (sharesNodeModules(checkout)) {
+    const modules = join(checkout, 'node_modules')
+    const primaryModules = readlinkSync(modules)
+    removeLink(modules)
+    adoptSharedModules(primaryModules, modules)
+  } else if (checkout !== fallback && !hasSharedInstall(checkout, fallback)) {
+    // A `node_modules` left half-built (an interrupted run, an old manual repair)
+    // has nothing to adopt from, so the dependencies are topped up from `fallback`.
+    adoptSharedModules(join(fallback, 'node_modules'), join(checkout, 'node_modules'))
+  }
+
+  mkdirSync(scopeDir, { recursive: true })
+  const names = packageNames(checkout)
+  let changed = false
+  let brokenAny = false
+  let before = null
+  for (const name of names) {
+    const link = join(scopeDir, name)
+    const desired = packageTarget(checkout, name, fallback)
+    if (!desired) continue
+    const was = linkTarget(link)
+    if (name === 'nn-core') before = was
+    // A junction with no target, or one whose target vanished, is broken even when
+    // the literal string matches: `exists` follows the reparse point and fails.
+    const broken = was === null ? !existsSync(link) : !existsSync(was)
+    if (!broken && was && samePath(was, desired)) continue
+    brokenAny = brokenAny || broken
+    removeLink(link)
+    symlinkSync(desired, link, 'junction')
+    changed = true
+  }
+  const coreDesired = packageTarget(checkout, 'nn-core', fallback)
+  return { checkout, before, after: coreDesired, changed, broken: brokenAny }
+}
+
+/**
+ * Workspace package names this checkout ships: every directory under
+ * `iNNfo/packages` that is a real package. npm's workspace glob is the source of
+ * truth for what belongs in the `@cognnitive/*` scope, so the list is read from the
+ * checkout instead of hardcoded, and a workspace added later is picked up for free.
+ * @param {string} checkout
+ * @returns {Set<string>}
+ */
+function packageNames(checkout) {
+  const dir = join(checkout, 'iNNfo', 'packages')
+  const names = new Set()
+  if (!existsSync(dir)) return names
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory() && existsSync(join(dir, entry.name, 'package.json'))) {
+      names.add(entry.name)
+    }
+  }
+  return names
+}
+
+/** The directory `@cognnitive/<name>` must resolve to for `checkout`. */
+function packageTarget(checkout, name, fallback) {
+  const own = join(checkout, 'iNNfo', 'packages', name)
+  if (existsSync(own)) return own
+  const borrowed = join(fallback, 'iNNfo', 'packages', name)
+  return existsSync(borrowed) ? borrowed : null
+}
+
+/**
+ * Raw reparse target of `p`, or null when it is not a link (or does not exist).
+ */
+function linkTarget(p) {
+  try {
+    return lstatSync(p).isSymbolicLink() ? readlinkSync(p) : null
+  } catch {
+    return null
+  }
+}
+
+/** Windows paths are case-insensitive and may mix separators. */
+function samePath(a, b) {
+  return normalizePath(a) === normalizePath(b)
 }
 
 /** Builds @cognnitive/nn-core in the worktree so its dist matches the session source. */
@@ -252,7 +445,53 @@ function start(argv) {
       buildCore(target)
     }
   }
+  // Never create node_modules here: `--no-install` means the maintainer wants nothing
+  // installed, and a checkout without an install has no dependencies to link.
+  if (existsSync(join(target, 'node_modules'))) relinkCore(target, root)
   console.log(target)
+}
+
+/**
+ * Repairs every checkout in this repository so `@cognnitive/nn-core` points at its
+ * OWN core, and reports what it changed. The single repair path for the shared-link
+ * trap: no `rmdir` + `New-Item` by hand, which is what put five checkouts on one
+ * worktree's core in the first place.
+ *
+ * Idempotent, so it is safe to run any time and safe to run twice. It repairs every
+ * registered worktree of THIS repository, including the primary, because the shared
+ * reparse point makes "fix mine" impossible without fixing everyone's.
+ * @param {string[]} argv
+ */
+function relink(argv) {
+  const root = repoRoot(argv)
+  const checkouts = readWorktrees(root).map((wt) => wt.path)
+  /**
+   * A registered path may be gone; a stale entry cannot be repaired, only reported.
+   * @type {Array<{ checkout: string, before?: string|null, after?: string|null, changed?: boolean, broken?: boolean, missing?: boolean }>}
+   */
+  const results = checkouts.map((checkout) =>
+    existsSync(join(checkout, 'node_modules'))
+      ? { checkout, ...relinkCore(checkout, root) }
+      : { checkout, missing: true },
+  )
+  const changed = results.filter((r) => r.changed)
+  console.log('🌿 nn-session relink')
+  for (const r of results) {
+    const label = r.checkout.split(/[\\/]/).pop()
+    if (r.missing) {
+      console.log(`    ${label}: skipped (no node_modules)`)
+    } else if (r.changed) {
+      const was = r.before === null ? 'no link' : r.before
+      console.log(`    ${label}: ${was} -> ${r.after}`)
+    } else {
+      console.log(`    ${label}: ok`)
+    }
+  }
+  console.log(
+    changed.length === 0
+      ? '- every checkout already points at its own core'
+      : `- repaired ${changed.length} checkout(s)`,
+  )
 }
 
 function list(argv) {
@@ -334,17 +573,24 @@ function status(argv) {
 
   const links = workspaceLinks(root)
   if (links.length > 0) {
-    // Classified against the worktree the command runs *in*, not the primary: the point
-    // of the line is whether this checkout's typecheck would read its own core.
-    const cwdRoot = tryGit(['rev-parse', '--show-toplevel'], process.cwd()).out || root
+    // Classified against the worktree the link BELONGS to (`root`), not the cwd: the
+    // dependency `node_modules` is shared, so the link you see from a session
+    // worktree is the primary's file. Asking "does it point at the cwd" reported a
+    // healthy link as foreign there, and a foreign link as healthy in the owner.
     console.log('- workspace links:')
     for (const link of links) {
-      const state = !link.exists
-        ? 'MISSING — repoint it before trusting a typecheck'
-        : insidePath(link.target, cwdRoot)
-          ? 'this worktree'
-          : 'another checkout'
-      console.log(`    @cognnitive/${link.name} -> ${link.target ?? '(not a link)'}  (${state})`)
+      console.log(
+        `    @cognnitive/${link.name} -> ${link.target ?? '(not a link)'}  (${linkStatus(link, root)})`,
+      )
+    }
+    const broken = links.filter((link) => !linkStatus(link, root).startsWith('ok'))
+    if (broken.length > 0) {
+      console.log(
+        `    ⚠️  ${broken.map((l) => l.name).join(', ')} does not point at this repository's own package:`,
+      )
+      console.log('       tests run against another checkout’s build (false greens/reds),')
+      console.log('       and sweeping that checkout leaves everyone dangling.')
+      console.log('       fix: node scripts/nn-session.mjs relink')
     }
   }
 
@@ -420,6 +666,31 @@ const normalizePath = (p) => resolve(p).replace(/\\/g, '/').toLowerCase()
 function insidePath(target, root) {
   if (!target) return false
   return normalizePath(target).startsWith(`${normalizePath(root)}/`)
+}
+
+/**
+ * How a `@cognnitive/*` link reads for the checkout that owns it.
+ *
+ * `ok (this checkout)` means the package resolves into this checkout — the only state
+ * where a typecheck or a test exercises the code you are editing. `another checkout`
+ * is the silent false-green/false-red trap; `broken` is a junction with no target or
+ * a target that no longer exists, which is what sweeping a worktree leaves behind.
+ *
+ * The scope is checked too: an `@cognnitive` inherited through a junctioned
+ * `node_modules` makes every package below it a single file shared with the primary,
+ * so a link that looks local is still not this checkout's to write.
+ * @param {{ name: string, target: string|null, exists: boolean }} link
+ * @param {string} checkout - the checkout that owns the link
+ */
+function linkStatus(link, checkout) {
+  const scope = join(checkout, 'node_modules', '@cognnitive')
+  const scopeShared = linkTarget(scope) !== null
+  if (!link.target) return link.exists ? 'not a link' : 'broken — no target'
+  if (!link.exists) return 'broken — target is missing'
+  if (scopeShared) return '⚠️ another checkout (shared @cognnitive)'
+  const own = join(checkout, 'iNNfo', 'packages', link.name)
+  if (existsSync(own) && samePath(link.target, own)) return 'ok (this checkout)'
+  return insidePath(link.target, checkout) ? 'ok (this checkout)' : '⚠️ another checkout'
 }
 
 /**
@@ -596,7 +867,7 @@ function sweep(argv) {
 }
 
 const USAGE =
-  'usage: nn-session.mjs start|list|status|stop|sweep [--id <id>] [--no-install] [--full-install] [--force] [--root <path>] [--prs <file>]'
+  'usage: nn-session.mjs start|list|status|relink|stop|sweep [--id <id>] [--no-install] [--full-install] [--force] [--root <path>] [--prs <file>]'
 
 const argv = process.argv.slice(2)
 const cmd = argv[0]
@@ -612,6 +883,7 @@ if (cmd === 'help' || argv.includes('--help') || argv.includes('-h')) {
 if (cmd === 'start') start(argv)
 else if (cmd === 'list') list(argv)
 else if (cmd === 'status') status(argv)
+else if (cmd === 'relink') relink(argv)
 else if (cmd === 'stop') stop(argv)
 else if (cmd === 'sweep') sweep(argv)
 else {
