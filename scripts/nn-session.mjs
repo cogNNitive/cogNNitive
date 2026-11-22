@@ -485,8 +485,13 @@ function stop(argv) {
  * @returns {string | null}
  */
 function stopSession(root, id, { force = false, registeredPath = null } = {}) {
-  const target = registeredPath || worktreePath(root, id)
   const branch = `session/${id}`
+  // The path git reports for this branch, before falling back to a reconstruction.
+  // Guessing `<parent>/cogNNitive-<id>` finds nothing the moment the worktree lives
+  // anywhere else, and the old code still printed `removed` for that guessed path
+  // while the real directory survived (#721).
+  const registeredForBranch = (readWorktrees(root).find((w) => w.branch === branch) || {}).path
+  const target = registeredPath || registeredForBranch || worktreePath(root, id)
 
   const branchExists = tryGit(['rev-parse', '--verify', '--quiet', branch], root).ok
   const isIn = (ref) => tryGit(['merge-base', '--is-ancestor', branch, ref], root).ok
@@ -502,6 +507,7 @@ function stopSession(root, id, { force = false, registeredPath = null } = {}) {
 
   const registered = worktreeRegistered(root, target)
   let dirExists = existsSync(target)
+  const hadDir = dirExists
 
   if (registered && dirExists) {
     // An empty or foreign target (Windows lock, partial removal) is not dirty;
@@ -533,15 +539,20 @@ function stopSession(root, id, { force = false, registeredPath = null } = {}) {
   }
 
   if (branchExists) tryGit(['branch', '-D', branch], root)
+  const branchGone = branchExists && !tryGit(['rev-parse', '--verify', '--quiet', branch], root).ok
 
-  if (!registered && !branchExists && !dirExists) {
+  if (dirExists) {
+    return `refusing: ${target} still exists (locked); nothing was removed. Delete it once the lock holder closes.`
+  }
+  if (!hadDir && !branchGone) {
     console.log(`nothing to stop for session/${id}`)
     return null
   }
-  console.log(`removed ${target}`)
-  if (dirExists) {
-    console.error(`note: ${target} still exists (locked); delete it once the lock holder closes.`)
-  }
+  // Report what actually happened. The old code printed `removed <path>` for a path it
+  // had merely guessed, so a session whose worktree lived elsewhere read as cleaned up
+  // while the directory survived (#721).
+  if (hadDir) console.log(`removed ${target}`)
+  if (branchGone) console.log(`deleted branch ${branch}`)
   return null
 }
 
@@ -584,15 +595,26 @@ function sweep(argv) {
   }
 }
 
-const cmd = process.argv[2]
-if (cmd === 'start') start(process.argv.slice(2))
-else if (cmd === 'list') list(process.argv.slice(2))
-else if (cmd === 'status') status(process.argv.slice(2))
-else if (cmd === 'stop') stop(process.argv.slice(2))
-else if (cmd === 'sweep') sweep(process.argv.slice(2))
+const USAGE =
+  'usage: nn-session.mjs start|list|status|stop|sweep [--id <id>] [--no-install] [--full-install] [--force] [--root <path>] [--prs <file>]'
+
+const argv = process.argv.slice(2)
+const cmd = argv[0]
+
+// Asking for help must never run a command. `--help` used to be ignored as an unknown
+// flag, so `start --help` cut a session branch from origin/main and created a worktree
+// named after the host and pid, at a path nobody chose (#770, #721).
+if (cmd === 'help' || argv.includes('--help') || argv.includes('-h')) {
+  console.log(USAGE)
+  process.exit(0)
+}
+
+if (cmd === 'start') start(argv)
+else if (cmd === 'list') list(argv)
+else if (cmd === 'status') status(argv)
+else if (cmd === 'stop') stop(argv)
+else if (cmd === 'sweep') sweep(argv)
 else {
-  console.error(
-    'usage: nn-session.mjs start|list|status|stop|sweep [--id <id>] [--no-install] [--full-install] [--force] [--root <path>] [--prs <file>]',
-  )
+  console.error(USAGE)
   process.exit(2)
 }
