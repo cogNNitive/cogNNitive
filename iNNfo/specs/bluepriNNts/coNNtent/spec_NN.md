@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-7-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-7-0_NN.md"
 blueprint_name: "coNNtent"
-blueprint_version: "V_0-29-0"
+blueprint_version: "V_0-30-0"
 title: "coNNtent App"
 catalog: catalog/model-catalog_coNNtent_NN.md
 procedures:
@@ -528,7 +528,39 @@ description:: Provider display name (for example `WaveSpeed`).
 ## NN Field Definition: api_base
 concept:: Provider
 type:: url
-description:: Base URL the provider's API is called at.
+description:: Base URL the provider's API is called at; `submit_path` and `poll_path` are appended to it.
+
+## NN Field Definition: env_key
+concept:: Provider
+type:: string
+description:: Name of the environment variable that holds the provider credential (for example `WAVESPEED_API_KEY`). Never the credential itself. A Model of this Provider is billable only when the variable is set; otherwise the engine produces a free offline placeholder.
+
+## NN Field Definition: auth_scheme
+concept:: Provider
+type:: string
+description:: Scheme word of the `Authorization` header sent with the credential (for example `Bearer` or `Token`).
+
+## NN Field Definition: submit_path
+concept:: Provider
+type:: string
+description:: Path a job is submitted to with POST, appended to `api_base`. `{api_id}` is replaced by the called Model's own `api_id`.
+
+## NN Field Definition: poll_path
+concept:: Provider
+type:: string
+description:: Path a submitted job is polled at, appended to `api_base`. `{id}` is replaced by the task id the submit returned.
+
+## NN Field Definition: envelope
+concept:: Provider
+type:: select
+multiple:: true
+description:: Optional keyed list `[model=<key>, input=<key>]`. When set, the request body is wrapped as `{<model key>: api_id, <input key>: body}`; when absent the body is sent bare.
+
+## NN Field Definition: size_format
+concept:: Provider
+type:: select
+options:: [star, aspect_ratio]
+description:: How an image Model of this Provider receives the requested size: `star` sends `size` as `W*H`, `aspect_ratio` sends the nearest supported `aspect_ratio`. Defaults to `star`.
 
 ## NN Field Definition: provider
 concept:: Model
@@ -994,21 +1026,28 @@ copy MAY define Presets after its `Video Defaults` section.
 
 ### Summary
 
-A provider the catalog can call, with the base URL of its API.
+A provider the catalog can call, with the call contract of its API.
 
 ### Description
 
-One `## NN Provider: <name>` element declares `name` and `api_base`. Providers exist so a
-`Model` names the service it belongs to without repeating a URL per model.
+One `## NN Provider: <name>` element declares `name`, `api_base` and its transport:
+`env_key`, `auth_scheme`, `submit_path`, `poll_path`, and optionally `envelope` and
+`size_format`. Every billable call is routed by its `Model`: the Model names its Provider and
+the engine submits and polls along that Provider's declared transport, so two Models of two
+Providers can serve the same episode. The engine owns no provider URL, credential variable or
+model id. A Model whose Provider is not declared, or declares no complete transport, is
+refused before any call; a Model whose Provider credential is not set gets an offline
+placeholder instead of a call.
 
 ### Methodologies
 
 - Declare each provider once in the catalog, or in the domaiNN overlay when the provider is new.
-- Never put credentials in the catalog; they live in the environment.
+- Never put credentials in the catalog; `env_key` names the environment variable that holds them.
+- Add a provider by declaring its transport, never by editing engine code.
 
 ### Prompts
 
-- "Add a `Provider` named `WaveSpeed` with `api_base:: https://api.wavespeed.ai`."
+- "Add a `Provider` named `WaveSpeed` with `api_base:: https://api.wavespeed.ai/api/v3`, `env_key:: WAVESPEED_API_KEY`, `auth_scheme:: Bearer`, `submit_path:: /{api_id}` and `poll_path:: /predictions/{id}/result`."
 
 ## Model
 

@@ -11,10 +11,10 @@ depends_on:
       agent_skills: true
   env:
     - name: WAVESPEED_API_KEY
-      purpose: TTS and image/video media synthesis
+      purpose: Credential of the catalog `wavespeed` Provider (its `env_key`)
       required: true
     - name: REPLICATE_API_TOKEN
-      purpose: Fallback media synthesis
+      purpose: Credential of the catalog `replicate` Provider (its `env_key`), for models declared on it
       required: false
   binaries:
     - ffmpeg

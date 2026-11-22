@@ -90,6 +90,12 @@ Legend: ● can be written at this scope, · cannot.
 | `thumbnail_badge` | string | — | ● | ● | · | · | ● | · | · | · | · | · | · | · |
 | `name` | string | — | · | · | · | · | · | · | · | · | · | ● | · | · |
 | `api_base` | url | — | · | · | · | · | · | · | · | · | · | ● | · | · |
+| `env_key` | string | — | · | · | · | · | · | · | · | · | · | ● | · | · |
+| `auth_scheme` | string | — | · | · | · | · | · | · | · | · | · | ● | · | · |
+| `submit_path` | string | — | · | · | · | · | · | · | · | · | · | ● | · | · |
+| `poll_path` | string | — | · | · | · | · | · | · | · | · | · | ● | · | · |
+| `envelope` | select (multi) | — | · | · | · | · | · | · | · | · | · | ● | · | · |
+| `size_format` | select | `star`, `aspect_ratio` | · | · | · | · | · | · | · | · | · | ● | · | · |
 | `provider` | string | — | · | · | · | · | · | · | · | · | · | · | ● | · |
 | `api_id` | string | — | · | · | · | · | · | · | · | · | · | · | ● | · |
 | `capability` | select | `tts`, `image`, `avatar`, `video` | · | · | · | · | · | · | · | · | · | · | ● | · |
@@ -503,7 +509,43 @@ Settable at: `Provider`.
 
 ### `api_base`
 
-Base URL the provider's API is called at.
+Base URL the provider's API is called at; `submit_path` and `poll_path` are appended to it.
+
+Settable at: `Provider`.
+
+### `env_key`
+
+Name of the environment variable that holds the provider credential (for example `WAVESPEED_API_KEY`). Never the credential itself. A Model of this Provider is billable only when the variable is set; otherwise the engine produces a free offline placeholder.
+
+Settable at: `Provider`.
+
+### `auth_scheme`
+
+Scheme word of the `Authorization` header sent with the credential (for example `Bearer` or `Token`).
+
+Settable at: `Provider`.
+
+### `submit_path`
+
+Path a job is submitted to with POST, appended to `api_base`. `{api_id}` is replaced by the called Model's own `api_id`.
+
+Settable at: `Provider`.
+
+### `poll_path`
+
+Path a submitted job is polled at, appended to `api_base`. `{id}` is replaced by the task id the submit returned.
+
+Settable at: `Provider`.
+
+### `envelope`
+
+Optional keyed list `[model=<key>, input=<key>]`. When set, the request body is wrapped as `{<model key>: api_id, <input key>: body}`; when absent the body is sent bare.
+
+Settable at: `Provider`.
+
+### `size_format`
+
+How an image Model of this Provider receives the requested size: `star` sends `size` as `W*H`, `aspect_ratio` sends the nearest supported `aspect_ratio`. Defaults to `star`.
 
 Settable at: `Provider`.
 

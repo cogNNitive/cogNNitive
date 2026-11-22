@@ -1,6 +1,6 @@
 {
   "blueprint": "coNNtent",
-  "blueprint_version": "V_0-29-0",
+  "blueprint_version": "V_0-30-0",
   "generated_from": "spec_NN.md",
   "fields": {
     "adapter": {
@@ -37,7 +37,7 @@
       "options": [],
       "multiple": false,
       "cascade": false,
-      "description": "Base URL the provider's API is called at."
+      "description": "Base URL the provider's API is called at; `submit_path` and `poll_path` are appended to it."
     },
     "api_id": {
       "concepts": [
@@ -63,6 +63,18 @@
       "multiple": false,
       "cascade": false,
       "description": "Source media file for a Layer (image or video), the directory of an authored HyperFrames project for an `animation` Layer, or the media of a fixed Scene Kind. One of `asset` or `prompt` is required for `avatar` and `media` Layers."
+    },
+    "auth_scheme": {
+      "concepts": [
+        "Provider"
+      ],
+      "scope": "record",
+      "levels": [],
+      "type": "string",
+      "options": [],
+      "multiple": false,
+      "cascade": false,
+      "description": "Scheme word of the `Authorization` header sent with the credential (for example `Bearer` or `Token`)."
     },
     "avatar": {
       "concepts": [
@@ -412,6 +424,30 @@
       "cascade": false,
       "description": "Enter motion of the Layer overlay. Optional."
     },
+    "env_key": {
+      "concepts": [
+        "Provider"
+      ],
+      "scope": "record",
+      "levels": [],
+      "type": "string",
+      "options": [],
+      "multiple": false,
+      "cascade": false,
+      "description": "Name of the environment variable that holds the provider credential (for example `WAVESPEED_API_KEY`). Never the credential itself. A Model of this Provider is billable only when the variable is set; otherwise the engine produces a free offline placeholder."
+    },
+    "envelope": {
+      "concepts": [
+        "Provider"
+      ],
+      "scope": "record",
+      "levels": [],
+      "type": "select",
+      "options": [],
+      "multiple": true,
+      "cascade": false,
+      "description": "Optional keyed list `[model=<key>, input=<key>]`. When set, the request body is wrapped as `{<model key>: api_id, <input key>: body}`; when absent the body is sent bare."
+    },
     "exit_animation": {
       "concepts": [
         "Layer"
@@ -656,6 +692,18 @@
       "cascade": false,
       "description": "For a `media` Layer: `full` covers the whole canvas; `inset` places it inside the safe area of each output canvas: its title-safe area (10% of each side, the 80% title-safe of HyperFrames' safe areas), and on a vertical canvas (height greater than width) also clear of the platform interface bands, 14% of the height at the top and 35% at the bottom (the Instagram Reels safe box, the strictest of the HyperFrames safe-area presets). Each output format computes its own box, and `fit` classifies the asset against that box. Required on `media`."
     },
+    "poll_path": {
+      "concepts": [
+        "Provider"
+      ],
+      "scope": "record",
+      "levels": [],
+      "type": "string",
+      "options": [],
+      "multiple": false,
+      "cascade": false,
+      "description": "Path a submitted job is polled at, appended to `api_base`. `{id}` is replaced by the task id the submit returned."
+    },
     "pose": {
       "concepts": [
         "Video",
@@ -856,6 +904,21 @@
       "cascade": false,
       "description": "The episode's script document, resolved under the owning model's directory."
     },
+    "size_format": {
+      "concepts": [
+        "Provider"
+      ],
+      "scope": "record",
+      "levels": [],
+      "type": "select",
+      "options": [
+        "star",
+        "aspect_ratio"
+      ],
+      "multiple": false,
+      "cascade": false,
+      "description": "How an image Model of this Provider receives the requested size: `star` sends `size` as `W*H`, `aspect_ratio` sends the nearest supported `aspect_ratio`. Defaults to `star`."
+    },
     "sizes": {
       "concepts": [
         "Model"
@@ -936,6 +999,18 @@
       "multiple": false,
       "cascade": false,
       "description": "For a `text` Layer: the visual component to render. The component implementation resolves by name (`components/<style>`, a folder `library/components/<style>/` or `media/components/<style>/`, episode → series → domain → skill fallback), so a Series can restyle it without a new type."
+    },
+    "submit_path": {
+      "concepts": [
+        "Provider"
+      ],
+      "scope": "record",
+      "levels": [],
+      "type": "string",
+      "options": [],
+      "multiple": false,
+      "cascade": false,
+      "description": "Path a job is submitted to with POST, appended to `api_base`. `{api_id}` is replaced by the called Model's own `api_id`."
     },
     "tags": {
       "concepts": [

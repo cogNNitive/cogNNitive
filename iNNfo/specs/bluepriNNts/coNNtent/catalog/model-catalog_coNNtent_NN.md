@@ -18,12 +18,23 @@ title: "Model Catalog"
 ## NN Provider: WaveSpeed
 slug:: wavespeed
 name:: WaveSpeed
-api_base:: https://api.wavespeed.ai
+api_base:: https://api.wavespeed.ai/api/v3
+env_key:: WAVESPEED_API_KEY
+auth_scheme:: Bearer
+submit_path:: /{api_id}
+poll_path:: /predictions/{id}/result
+size_format:: star
 
 ## NN Provider: Replicate
 slug:: replicate
 name:: Replicate
 api_base:: https://api.replicate.com
+env_key:: REPLICATE_API_TOKEN
+auth_scheme:: Token
+submit_path:: /v1/predictions
+poll_path:: /v1/predictions/{id}
+envelope:: [model=version, input=input]
+size_format:: aspect_ratio
 
 ## NN Provider: Local
 slug:: local
