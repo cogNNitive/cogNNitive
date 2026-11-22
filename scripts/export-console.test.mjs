@@ -1080,6 +1080,65 @@ notes:: "Please review the tagline"
       assert.match(stale.stdout, /domaiNN_console[.]html \[stale\]/)
     })
 
+    const statusChangeset = (id, status) => `---
+spec_version: "V_0-4-0"
+level: 3
+parent_spec:
+  name: changes
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
+blueprint_version: "V_0-1-0"
+status: ${status}
+title: "Review ${id}"
+author: "reviewer"
+---
+
+# NN index
+
+* [[Change]]
+
+# NN Change
+
+## NN Change: ${id}
+op:: comment
+target:: Business Model@Enterprise Customer&tagline
+notes:: "Please review the tagline"
+`
+
+    it('--status reports the domain console stale after a changeset that touches no model (#749)', async () => {
+      await mkdir(join(tempDir, 'changes'), { recursive: true })
+      await writeFile(
+        join(tempDir, 'changes', 'business_reviewer_20260101T000000Z_changes_NN.md'),
+        statusChangeset('fb-001', 'applied'),
+        'utf-8',
+      )
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      assert.match((await runCli([tempDir, '--status'])).stdout, /domaiNN_console[.]html \[fresh\]/)
+
+      await writeFile(
+        join(tempDir, 'changes', 'business_reviewer_20260102T000000Z_changes_NN.md'),
+        statusChangeset('fb-002', 'proposed'),
+        'utf-8',
+      )
+      const stale = await runCli([tempDir, '--status'])
+      assert.match(stale.stdout, /domaiNN_console[.]html \[stale\]/)
+      assert.match(stale.stdout, /business_V_0-2-5_NN[.]md \[fresh\]/, 'the models themselves did not change')
+    })
+
+    it('--status with changesets stays fresh after export and goes stale after a model change', async () => {
+      await mkdir(join(tempDir, 'changes'), { recursive: true })
+      await writeFile(
+        join(tempDir, 'changes', 'business_reviewer_20260101T000000Z_changes_NN.md'),
+        statusChangeset('fb-001', 'applied'),
+        'utf-8',
+      )
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      assert.match((await runCli([tempDir, '--status'])).stdout, /domaiNN_console[.]html \[fresh\]/)
+
+      const file = join(tempDir, 'models', 'business_V_0-2-5_NN.md')
+      await writeFile(file, (await readFile(file, 'utf-8')) + '\n## NN Stakeholders: Late\n  slug:: late\n', 'utf-8')
+      assert.match((await runCli([tempDir, '--status'])).stdout, /domaiNN_console[.]html \[stale\]/)
+    })
+
     it('--status reports an absent domain console as uncompiled', async () => {
       const res = await runCli([tempDir, '--status'])
       assert.match(res.stdout, /domaiNN_console[.]html \[uncompiled\]/)
