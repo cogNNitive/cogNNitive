@@ -15,9 +15,17 @@
  */
 
 const { execFileSync } = require('node:child_process')
+const path = require('node:path')
 const { writeBack } = require('./lib/regen-writeback.js')
 
-const repoRoot = __dirname
+/**
+ * The repository root, not this file's directory.
+ *
+ * `run` resolves its script arguments and `writeBack` stages from `cwd`, so both need the root:
+ * with `__dirname` the lane asked for `scripts/scripts/release/write-pending-versions.js` and
+ * `git add -A` would have staged only what sits under `scripts/`.
+ */
+const repoRoot = path.resolve(__dirname, '..')
 
 /** Runs a command in the repository, inheriting stdio so its output reaches the CI log. */
 function run(command, args) {
