@@ -168,22 +168,22 @@ describe('procedure view writes through the console controller (no mock store)',
   }
   const click = (el) => el.dispatchEvent(new doc.defaultView.Event('click'))
 
-  it('records the event in the real store when a branch is chosen', () => {
+  it('records the Step Request in the real store when a branch is chosen', () => {
     mount()
     const select = container.querySelector('[data-proc-outcome]')
     assert.ok(select, 'the branch control exists')
     select.value = 'approve'
     click(container.querySelector('[data-proc-action="complete"]'))
 
-    assert.equal(store.drafts().length, 1, 'the event reached the store')
+    assert.equal(store.drafts().length, 1, 'the request reached the store')
     const [d] = store.drafts()
     assert.equal(d.kind, 'new')
-    assert.equal(d.concept, 'Execution Event')
+    assert.equal(d.concept, 'Step Request')
     assert.equal(d.knowledge_id, 'r1')
     const fields = JSON.parse(d.proposed)
-    assert.equal(fields.kind, 'step_completed')
-    assert.equal(fields.outcome, 'approve')
-    assert.equal(fields.next, 'publish')
+    assert.equal(fields.action, 'complete')
+    assert.equal(fields.requested_outcome, 'approve')
+    assert.equal(fields.request_status, 'pending')
   })
 
   it('shows the pending banner once the draft really landed', () => {

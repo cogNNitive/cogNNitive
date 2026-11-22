@@ -1,11 +1,13 @@
 import { describe, it, beforeEach } from 'node:test'
 import { runModelOfEvents } from './helpers/run-model-of-events.mjs'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { JSDOM } from 'jsdom'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+/* The stepper asks the runner: each action records a `Step Request` on the run model, and
+ * only `procedure_record` consumes it. The view never writes the run and never closes it. */
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
@@ -66,7 +68,8 @@ function runOf(id, graph, events, opts = {}) {
     closed: !!opts.closed,
     defRev,
     params: {},
-    events,
+    seq: opts.seq ?? 3,
+    requests: opts.requests ?? {},
     state: core.foldRun(graph, runModelOfEvents(events, { defRev }), { defRev }),
   }
 }
@@ -84,7 +87,7 @@ function payload(runs) {
   }
 }
 
-// A store facade that behaves like ctx.store: it records the drafts a view proposes.
+/** A store facade that behaves like ctx.store: it records the drafts a view proposes. */
 function draftSpy() {
   const added = []
   return {
@@ -111,7 +114,7 @@ const AT_REVIEW = [
   { kind: 'step_started', step: 'review', attempt: 1 },
 ]
 
-describe('procedure view: advancing a run writes a draft', () => {
+describe('procedure view: an action records a Step Request', () => {
   let doc
   let container
   let stepper
@@ -141,52 +144,45 @@ describe('procedure view: advancing a run writes a draft', () => {
 
   it('offers no action when the procedure has no runs', () => {
     mount(payload([]), draftSpy().ctx)
-    assert.deepEqual(actionIds(), [], 'a definition has nothing to advance')
+    assert.deepEqual(actionIds(), [], 'a definition has nothing to ask')
   })
 
-  it('offers the actions the fold allows on an open step, and nothing that closes a run', () => {
-    mount(payload([(g) => runOf('r1', g, STARTED)]), draftSpy().ctx)
-    // The runner's `allowedActions` for an active step: wait, complete, fail, plus pause.
-    assert.deepEqual(enabled(), ['wait', 'complete', 'fail', 'pause'])
-    assert.ok(!actionIds().includes('finish'), 'finish is not offered: it needs close_model')
-    assert.ok(!actionIds().includes('cancel'), 'cancel is not offered: it needs close_model')
+  it('offers the three actions a request can carry, and nothing that closes a run', () => {
+    mount(payload([(g) => runOf('r1', g, AT_REVIEW)]), draftSpy().ctx)
+    assert.deepEqual(enabled().sort(), ['complete', 'fail', 'wait'])
+    assert.ok(!actionIds().includes('start'), 'start is not a request: the agent claims a step')
+    assert.ok(!actionIds().includes('finish'), 'finish needs close_model, which a request cannot emit')
+    assert.ok(!actionIds().includes('cancel'), 'cancel needs close_model too')
+    assert.ok(!actionIds().includes('pause'), 'pause is run-level, not a step request')
   })
 
-  it('offers start, not complete, on a step that has not begun', () => {
+  it('offers no action on a step that has not begun', () => {
     mount(payload([(g) => runOf('r1', g, [{ kind: 'started', actor: 'ana' }])]), draftSpy().ctx)
-    assert.deepEqual(enabled(), ['start', 'pause'])
+    assert.deepEqual(
+      actionIds().filter((a) => a === 'complete' || a === 'wait' || a === 'fail'),
+      [],
+      'a pending step is claimed by the runner, never asked for',
+    )
   })
 
   it('offers nothing once the run is closed', () => {
-    mount(payload([(g) => runOf('r1', g, STARTED, { closed: true })]), draftSpy().ctx)
+    mount(payload([(g) => runOf('r1', g, AT_REVIEW, { closed: true })]), draftSpy().ctx)
     assert.deepEqual(enabled(), [], 'a closed run cannot be advanced')
   })
 
-  it('offers only rebase when the run drifted from its definition', () => {
-    mount(payload([(g) => runOf('r1', g, STARTED, { defRev: 'V_0-9-0' })]), draftSpy().ctx)
-    assert.deepEqual(enabled(), ['rebase'])
-  })
-
-  it('offers only resume when the run is paused', () => {
-    mount(payload([(g) => runOf('r1', g, [...STARTED, { kind: 'interrupted' }])]), draftSpy().ctx)
-    assert.deepEqual(enabled(), ['resume'])
-  })
-
-  it('will not complete a decision step until a branch is chosen, then records the outcome', () => {
+  it('will not complete a decision step until a branch is chosen, then asks for it', () => {
     const spy = draftSpy()
     mount(payload([(g) => runOf('r1', g, AT_REVIEW)]), spy.ctx)
 
     const complete = container.querySelector('[data-proc-action="complete"]')
     assert.ok(complete, 'complete is offered on a decision step')
 
-    // Two branches, nothing chosen: the guard refuses and says why.
     click(complete)
-    assert.equal(spy.added.length, 0, 'no draft without a branch')
+    assert.equal(spy.added.length, 0, 'no request without a branch')
     const err = container.querySelector('.proc-action-error')
     assert.ok(err, 'the refusal is shown, not swallowed')
     assert.match(err.textContent, /branch/i)
 
-    // The branch control lists both outcomes; choosing one records it.
     const select = container.querySelector('[data-proc-outcome]')
     assert.ok(select, 'a branch selector is offered')
     const values = [...select.querySelectorAll('option')].map((o) => o.value).filter(Boolean)
@@ -196,60 +192,65 @@ describe('procedure view: advancing a run writes a draft', () => {
     click(complete)
     assert.equal(spy.added.length, 1)
     const fields = JSON.parse(spy.added[0].proposed)
-    assert.equal(fields.kind, 'step_completed')
+    assert.equal(fields.action, 'complete')
     assert.equal(fields.step, 'review')
-    assert.equal(fields.outcome, 'approve')
-    assert.equal(fields.next, 'publish')
+    assert.equal(fields.requested_outcome, 'approve')
   })
 
-  it('creates ONE event draft carrying the fields the runner records', () => {
+  it('creates ONE Step Request pinned to the seq, carrying the step and the action', () => {
     const spy = draftSpy()
-    mount(payload([(g) => runOf('r1', g, STARTED.toSpliced?.() || STARTED)]), spy.ctx)
-    const fail = container.querySelector('[data-proc-action="fail"]')
-    click(fail)
+    mount(payload([(g) => runOf('r1', g, AT_REVIEW, { seq: 7 })]), spy.ctx)
+    click(container.querySelector('[data-proc-action="fail"]'))
 
-    assert.equal(spy.added.length, 1, 'one draft per action')
+    assert.equal(spy.added.length, 1, 'one request per action')
     const [d] = spy.added
     assert.equal(d.kind, 'new')
-    assert.equal(d.concept, 'Execution Event')
+    assert.equal(d.concept, 'Step Request', 'never an Execution Event')
     assert.equal(d.knowledge_id, 'r1', 'the draft targets the run model')
-    assert.equal(d.element, 'e-003', 'the event follows the two already recorded')
-    assert.equal(d.element_slug, 'e-003')
+    assert.equal(d.element, 'q-001')
+    assert.equal(d.element_slug, 'q-001')
     const fields = JSON.parse(d.proposed)
-    assert.equal(fields.kind, 'step_failed')
-    assert.equal(fields.step, 'draft')
+    assert.equal(fields.action, 'fail')
+    assert.equal(fields.step, 'review')
+    assert.equal(fields.base_seq, 7, 'the request pins the seq the person saw')
+    assert.equal(fields.request_status, 'pending')
   })
 
-  it('records run-level facts without a step, exactly as the runner writes them', () => {
-    const paused = draftSpy()
-    mount(payload([(g) => runOf('r1', g, [...STARTED, { kind: 'interrupted' }])]), paused.ctx)
-    click(container.querySelector('[data-proc-action="resume"]'))
-    assert.equal(paused.added.length, 1)
-    const resumed = JSON.parse(paused.added[0].proposed)
-    assert.deepEqual(
-      resumed,
-      { kind: 'resumed' },
-      'resume carries no step: the runner records it run-level',
+  it('a pending request disables the step and says it waits for the agent', () => {
+    mount(
+      payload([
+        (g) =>
+          runOf('r1', g, AT_REVIEW, {
+            requests: { 'q-001': { action: 'complete', status: 'pending', step: 'review' } },
+          }),
+      ]),
+      draftSpy().ctx,
     )
+    const note = container.querySelector('[data-proc-waiting]')
+    assert.ok(note, 'the pending ask is shown')
+    assert.match(note.textContent, /Waiting for the agent/)
+    assert.equal(container.querySelector('[data-proc-action="complete"]'), null, 'no second ask')
   })
 
-  it('never applies anything: the panel says the draft waits for apply_change', () => {
+  it('never applies anything: the request waits for procedure_record', () => {
     const spy = draftSpy()
-    mount(payload([(g) => runOf('r1', g, STARTED)]), spy.ctx)
-    click(container.querySelector('[data-proc-action="complete"]'))
-    const note = container.querySelector('.proc-draft-pending')
-    assert.ok(note, 'the pending draft is stated')
-    assert.match(note.textContent, /apply_change/i)
-    assert.match(note.textContent, /e-003/)
+    mount(payload([(g) => runOf('r1', g, AT_REVIEW)]), spy.ctx)
+    click(container.querySelector('[data-proc-action="fail"]'))
+    assert.equal(spy.added.length, 1, 'the request was proposed, never applied')
     assert.equal(
       container.querySelector('[data-proc-action="apply"]'),
       null,
       'no apply control exists',
     )
+    assert.equal(
+      container.querySelector('[data-proc-action="finish"]'),
+      null,
+      'the console cannot close a run',
+    )
   })
 
   it('renders no actions at all without a draft store (read-only console)', () => {
-    stepper.mount(container, payload([(g) => runOf('r1', g, STARTED)]))
+    stepper.mount(container, payload([(g) => runOf('r1', g, AT_REVIEW)]))
     assert.deepEqual(actionIds(), [], 'a console without a store offers no write')
   })
 })

@@ -308,10 +308,9 @@ describe('procedure view (bluepriNNt)', () => {
     assert.ok(artifact, 'the artifact has a chip')
     assert.match(artifact.querySelector('.proc-artifact-name').textContent, /Draft Doc/)
     assert.match(artifact.querySelector('.proc-artifact-state').textContent, /validated/)
-    assert.deepEqual(texts('.proc-run-events .audit-item .audit-kind').slice(0, 2), [
-      'started',
-      'step_started',
-    ])
+    // The model is the state, so the view draws no event log: the run's history is its change
+    // log, read from the change files, never rendered as a list of events.
+    assert.equal(container.querySelector('.proc-run-events'), null, 'no event log')
   })
 
   it('shows the drift of a run pinned to another definition revision', (context) => {
