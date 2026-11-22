@@ -195,8 +195,18 @@ Gentle-AI's ODD runs the agent; this repository narrows it:
 - **Derived artifacts belong to `main`, not to your branch.** The pre-commit hook no longer
   regenerates and stages them, and the gate accepts the ones your change moves
   (`regen.js --check --tolerant`); after the merge the `regen` job commits them, plus the
-  derived version, before `auto-tag` plans. So do not commit a bundle, fixture or catalog into
-  a PR: it collides with every other live branch by construction. A change under
+  derived version, before `auto-tag` plans. So do not commit a catalog, manifest render or
+  derived version into a PR: it collides with every other live branch by construction.
+  **Exception: three artifacts are gated by tests, not by the regen gate, and a PR that moves
+  them must commit them.** `scripts/lib/console-bundle.test.js` fails on a stale
+  `nn-console.bundle.js` (`npm run build:console`), `test/console-export.test.mjs` fails on a
+  stale `test/fixtures/testlab/domaiNN_console.html`
+  (`node scripts/export-console.mjs test/fixtures/testlab --domain --no-open`), and
+  `scripts/build-skills-manager-bundle.test.mjs` fails on a stale
+  `skills/nn-skills-lifecycle/scripts/skills-manager.js`
+  (`node scripts/build-skills-manager-bundle.mjs`). #797 went red on the first two until they
+  were committed. Rebuild them last, after the rebase, so the bytes match `main` plus your
+  change. A change under
   `iNNfo/packages/nn-core` still needs `node scripts/build-core-mirrors.mjs` and
   `node scripts/export-console.mjs test/fixtures/testlab --domain --no-open` to see its effect
   locally — the fixture embeds a CSP hash of the bundle — but the lane is what commits them.
