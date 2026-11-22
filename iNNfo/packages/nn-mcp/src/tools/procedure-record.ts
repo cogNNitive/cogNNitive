@@ -998,12 +998,66 @@ function planEngineRun(
   })()
 }
 
+/**
+ * Marks a request `stale` or `rejected` in its own small changeset and reports the mark instead
+ * of the refusal that produced it. The mark IS the answer the person gets, so the tool succeeds
+ * at marking even though the action was refused: the queue must say what happened to the ask.
+ */
+async function markRequest(
+  root: string,
+  run: string,
+  id: string,
+  seq: number,
+  status: 'stale' | 'rejected',
+  meta: { title: string; reason: string },
+): Promise<RecordResult | ToolError> {
+  const committed = await commit(
+    root,
+    [
+      seqGuard(run, seq),
+      {
+        op: 'set_fields',
+        target: `${run}@${id}`,
+        from: JSON.stringify({ request_status: 'pending' }),
+        to: JSON.stringify({ request_status: status, reason: meta.reason }),
+        evidence: 'decision',
+      },
+    ],
+    { title: meta.title, actor: 'agent', kind: 'agent', run: runContext(run) },
+  )
+  if (!committed.ok) return committed
+  const after = await reload(root, run)
+  if (!after.ok) return after
+  return { ...after, changeset: committed.changeset }
+}
+
+/** A request whose action the planner refused: mark it, and report the planner's refusal. */
+async function rejectRequest(
+  root: string,
+  read: { run: { id: string; seq: number } },
+  requestId: string | undefined,
+  refused: ToolError,
+): Promise<RecordResult | ToolError> {
+  if (requestId === undefined) return refused
+  await markRequest(root, read.run.id, requestId, read.run.seq, 'rejected', {
+    title: `request ${requestId} rejected`,
+    reason: `${refused.code}: ${refused.detail}`,
+  })
+  return refused
+}
+
 export async function procedureRecord(
   root: string,
   args: Record<string, unknown>,
 ): Promise<RecordResult | ToolError> {
+  const requestId = text(args['request'])
   const action = text(args['action']) as RecordAction | undefined
-  if (!action || !ACTIONS.includes(action))
+  if (requestId === undefined && (!action || !ACTIONS.includes(action)))
+    return fail(
+      'INVALID_ACTION',
+      `action must be one of ${ACTIONS.join(', ')} unless a request names it.`,
+    )
+  if (action !== undefined && !ACTIONS.includes(action))
     return fail('INVALID_ACTION', `action must be one of ${ACTIONS.join(', ')}.`)
   const runId = text(args['run'])
   if (!runId) return fail('INVALID_ARGUMENT', 'run must be a non-empty run id.')
@@ -1012,8 +1066,58 @@ export async function procedureRecord(
   if (!read.ok) return read
   const folded = await foldStoredRun(root, read.run)
   if (!folded.ok) return folded
-  const planned = await plan(folded.folded, action, args, root)
-  if ('ok' in planned) return planned
+
+  // A request is consumed here and marked in the same changeset that records the action: one
+  // read, one plan, one write. An action given alongside a request is refused rather than
+  // merged, so nobody can feed two intents into one call.
+  let effectiveArgs = args
+  let resolvedAction = action
+  let requestMark: Change | undefined
+  if (requestId !== undefined) {
+    if (action !== undefined)
+      return fail(
+        'INVALID_ARGUMENT',
+        'give a request or an action, never both: the request already names the action.',
+      )
+    const request = read.run.requests[requestId]
+    if (!request) return fail('REQUEST_NOT_FOUND', `Run "${runId}" has no request "${requestId}".`)
+    if (request.status !== 'pending')
+      return fail(
+        'REQUEST_NOT_PENDING',
+        `Request "${requestId}" is ${request.status}; only a pending request can be consumed.`,
+      )
+    const currentSeq = read.run.seq
+    if (request.baseSeq === undefined || request.baseSeq !== currentSeq) {
+      const marked = await markRequest(root, runId, requestId, currentSeq, 'stale', {
+        title: `request ${requestId} stale`,
+        reason: `The run moved from seq ${request.baseSeq ?? '?'} to ${currentSeq} before the request was consumed.`,
+      })
+      if ('ok' in marked && !marked.ok) return marked
+      return fail(
+        'REQUEST_STALE',
+        `Request "${requestId}" was made at seq ${request.baseSeq ?? '?'}; the run is at ${currentSeq}. It is marked stale.`,
+        { request: requestId, baseSeq: request.baseSeq, seq: currentSeq },
+      )
+    }
+    resolvedAction = request.action
+    effectiveArgs = {
+      ...args,
+      action: request.action,
+      ...(request.step !== undefined ? { step: request.step } : {}),
+      ...(request.outcome !== undefined ? { outcome: request.outcome } : {}),
+      ...(request.value !== undefined ? { value: request.value } : {}),
+    }
+    requestMark = {
+      op: 'set_fields',
+      target: `${runId}@${requestId}`,
+      from: JSON.stringify({ request_status: 'pending' }),
+      to: JSON.stringify({ request_status: 'done' }),
+      evidence: 'decision',
+    }
+  }
+
+  const planned = await plan(folded.folded, resolvedAction!, effectiveArgs, root)
+  if ('ok' in planned) return rejectRequest(root, read, requestId, planned)
 
   const kind = planned.kind ?? 'agent'
   const actor = text(args['actor']) ?? kind
@@ -1021,9 +1125,10 @@ export async function procedureRecord(
   // A plan that already wrote its own claim continues the counter it advanced.
   const seq = planned.claimedSeq ?? read.run.seq
   const changes: Change[] = [seqGuard(run, seq), ...planned.changes]
+  if (requestMark) changes.push(requestMark)
   if (planned.close) changes.push({ op: 'close_model', target: run, evidence: 'decision' })
   const committed = await commit(root, changes, {
-    title: `${action} ${run}`,
+    title: `${resolvedAction} ${run}`,
     actor,
     kind,
     run: runContext(run, planned.step),
