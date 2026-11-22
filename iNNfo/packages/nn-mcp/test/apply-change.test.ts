@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
 import { rm, mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
@@ -70,6 +70,7 @@ target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline
 `
 
   beforeEach(async () => {
+    vi.stubEnv('NN_AUTHOR', 'tester')
     await rm(csRoot, { recursive: true, force: true })
     await mkdir(specsDir, { recursive: true })
     await mkdir(knowledgeDir, { recursive: true })
@@ -93,6 +94,7 @@ target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline
   })
 
   afterEach(async () => {
+    vi.unstubAllEnvs()
     await rm(csRoot, { recursive: true, force: true })
   })
 
@@ -388,7 +390,9 @@ target_year_source:: sources/report.pdf_sidecar_NN.md@## Timeline
 
     // A changeset file was synthesized in changes/
     const csFiles = await readdir(changesDir)
-    const synthesized = csFiles.filter((f) => f.includes('_agent_') && f.endsWith('_changes_NN.md'))
+    const synthesized = csFiles.filter(
+      (f) => f.includes('_tester_') && f.endsWith('_changes_NN.md'),
+    )
     expect(synthesized.length).toBe(1)
 
     // Synthesized changeset is sealed and marked applied

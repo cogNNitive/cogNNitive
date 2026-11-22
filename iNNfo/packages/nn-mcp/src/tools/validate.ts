@@ -444,7 +444,7 @@ export function filterDiagnosticsForModel(
  */
 export async function collectDriftDiagnostics(rootDir: string): Promise<ReferenceDiagnostic[]> {
   const log = buildChangeLog(readLineageSnapshot(rootDir))
-  const models = await collectProvenanceModels(rootDir)
+  const models = await collectProvenanceModels(rootDir, log)
   const pathByModel = new Map(
     models
       .filter((model) => typeof model.path === 'string')

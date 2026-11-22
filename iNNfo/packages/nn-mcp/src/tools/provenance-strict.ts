@@ -264,7 +264,7 @@ export async function checkDomainProvenance(
 ): Promise<ProvenanceReport> {
   const files = readLineageSnapshot(rootDir)
   const log = buildChangeLog(files)
-  const models = await collectProvenanceModels(rootDir)
+  const models = await collectProvenanceModels(rootDir, log)
 
   if (options.strict !== true) {
     return checkProvenance(log, models, options.sha256 ? { sha256: options.sha256 } : {})

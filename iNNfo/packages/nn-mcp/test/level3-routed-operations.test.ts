@@ -292,3 +292,28 @@ A summary.
     expect(out).toContain('A summary.')
   })
 })
+
+describe('apply_change tool call without args (#560 C)', () => {
+  it('runs freeze_slugs, which takes no args, when the args key is omitted', async () => {
+    const { dispatchTool } = await import('../src/server.js')
+    const res = await dispatchTool('apply_change', { domain: root, id: 'strategy', op: 'freeze_slugs' })
+    const text = (res.content[0] as { text: string }).text
+    expect(text).not.toContain('Missing required arguments')
+    expect(res.isError ?? false).toBe(false)
+    expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toContain('slug:: vision')
+  })
+
+  it('runs bump_version as a patch when the args key is omitted', async () => {
+    const { dispatchTool } = await import('../src/server.js')
+    const res = await dispatchTool('apply_change', { domain: root, id: 'strategy', op: 'bump_version' })
+    expect(res.isError ?? false).toBe(false)
+    expect(await versionOf('strategy')).toBe('V_0-1-1')
+  })
+
+  it('still refuses an op that needs args when the args key is omitted', async () => {
+    const { dispatchTool } = await import('../src/server.js')
+    const res = await dispatchTool('apply_change', { domain: root, id: 'strategy', op: 'update_field' })
+    expect(res.isError).toBe(true)
+    expect((res.content[0] as { text: string }).text).toContain('Missing required arguments: id, op, args')
+  })
+})

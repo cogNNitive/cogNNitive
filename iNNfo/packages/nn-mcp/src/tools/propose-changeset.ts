@@ -1,4 +1,6 @@
+import { execFileSync } from 'node:child_process'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { userInfo } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import {
   parseCitation,
@@ -83,7 +85,7 @@ export async function resolveWorkspaceId(rootDir: string): Promise<string> {
 export interface WriteProposedChangesetInput {
   changes: ChangeItem[]
   title?: string
-  /** Default `agent`. */
+  /** Default: `resolveDefaultAuthor(rootDir)`. */
   author?: string
   /** Overrides the manifest / folder derived `workspace_id`. */
   workspaceId?: string
@@ -152,11 +154,40 @@ export function buildProposedChangeset(
   }
 }
 
+/**
+ * Who wrote a changeset when the caller names nobody (changeset-real-author): the
+ * `NN_AUTHOR` environment variable (set it in the MCP client config to name the agent),
+ * else the domaiNN's git `user.name`, else the OS user name. Never the literal `agent`,
+ * which made every changeset from every agent, session and human read the same.
+ */
+export function resolveDefaultAuthor(rootDir: string): string {
+  const fromEnv = process.env.NN_AUTHOR?.trim()
+  if (fromEnv) return fromEnv
+  try {
+    const fromGit = execFileSync('git', ['config', 'user.name'], {
+      cwd: rootDir,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: 2000,
+    }).trim()
+    if (fromGit) return fromGit
+  } catch {
+    // Not a git checkout, git missing, or no user.name: fall through.
+  }
+  try {
+    const fromOs = userInfo().username.trim()
+    if (fromOs) return fromOs
+  } catch {
+    // userInfo throws when the uid has no passwd entry.
+  }
+  return 'unknown'
+}
+
 export async function writeProposedChangeset(
   rootDir: string,
   input: WriteProposedChangesetInput,
 ): Promise<WrittenChangeset> {
-  const author = input.author?.trim() || 'agent'
+  const author = input.author?.trim() || resolveDefaultAuthor(rootDir)
   const workspaceId = input.workspaceId?.trim() || (await resolveWorkspaceId(rootDir))
   const document = buildProposedChangeset(input.changes, {
     title: input.title,

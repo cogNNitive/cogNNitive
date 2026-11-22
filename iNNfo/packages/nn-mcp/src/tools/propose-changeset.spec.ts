@@ -63,6 +63,7 @@ const UPDATE = {
 }
 
 beforeEach(async () => {
+  vi.stubEnv('NN_AUTHOR', 'tester')
   process.env.INNFO_CACHE_DIR = join(root, '.cache')
   vi.spyOn(global, 'fetch').mockRejectedValue(new Error('network disabled in tests'))
   await rm(root, { recursive: true, force: true })
@@ -78,6 +79,7 @@ beforeEach(async () => {
 })
 
 afterEach(async () => {
+  vi.unstubAllEnvs()
   delete process.env.INNFO_CACHE_DIR
   vi.restoreAllMocks()
   await rm(root, { recursive: true, force: true })
@@ -92,7 +94,7 @@ describe('propose_changeset writes a sealed proposed changeset', () => {
     expect(result.status).toBe('proposed')
     const files = await readdir(changesDir)
     expect(files).toHaveLength(1)
-    expect(files[0]).toMatch(/^temp-test-propose_agent_\d{8}T\d{6}Z_changes_NN\.md$/)
+    expect(files[0]).toMatch(/^temp-test-propose_tester_\d{8}T\d{6}Z_changes_NN\.md$/)
     expect(result.changeset).toBe(`changes/${files[0]}`)
 
     const doc = parseChangeset(await readFile(join(changesDir, files[0]), 'utf-8'))
@@ -127,7 +129,7 @@ describe('propose_changeset writes a sealed proposed changeset', () => {
     const result = await propose([UPDATE, { op: 'comment', target: 'strategy@Vision', notes: 'check', author: 'reviewer' }])
     const doc = parseChangeset(await readFile(join(root, result.changeset!), 'utf-8'))
     expect(doc.changes.map((c) => [c.id, c.author])).toEqual([
-      ['c-01', 'agent'],
+      ['c-01', 'tester'],
       ['c-02', 'reviewer'],
     ])
   })
@@ -294,7 +296,7 @@ describe('single proposed-changeset writer', () => {
     expect(res.success).toBe(true)
     const files = await readdir(changesDir)
     expect(files).toHaveLength(1)
-    expect(files[0]).toMatch(/^temp-test-propose_agent_\d{8}T\d{6}Z_changes_NN\.md$/)
+    expect(files[0]).toMatch(/^temp-test-propose_tester_\d{8}T\d{6}Z_changes_NN\.md$/)
     const doc = parseChangeset(await readFile(join(changesDir, files[0]), 'utf-8'))
     expect(doc.frontmatter.level).toBe(3)
     expect(doc.frontmatter.parent_spec.name).toBe('changes')
