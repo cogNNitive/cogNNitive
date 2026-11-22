@@ -37,6 +37,17 @@ into the source-of-truth engineering tracker (`cogNNitive/cogNNitive`).
 | 778 | 27 | skills: profile-update path is unreachable for agents (nn-skills-lifecycle is user-invoked only, nothing points at the manifest) | 2026-11-21 |
 | 779 | 28 | console: fails to start in a sandboxed iframe (localStorage guard throws on read) | 2026-11-21 |
 | 780 | 29 | skills-manager: full update hangs and never records catalog state when a catalog declares an unpinned embedded skill (nn-conntent) | 2026-11-21 |
+| 803 | 30 | Console: element modal Connections tab is empty for reference fields (relations are extracted only from [[wikilinks]]) | 2026-11-22 |
+
+Notes on the 2026-11-22 sweep:
+
+- One open web issue, maintainer-authored, imported; the web tracker is empty again
+  (**0 issues**), its Issues feature still enabled as the public intake.
+- `web#30` arrived classified as "the generator never emits `relations`". The engine does
+  emit them, but only from `[[wikilink]]` values (`payload-builder.ts`, `WIKILINK_TARGET_RE`);
+  a reference field in its canonical bare or qualified form (`Target`, `[Model] Target`,
+  `Model :: Target`) produces none, which is why the panel is empty for real models while the
+  suite stays green on a wikilink fixture. The destination title was rewritten to say that.
 
 Notes on the 2026-11-21 sweep:
 
