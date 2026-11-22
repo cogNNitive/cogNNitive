@@ -2929,8 +2929,14 @@ export async function executeChangesetApply(
         try {
           const content = await readFile(entry.filePath, 'utf-8')
           originalModelsBackup.set(entry.filePath, content)
-        } catch {
-          // If unreadable, not yet on disk
+        } catch (err) {
+          // Not on disk: nothing to restore. Any other failure (a file locked on
+          // Windows, a permission error) would leave the rollback with no backup, so
+          // refuse before the first write instead of persisting without one.
+          if ((err as NodeJS.ErrnoException)?.code === 'ENOENT') continue
+          throw new Error(
+            `[apply-change] cannot read the rollback backup of "${entry.filePath}" (${err}); nothing was written`,
+          )
         }
       }
     }

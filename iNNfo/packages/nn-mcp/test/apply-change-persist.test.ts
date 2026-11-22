@@ -11,12 +11,27 @@ const injected = vi.hoisted(() => ({
   renameFailure: null as Error | null,
   renameFailForPath: null as string | null,
   renameEpermAttempts: 0,
+  // Reads of a path containing this text fail once `readsAllowed` reads of it succeeded:
+  // the model loads, then its pre-persist backup read hits a locked file.
+  readFailForPath: null as string | null,
+  readsAllowed: 0,
 }))
 
 vi.mock('node:fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs/promises')>()
   return {
     ...actual,
+    readFile: (async (file: any, ...rest: any[]) => {
+      if (injected.readFailForPath && String(file).includes(injected.readFailForPath)) {
+        if (injected.readsAllowed <= 0) {
+          const err = new Error('EBUSY: resource busy or locked') as any
+          err.code = 'EBUSY'
+          throw err
+        }
+        injected.readsAllowed--
+      }
+      return (actual.readFile as any)(file, ...rest)
+    }) as typeof actual.readFile,
     rename: async (src: string, dest: string) => {
       if (injected.renameEpermAttempts > 0 && String(src).endsWith('.tmp')) {
         injected.renameEpermAttempts--
@@ -132,7 +147,29 @@ describe('apply persist is crash safe', () => {
     injected.renameFailure = null
     injected.renameFailForPath = null
     injected.renameEpermAttempts = 0
+    injected.readFailForPath = null
+    injected.readsAllowed = 0
     await rm(root, { recursive: true, force: true })
+  })
+
+  it('refuses to persist when the rollback backup of a model cannot be read', async () => {
+    injected.readFailForPath = 'strategy_NN.md'
+    injected.readsAllowed = 2 // the reads before the backup succeed; the backup read fails
+
+    await expect(applyChange(root, 'changes/persist_changes_NN.md')).rejects.toThrow(
+      /rollback backup/,
+    )
+
+    injected.readFailForPath = null
+    // Nothing was written: the live model is byte-identical and the changeset is unapplied.
+    expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toBe(LIVE_MODEL)
+    expect(existsSync(join(knowledgeDir, 'strategy.tmp'))).toBe(false)
+    expect(await readFile(join(changesDir, 'persist_changes_NN.md'), 'utf-8')).toContain(
+      'status: proposed',
+    )
+    // The refusal released the changes lock: once the file is readable the apply succeeds.
+    const retry = await applyChange(root, 'changes/persist_changes_NN.md')
+    expect(retry.success).toBe(true)
   })
 
   it('installs the new model with no snapshot and no leftover .tmp', async () => {
