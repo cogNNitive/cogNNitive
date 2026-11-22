@@ -128,7 +128,7 @@ export interface RunModel {
 }
 
 /** The action a `Step Request` asks the runner to record. Closing a run is never one of them. */
-export type StepRequestAction = 'wait' | 'complete' | 'fail'
+export type StepRequestAction = 'start' | 'wait' | 'complete' | 'fail'
 
 /** The life of one request: nobody consumed it yet, or what became of it. */
 export type StepRequestStatus = 'pending' | 'done' | 'stale' | 'rejected'

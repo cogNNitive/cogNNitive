@@ -259,4 +259,27 @@ describe('procedure view: an action records a Step Request', () => {
     stepper.mount(container, payload([(g) => runOf('r1', g, AT_REVIEW)]))
     assert.deepEqual(actionIds(), [], 'a console without a store offers no write')
   })
+
+  it('offers start on an unstarted manual step and disables upon proposing a draft', () => {
+    const BEFORE_REVIEW = [...STARTED, { kind: 'step_completed', step: 'draft', next: 'review' }]
+    const spy = draftSpy()
+    mount(payload([(g) => runOf('r1', g, BEFORE_REVIEW)]), spy.ctx)
+    assert.deepEqual(enabled(), ['start'], 'a pending human step offers start')
+
+    click(container.querySelector('[data-proc-action="start"]'))
+    assert.equal(spy.added.length, 1)
+    const proposed = JSON.parse(spy.added[0].proposed)
+    assert.equal(proposed.action, 'start')
+    assert.equal(proposed.step, 'review')
+
+    // After click, draftRequestsOf detects the proposed draft, disabling further asks
+    const note = container.querySelector('[data-proc-waiting]')
+    assert.ok(note, 'draft request shows waiting note')
+    assert.match(note.textContent, /Draft proposed/)
+    assert.equal(
+      container.querySelector('[data-proc-action="start"]'),
+      null,
+      'no second start click',
+    )
+  })
 })

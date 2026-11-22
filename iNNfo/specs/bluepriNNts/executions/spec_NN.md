@@ -155,7 +155,7 @@ description:: The applied change ids a human step observed, such as the verdicts
 ## NN Field Definition: action
 concept:: Step Request
 type:: select
-options:: [wait, complete, fail]
+options:: [start, wait, complete, fail]
 description:: The action the person asked the runner to record on the step.
 
 ## NN Field Definition: step

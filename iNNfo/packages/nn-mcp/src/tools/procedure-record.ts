@@ -869,6 +869,10 @@ function planEngineRun(
     }
     const claimedSeq = f.run.seq + 1
     const { exitCode, reason: runError } = await child.done
+    // Re-read the run model: if other writes landed while the command was running, the
+    // header seq moved. Re-reading ensures the completion changeset guards the CURRENT seq.
+    const reloaded = await readRun(root, f.run.id)
+    const freshSeq = reloaded.ok ? reloaded.run.seq : claimedSeq
     // The holder is the child's pid, so the crash probe names the process that runs the
     // command; the completion clears that column.
     const settledClaim = { ...claimTo, holder: '' }
@@ -899,7 +903,7 @@ function planEngineRun(
           attempt,
           kind: 'engine',
           exitCode,
-          claimedSeq,
+          claimedSeq: freshSeq,
           changes: [finishRow('waiting', { waiting_on: reason })],
         }
       if (mapped && mapped !== 'failed') {
@@ -926,7 +930,7 @@ function planEngineRun(
           attempt,
           kind: 'engine',
           exitCode,
-          claimedSeq,
+          claimedSeq: freshSeq,
           changes: [
             finishRow('done', { outcome: mapped, ...(chosen.next ? { next: chosen.next } : {}) }),
           ],
@@ -937,7 +941,7 @@ function planEngineRun(
         attempt,
         kind: 'engine',
         exitCode,
-        claimedSeq,
+        claimedSeq: freshSeq,
         changes: [
           finishRow('failed', {
             failure: mapped && mapped !== 'failed' ? `${mapped}: ${reason}` : reason,
@@ -1087,15 +1091,51 @@ export async function procedureRecord(
         `Request "${requestId}" is ${request.status}; only a pending request can be consumed.`,
       )
     const currentSeq = read.run.seq
-    if (request.baseSeq === undefined || request.baseSeq !== currentSeq) {
+    const targetStep = request.step ?? folded.folded.state.currentStep
+    const stepRow = targetStep ? read.run.steps[targetStep] : undefined
+    const stepStatus = stepRow?.status ?? 'pending'
+
+    let isStale = false
+    let staleReason = ''
+    if (request.baseSeq === undefined) {
+      isStale = true
+      staleReason = `Request "${requestId}" carries no baseSeq.`
+    } else if (request.baseSeq > currentSeq) {
+      isStale = true
+      staleReason = `Request "${requestId}" was made at future seq ${request.baseSeq}; run is at ${currentSeq}.`
+    } else if (request.baseSeq < currentSeq) {
+      // The run advanced since the request was made. A request is only stale if the step it
+      // targets moved away from the state the action needed.
+      if (
+        targetStep &&
+        request.action === 'start' &&
+        (stepStatus === 'active' || stepStatus === 'done')
+      ) {
+        isStale = true
+        staleReason = `Step "${targetStep}" moved to status "${stepStatus}" before the start request was consumed.`
+      } else if (
+        targetStep &&
+        (request.action === 'complete' || request.action === 'fail') &&
+        stepStatus !== 'active' &&
+        stepStatus !== 'waiting'
+      ) {
+        isStale = true
+        staleReason = `Step "${targetStep}" moved to status "${stepStatus}" before the ${request.action} request was consumed.`
+      } else if (targetStep && request.action === 'wait' && stepStatus !== 'active') {
+        isStale = true
+        staleReason = `Step "${targetStep}" moved to status "${stepStatus}" before the wait request was consumed.`
+      }
+    }
+
+    if (isStale) {
       const marked = await markRequest(root, runId, requestId, currentSeq, 'stale', {
         title: `request ${requestId} stale`,
-        reason: `The run moved from seq ${request.baseSeq ?? '?'} to ${currentSeq} before the request was consumed.`,
+        reason: staleReason,
       })
       if ('ok' in marked && !marked.ok) return marked
       return fail(
         'REQUEST_STALE',
-        `Request "${requestId}" was made at seq ${request.baseSeq ?? '?'}; the run is at ${currentSeq}. It is marked stale.`,
+        `Request "${requestId}" was made at seq ${request.baseSeq ?? '?'}; the run is at ${currentSeq}. It is marked stale: ${staleReason}`,
         { request: requestId, baseSeq: request.baseSeq, seq: currentSeq },
       )
     }
@@ -1123,16 +1163,39 @@ export async function procedureRecord(
   const actor = text(args['actor']) ?? kind
   const run = read.run.id
   // A plan that already wrote its own claim continues the counter it advanced.
-  const seq = planned.claimedSeq ?? read.run.seq
+  let seq = planned.claimedSeq ?? read.run.seq
+  if (planned.kind === 'engine') {
+    const fresh = await readRun(root, run)
+    if (fresh.ok) seq = fresh.run.seq
+  }
   const changes: Change[] = [seqGuard(run, seq), ...planned.changes]
   if (requestMark) changes.push(requestMark)
   if (planned.close) changes.push({ op: 'close_model', target: run, evidence: 'decision' })
-  const committed = await commit(root, changes, {
+  let committed = await commit(root, changes, {
     title: `${resolvedAction} ${run}`,
     actor,
     kind,
     run: runContext(run, planned.step),
   })
+  if (!committed.ok && committed.code === 'RUN_BUSY' && planned.kind === 'engine') {
+    // Retry completion once if another writer bumped seq at this exact instant
+    const fresh = await readRun(root, run)
+    if (
+      fresh.ok &&
+      fresh.run.steps[planned.step!]?.status === 'active' &&
+      fresh.run.steps[planned.step!]?.attempt === planned.attempt
+    ) {
+      const retryChanges = [seqGuard(run, fresh.run.seq), ...planned.changes]
+      if (requestMark) retryChanges.push(requestMark)
+      if (planned.close) retryChanges.push({ op: 'close_model', target: run, evidence: 'decision' })
+      committed = await commit(root, retryChanges, {
+        title: `${resolvedAction} ${run}`,
+        actor,
+        kind,
+        run: runContext(run, planned.step),
+      })
+    }
+  }
   if (!committed.ok) return committed
   const after = await reload(root, run)
   if (!after.ok) return after
