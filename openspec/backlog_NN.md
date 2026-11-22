@@ -9,7 +9,7 @@ title: "Backlog"
 
 # NN Idea
 
-## NN Idea: coNNtent animation unification, T1+T2 - make `template::` and `beats::` validated Layer fields, invoke the template builder from `produce` with an input hash so a changed beat or template makes the clip stale and it is rebuilt, and derive the mounted composition id per mount instead of reading it from the authored project (closes #608). T3, moving template code out of every episode into the domain library, waits for a real episode to justify it. Tracker: `odd/tasks/conntent-animation-unify.md`, specs S2, S3, S4, S5 and S6. T1 changes the published coNNtent spec, so the slice is heavy: delta spec plus a `blueprint_version` bump
+## NN Idea: coNNtent animation unification, T3 - move animation template code out of every episode into the domain library, so an episode holds data only (`asset:: component:<name>` plus `inputs::`) and ships no per-episode `kit.js`, `harness.js`, `gsap.min.js` or `score.wav`; templates are promotable to the blueprint later by an explicit act. Waits for a real episode to justify it. The engine side (validated `inputs::`, library components, input-driven review staleness) shipped with #612; tracker `odd/tasks/conntent-animation-unify.md` is closed, specs S4 and S5
 captured:: 2026-11-19
 
 ## NN Idea: Product site generated from an iNNfo blueprint (deferred until the first real external user exists; building a marketing site for zero readers is maintenance without payoff)
