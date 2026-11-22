@@ -6,7 +6,7 @@ skills:
     repo: cogNNitive/cogNNitive-web
     path: skills/nn
     ref_key: skills
-    description: Primary Front Controller, ecosystem entry point, job loop menu ([s] Sources, [k] kNNowledge, [r] Review/Artifacts, [p] Procedures, [h] Help, [x] Cancel), system governance, and preflight readiness gate. Triggers: /nn, NN, nn, cognnitive, cognitive, start, router.
+    description: Primary Front Controller, ecosystem entry point, job loop menu ([s] Sources, [k] kNNowledge, [r] Review/Artifacts, [p] Procedures, [h] Help, [x] Cancel), system governance, and preflight readiness gate. Also the entry point for updating or installing the cogNNitive installation itself (skills-manager.js status first). Triggers: /nn, NN, nn, cognnitive, cognitive, start, router, update cognnitive, install cognnitive.
   - name: nn-sources
     repo: cogNNitive/cogNNitive-web
     path: skills/nn-sources
@@ -23,7 +23,6 @@ skills:
       - name: nn-mcp
         repo: cogNNitive/cogNNitive-web
         path: iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js
-        min_version: "0.12.0"
         ref_key: nn-mcp
   - name: nn-preflight
     repo: cogNNitive/cogNNitive-web
