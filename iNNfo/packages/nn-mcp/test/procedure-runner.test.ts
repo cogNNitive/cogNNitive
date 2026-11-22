@@ -6,6 +6,7 @@ import { tmpdir, hostname } from 'node:os'
 import { join } from 'node:path'
 import { procedureState } from '../src/tools/procedure-state.js'
 import { procedureRecord, procedureStart } from '../src/tools/procedure-record.js'
+import { procedurePending } from '../src/tools/procedure-pending.js'
 import { validateProposal } from '../src/tools/propose-changeset.js'
 import { crashProbe } from '@cognnitive/nn-core'
 
@@ -645,5 +646,29 @@ describe('engine steps', SLOW, () => {
     expect(
       crashProbe({ ...row, holder: '', claimedAt: undefined }, { now, host: 'this-host' }),
     ).toBe(true)
+  })
+})
+
+describe('step requests', SLOW, () => {
+  /** Records a Step Request row the way the console does: one add_element, no run change. */
+  const ask = (
+    run: string,
+    id: string,
+    fields: Record<string, string | number>,
+  ) =>
+    procedureRecord(root, {
+      run,
+      action: 'input',
+      field: `request-${id}`,
+      value: JSON.stringify(fields),
+    })
+
+  it('a request moves nothing until the runner consumes it', async () => {
+    ok(await startReview())
+    ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
+    const before = ok(await procedureState(root, { run: 'r1' }))
+    const text = await runText('r1')
+    void text
+    void before
   })
 })

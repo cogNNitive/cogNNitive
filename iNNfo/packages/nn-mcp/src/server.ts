@@ -58,6 +58,7 @@ import { initDomain } from './tools/init-domain.js'
 import { readLineageTool } from './tools/read-lineage.js'
 import { explainEffective, resolveEffective } from './tools/resolve-effective.js'
 import { procedureState } from './tools/procedure-state.js'
+import { procedurePending } from './tools/procedure-pending.js'
 import { procedureRecord, procedureStart } from './tools/procedure-record.js'
 import { envelope, envelopeList, findDomainRoot } from '@cognnitive/nn-core'
 
@@ -1046,6 +1047,26 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     },
     handler: handleProcedureRecord,
   },
+  {
+    definition: {
+      name: 'procedure_pending',
+      annotations: { readOnlyHint: true },
+      description:
+        'Read-only: the queue of Step Request rows a person recorded in the console (executions spec, "Requests, not writes"). A request is intent, never state: it names an action (wait, complete or fail), the step, the run seq it was asked at (base_seq) and an optional outcome or value. Only procedure_record consumes one, and it marks it done, stale or rejected. Without a run id it lists every run of the domaiNN. Returns each request with its id, run, step, action, base_seq, status and reason, plus how many are still pending. Never writes files. Codes: INVALID_ARGUMENT, RUN_NOT_FOUND.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          run: {
+            type: 'string',
+            description: 'Optional run id; omitted lists every run in the domaiNN',
+          },
+          domain: { type: 'string', description: 'Optional domain root override' },
+          root: { type: 'string', description: 'Optional domain root override (alias for domain)' },
+        },
+      },
+    },
+    handler: handleProcedurePending,
+  },
 ]
 
 /** Tool definitions advertised by ListTools — derived from the registry. */
@@ -1453,6 +1474,10 @@ function handleProcedureState(args: Record<string, unknown>): Promise<CallToolRe
 
 function handleProcedureRecord(args: Record<string, unknown>): Promise<CallToolResult> {
   return runnerResult('innfo-procedure-record', procedureRecord, args)
+}
+
+function handleProcedurePending(args: Record<string, unknown>): Promise<CallToolResult> {
+  return runnerResult('innfo-procedure-pending', procedurePending, args)
 }
 
 /* ── Response helpers ────────────────────────────────────────── */
