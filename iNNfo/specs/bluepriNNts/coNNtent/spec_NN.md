@@ -19,6 +19,12 @@ procedures:
   - id: "create-character"
     name: "Create a Character"
     path: "procedures/create_character_procedures_NN.md"
+  - id: "draft-scene-visuals"
+    name: "Draft Scene Visuals"
+    path: "procedures/draft_scene_visuals_procedures_NN.md"
+  - id: "produce-video"
+    name: "Produce Video"
+    path: "procedures/produce_video_procedures_NN.md"
 relationship_types:
   hierarchy:
     enabled: true
