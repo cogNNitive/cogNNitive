@@ -75,17 +75,6 @@ evidence:: No export-okf script, procedure or skill exists; iNNfo/packages/nn-co
 merged_from:: okf-type-frontmatter, okf-index-md, okf-version
 batch:: b4e-okf-export
 
-## NN Item: video-vector-actor-catalog
-value:: M
-effort:: S
-risk:: M
-status:: open
-lane:: light
-verdict:: current
-evidence:: defaults/video-defaults_NN.md:20-21 still pins `image_model:: wavespeed-ai/z-image/turbo` and `avatar_model:: wavespeed-ai/infinitetalk-fast`. The Layer type options are at coNNtent/spec_NN.md:329, and a Character concept with avatar poses now exists (spec_NN.md:312, create_character procedure), so the old "no catalog" evidence no longer applies; only the vendor neutrality gap remains. Re-checked 2026-11-22.
-done_when:: The coNNtent blueprint's avatar layer names a source instead of a vendor model id, `defaults/video-defaults_NN.md` stops pinning `wavespeed-ai/z-image/turbo` and `wavespeed-ai/infinitetalk-fast` for that layer, the vendor id lives in the domain's own defaults with its plug point documented, and no binary actor assets are added to the repository. Rescoped 2026-11-16: neutrality only, no catalog.
-batch:: b5b-video-vector-actor-catalog
-
 ## NN Item: coNNtent-procedures
 value:: M
 effort:: M
@@ -103,13 +92,6 @@ batch:: b5d-conntent-procedures
 order:: 55
 lane:: heavy
 items:: okf-export-projector
-risk:: M
-state:: planned
-
-## NN Batch: b5b-video-vector-actor-catalog
-order:: 58
-lane:: light
-items:: video-vector-actor-catalog
 risk:: M
 state:: planned
 
