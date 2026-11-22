@@ -94,6 +94,21 @@ async function snapshot(dir = root, base = ''): Promise<Record<string, string>> 
 const startReview = () =>
   procedureStart(root, { procedure: 'review', params: { doc: 'spec' }, run: 'r1', actor: 'ana' })
 
+/**
+ * Reads `<run>@<step>&<field>` from the run model. The runner's claim facts (`claimed_at`,
+ * `holder`) live only on the element, because the row reader projects them away.
+ */
+async function stepField(run: string, step: string, field: string): Promise<string | undefined> {
+  const dir = join(root, 'executions', run)
+  const [file] = (await readdir(dir)).filter((f) => f.endsWith('_NN.md'))
+  const text = await readFile(join(dir, file!), 'utf-8')
+  const heading = text.indexOf(`slug:: ${step}\n`)
+  const from = text.lastIndexOf('## NN Step Run:', heading)
+  const until = text.indexOf('\n## ', heading)
+  const body = text.slice(from, until === -1 ? undefined : until)
+  return new RegExp(`^${field}:: (.*)$`, 'm').exec(body)?.[1]
+}
+
 describe('procedure_start', SLOW, () => {
   it('creates the run model, header and every row as one atomic changeset', async () => {
     const r = ok(await startReview())
@@ -297,7 +312,8 @@ describe('procedure_record', SLOW, () => {
     })
 
     ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
-    await refuse({ action: 'start' }, 'STEP_ALREADY_STARTED')
+    // A live engine claim is the one `start` refuses; a second `start` of an agent step is a
+    // new attempt, so the fence asserted here is on the engine fixture.
     ok(await procedureRecord(root, { run: 'r1', action: 'complete' }))
     ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
     // Several targets and no outcome to choose between them.
@@ -339,6 +355,47 @@ describe('procedure_record', SLOW, () => {
     )
     expect(closed).toMatchObject({ closed: true, state: { status: 'failed' } })
     expect(await runText('r1')).toMatch(/^closed: true$/m)
+  })
+
+  it('a waited step completes, and the run reports waiting while it waits', async () => {
+    ok(await startReview())
+    ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
+    // `wait` is a step status, not only a note: the row goes `active -> waiting`, which is a
+    // declared edge of the Step Run `status` field.
+    ok(await procedureRecord(root, { run: 'r1', action: 'wait', value: 'human opinion' }))
+    const waiting = ok(await procedureState(root, { run: 'r1' }))
+    expect(waiting.state).toMatchObject({ status: 'waiting', currentStep: 'draft' })
+    expect(waiting.state.steps.draft).toMatchObject({
+      status: 'waiting',
+      waitingOn: 'human opinion',
+    })
+    // What the state advertises, the writer accepts: a waiting step is completed or failed.
+    expect(waiting.actions).toEqual(expect.arrayContaining(['complete', 'fail']))
+    expect(waiting.actions).not.toContain('wait')
+
+    const done = ok(await procedureRecord(root, { run: 'r1', action: 'complete' }))
+    expect(done.state.steps.draft).toMatchObject({ status: 'done', attempt: 1 })
+    expect(done.state).toMatchObject({ currentStep: 'review', status: 'open' })
+
+    // A waiting step can also be failed outright.
+    ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
+    ok(await procedureRecord(root, { run: 'r1', action: 'wait', value: 'the reviewer' }))
+    const failed = ok(await procedureRecord(root, { run: 'r1', action: 'fail', value: 'gave up' }))
+    expect(failed.state.steps.review).toMatchObject({ status: 'failed', failure: 'gave up' })
+  })
+
+  it('engine exit_codes=waiting puts the step and the run in waiting, and it can resume', async () => {
+    ok(await procedureStart(root, { procedure: 'wait', params: { name: 'x' }, run: 'w1' }))
+    const ran = ok(await procedureRecord(root, { run: 'w1', action: 'run' }))
+    expect(ran.exitCode).toBe(2)
+    expect(ran.state).toMatchObject({ status: 'waiting', currentStep: 'probe' })
+    expect(ran.state.steps.probe).toMatchObject({ status: 'waiting' })
+    // The exit code is the reason, not the whole message.
+    expect(ran.state.steps.probe.waitingOn).toContain('exit 2')
+
+    // A waiting engine step is re-claimable as attempt 2 and can be completed.
+    const retried = ok(await procedureRecord(root, { run: 'w1', action: 'run' }))
+    expect(retried.state.steps.probe).toMatchObject({ status: 'waiting', attempt: 2 })
   })
 
   it('drift: a changed definition refuses step facts until a rebase accepts it', async () => {
@@ -474,16 +531,20 @@ describe('engine steps', SLOW, () => {
     const r = ok(await procedureRecord(root, { run: 'b1', action: 'run' }))
     expect(r.exitCode).toBe(0)
     expect(r.state).toMatchObject({
-      canComplete: true,
+      currentStep: 'build-and-ship',
       artifacts: { bundle: { status: 'validated' } },
     })
     expect(r.state.steps.build).toMatchObject({ status: 'done', attempt: 1 })
     expect(r.state.artifacts.bundle?.rev).toMatch(/^[0-9a-f]{64}$/)
     expect(await readFile(join(root, 'out-x.txt'), 'utf-8')).toBe('built')
     const files = await changesets()
-    expect(files).toHaveLength(2)
+    // The claim lands BEFORE the command runs (so two callers cannot run it twice) and it
+    // carries the child's pid; the completion lands after: start, claim, completion.
+    expect(files).toHaveLength(3)
     const texts = await Promise.all(files.map((f) => readFile(join(root, 'changes', f), 'utf-8')))
-    expect(texts.filter((t) => /^author_kind: engine$/m.test(t))).toHaveLength(1)
+    expect(texts.filter((t) => /^author_kind: engine$/m.test(t))).toHaveLength(2)
+    // The claim names the child; the completion clears the column it anchored.
+    expect(texts.some((t) => /"holder":"\d+@/.test(t))).toBe(true)
   })
 
   it('action=run records a failed step with the exit code', async () => {
@@ -494,13 +555,19 @@ describe('engine steps', SLOW, () => {
     expect(r.state).toMatchObject({ status: 'blocked' })
   })
 
-  it('crash: an active engine step whose holder pid is gone derives as crashed', async () => {
+  it('crash: an engine run records the pid of the child it executes', async () => {
     ok(await startBuild(0))
-    ok(await procedureRecord(root, { run: 'b1', action: 'start' }))
-    // The runner recorded itself as the holder: a live pid is not a crash.
-    const running = ok(await procedureState(root, { run: 'b1' }))
-    expect(running.state).toMatchObject({ crashed: false, status: 'open' })
-    expect(running.state.steps.build.status).toBe('active')
+    ok(await procedureRecord(root, { run: 'b1', action: 'run' }))
+    // The claim named the child's pid and the completion cleared that column, so the model
+    // holds no live holder for a step that is done.
+    const text = await runText('b1')
+    const claimed = await Promise.all(
+      (await changesets()).map((f) => readFile(join(root, 'changes', f), 'utf-8')),
+    )
+    const holders = [...claimed.join('\n').matchAll(/"holder":"(\d+)@/g)].map((m) => Number(m[1]))
+    expect(holders.length).toBeGreaterThan(0)
+    expect(holders.every((pid) => pid !== process.pid)).toBe(true)
+    expect(text).not.toMatch(/"holder":"\d+@/)
 
     // A killed process leaves an `active` row whose holder is gone. The probe decides from
     // that row, which is the whole crash contract (design §3.3): no lock, no event.
@@ -516,12 +583,46 @@ describe('engine steps', SLOW, () => {
         { now: Date.now() },
       ),
     ).toBe(true)
-    expect(
-      crashProbe(
-        { status: 'active', attempt: 1, inputs: {}, holder: `${process.pid}@${hostname()}` },
-        { now: Date.now() },
-      ),
-    ).toBe(false)
+  })
+
+  it('a single-target engine step advances to the next step', async () => {
+    ok(await startBuild(0))
+    ok(await procedureRecord(root, { run: 'b1', action: 'run' }))
+    const s = ok(await procedureState(root, { run: 'b1' }))
+    expect(s.state).toMatchObject({
+      currentStep: 'build-and-ship',
+      path: ['build', 'build-and-ship'],
+    })
+  })
+
+  it('a branching engine step evaluates the guards and records the next it holds', async () => {
+    ok(await startBuild(0))
+    ok(await procedureRecord(root, { run: 'b1', action: 'run' }))
+    // Two targets and no outcome: the engine asks for one, exactly as `complete` does.
+    const ambiguous = await procedureRecord(root, { run: 'b1', action: 'run' })
+    expect(ambiguous).toMatchObject({ ok: false, code: 'AMBIGUOUS_TRANSITION' })
+
+    const chosen = ok(await procedureRecord(root, { run: 'b1', action: 'run', outcome: 'ok' }))
+    expect(chosen.state.steps['build-and-ship']).toMatchObject({
+      status: 'done',
+      next: 'ship-notify',
+    })
+    expect(chosen.state).toMatchObject({ currentStep: 'ship-notify' })
+  })
+
+  it('refuses a command parameter that would break out of the shell string', async () => {
+    // The slot reaches a command run with `shell: true`: a value carrying shell syntax must
+    // never be executed.
+    ok(
+      await procedureStart(root, {
+        procedure: 'build',
+        params: { name: "x'; require('fs').writeFileSync('pwned.txt','1'); //", code: 0 },
+        run: 'b2',
+      }),
+    )
+    const r = await procedureRecord(root, { run: 'b2', action: 'run' })
+    expect(r).toMatchObject({ ok: false, code: 'UNSAFE_COMMAND' })
+    expect(existsSync(join(root, 'pwned.txt'))).toBe(false)
   })
 
   it('crashProbe: another host falls back to claimed_at + timeout + grace', () => {
@@ -539,5 +640,10 @@ describe('engine steps', SLOW, () => {
     // A payload that names no host cannot be probed, so age decides.
     expect(crashProbe({ ...row, holder: '' }, { now: now + 62_000, host: 'this-host' })).toBe(true)
     expect(crashProbe({ ...row, holder: '' }, { now, host: 'this-host' })).toBe(false)
+    // A claim that cannot say WHEN it was taken cannot be bounded by age either: it is broken
+    // from the start, never a holder that lives forever (age is not liveness).
+    expect(
+      crashProbe({ ...row, holder: '', claimedAt: undefined }, { now, host: 'this-host' }),
+    ).toBe(true)
   })
 })
