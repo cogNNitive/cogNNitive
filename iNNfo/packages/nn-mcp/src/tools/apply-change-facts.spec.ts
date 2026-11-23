@@ -521,16 +521,17 @@ describe('add_model of a distributed instance (distributed-storage S6a)', () => 
     expect(applied.changes[0]!.target).toBe('villabotijos-today/new-episode')
   })
 
-  it('does not scaffold a second element of a distributed concept', async () => {
+  it('does not scaffold a second element of a distributed concept, nor a placeholder row of any other', async () => {
     const res = await applyInstance([ADD_EPISODE])
     expect(res.success).toBe(true)
     const text = await readFile(join(iRoot, EPISODE_REL), 'utf-8')
     // A second `Video` or a `Series` element would make the file a registry
-    // (two roots, mixed storage): the skeleton holds the root and the compact
-    // concepts only.
+    // (two roots, mixed storage): the skeleton holds the root alone, and no
+    // other concept gets a seeded `Example <Concept>` row either, because the
+    // rows an instance adds later are its own.
     expect(text).not.toContain('Example Video')
     expect(text).not.toContain('Example Series')
-    expect(text).toContain('Example Scene')
+    expect(text).not.toContain('Example Scene')
   })
 
   it('rejects a missing container naming it and writes nothing', async () => {
