@@ -286,6 +286,14 @@ Generated files and version mirrors are never a trigger: `plan-auto-tags` exclud
 file its `changePaths` contains that `scripts/lib/shared-artifacts.js` calls generated, so a
 regeneration or version write-back commit cannot plan the release that produced it.
 
+**A subject the bump cannot be read from fails the plan.** `scripts/release/conventional-commit.js`
+refuses any commit that touched a key whose subject is not `type(scope)?!?: description` over
+`feat, fix, chore, docs, style, refactor, perf, test, build, ci, revert`, and `plan-auto-tags`
+exits 1 naming the SHA, the subject and the accepted types. It used to fall through to `patch`,
+which published a version nobody chose and left a tag nothing explained. Two consequences to know
+before they bite: a `wip:` commit must be squashed before it lands, and `git revert`'s default
+`Revert "..."` subject is refused — reword it to `revert: ...`.
+
 Consumers resolve these tag names (`nn-mcp` resolver, skills-manager, catalog), so the
 tag shapes are a contract. Nobody tags by hand.
 
