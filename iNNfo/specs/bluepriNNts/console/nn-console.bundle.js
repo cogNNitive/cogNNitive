@@ -19333,7 +19333,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (action === 'fail' || action === 'wait') {
         // The value the runner needs (who it waits on, why it failed) comes from the field the
         // action row renders. A missing one refuses the request instead of sending a blank one.
-        var field = host && host.querySelector ? host.querySelector('[data-proc-request-value]') : null
+        var field =
+          host && host.querySelector ? host.querySelector('[data-proc-request-value]') : null
         var given = field && field.value ? String(field.value).trim() : ''
         if (!given) {
           if (errorEl)
@@ -19410,11 +19411,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           : 'Waiting for the agent: a "' +
             waiting.action +
             '" request on this step is pending. It acts on procedure_record.'
-        var note = make(
-          'div',
-          'proc-action-waiting',
-          msg,
-        )
+        var note = make('div', 'proc-action-waiting', msg)
         note.setAttribute('data-proc-waiting', waiting.action)
         box.appendChild(note)
         host.appendChild(box)
