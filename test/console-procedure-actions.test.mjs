@@ -149,7 +149,7 @@ describe('procedure view: an action records a Step Request', () => {
 
   it('offers the three actions a request can carry, and nothing that closes a run', () => {
     mount(payload([(g) => runOf('r1', g, AT_REVIEW)]), draftSpy().ctx)
-    assert.deepEqual(enabled().sort(), ['complete', 'fail', 'wait'])
+    assert.deepEqual([...new Set(enabled())].sort(), ['complete', 'fail', 'wait'])
     assert.ok(!actionIds().includes('start'), 'start is not a request: the agent claims a step')
     assert.ok(
       !actionIds().includes('finish'),
@@ -173,26 +173,28 @@ describe('procedure view: an action records a Step Request', () => {
     assert.deepEqual(enabled(), [], 'a closed run cannot be advanced')
   })
 
-  it('will not complete a decision step until a branch is chosen, then asks for it', () => {
+  it('answers a decision with one button per branch, never an outcome-less complete', () => {
     const spy = draftSpy()
     mount(payload([(g) => runOf('r1', g, AT_REVIEW)]), spy.ctx)
 
-    const complete = container.querySelector('[data-proc-action="complete"]')
-    assert.ok(complete, 'complete is offered on a decision step')
+    const completes = [...container.querySelectorAll('[data-proc-action="complete"]')]
+    assert.deepEqual(
+      completes.map((b) => b.getAttribute('data-proc-outcome')),
+      ['approve', 'decline'],
+      'every complete names its branch',
+    )
+    assert.deepEqual(
+      completes.map((b) => b.textContent),
+      ['Approve', 'Decline'],
+      'labelled by the branch token',
+    )
+    assert.ok(
+      completes.every((b) => b.closest('.exec-step-card')),
+      'the answer lives in the step card',
+    )
+    assert.equal(container.querySelector('select'), null, 'no branch drop-down')
 
-    click(complete)
-    assert.equal(spy.added.length, 0, 'no request without a branch')
-    const err = container.querySelector('.proc-action-error')
-    assert.ok(err, 'the refusal is shown, not swallowed')
-    assert.match(err.textContent, /branch/i)
-
-    const select = container.querySelector('[data-proc-outcome]')
-    assert.ok(select, 'a branch selector is offered')
-    const values = [...select.querySelectorAll('option')].map((o) => o.value).filter(Boolean)
-    assert.deepEqual(values, ['approve', 'decline'])
-
-    select.value = 'approve'
-    click(complete)
+    click(container.querySelector('[data-proc-outcome="approve"]'))
     assert.equal(spy.added.length, 1)
     const fields = JSON.parse(spy.added[0].proposed)
     assert.equal(fields.action, 'complete')
@@ -275,7 +277,7 @@ describe('procedure view: an action records a Step Request', () => {
     // After click, draftRequestsOf detects the proposed draft, disabling further asks
     const note = container.querySelector('[data-proc-waiting]')
     assert.ok(note, 'draft request shows waiting note')
-    assert.match(note.textContent, /Draft proposed/)
+    assert.match(note.textContent, /not sent yet/)
     assert.equal(
       container.querySelector('[data-proc-action="start"]'),
       null,
