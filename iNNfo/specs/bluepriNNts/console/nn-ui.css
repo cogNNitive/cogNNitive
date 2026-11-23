@@ -6118,6 +6118,73 @@ details.collapse summary {
     }
     .dag-node.projected .node-sub { fill: var(--warning); font-weight: 700; }
 
+    /* Clearly highlight the projected next current step */
+    .dag-node.projected.current rect {
+      stroke-width: 3;
+      stroke: var(--primary);
+      fill: var(--primary-light);
+      stroke-dasharray: 6 3;
+      animation: dagDash 2s linear infinite;
+    }
+    .dag-node.projected.current .node-title {
+      fill: var(--primary);
+      font-weight: 700;
+    }
+    .dag-node.projected.current .node-dot {
+      fill: var(--primary);
+    }
+
+    /* Off-path steps and edges (branches discarded by decisions) */
+    .dag-node.off_path {
+      opacity: 0.35;
+      filter: grayscale(0.8);
+      transition: opacity 0.3s ease;
+    }
+    .dag-node.off_path rect {
+      stroke: var(--border-subtle, var(--border));
+      stroke-dasharray: 4 4;
+      fill: var(--surface-muted, #f8f9fa);
+    }
+    .dag-node.off_path .node-dot { fill: var(--muted); }
+    .dag-node.off_path text { fill: var(--muted); }
+    .dag-edge.off_path {
+      stroke: var(--border-subtle, var(--border));
+      stroke-dasharray: 4 4;
+      opacity: 0.3;
+      transition: opacity 0.3s ease;
+    }
+    .dag-edge-label.off_path {
+      fill: var(--muted);
+      opacity: 0.35;
+      text-decoration: line-through;
+    }
+
+    /* Taken and projected branch edges */
+    .dag-edge.taken {
+      stroke: var(--primary);
+      stroke-width: 2.5;
+    }
+    .dag-edge.taken.done {
+      stroke: var(--success);
+    }
+    .dag-edge.taken.projected {
+      stroke: var(--primary);
+      stroke-width: 3;
+      stroke-dasharray: 6 3;
+      animation: dagDash 1s linear infinite;
+    }
+    .dag-edge-label.taken {
+      fill: var(--primary);
+      font-weight: 800;
+      font-size: 11px;
+    }
+    .dag-edge-label.taken.done {
+      fill: var(--success);
+    }
+    .dag-edge-label.taken.projected {
+      fill: var(--primary);
+    }
+
     /* The pending change on a step card: current value, then the value it would take */
     .proc-projection {
       margin-top: 10px;

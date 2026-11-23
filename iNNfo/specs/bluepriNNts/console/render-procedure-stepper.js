@@ -1101,8 +1101,18 @@
           var y1 = pos[slug].y + nodeH
           var x2 = pos[t].x + nodeW / 2
           var y2 = pos[t].y
+          var tStatus = stepStatus(t)
+          var stepState = state && state.steps && state.steps[slug]
+          var isTaken = (stepState && stepState.next === t) || (isProjected(slug) && stepStatus(slug) === 'done' && (stepState && stepState.next === t || t === current))
+          var isOff = tStatus === 'off_path'
+          var isProj = isProjected(t) || (isProjected(slug) && isTaken)
+
+          var edgeClasses = ['dag-edge', tStatus]
+          if (isTaken) edgeClasses.push('taken')
+          if (isOff) edgeClasses.push('off_path')
+          if (isProj) edgeClasses.push('projected')
           edge.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2)
-          edge.setAttribute('class', 'dag-edge ' + stepStatus(t))
+          edge.setAttribute('class', edgeClasses.join(' '))
           edge.setAttribute('data-from', slug)
           edge.setAttribute('data-to', t)
           svg.appendChild(edge)
@@ -1112,7 +1122,11 @@
             var token = outcomeTokenOf(t) || graph.steps[t].condition
             if (token) {
               var label = document.createElementNS(svgNS, 'text')
-              label.setAttribute('class', 'dag-edge-label')
+              var labelClasses = ['dag-edge-label', tStatus]
+              if (isTaken) labelClasses.push('taken')
+              if (isOff) labelClasses.push('off_path')
+              if (isProj) labelClasses.push('projected')
+              label.setAttribute('class', labelClasses.join(' '))
               label.setAttribute('x', x2)
               label.setAttribute('y', y2 - 6)
               label.setAttribute('text-anchor', 'middle')
