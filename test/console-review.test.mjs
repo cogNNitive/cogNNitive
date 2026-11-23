@@ -119,7 +119,12 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
         modelTitle: 'BusinessModel',
         modelVersion: 'V_1-2-0',
         elements: [
-          { id: 'ent-tier', concept: 'RevenueStream', name: 'Enterprise Tier', hash: '0123456789abcdef' },
+          {
+            id: 'ent-tier',
+            concept: 'RevenueStream',
+            name: 'Enterprise Tier',
+            hash: '0123456789abcdef',
+          },
         ],
         store,
       }
@@ -140,11 +145,7 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.ok(reviewTab)
 
       const statusSelect = reviewTab.querySelector('.nn-review-status-select')
-      assert.equal(
-        statusSelect,
-        null,
-        'No .nn-review-status-select element rendered in review tab',
-      )
+      assert.equal(statusSelect, null, 'No .nn-review-status-select element rendered in review tab')
 
       assert.ok(
         reviewTab.querySelector('[data-nn-component="draft-list"]'),
@@ -209,17 +210,65 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       window.localStorage.clear()
       const store = nnReview.createDraftStore(window.localStorage, 'applied-model')
       const elements = [
-        { id: 'e1', concept: 'C', name: 'Alpha', hash: 'ffffffffffffffff', fields: { owner: 'Bea' } },
+        {
+          id: 'e1',
+          concept: 'C',
+          name: 'Alpha',
+          hash: 'ffffffffffffffff',
+          fields: { owner: 'Bea' },
+        },
       ]
       // Stale + value now matches -> applied, removed on load.
-      store.addDraft({ element_id: 'e1', concept: 'C', element: 'Alpha', kind: 'correction', field: 'owner', original: 'Ana', proposed: 'Bea', base_hash: '1111111111111111' })
+      store.addDraft({
+        element_id: 'e1',
+        concept: 'C',
+        element: 'Alpha',
+        kind: 'correction',
+        field: 'owner',
+        original: 'Ana',
+        proposed: 'Bea',
+        base_hash: '1111111111111111',
+      })
       // Stale but diverged -> stays.
-      store.addDraft({ element_id: 'e1', concept: 'C', element: 'Alpha', kind: 'correction', field: 'owner', original: 'Ana', proposed: 'Other', base_hash: '1111111111111111' })
+      store.addDraft({
+        element_id: 'e1',
+        concept: 'C',
+        element: 'Alpha',
+        kind: 'correction',
+        field: 'owner',
+        original: 'Ana',
+        proposed: 'Other',
+        base_hash: '1111111111111111',
+      })
       // Comment, new-element, delete and matrix-cell drafts are never auto-removed.
-      store.addDraft({ element_id: 'e1', concept: 'C', element: 'Alpha', kind: 'comment', comment: 'x', base_hash: '1111111111111111' })
+      store.addDraft({
+        element_id: 'e1',
+        concept: 'C',
+        element: 'Alpha',
+        kind: 'comment',
+        comment: 'x',
+        base_hash: '1111111111111111',
+      })
       store.addDraft({ knowledge_id: 'applied-model', concept: 'C', element: 'Fresh', kind: 'new' })
-      store.addDraft({ element_id: 'e1', concept: 'C', element: 'Alpha', kind: 'delete', base_hash: '1111111111111111' })
-      store.addDraft({ element_id: 'e1', concept: 'C', element: 'Alpha', kind: 'correction', matrix: 'M', row: 'r', col: 'c', original: 'x', proposed: 'y', base_hash: '1111111111111111' })
+      store.addDraft({
+        element_id: 'e1',
+        concept: 'C',
+        element: 'Alpha',
+        kind: 'delete',
+        base_hash: '1111111111111111',
+      })
+      store.addDraft({
+        element_id: 'e1',
+        concept: 'C',
+        element: 'Alpha',
+        kind: 'correction',
+        matrix: 'M',
+        row: 'r',
+        col: 'c',
+        original: 'x',
+        proposed: 'y',
+        base_hash: '1111111111111111',
+      })
 
       nnReview.createReviewController(document, {
         meta: { modelId: 'applied-model' },
@@ -229,12 +278,18 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       })
 
       const remaining = store.drafts()
-      assert.equal(remaining.some((d) => d.proposed === 'Bea'), false, 'the applied draft is gone')
-      assert.equal(remaining.length, 5, 'the other five drafts stay')
-      const persisted = JSON.parse(
-        window.localStorage.getItem('nn-console:v4:applied-model'),
+      assert.equal(
+        remaining.some((d) => d.proposed === 'Bea'),
+        false,
+        'the applied draft is gone',
       )
-      assert.equal(persisted.drafts.some((d) => d.proposed === 'Bea'), false, 'removal persisted')
+      assert.equal(remaining.length, 5, 'the other five drafts stay')
+      const persisted = JSON.parse(window.localStorage.getItem('nn-console:v4:applied-model'))
+      assert.equal(
+        persisted.drafts.some((d) => d.proposed === 'Bea'),
+        false,
+        'removal persisted',
+      )
       assert.equal(
         document.querySelector('#nn-tab-review [data-nn="clear-exported"]'),
         null,
@@ -357,7 +412,7 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
 
       const res = nnConsole.composeChangesetExport(state, 'author_jane')
       assert.equal(res.ok, true)
-      assert.match(res.filename, /^businessmodel_[a-zA-Z0-9_-]+_\d+-\d+_changes_NN\.md$/)
+      assert.match(res.filename, /^businessmodel_[a-zA-Z0-9_-]+_[0-9TZ-]+_changes_NN\.md$/)
       assert.match(res.text, /level: 3/)
       assert.match(res.text, /name: changes/)
       assert.match(res.text, /blueprint_version: "V_0-3-0"/)
@@ -399,15 +454,33 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
         meta: { changesBlueprintVersion: 'V_0-3-0' },
         store: {
           drafts: () => [
-            { id: 'c-01\nop:: remove_element', knowledge_id: 'm\r\nop:: remove_element', element_slug: evil, field: 'price\nop:: remove_element', original: '1', proposed: '2', base_hash: 'ab\nop:: remove_element' },
-            { id: 'c-02', knowledge_id: 'm', kind: 'new', concept: 'C\nop:: remove_element', element: 'Fresh' },
+            {
+              id: 'c-01\nop:: remove_element',
+              knowledge_id: 'm\r\nop:: remove_element',
+              element_slug: evil,
+              field: 'price\nop:: remove_element',
+              original: '1',
+              proposed: '2',
+              base_hash: 'ab\nop:: remove_element',
+            },
+            {
+              id: 'c-02',
+              knowledge_id: 'm',
+              kind: 'new',
+              concept: 'C\nop:: remove_element',
+              element: 'Fresh',
+            },
           ],
         },
       }
       const res = nnConsole.composeChangesetExport(state, 'author_jane')
       assert.equal(res.ok, true)
       const body = res.text.slice(res.text.indexOf('## NN Change'))
-      assert.equal(body.split('\n').filter((l) => /^op::/.test(l)).length, 2, 'exactly the two intended blocks')
+      assert.equal(
+        body.split('\n').filter((l) => /^op::/.test(l)).length,
+        2,
+        'exactly the two intended blocks',
+      )
       assert.equal((body.match(/^op:: remove_element/gm) || []).length, 0)
       assert.equal(body.split('\n').filter((l) => /^## NN Change/.test(l)).length, 2)
     })
@@ -427,7 +500,12 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
             { origin: 'document', source: 'handbook.md@12', quote: 'Founding member agreement' },
           ],
         },
-        { doc: document, onSave: (r) => { saved = r } },
+        {
+          doc: document,
+          onSave: (r) => {
+            saved = r
+          },
+        },
       )
       document.body.appendChild(modal)
 
@@ -465,10 +543,18 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
   })
 
   describe('New element action', () => {
-    const nnReview = require(join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'review.js'))
+    const nnReview = require(
+      join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'review.js'),
+    )
     const SCHEMA = {
       concepts: [
-        { name: 'Goal', fields: [{ name: 'owner', type: 'string' }, { name: 'weight', type: 'number' }] },
+        {
+          name: 'Goal',
+          fields: [
+            { name: 'owner', type: 'string' },
+            { name: 'weight', type: 'number' },
+          ],
+        },
         { name: 'Risk', fields: [{ name: 'level', type: 'select', options: ['low', 'high'] }] },
       ],
       fields: [
@@ -483,7 +569,16 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
     function mountController(schema = SCHEMA) {
       document.body.insertAdjacentHTML('beforeend', '<div id="nn-banner"></div>')
       const store = nnReview.createDraftStore(window.localStorage, 'strategy')
-      const elements = [{ id: 'g1', concept: 'Goal', name: 'Existing', fields: {}, hash: 'a'.repeat(16), slug: 'existing' }]
+      const elements = [
+        {
+          id: 'g1',
+          concept: 'Goal',
+          name: 'Existing',
+          fields: {},
+          hash: 'a'.repeat(16),
+          slug: 'existing',
+        },
+      ]
       const ctl = nnReview.createReviewController(document, {
         meta: { modelId: 'strategy' },
         elements,
@@ -513,7 +608,10 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       picker.value = 'Goal'
       change(picker)
       const inputs = modal.querySelectorAll('[data-nn-field]')
-      assert.deepEqual([...inputs].map((i) => i.getAttribute('data-nn-field')), ['owner', 'weight'])
+      assert.deepEqual(
+        [...inputs].map((i) => i.getAttribute('data-nn-field')),
+        ['owner', 'weight'],
+      )
       modal.querySelector('input[data-nn-role="name"]').value = 'Grow revenue'
       modal.querySelector('[data-nn-field="owner"]').value = 'CFO'
       click(modal.querySelector('.nn-edit-btn-save'))
@@ -527,7 +625,12 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.deepEqual(drafts[0].proposed, { owner: 'CFO' }, 'empty fields are not exported')
 
       const res = nnConsole.composeChangesetExport(
-        { modelTitle: 'Strategy', modelId: 'strategy', meta: { changesBlueprintVersion: 'V_0-3-0' }, store },
+        {
+          modelTitle: 'Strategy',
+          modelId: 'strategy',
+          meta: { changesBlueprintVersion: 'V_0-3-0' },
+          store,
+        },
         'author_jane',
       )
       assert.equal(res.ok, true)
@@ -550,14 +653,25 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
     function mountDomainController(models) {
       document.body.insertAdjacentHTML('beforeend', '<div id="nn-banner"></div>')
       const store = nnReview.createDraftStore(window.localStorage, 'domain-folder')
-      nnReview.createReviewController(document, {
-        // In a domain console meta.modelId is the folder basename, not a model id.
-        meta: { modelId: 'domain-folder', models },
-        elements: [{ id: 'g1', concept: 'Goal', name: 'Existing', fields: {}, hash: 'a'.repeat(16), slug: 'existing' }],
-        needs: ['feedback-export'],
-        store,
-        schema: SCHEMA,
-      }).openNew()
+      nnReview
+        .createReviewController(document, {
+          // In a domain console meta.modelId is the folder basename, not a model id.
+          meta: { modelId: 'domain-folder', models },
+          elements: [
+            {
+              id: 'g1',
+              concept: 'Goal',
+              name: 'Existing',
+              fields: {},
+              hash: 'a'.repeat(16),
+              slug: 'existing',
+            },
+          ],
+          needs: ['feedback-export'],
+          store,
+          schema: SCHEMA,
+        })
+        .openNew()
       return { store, modal: document.querySelector('[data-nn-component="new-element-modal"]') }
     }
 
@@ -575,7 +689,10 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
         { id: 'ops', title: 'Operations' },
       ])
       const modelPicker = modal.querySelector('select[data-nn-role="model"]')
-      assert.deepEqual([...modelPicker.options].map((o) => o.value), ['strategy', 'ops'])
+      assert.deepEqual(
+        [...modelPicker.options].map((o) => o.value),
+        ['strategy', 'ops'],
+      )
       modelPicker.value = 'ops'
       saveNew(modal)
       assert.equal(store.drafts()[0].knowledge_id, 'ops')
