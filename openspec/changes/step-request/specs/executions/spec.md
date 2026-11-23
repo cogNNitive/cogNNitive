@@ -2,7 +2,7 @@
 
 ### Requirement: A run records requests, never their outcome
 
-A `Procedure Execution` model MUST be able to hold `Step Request` rows. Each row SHALL carry `action` (one of `wait`, `complete`, `fail`), the `seq` of the run when the request was made, an optional `outcome` and an optional `value`. A request MUST remain intent, never state: it MUST NOT move a `Step Run` row, and a run's derived status SHALL be the same whether or not any `Step Request` row exists.
+A `Procedure Execution` model MUST be able to hold `Step Request` rows. Each row SHALL carry `action` (one of `start`, `wait`, `complete`, `fail`), the `seq` of the run when the request was made, an optional `outcome` and an optional `value`. A request MUST remain intent, never state: it MUST NOT move a `Step Run` row, and a run's derived status SHALL be the same whether or not any `Step Request` row exists.
 
 #### Scenario: a request leaves the run unchanged
 

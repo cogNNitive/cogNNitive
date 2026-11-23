@@ -98,6 +98,19 @@ node scripts/nn-session.mjs status --prs temp/prs.json    # every worktree: dirt
 - **Commit early, push early.** `wip:<id>: <reason>` checkpoints are fine on the session
   branch; squash them before landing. Pushing `session/*` skips the heavy local gate:
   the PR's CI is the gate.
+- **A conflicting PR gets no CI at all.** GitHub creates no `pull_request` run when it
+  cannot build the test merge commit, so a push to a branch that drifted into a conflict is
+  silent: no run, no checks, nothing red. `ci.yml` is not at fault and there is nothing to
+  fix in it. The tell is `mergeable_state: dirty` on the PR while `refs/pull/<n>/merge`
+  still points at the last head that merged cleanly, or is missing entirely
+  (`gh api repos/<o>/<r>/git/ref/pull/<n>/merge`). The usual cause here is a generated
+  artifact: the branch regenerated `nn-mcp.bundle.js`, `nn-console.bundle.js` or the TestLab
+  fixture from a base `main` had already moved past, so two regenerations of the same file
+  diverge. Measured 2026-11-23 on #818: three pushes in a row, zero runs, while
+  `workflow_dispatch` started within seconds — which is exactly what makes it read as a
+  GitHub outage. Fix: merge `origin/main` in and rebuild the gated artifacts, never
+  hand-resolve a bundle. Until the merge is buildable, `gh workflow run "CI & Verify"
+  --ref <branch>` is the only way to test the head, and it does test the real commit.
 
 ## 1a. Before the first write: read the open PRs
 
@@ -285,6 +298,14 @@ the generated bundle, so deriving from it would mean the key never ships.
 Generated files and version mirrors are never a trigger: `plan-auto-tags` excludes every tracked
 file its `changePaths` contains that `scripts/lib/shared-artifacts.js` calls generated, so a
 regeneration or version write-back commit cannot plan the release that produced it.
+
+**A subject the bump cannot be read from fails the plan.** `scripts/release/conventional-commit.js`
+refuses any commit that touched a key whose subject is not `type(scope)?!?: description` over
+`feat, fix, chore, docs, style, refactor, perf, test, build, ci, revert`, and `plan-auto-tags`
+exits 1 naming the SHA, the subject and the accepted types. It used to fall through to `patch`,
+which published a version nobody chose and left a tag nothing explained. Two consequences to know
+before they bite: a `wip:` commit must be squashed before it lands, and `git revert`'s default
+`Revert "..."` subject is refused — reword it to `revert: ...`.
 
 Consumers resolve these tag names (`nn-mcp` resolver, skills-manager, catalog), so the
 tag shapes are a contract. Nobody tags by hand.

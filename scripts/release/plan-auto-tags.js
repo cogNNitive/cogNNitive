@@ -6,8 +6,11 @@
  * Decides which release tags a push to `main` produces, so nobody cuts tags by hand.
  *
  * - Every key ships when a commit touched its `changePaths` since its latest tag, and the
- *   bump comes from those commits: a breaking change is major, any `feat` is minor, anything
- *   else is patch. No key carries an authored version any more.
+ *   bump comes from those commits: a breaking change is major, any `feat` is minor, any other
+ *   conventional type is patch. No key carries an authored version any more.
+ * - A commit whose subject is not `type(scope)?!?: description` fails the plan instead of
+ *   defaulting to patch: a guess publishes a version nobody chose. `conventional-commit.js`
+ *   holds the grammar and the accepted types.
  * - `changePaths` is not `repoPaths`: `repoPaths` is what gets copied into the release repo,
  *   `changePaths` is what counts as a change. For `nn-mcp` the only repo path is the generated
  *   bundle, so deriving from it would mean the key never ships.
@@ -23,6 +26,10 @@
 const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const { RELEASE_KEYS, RELEASE_TABLE } = require('./release-keys.js');
+const {
+  assertConventionalCommits,
+  NonConventionalCommitError,
+} = require('./conventional-commit.js');
 const { sharedArtifactLabel } = require('../lib/shared-artifacts.js');
 const { parseSemver, compareSemver } = require('../lib/semver.js');
 
@@ -91,22 +98,28 @@ function latestVersion(tags, key) {
 
 /**
  * Every key derives from the commits that touched its change paths: a breaking change is
- * major, any `feat` is minor, anything else is patch. No key carries an authored version any
- * more — a hand bump travelled in 14 of 30 branches and collided with every other one, and it
- * was the only thing that could make a merge release nothing (#650, #670, #683).
+ * major, any `feat` is minor, any other conventional type is patch. No key carries an authored
+ * version any more — a hand bump travelled in 14 of 30 branches and collided with every other
+ * one, and it was the only thing that could make a merge release nothing (#650, #670, #683).
+ *
+ * A subject the bump cannot be read from throws instead of falling through to patch: that
+ * default is how a wrong version published with nothing in the log to say so.
  *
  * @param {object} input
  * @param {string[]} input.tags existing release tags
- * @param {Record<string, string[]>} input.commitsSinceTag messages touching each key since its latest tag
+ * @param {Record<string, Array<{ sha: string, message: string }>>} input.commitsSinceTag
+ *   commits touching each key since its latest tag
  * @returns {Array<{ key: string, version: string, tag: string }>}
+ * @throws {NonConventionalCommitError} when a commit in range has an unreadable subject
  */
 function planAutoTags({ tags, commitsSinceTag }) {
   const plan = [];
   for (const key of ORDER) {
     const latest = latestVersion(tags, key);
-    const messages = commitsSinceTag[key] ?? [];
-    if (messages.length === 0) continue;
-    const version = latest ? bump(latest, bumpFor(messages)) : '0.1.0';
+    const commits = commitsSinceTag[key] ?? [];
+    if (commits.length === 0) continue;
+    assertConventionalCommits(key, commits);
+    const version = latest ? bump(latest, bumpFor(commits.map((c) => c.message))) : '0.1.0';
     plan.push({ key, version, tag: `${key}-v${version}` });
   }
   return plan;
@@ -116,28 +129,60 @@ function git(args, cwd) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
-/** Reads the release tags and, per key, the commit messages that touch its change paths. */
+/**
+ * Reads the release tags and, per key, the commits that touch its change paths.
+ *
+ * `%H` is the SHA the failure message names. `%B` is the full message `bumpFor` reads the
+ * `BREAKING CHANGE:` footer from. `%x00` separates the two fields and `%x1e` the records, so a
+ * multi-line body is never mistaken for the next commit.
+ */
 function readRepoState(cwd) {
   const tags = git(['tag', '--list'], cwd)
     .split('\n')
     .map((t) => t.trim())
     .filter(Boolean);
-  /** @type {Record<string, string[]>} */
+  /** @type {Record<string, Array<{ sha: string, message: string }>>} */
   const commitsSinceTag = {};
   for (const key of RELEASE_KEYS) {
     const latest = latestVersion(tags, key);
     const range = latest ? [`${key}-v${latest}..HEAD`] : ['HEAD'];
     const out = git(
-      ['log', '--no-merges', '--format=%B%x00', ...range, '--', ...pathspecsFor(key, generatedUnder(key, cwd))],
+      [
+        'log',
+        '--no-merges',
+        '--format=%H%x00%B%x1e',
+        ...range,
+        '--',
+        ...pathspecsFor(key, generatedUnder(key, cwd)),
+      ],
       cwd,
     );
-    commitsSinceTag[key] = out.split('\0').map((m) => m.trim()).filter(Boolean);
+    commitsSinceTag[key] = out
+      .split('\x1e')
+      .map((record) => record.trim())
+      .filter(Boolean)
+      .map((record) => {
+        const [sha, message] = record.split('\x00');
+        return { sha, message: (message ?? '').trim() };
+      });
   }
   return { tags, commitsSinceTag };
 }
 
 if (require.main === module) {
-  const plan = planAutoTags(readRepoState(process.cwd()));
+  let plan;
+  try {
+    plan = planAutoTags(readRepoState(process.cwd()));
+  } catch (err) {
+    // A plan that cannot be derived exits 1 with the diagnostic only: the stack trace of a
+    // guard that is doing its job is noise in a CI log that a maintainer has to read at a
+    // glance, and anything else still throws.
+    if (err instanceof NonConventionalCommitError) {
+      console.error(err.message);
+      process.exit(1);
+    }
+    throw err;
+  }
   const json = JSON.stringify(plan.map((p) => p.tag));
   console.log(json);
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `tags=${json}\n`);

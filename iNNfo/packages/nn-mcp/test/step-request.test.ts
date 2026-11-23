@@ -247,4 +247,39 @@ describe('Step Request queue', SLOW, () => {
     expect(listed.requests.map((r) => r.id)).toEqual(['q1', 'q2'])
     expect(listed.requests.map((r) => r.status)).toEqual(['pending', 'done'])
   })
+
+  it('consumes a request when base_seq is older but the target step did not move', async () => {
+    ok(await startReview())
+    ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
+    const seqWhenAsked = await runSeq()
+    await requestRow('q1', { action: 'complete', step: 'draft', base_seq: seqWhenAsked })
+
+    // Another unrelated write lands on the run (e.g. another request or a wait state)
+    // but the target step 'draft' is still active at the same attempt.
+    await requestRow('q-other', {
+      action: 'wait',
+      step: 'other',
+      value: 'someone',
+      base_seq: seqWhenAsked,
+    })
+    const nowSeq = await runSeq()
+    expect(nowSeq).toBeGreaterThanOrEqual(seqWhenAsked)
+
+    // The request should be consumed without being marked stale because draft is still active.
+    const res = ok(await procedureRecord(root, { run: 'r1', request: 'q1' }))
+    expect(res.state.steps.draft.status).toBe('done')
+    const pending = ok(await procedurePending(root, { run: 'r1' }))
+    expect(pending.requests.find((r) => r.id === 'q1')?.status).toBe('done')
+  })
+
+  it('consumes a start request for an unstarted step', async () => {
+    ok(await startReview())
+    const initialSeq = await runSeq()
+    await requestRow('q-start', { action: 'start', step: 'draft', base_seq: initialSeq })
+
+    const res = ok(await procedureRecord(root, { run: 'r1', request: 'q-start' }))
+    expect(res.state.steps.draft.status).toBe('active')
+    const pending = ok(await procedurePending(root, { run: 'r1' }))
+    expect(pending.requests.find((r) => r.id === 'q-start')?.status).toBe('done')
+  })
 })
