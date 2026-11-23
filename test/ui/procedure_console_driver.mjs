@@ -93,7 +93,11 @@ async function importSaved(domain, saved) {
   // The agent takes it from here: the step the decision chose, then the run closes.
   await call('procedure_record', { run: 'b1', action: 'start' })
   await call('procedure_record', { run: 'b1', action: 'complete' })
-  const finished = await call('procedure_record', { run: 'b1', action: 'finish', __allowFail: true })
+  const finished = await call('procedure_record', {
+    run: 'b1',
+    action: 'finish',
+    __allowFail: true,
+  })
   const closed = await call('procedure_state', { run: 'b1' })
   return { imported, pending, b1, runs, finished, closed }
 }

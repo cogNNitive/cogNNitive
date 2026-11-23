@@ -99,7 +99,8 @@ function runOf(id, events, opts = {}) {
   const model = runModelOfEvents(events, { defRev, procedure: FILE, state: opts.state })
   model.params = opts.params ?? { batch: 'b1', language: 'es' }
   model.seq = opts.seq ?? 7
-  if (opts.claimedAt) model.steps.transcribe = { ...model.steps.transcribe, claimedAt: opts.claimedAt }
+  if (opts.claimedAt)
+    model.steps.transcribe = { ...model.steps.transcribe, claimedAt: opts.claimedAt }
   return {
     id,
     file: `executions/${id}/${id}_executions_NN.md`,
@@ -189,7 +190,9 @@ describe('procedure runner UX (standalone console)', () => {
   it('resolves {slot} placeholders from the run params: question, command and file', () => {
     stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
     assert.match(container.querySelector('.exec-step-question').textContent, /batch b1 good/)
-    const open = container.querySelector('[data-proc-artifact="raw-transcript"] .proc-artifact-open')
+    const open = container.querySelector(
+      '[data-proc-artifact="raw-transcript"] .proc-artifact-open',
+    )
     assert.equal(open.textContent, 'Open staging/b1-transcript.md')
     click(container.querySelector('.dag-node[data-step="transcribe"]'))
     assert.match(text(), /node transcribe\.js staging\/b1\.wav/)
@@ -237,7 +240,10 @@ describe('procedure runner UX (standalone console)', () => {
     const card = container.querySelector('.exec-step-card')
     assert.equal(card.getAttribute('data-step'), 'normalize')
     assert.ok(card.querySelector('[data-proc-system="agent"]'), 'labelled as a system step')
-    assert.match(card.textContent, /This step is run by the system when you send your response back/)
+    assert.match(
+      card.textContent,
+      /This step is run by the system when you send your response back/,
+    )
 
     click(container.querySelector('.dag-node[data-step="review"]'))
     const decided = container.querySelector('[data-proc-decided]')
@@ -280,11 +286,7 @@ describe('procedure runner UX (standalone console)', () => {
   it('opens on "Your turn": waiting human steps first, then active ones, never system steps', () => {
     stepper.mount(
       container,
-      payload([
-        runOf('r-a', AT_REVIEW),
-        runOf('r-b', WAITING_REVIEW),
-        runOf('r-c', AT_TRANSCRIBE),
-      ]),
+      payload([runOf('r-a', AT_REVIEW), runOf('r-b', WAITING_REVIEW), runOf('r-c', AT_TRANSCRIBE)]),
       storeSpy().ctx,
     )
     const items = [...container.querySelectorAll('[data-proc-inbox-item]')]

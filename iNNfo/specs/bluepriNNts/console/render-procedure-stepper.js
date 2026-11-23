@@ -194,7 +194,11 @@
         events.push({ kind: 'step_waiting', step: r.step, value: r.value || '' })
       } else if (r.action === 'start') {
         var row = rows[r.step]
-        events.push({ kind: 'step_started', step: r.step, attempt: ((row && row.attempt) || 0) + 1 })
+        events.push({
+          kind: 'step_started',
+          step: r.step,
+          attempt: ((row && row.attempt) || 0) + 1,
+        })
       }
     })
     return events
@@ -328,7 +332,12 @@
 
     function core() {
       var c = host.nnProcedureCore || GLOBAL.nnProcedureCore
-      if (c && typeof c.useFromDocument === 'function' && typeof c.available === 'function' && !c.available()) {
+      if (
+        c &&
+        typeof c.useFromDocument === 'function' &&
+        typeof c.available === 'function' &&
+        !c.available()
+      ) {
         c.useFromDocument(document)
       }
       return c && typeof c.project === 'function' ? c : null
@@ -716,7 +725,11 @@
         })
         open.appendChild(make('span', 'proc-inbox-step', item.stepName))
         open.appendChild(
-          make('span', 'proc-inbox-run', (item.entry.title || item.entry.file) + ' · ' + item.run.id),
+          make(
+            'span',
+            'proc-inbox-run',
+            (item.entry.title || item.entry.file) + ' · ' + item.run.id,
+          ),
         )
         if (item.question) open.appendChild(make('span', 'proc-inbox-question', item.question))
         li.appendChild(open)
@@ -731,10 +744,14 @@
       tabsHost.innerHTML = ''
       entries.forEach(function (entry) {
         tabsHost.appendChild(
-          button('proc-tab' + (entry === active ? ' active' : ''), entry.title || entry.file, function () {
-            selectEntry(entry)
-            render()
-          }),
+          button(
+            'proc-tab' + (entry === active ? ' active' : ''),
+            entry.title || entry.file,
+            function () {
+              selectEntry(entry)
+              render()
+            },
+          ),
         )
       })
     }
@@ -931,7 +948,9 @@
     function renderStartForm(hostEl) {
       var form = make('form', 'proc-start-form')
       form.setAttribute('data-proc-start-form', '')
-      form.appendChild(make('div', 'proc-start-title', 'Request a new run of ' + (active.title || active.file)))
+      form.appendChild(
+        make('div', 'proc-start-title', 'Request a new run of ' + (active.title || active.file)),
+      )
       var slots = slotsOfActive()
       var blocked = slots.filter(function (s) {
         return s.kind !== 'value' && s.required && s.default === undefined
@@ -941,7 +960,11 @@
         if (s.kind !== 'value') return
         var row = make('label', 'proc-start-field')
         row.appendChild(
-          make('span', 'proc-start-label', labelOfToken(s.name) + (s.required ? '' : ' (optional)')),
+          make(
+            'span',
+            'proc-start-label',
+            labelOfToken(s.name) + (s.required ? '' : ' (optional)'),
+          ),
         )
         var input = make('input', 'proc-start-input')
         input.setAttribute('type', 'text')
@@ -1106,7 +1129,11 @@
           var y2 = pos[t].y
           var tStatus = stepStatus(t)
           var stepState = state && state.steps && state.steps[slug]
-          var isTaken = (stepState && stepState.next === t) || (isProjected(slug) && stepStatus(slug) === 'done' && (stepState && stepState.next === t || t === current))
+          var isTaken =
+            (stepState && stepState.next === t) ||
+            (isProjected(slug) &&
+              stepStatus(slug) === 'done' &&
+              ((stepState && stepState.next === t) || t === current))
           var isOff = tStatus === 'off_path'
           var isProj = isProjected(t) || (isProjected(slug) && isTaken)
 
@@ -1229,7 +1256,8 @@
             make(
               'span',
               'proc-step-item-meta',
-              (token ? 'if ' + token + ' · ' : '') + (status === 'definition' ? (step.executor || 'task') : status),
+              (token ? 'if ' + token + ' · ' : '') +
+                (status === 'definition' ? step.executor || 'task' : status),
             ),
           )
           li.appendChild(b)
@@ -1325,9 +1353,10 @@
     function filePathOf(slug, def) {
       var embed = embedOf(slug)
       if (embed && embed.path) return embed.path
-      var row = activeRun && activeRun.model && activeRun.model.artifacts
-        ? activeRun.model.artifacts[slug]
-        : null
+      var row =
+        activeRun && activeRun.model && activeRun.model.artifacts
+          ? activeRun.model.artifacts[slug]
+          : null
       if (row && typeof row.value === 'string' && row.value && (!row.kind || row.kind === 'file'))
         return row.value
       var path = verifyPathOf(def)
@@ -1438,7 +1467,11 @@
           appendMarkdown(md, embed.text, true)
           return md
         }
-        return make('pre', 'proc-artifact-view-body', embed.text === '' ? '(empty file)' : embed.text)
+        return make(
+          'pre',
+          'proc-artifact-view-body',
+          embed.text === '' ? '(empty file)' : embed.text,
+        )
       }
       if (embed.data !== undefined && embed.kind === 'image') {
         var img = make('img', 'proc-embed-image')
@@ -1516,7 +1549,9 @@
         var box = make('details', 'proc-embed')
         box.setAttribute('data-proc-embed', slug)
         if (embed.text !== undefined || embed.data !== undefined) box.setAttribute('open', '')
-        box.appendChild(make('summary', 'proc-embed-title', (def.name || slug) + ' · ' + embed.path))
+        box.appendChild(
+          make('summary', 'proc-embed-title', (def.name || slug) + ' · ' + embed.path),
+        )
         box.appendChild(embedBody(embed, embed.path))
         card.appendChild(box)
       })
@@ -1560,12 +1595,18 @@
         head.appendChild(sys)
       } else if (step.executor) {
         head.appendChild(
-          make('span', 'step-executor-pill', step.executor === 'human' ? 'Your step' : 'Executor: ' + step.executor),
+          make(
+            'span',
+            'step-executor-pill',
+            step.executor === 'human' ? 'Your step' : 'Executor: ' + step.executor,
+          ),
         )
       }
       var token = outcomeTokenOf(slug)
       if (step.condition)
-        head.appendChild(make('span', 'step-cond-pill', token ? 'If ' + token : 'If: ' + step.condition))
+        head.appendChild(
+          make('span', 'step-cond-pill', token ? 'If ' + token : 'If: ' + step.condition),
+        )
       head.appendChild(
         make(
           'span',
@@ -1744,7 +1785,10 @@
     function dateText(iso) {
       var d = new Date(iso)
       if (isNaN(d.getTime())) return String(iso)
-      return d.toISOString().replace('T', ' ').replace(/:\d\d\.\d+Z$|:\d\dZ$/, ' UTC')
+      return d
+        .toISOString()
+        .replace('T', ' ')
+        .replace(/:\d\d\.\d+Z$|:\d\dZ$/, ' UTC')
     }
 
     function renderRunSummary(hostEl, state) {
@@ -1764,7 +1808,13 @@
         })
         .filter(Boolean)
       if (decisions.length)
-        facts.appendChild(make('div', 'exec-step-fact proc-summary-decisions', 'Decisions: ' + decisions.join(' · ')))
+        facts.appendChild(
+          make(
+            'div',
+            'exec-step-fact proc-summary-decisions',
+            'Decisions: ' + decisions.join(' · '),
+          ),
+        )
       facts.appendChild(
         make('div', 'exec-step-fact', 'Path: ' + state.path.map(stepName).join(' → ')),
       )

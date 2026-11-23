@@ -950,9 +950,7 @@ function injectSlots(shell, config, schema, model, viewData) {
   const foldSource = foldSlotCache || ''
   if (foldSource) {
     // The shell ships the slot empty; fill it in place so no second, empty one survives.
-    const foldSlot = new RegExp(
-      `(<script[^>]*id="nn-procedure-core"[^>]*>)[\\s\\S]*?(</script>)`,
-    )
+    const foldSlot = new RegExp(`(<script[^>]*id="nn-procedure-core"[^>]*>)[\\s\\S]*?(</script>)`)
     if (foldSlot.test(html)) {
       html = html.replace(foldSlot, (_m, open, close) => `${open}\n${foldSource}\n${close}`)
     } else {
@@ -1277,7 +1275,8 @@ export function collectProcedureRuns({
       title = (parsed.frontmatter && parsed.frontmatter.title) || file
     }
     const entry = { file, title, graph, slots: [], runs: [] }
-    if (content !== null) entry.slots = slotDeclarationsOf(helper.parseKnowledge(content).frontmatter)
+    if (content !== null)
+      entry.slots = slotDeclarationsOf(helper.parseKnowledge(content).frontmatter)
     entries.set(file, entry)
     return entry
   }
@@ -1356,7 +1355,9 @@ export function slotDeclarationsOf(frontmatter) {
       name,
       kind: typeof decl.kind === 'string' && decl.kind.trim() ? decl.kind.trim() : 'value',
       required: decl.required !== false,
-      ...(decl.default !== undefined && decl.default !== null ? { default: String(decl.default) } : {}),
+      ...(decl.default !== undefined && decl.default !== null
+        ? { default: String(decl.default) }
+        : {}),
       ...(typeof decl.description === 'string' ? { description: decl.description } : {}),
     })
   }
@@ -1387,7 +1388,20 @@ const EMBED_TEXT_CAP = 200_000
 const EMBED_IMAGE_CAP = 1_500_000
 const EMBED_MEDIA_CAP = 3_000_000
 const EMBED_TOTAL_CAP = 8_000_000
-const EMBED_TEXT_EXT = new Set(['md', 'txt', 'csv', 'tsv', 'json', 'yaml', 'yml', 'srt', 'vtt', 'log', 'xml', 'html'])
+const EMBED_TEXT_EXT = new Set([
+  'md',
+  'txt',
+  'csv',
+  'tsv',
+  'json',
+  'yaml',
+  'yml',
+  'srt',
+  'vtt',
+  'log',
+  'xml',
+  'html',
+])
 const EMBED_MIME = {
   png: 'image/png',
   jpg: 'image/jpeg',
@@ -1468,11 +1482,7 @@ export function embedRunArtifacts(root, graph, record, budget = { left: EMBED_TO
     }
     const ext = (shown.split('.').pop() || '').toLowerCase()
     const mime = EMBED_MIME[ext]
-    const kind = EMBED_TEXT_EXT.has(ext)
-      ? 'text'
-      : mime
-        ? mime.split('/')[0]
-        : 'unsupported'
+    const kind = EMBED_TEXT_EXT.has(ext) ? 'text' : mime ? mime.split('/')[0] : 'unsupported'
     const cap =
       kind === 'text'
         ? EMBED_TEXT_CAP
