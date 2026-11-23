@@ -131,7 +131,8 @@ describe('procedure references: the address form is the one accepted form', () =
     expect(result.valid).toBe(true)
   })
 
-  it('rejects the removed `[[Name]]` form on every one of the three fields', () => {    const result = validateFixture({
+  it('rejects the removed `[[Name]]` form on every one of the three fields', () => {
+    const result = validateFixture({
       parent: '[[Assemble the Fixture]]',
       next: '[[Accept the Fixture]]',
       output: '[[Fixture Bundle]]',
@@ -173,7 +174,14 @@ describe('procedure references: the shipped coNNtent procedures agree on it', ()
       if (!(REFERENCE_FIELDS as readonly string[]).includes(field[1])) return
       const value = field[2].trim()
       if (!value) return
-      if (!value.startsWith('@') || value.includes('[[')) {
+      // A branching `next::` is a list of addresses (`[@a, @b]`); every item is an address.
+      const items = /^\[.*\]$/.test(value)
+        ? value
+            .slice(1, -1)
+            .split(',')
+            .map((item) => item.trim())
+        : [value]
+      if (value.includes('[[') || items.some((item) => !item.startsWith('@'))) {
         offenders.push(`${fileName}:${index + 1} — ${element}.${field[1]} = ${value}`)
       }
     })
