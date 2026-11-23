@@ -56,7 +56,9 @@ export function foldRun(graph: ProcedureGraph, run: RunModel, opts: FoldOptions)
   if (graph.start === null) blockedBy = 'The procedure has no single start step.'
   for (let s: string | undefined = graph.start ?? undefined; s !== undefined;) {
     if (path.includes(s)) {
-      blockedBy = `Step "${s}" is reached twice; loops are not runnable yet.`
+      // A loop's back-edge reopens its span when it is taken (the runner's `complete`), so a
+      // walk that meets a step twice reads rows nobody reopened.
+      blockedBy = `Step "${s}" is reached twice; a loop's back-edge must reopen its span.`
       current = s
       break
     }
@@ -90,10 +92,22 @@ export function foldRun(graph: ProcedureGraph, run: RunModel, opts: FoldOptions)
       ([inp, rev]) => validatedRev[inp] !== undefined && validatedRev[inp] !== rev,
     )
   })
+  // A loop reopened the producer (pending again after an attempt): what it produced in the
+  // earlier pass is stale until the producer runs again and reports it.
+  for (const [slug, row] of Object.entries(run.artifacts)) {
+    if (row.status !== 'produced' && row.status !== 'validated') continue
+    const producer = row.step ?? graph.artifacts[slug]?.producers[0]
+    const prow = producer ? run.steps[producer] : undefined
+    if (prow?.status === 'pending' && prow.attempt > 0 && !stale.includes(slug)) stale.push(slug)
+  }
   for (const slug of stale) artifacts[slug] = { ...artifacts[slug], status: 'stale' }
+  // A done step is reopened by a stale output it produced itself; an artifact several steps
+  // produce (a draft and its redraft) belongs to the step that last reported it.
+  const producerOf = (o: string) => run.artifacts[o]?.step ?? graph.artifacts[o]?.producers[0]
   const reopened = path.filter(
     (slug) =>
-      steps[slug].status === 'done' && graph.steps[slug].outputs.some((o) => stale.includes(o)),
+      steps[slug].status === 'done' &&
+      graph.steps[slug].outputs.some((o) => stale.includes(o) && producerOf(o) === slug),
   )
   for (const slug of reopened) steps[slug] = { ...steps[slug], status: 'reopened' }
   if (reopened.length > 0) current = reopened[0]

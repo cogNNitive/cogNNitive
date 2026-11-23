@@ -97,7 +97,7 @@ stale: artifact validated whose producer consumed an input rev != that input's c
 reopened: a done step with a stale output; current = earliest reopened on path
 ```
 
-Derived states — run: `open · waiting · blocked · drifted · completed · failed · cancelled`; step: `pending · active · waiting · done · failed · reopened · off_path`; artifact: `expected · produced · validated · rejected · stale · not_required`. First slice: DAGs with branches; loops out.
+Derived states — run: `open · waiting · blocked · drifted · completed · failed · cancelled`; step: `pending · active · waiting · done · failed · reopened · off_path`; artifact: `expected · produced · validated · rejected · stale · not_required`. First slice: DAGs with branches; bounded loops since 2026-11-23 (§10.2).
 
 ## 6. Tool surface (nn-mcp)
 
@@ -135,5 +135,11 @@ Recommendation: (a) now; (c) only if the volume of changeset files becomes a rea
 ## 10. Open
 
 1. ~~Write cost~~ — **decided 2026-11-19: option (a)**, `add_element` carries initial fields; (c)/T4 only if changeset volume becomes a real problem.
-2. Loops (`next` back to an earlier step): out of slice 1.
+2. ~~Loops~~ — **done 2026-11-23: bounded, guarded loops.**
+   - **Graph.** A loop is runnable when it is guarded: one of its edges leaves a step with several `next` targets for a target that carries a `condition` (the decision chooses to go round; its other branches leave). Any other loop stays a `CYCLE` error. The edge that closes a guarded loop (its back-edge, found by a walk from the start) does not count as an incoming edge, so a loop may return to the start step.
+   - **Record.** Completing a step (`complete`, or an engine `run`) with a `next` the walk already passed before it takes the back-edge. ONE atomic changeset (with the header `seq` guard) puts that target and every step walked from it up to the completing step back to `pending`, attempts kept and `outcome`/`next`/`waiting_on`/`failure` cleared, and every `validated` output of the span back to `produced`. The next `start` of a reopened step is attempt n+1. The executions bluepriNNt (V_0-6-0) allows `done|active|waiting -> pending` for this.
+   - **Fold.** R1 is unchanged: the walk stops at the first non-done step, which after a back-edge is its target. An output whose producer is `pending` after an attempt is `stale`. A row that names a back-edge without its span reopened still blocks ("reached twice").
+   - **Bound.** The target's `max_attempts` (a Work field the graph reads, default `DEFAULT_MAX_ATTEMPTS` = 3): a back-edge to a target whose `attempt` reached it is refused `LOOP_LIMIT` and writes nothing; the actor fails the step or takes another branch. An engine step, whose claim already landed, is recorded `failed` with the `LOOP_LIMIT` reason instead. `max_attempts` is not declared in the procedures bluepriNNt yet: declaring it is a bump that repins every shipped procedure.
+   - **Use.** coNNtent `draft-scene-visuals`: `approve-the-draft` branches to `hand-off-to-produce-an-episode` (approve) or `redraft-the-flagged-scene` (send-back), whose `next` returns to the approval.
+   - **`{run}`.** The built-in slot resolves to the run id everywhere the runner substitutes slots (state, engine `command`, artifact `at`/`verify`); it is never stored in `params`.
 3. Old docs with `tool:: [[Command Line Interface]]` and prose conditions: run as `executor: agent`, conditions asserted.

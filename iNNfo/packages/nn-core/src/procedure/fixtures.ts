@@ -90,6 +90,46 @@ slug:: report
 verify:: file:report.md
 `
 
+/**
+ * draft -> review (decision) -> publish | redraft; redraft goes back to review (a bounded loop).
+ * The loop is guarded: review chooses redraft only on `outcome == send-back`.
+ */
+export const LOOP_MD = `${header('V_1-0-0')}
+# NN Work
+
+## NN Work: Draft
+slug:: draft
+executor:: agent
+next:: [[review]]
+output:: [[draft-doc]]
+
+## NN Work: Review
+slug:: review
+step_type:: decision
+executor:: human
+decision:: approve or send-back?
+max_attempts:: 2
+next:: [ [[publish]], [[redraft]] ]
+
+## NN Work: Publish
+slug:: publish
+executor:: agent
+condition:: outcome == approve
+
+## NN Work: Redraft
+slug:: redraft
+executor:: agent
+condition:: outcome == send-back
+next:: [[review]]
+output:: [[draft-doc]]
+
+# NN Artifact
+
+## NN Artifact: Draft Doc
+slug:: draft-doc
+verify:: file:draft.md
+`
+
 /** One engine step. */
 export const BUILD_MD = `${header('V_1-0-0')}
 # NN Work

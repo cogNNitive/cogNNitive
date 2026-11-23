@@ -20,6 +20,11 @@ export interface ProcedureStep {
   /** Artifact slugs consumed / produced. */
   inputs: string[]
   outputs: string[]
+  /**
+   * The most attempts the step may take when a loop sends the run back to it (`max_attempts`).
+   * Absent means `DEFAULT_MAX_ATTEMPTS`.
+   */
+  maxAttempts?: number
 }
 
 /** How an output artifact is carried (design §4.1). */

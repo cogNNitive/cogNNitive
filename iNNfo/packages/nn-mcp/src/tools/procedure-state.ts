@@ -153,7 +153,14 @@ export const substitute = (
     ? undefined
     : fillSlots(text, Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])))
 
-/** The `{name}` placeholders a command still carries after substitution, so a run can refuse. */
+/**
+ * The values a run fills `{slot}` placeholders with: its parameters plus the built-in `{run}`,
+ * the run id. The id is never stored as a parameter the person gave.
+ */
+export const slotValuesOf = (run: Pick<RunRecord, 'id' | 'params'>): Record<string, unknown> => ({
+  ...run.params,
+  run: run.id,
+})
 
 export interface FoldedRun {
   run: RunRecord
@@ -229,20 +236,21 @@ export function currentStepNeeds({ run, graph, state }: FoldedRun): Record<strin
   const slug = state.currentStep
   if (!slug) return null
   const def = graph.steps[slug]!
+  const slots = slotValuesOf(run)
   const artifact = (a: string) => ({
     status: state.artifacts[a]?.status ?? 'expected',
     ...(state.artifacts[a]?.rev ? { rev: state.artifacts[a]!.rev } : {}),
     ...(graph.artifacts[a]?.verify
-      ? { verify: substitute(graph.artifacts[a]!.verify, run.params) }
+      ? { verify: substitute(graph.artifacts[a]!.verify, slots) }
       : {}),
   })
   const optional = {
     stepType: def.stepType,
     executor: def.executor,
     condition: def.condition,
-    decision: substitute(def.decision, run.params),
-    command: substitute(def.command, run.params),
-    produces: substitute(def.produces, run.params),
+    decision: substitute(def.decision, slots),
+    command: substitute(def.command, slots),
+    produces: substitute(def.produces, slots),
   }
   return {
     slug,
