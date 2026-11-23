@@ -130,6 +130,16 @@ describe('procedure_start', SLOW, () => {
     expect(text).toMatch(/^## NN Step Run: /gm)
     expect(text).toMatch(/^## NN Run Artifact: /gm)
     expect(text).not.toMatch(/^## NN Execution Event: /m)
+    // ...and exactly those rows: the scaffold seeds one `Example <Concept>` placeholder per
+    // mutable list concept, so a run used to carry `Example Step Run`, `Example Run Artifact`
+    // and `Example Input` as real rows and the phantom artifact reached `procedure_state`
+    // (issue #819). They are dropped in the same atomic changeset.
+    expect(text.match(/^## NN Step Run: /gm)).toHaveLength(4)
+    expect(text.match(/^## NN Run Artifact: /gm)).toHaveLength(1)
+    expect(text).not.toMatch(/^## NN .*: Example /m)
+    expect(Object.keys(ok(await procedureState(root, { run: 'r1' })).state!.artifacts!)).toEqual([
+      'draft-doc',
+    ])
     // The changeset is atomic and carries the run context.
     const [cs] = await changesets()
     const csText = await readFile(join(root, 'changes', cs!), 'utf-8')

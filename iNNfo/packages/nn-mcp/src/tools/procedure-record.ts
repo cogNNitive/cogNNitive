@@ -11,14 +11,16 @@ import {
   guardOf,
   holderOf,
   loadChangeLog,
+  parseKnowledge,
   procedureIdOf,
+  scaffoldKnowledgeDocument,
   unresolvedSlots,
 } from '@cognnitive/nn-core'
 import type { ChangeItem, RunState, StepRow } from '@cognnitive/nn-core'
 import { applyChange } from './apply-change.js'
 import { writeProposedChangeset } from './propose-changeset.js'
 import { findKnowledgeFile } from './spec.js'
-import { loadDeclarations } from './domain-index.js'
+import { loadBlueprintSchema, loadDeclarations } from './domain-index.js'
 import {
   describeRun,
   fail,
@@ -207,6 +209,8 @@ export async function procedureStart(
   ) as Record<string, string>
   slotValues['run'] = run
 
+  const seeded = await scaffoldRows(root, blueprintUrl, run)
+
   const changes: Change[] = [
     {
       op: 'add_model',
@@ -240,6 +244,7 @@ export async function procedureStart(
       }),
       evidence: 'decision',
     })),
+    ...seeded,
   ]
 
   const committed = await commit(root, changes, {
@@ -252,6 +257,45 @@ export async function procedureStart(
   const after = await reload(root, run)
   if (!after.ok) return after
   return { ok: true, run, procedure: address, changeset: committed.changeset, state: after.state }
+}
+
+/**
+ * The rows `add_model`'s scaffold seeds for an instance model beyond its own root element.
+ *
+ * A run holds exactly one row per step and one row per artifact (executions blueprint), yet
+ * the scaffold gives every new instance model one `Example <Concept>` row per mutable list
+ * concept, so a fresh run carried `Example Step Run`, `Example Run Artifact` and
+ * `Example Input` (issue #819). The skeleton has to stay a pure function of the creation
+ * change — it is what strict replay rebuilds — so the runner drops the rows it never asked
+ * for in the SAME atomic changeset instead of teaching `add_model` a per-call skeleton mode.
+ *
+ * The rows are derived from the scaffold itself, not from a list of concept names: a
+ * bluepriNNt without an `Input` concept seeds no row for it, and naming one that does not
+ * exist would refuse the whole start.
+ */
+async function scaffoldRows(root: string, blueprintUrl: string, run: string): Promise<Change[]> {
+  const schema = await loadBlueprintSchema(root, { name: 'executions', url: blueprintUrl })
+  if (!schema) return []
+  const skeleton = parseKnowledge(
+    scaffoldKnowledgeDocument({
+      id: run,
+      blueprintName: 'executions',
+      blueprintUrl,
+      schema,
+      root: { concept: 'Procedure Execution', slug: run, name: run },
+    }),
+  )
+  return [...skeleton.elements]
+    .filter(([concept]) => concept !== 'Procedure Execution')
+    .flatMap(([concept, elements]) =>
+      elements.map((element): Change => ({
+        op: 'remove_element',
+        target: run,
+        concept,
+        name: element.name,
+        evidence: 'decision',
+      })),
+    )
 }
 
 async function reload(root: string, run: string): Promise<ProcedureStateResult | ToolError> {

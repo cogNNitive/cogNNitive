@@ -11,6 +11,7 @@ import {
   resolveBlueprintPackage,
   resolveBlueprintSchema,
   type Concept,
+  type BlueprintSchema,
   type DiscoveredDomainModel,
   type DomainIndex,
   type LayoutDiagnostic,
@@ -44,18 +45,53 @@ export interface NodeDomainIndex {
  * workspace/global package tiers). Null when no local copy exists. Exported for
  * `validate_knowledge`'s single-file layout pass (A10).
  */
-export async function loadDeclarations(rootDir: string, parent: { name: string; url?: string }): Promise<Declarations | null> {
-  let content: string | null = null
-  const local = parent.url && isLocalPath(parent.url) ? toLocalFilePath(parent.url, rootDir) : null
-  if (local) content = await readFile(local, 'utf-8').catch(() => null)
-  if (content === null) {
-    const pkg = await resolveBlueprintPackage(rootDir, parent.name).catch(() => null)
-    if (pkg) content = await readFile(pkg.specFilePath, 'utf-8').catch(() => null)
-  }
+export async function loadDeclarations(
+  rootDir: string,
+  parent: { name: string; url?: string },
+): Promise<Declarations | null> {
+  const content = await readBlueprintContent(rootDir, parent)
   if (content === null) return null
   try {
     const { schema } = resolveBlueprintSchema(content)
-    return new Map(schema.concepts.flatMap((c): Array<[string, Storage]> => (c.storage ? [[c.name, c.storage]] : [])))
+    return new Map(
+      schema.concepts.flatMap((c): Array<[string, Storage]> =>
+        c.storage ? [[c.name, c.storage]] : [],
+      ),
+    )
+  } catch {
+    return null
+  }
+}
+
+/** The bluepriNNt document from the local tiers only, or null when no local copy exists. */
+async function readBlueprintContent(
+  rootDir: string,
+  parent: { name: string; url?: string },
+): Promise<string | null> {
+  const local = parent.url && isLocalPath(parent.url) ? toLocalFilePath(parent.url, rootDir) : null
+  if (local) {
+    const content = await readFile(local, 'utf-8').catch(() => null)
+    if (content !== null) return content
+  }
+  const pkg = await resolveBlueprintPackage(rootDir, parent.name).catch(() => null)
+  if (!pkg) return null
+  return readFile(pkg.specFilePath, 'utf-8').catch(() => null)
+}
+
+/**
+ * The composed schema of a bluepriNNt from the local tiers only, or null when no local copy
+ * exists. `loadDeclarations` keeps only the declared storage; a caller that has to reproduce
+ * the scaffold a model was created from (the procedure runner) needs the whole schema.
+ */
+export async function loadBlueprintSchema(
+  rootDir: string,
+  parent: { name: string; url?: string },
+): Promise<BlueprintSchema | null> {
+  const content = await readBlueprintContent(rootDir, parent)
+  if (content === null) return null
+  try {
+    const { schema, errors } = resolveBlueprintSchema(content)
+    return errors.length > 0 ? null : schema
   } catch {
     return null
   }
