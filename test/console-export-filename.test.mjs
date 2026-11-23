@@ -92,7 +92,7 @@ describe('S1c: boot maps meta.knowledge_slug to state.modelSlug', () => {
       identifier.dispatchEvent(new dom.window.Event('input'))
       document.querySelector('#nn-feedback-modal [data-nn="download-changeset"]').click()
       assert.equal(downloads.length, 1, 'one file downloaded')
-      assert.match(downloads[0], /^ghost-busters-slug_jane_[0-9-]+_changes_NN\.md$/)
+      assert.match(downloads[0], /^ghost-busters-slug_jane_[0-9TZ-]+_changes_NN\.md$/)
     } finally {
       MODEL.meta = saved
     }

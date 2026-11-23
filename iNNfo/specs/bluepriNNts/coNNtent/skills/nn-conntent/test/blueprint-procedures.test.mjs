@@ -257,3 +257,29 @@ test('produce-video lists series through their scope documents and hands off to 
   assert.match(body(handOff), /procedure_start/)
   assert.match(text, /spends nothing/i, 'the router does not state that it spends nothing')
 })
+
+test('produce-video branches the goal into a new episode, a new series or an existing episode', () => {
+  const { steps } = parseWork(read(PROMOTED['produce-video']))
+  const bySlug = new Map(steps.map((step) => [step.fields.slug, step]))
+  const clarify = bySlug.get('clarify-the-goal')
+  assert.ok(clarify, 'no clarify-the-goal step')
+  assert.equal(clarify.fields.step_type, 'decision')
+  const targets = nextOf(clarify)
+  assert.equal(
+    targets[0],
+    'list-the-series',
+    'the default branch (a new episode) is not listed first',
+  )
+  const guards = targets.map((slug) => bySlug.get(slug)?.fields.condition)
+  assert.deepEqual(guards, [
+    'outcome == new-episode',
+    'outcome == new-series',
+    'outcome == existing-episode',
+  ])
+  for (const token of ['new-episode', 'new-series', 'existing-episode'])
+    assert.ok(clarify.fields.decision.includes(`(${token}`), `the decision does not name ${token}`)
+  assert.match(body(bySlug.get(targets[1])), /Create a Series/)
+  assert.match(body(bySlug.get(targets[2])), /Produce an Episode/)
+  for (const slug of targets.slice(1))
+    assert.deepEqual(nextOf(bySlug.get(slug)), [], `${slug} must end the router`)
+})

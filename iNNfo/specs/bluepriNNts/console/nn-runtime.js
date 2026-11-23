@@ -160,6 +160,23 @@
     return (n < 10 ? '0' : '') + n
   }
 
+  // A changeset name carries the runner's UTC stamp, `YYYYMMDDTHHMMSSZ` (nn-core
+  // `formatUtcStamp`), so a download sorts beside the changesets the runner writes.
+  function changesetStampOf(when) {
+    var d = when instanceof Date ? when : new Date(when)
+    if (isNaN(d.getTime())) throw new Error('nn-console: invalid date for filename stamp')
+    return (
+      d.getUTCFullYear() +
+      pad2(d.getUTCMonth() + 1) +
+      pad2(d.getUTCDate()) +
+      'T' +
+      pad2(d.getUTCHours()) +
+      pad2(d.getUTCMinutes()) +
+      pad2(d.getUTCSeconds()) +
+      'Z'
+    )
+  }
+
   function stampFromDate(when) {
     var d = when instanceof Date ? when : new Date(when)
     if (isNaN(d.getTime())) throw new Error('nn-console: invalid date for filename stamp')
@@ -6692,7 +6709,7 @@
     var drafts = state && state.store ? state.store.drafts() : []
     var model = state && state.modelTitle ? state.modelTitle : 'Model'
     var reviewerSlug = slugify(reviewer) || 'reviewer'
-    var stamp = stampFromDate(new Date())
+    var stamp = changesetStampOf(new Date())
 
     var exportMeta = {
       source_knowledge: model,
@@ -6741,7 +6758,7 @@
       modelId: meta.modelId || meta.model || meta.title || 'model',
       modelSlug: scope
         ? modelSlugOf({ modelSlug: meta.knowledge_slug || meta.modelSlug, modelId: baseId, modelTitle: baseTitle }) + '-' + scope.view
-        : meta.knowledge_slug || meta.modelSlug || undefined,
+        : meta.knowledge_slug || meta.modelSlug || meta.workspaceId || undefined,
       sourceSha256:
         (Array.isArray(meta.models) && meta.models.length === 1 && meta.models[0] && meta.models[0].sha256) ||
         meta.sha256 ||
@@ -6810,7 +6827,7 @@
       return { ok: false, errors: [verdictProblem] }
     }
 
-    var stamp = stampFromDate(state && state.exportedAt ? new Date(state.exportedAt) : new Date())
+    var stamp = changesetStampOf(state && state.exportedAt ? new Date(state.exportedAt) : new Date())
     var changesetMd = serializeChangesetMarkdown(exportMeta, drafts, state && state.modelId)
     var modelSlug = modelSlugOf(state)
     var changesetFilename = modelSlug + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
@@ -8428,6 +8445,7 @@
     slugify: slugify,
     slugifyReviewer: slugifyReviewer,
     stampFromDate: stampFromDate,
+    changesetStampOf: changesetStampOf,
     consoleScopeMeta: consoleScopeMeta,
     draftStoreId: draftStoreId,
     getReviewerName: getReviewerName,

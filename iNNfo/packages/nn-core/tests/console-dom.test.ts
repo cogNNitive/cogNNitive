@@ -108,7 +108,9 @@ describe('nn-console — rendered DOM', () => {
   it('paints the banner, concept rail and one card per element from the slots', () => {
     bootConsole()
 
-    const banner = (document.getElementById('nn-feedback-banner') || document.getElementById('nn-banner'))!.textContent ?? ''
+    const banner =
+      (document.getElementById('nn-feedback-banner') || document.getElementById('nn-banner'))!
+        .textContent ?? ''
     expect(banner).toContain('Acme')
     expect(banner).toContain('V_0-1-0')
 
@@ -116,7 +118,9 @@ describe('nn-console — rendered DOM', () => {
     expect(rail.join(' ')).toContain('Goal')
     expect(rail.join(' ')).toContain('Metric')
 
-    const titles = [...document.querySelectorAll('.nn-card .nn-card-head [data-ku-kind=element]')].map((n) => n.textContent)
+    const titles = [
+      ...document.querySelectorAll('.nn-card .nn-card-head [data-ku-kind=element]'),
+    ].map((n) => n.textContent)
     expect(titles).toEqual(['Grow', 'Churn'])
   })
 
@@ -124,15 +128,19 @@ describe('nn-console — rendered DOM', () => {
     bootConsole()
 
     typeInto('#nn-search', 'grow')
-    expect([...document.querySelectorAll('.nn-card .nn-card-head [data-ku-kind=element]')].map((n) => n.textContent)).toEqual([
-      'Grow',
-    ])
+    expect(
+      [...document.querySelectorAll('.nn-card .nn-card-head [data-ku-kind=element]')].map(
+        (n) => n.textContent,
+      ),
+    ).toEqual(['Grow'])
 
     // Matching runs over description text too, not just the element name.
     typeInto('#nn-search', 'monthly logo')
-    expect([...document.querySelectorAll('.nn-card .nn-card-head [data-ku-kind=element]')].map((n) => n.textContent)).toEqual([
-      'Churn',
-    ])
+    expect(
+      [...document.querySelectorAll('.nn-card .nn-card-head [data-ku-kind=element]')].map(
+        (n) => n.textContent,
+      ),
+    ).toEqual(['Churn'])
 
     typeInto('#nn-search', 'zzz-no-match')
     expect(document.querySelectorAll('.nn-card')).toHaveLength(0)
@@ -201,7 +209,6 @@ describe('nn-console — reference rendering', () => {
   })
 })
 
-
 describe('nn-console — export gate', () => {
   let downloads: string[]
   let clickSpy: ReturnType<typeof vi.spyOn>
@@ -214,11 +221,11 @@ describe('nn-console — export gate', () => {
     // "the gate held" looks like, so every test also asserts the positive case
     // below — otherwise a runtime that stopped using an anchor would make this
     // spy silently stop intercepting and the gate tests would pass vacuously.
-    clickSpy = vi
-      .spyOn(HTMLAnchorElement.prototype, 'click')
-      .mockImplementation(function (this: HTMLAnchorElement) {
-        if (this.download) downloads.push(this.download)
-      })
+    clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      if (this.download) downloads.push(this.download)
+    })
     globalThis.URL.createObjectURL = () => 'blob:stub'
     globalThis.URL.revokeObjectURL = () => {}
   })
@@ -231,15 +238,20 @@ describe('nn-console — export gate', () => {
   it('refuses to emit a file until an identifier is entered', () => {
     bootConsole()
 
-    const openBtn = (document.getElementById('nn-feedback-open') || document.getElementById('nn-export-open'))!
+    const openBtn = (document.getElementById('nn-feedback-open') ||
+      document.getElementById('nn-export-open'))!
     openBtn.dispatchEvent(new Event('click', { bubbles: true }))
-    const download = (document.querySelector('#nn-feedback-modal [data-nn="download-changeset"]') || document.querySelector('#nn-export-modal [data-nn="download-changeset"]'))!
+    const download = (document.querySelector('#nn-feedback-modal [data-nn="download-changeset"]') ||
+      document.querySelector('#nn-export-modal [data-nn="download-changeset"]'))!
 
     download.dispatchEvent(new Event('click', { bubbles: true }))
     expect(downloads).toEqual([])
 
     // Whitespace is not an identifier either.
-    typeInto('#nn-feedback-modal [data-nn="identifier"], #nn-export-modal [data-nn="identifier"]', '   ')
+    typeInto(
+      '#nn-feedback-modal [data-nn="identifier"], #nn-export-modal [data-nn="identifier"]',
+      '   ',
+    )
     download.dispatchEvent(new Event('click', { bubbles: true }))
     expect(downloads).toEqual([])
   })
@@ -266,16 +278,19 @@ describe('nn-console — export gate', () => {
     )
     bootConsole()
 
-    const openBtn = (document.getElementById('nn-feedback-open') || document.getElementById('nn-export-open'))!
+    const openBtn = (document.getElementById('nn-feedback-open') ||
+      document.getElementById('nn-export-open'))!
     openBtn.dispatchEvent(new Event('click', { bubbles: true }))
-    typeInto('#nn-feedback-modal [data-nn="identifier"], #nn-export-modal [data-nn="identifier"]', 'Reviewer, primera revisión')
-    const download = (document.querySelector('#nn-feedback-modal [data-nn="download-changeset"]') || document.querySelector('#nn-export-modal [data-nn="download-changeset"]'))!
+    typeInto(
+      '#nn-feedback-modal [data-nn="identifier"], #nn-export-modal [data-nn="identifier"]',
+      'Reviewer, primera revisión',
+    )
+    const download = (document.querySelector('#nn-feedback-modal [data-nn="download-changeset"]') ||
+      document.querySelector('#nn-export-modal [data-nn="download-changeset"]'))!
     download.dispatchEvent(new Event('click', { bubbles: true }))
 
     expect(downloads).toHaveLength(1)
-    expect(downloads[0]).toMatch(
-      /^acme_reviewer-primera-revision_[0-9-]+_changes_NN\.md$/,
-    )
+    expect(downloads[0]).toMatch(/^acme_reviewer-primera-revision_[0-9TZ-]+_changes_NN\.md$/)
   })
 
   it('reports the unsent change count in the modal instructions', () => {
@@ -285,20 +300,36 @@ describe('nn-console — export gate', () => {
         v: 4,
         modelId: 'acme',
         drafts: [
-          { id: 'fb-001', element_id: 'goal-grow', concept: 'Goal', element: 'Grow', kind: 'comment', base_hash: '0123456789abcdef' },
-          { id: 'fb-002', element_id: 'metric-churn', concept: 'Metric', element: 'Churn', kind: 'comment', base_hash: '0123456789abcdef' },
+          {
+            id: 'fb-001',
+            element_id: 'goal-grow',
+            concept: 'Goal',
+            element: 'Grow',
+            kind: 'comment',
+            base_hash: '0123456789abcdef',
+          },
+          {
+            id: 'fb-002',
+            element_id: 'metric-churn',
+            concept: 'Metric',
+            element: 'Churn',
+            kind: 'comment',
+            base_hash: '0123456789abcdef',
+          },
         ],
         reviewed: {},
       }),
     )
     bootConsole()
 
-    const openBtn = (document.getElementById('nn-feedback-open') || document.getElementById('nn-export-open'))!
+    const openBtn = (document.getElementById('nn-feedback-open') ||
+      document.getElementById('nn-export-open'))!
     openBtn.dispatchEvent(new Event('click', { bubbles: true }))
 
-    const modal = (document.getElementById('nn-feedback-modal') || document.getElementById('nn-export-modal'))!
-    expect(
-      modal.querySelector('[data-nn="instructions"]')!.textContent,
-    ).toContain('2 unsent change(s)')
+    const modal = (document.getElementById('nn-feedback-modal') ||
+      document.getElementById('nn-export-modal'))!
+    expect(modal.querySelector('[data-nn="instructions"]')!.textContent).toContain(
+      '2 unsent change(s)',
+    )
   })
 })
