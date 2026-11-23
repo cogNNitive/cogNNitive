@@ -9770,17 +9770,24 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
    */
   function useFromDocument(doc) {
     if (wired) return available()
-    wired = true
+    var mod =
+      (typeof window !== 'undefined' && window.__nnFoldModule) ||
+      (typeof globalThis !== 'undefined' && globalThis.__nnFoldModule) ||
+      (doc && doc.defaultView && doc.defaultView.__nnFoldModule)
+    if (mod && typeof mod.foldRun === 'function') {
+      wired = true
+      return use(mod)
+    }
     if (!doc || typeof doc.getElementById !== 'function') return false
     var el = doc.getElementById('nn-procedure-core')
     var source = el && el.textContent ? el.textContent.trim() : ''
     if (!source) return false
     try {
-      // The slot holds an IIFE bundle of nn-core's procedure module, whose `globalName` is
-      // `__nnFoldModule`. Evaluating it inside one function scope keeps everything it
-      // defines out of the console's globals: the returned object is the only exit.
-      var factory = new Function(JSON.parse(source) + '\n; return __nnFoldModule')
-      return use(factory())
+      var code = source.startsWith('"') ? JSON.parse(source) : source
+      var factory = new Function(code + '\n; return __nnFoldModule')
+      var res = use(factory())
+      if (res) wired = true
+      return res
     } catch {
       return false
     }

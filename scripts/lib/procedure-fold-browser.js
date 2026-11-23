@@ -21,8 +21,7 @@ async function procedureFoldBrowserSource(repoRoot) {
     absWorkingDir: repoRoot,
   })
   const code = result.outputFiles[0].text
-  // The slot is JSON, so the payload is the source as a JSON string.
-  return JSON.stringify(code)
+  return code.trim()
 }
 
 module.exports = { procedureFoldBrowserSource }
