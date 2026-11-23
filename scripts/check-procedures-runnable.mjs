@@ -26,13 +26,17 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { createRequire } from 'node:module'
 import { discoverProcedureFiles } from './check-procedures-version.mjs'
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..')
 const BLUEPRINTS_ROOT = path.join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts')
 const CORE_DIST = path.join(REPO_ROOT, 'iNNfo', 'packages', 'nn-core', 'dist', 'index.js')
-const PROCEDURE_DOC_RE = /_procedures_NN\.md$/
+const require = createRequire(import.meta.url)
+const { isProcedureDocument } = /** @type {{ isProcedureDocument: (name: string) => boolean }} */ (
+  require('../skills/nn-preflight/scripts/lib/naming-contract.generated.cjs')
+)
 
 /** nn-core's parser and graph, from its built dist. */
 export async function loadCore(distFile = CORE_DIST) {
@@ -78,7 +82,7 @@ export async function checkProceduresRunnable({ blueprintsRoot = BLUEPRINTS_ROOT
   const { parseKnowledge, procedureGraph } = core ?? (await loadCore())
   const failures = []
   const files = discoverProcedureFiles(blueprintsRoot).filter((f) =>
-    PROCEDURE_DOC_RE.test(path.basename(f)),
+    isProcedureDocument(path.basename(f)),
   )
   for (const file of files) {
     const target = path.relative(blueprintsRoot, file).split(path.sep).join('/')
