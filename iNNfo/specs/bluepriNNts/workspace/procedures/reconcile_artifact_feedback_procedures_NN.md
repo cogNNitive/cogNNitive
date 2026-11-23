@@ -77,7 +77,7 @@ parent:: @artifact-feedback-reconciliation-workflow
 step_type:: task
 next:: @step-3-four-layer-discrepancy-triaging
 condition:: Extraction bundle completed
-input:: @workspace-manifest-and-lineage-record
+input:: @workspace-lineage-manifest
 output:: @upstream-dependency-map
 output_status:: verified
 tool:: @innfo-mcp-server
@@ -172,7 +172,7 @@ storage:: system_temp
 description:: Plain text extraction, XML comments, Track Changes, and reviewer metadata extracted via Pandoc.
 
 ## NN Artifact: Workspace Manifest and Lineage Record
-slug:: workspace-manifest-and-lineage-record
+slug:: workspace-lineage-manifest
 format:: iNNfo
 storage:: workspace_NN.md
 description:: Central workspace lineage index recording models, sources, artifacts, and procedures.
