@@ -20,8 +20,8 @@ async function procedureFoldBrowserSource(repoRoot) {
     // machine. Paths are rebased to the repo root, so the same sources give the same bytes.
     absWorkingDir: repoRoot,
   })
-  const code = result.outputFiles[0].text
-  return code.trim()
+  const code = result.outputFiles[0].text.trim()
+  return `${code}\n;if(typeof window!=="undefined")window.__nnFoldModule=__nnFoldModule;if(typeof globalThis!=="undefined")globalThis.__nnFoldModule=__nnFoldModule;`
 }
 
 module.exports = { procedureFoldBrowserSource }

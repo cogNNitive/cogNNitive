@@ -9783,8 +9783,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var source = el && el.textContent ? el.textContent.trim() : ''
     if (!source) return false
     try {
-      var code = source.startsWith('"') ? JSON.parse(source) : source
-      var factory = new Function(code + '\n; return __nnFoldModule')
+      var code = source
+      if (source.startsWith('"')) {
+        try {
+          var parsed = JSON.parse(source)
+          if (typeof parsed === 'string') code = parsed
+        } catch {
+          code = source
+        }
+      }
+      var factory = new Function(
+        code + '\n; return (typeof __nnFoldModule !== "undefined" ? __nnFoldModule : null)',
+      )
       var res = use(factory())
       if (res) wired = true
       return res

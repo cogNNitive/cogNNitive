@@ -952,7 +952,10 @@ function injectSlots(shell, config, schema, model, viewData) {
     // The shell ships the slot empty; fill it in place so no second, empty one survives.
     const foldSlot = new RegExp(`(<script[^>]*id="nn-procedure-core"[^>]*>)[\\s\\S]*?(</script>)`)
     if (foldSlot.test(html)) {
-      html = html.replace(foldSlot, (_m, open, close) => `${open}\n${foldSource}\n${close}`)
+      html = html.replace(
+        foldSlot,
+        () => `<script type="text/javascript" id="nn-procedure-core">\n${foldSource}\n</script>`,
+      )
     } else {
       html = html.replace(
         modelSlot,
