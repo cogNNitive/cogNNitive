@@ -98,6 +98,19 @@ node scripts/nn-session.mjs status --prs temp/prs.json    # every worktree: dirt
 - **Commit early, push early.** `wip:<id>: <reason>` checkpoints are fine on the session
   branch; squash them before landing. Pushing `session/*` skips the heavy local gate:
   the PR's CI is the gate.
+- **A conflicting PR gets no CI at all.** GitHub creates no `pull_request` run when it
+  cannot build the test merge commit, so a push to a branch that drifted into a conflict is
+  silent: no run, no checks, nothing red. `ci.yml` is not at fault and there is nothing to
+  fix in it. The tell is `mergeable_state: dirty` on the PR while `refs/pull/<n>/merge`
+  still points at the last head that merged cleanly, or is missing entirely
+  (`gh api repos/<o>/<r>/git/ref/pull/<n>/merge`). The usual cause here is a generated
+  artifact: the branch regenerated `nn-mcp.bundle.js`, `nn-console.bundle.js` or the TestLab
+  fixture from a base `main` had already moved past, so two regenerations of the same file
+  diverge. Measured 2026-11-23 on #818: three pushes in a row, zero runs, while
+  `workflow_dispatch` started within seconds — which is exactly what makes it read as a
+  GitHub outage. Fix: merge `origin/main` in and rebuild the gated artifacts, never
+  hand-resolve a bundle. Until the merge is buildable, `gh workflow run "CI & Verify"
+  --ref <branch>` is the only way to test the head, and it does test the real commit.
 
 ## 1a. Before the first write: read the open PRs
 
