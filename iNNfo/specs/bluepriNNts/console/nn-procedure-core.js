@@ -171,6 +171,10 @@
     return fold(run.graph, modelOf(extra, base), opts || {})
   }
 
+  if (typeof document !== 'undefined' && typeof document.getElementById === 'function') {
+    useFromDocument(document)
+  }
+
   return {
     version: CORE_VERSION,
     CORE_VERSION: CORE_VERSION,

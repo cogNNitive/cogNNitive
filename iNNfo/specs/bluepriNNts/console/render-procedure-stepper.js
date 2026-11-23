@@ -328,6 +328,9 @@
 
     function core() {
       var c = host.nnProcedureCore || GLOBAL.nnProcedureCore
+      if (c && typeof c.useFromDocument === 'function' && typeof c.available === 'function' && !c.available()) {
+        c.useFromDocument(document)
+      }
       return c && typeof c.project === 'function' ? c : null
     }
 

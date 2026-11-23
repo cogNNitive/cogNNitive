@@ -22,8 +22,8 @@ const SOURCES = [
   ['review.js', 'nnReview'],
   ['studio.js', 'nnStudio'],
   ['nn-fsa.js', 'nnFsa'],
-  ['nn-runtime.js', 'nnConsole'],
   ['nn-procedure-core.js', 'nnProcedureCore'],
+  ['nn-runtime.js', 'nnConsole'],
   ['render-procedure-stepper.js', 'nnProcedureStepper'],
 ];
 
