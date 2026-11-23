@@ -41,12 +41,17 @@ function readBlueprintVersion(input) {
       meta = {};
     }
   }
+  // A blueprint declares its own `blueprint_version`; `spec_version` is the iNNfo
+  // spec it follows and is shared by every blueprint, so reading it as the entry
+  // version stamped the same `V_0-5-0` on all eight published blueprint entries.
   const version =
-    meta.version !== undefined
-      ? meta.version
-      : meta.spec_version !== undefined
-        ? meta.spec_version
-        : meta.metadata && meta.metadata.version;
+    meta.blueprint_version !== undefined
+      ? meta.blueprint_version
+      : meta.version !== undefined
+        ? meta.version
+        : meta.spec_version !== undefined
+          ? meta.spec_version
+          : meta.metadata && meta.metadata.version;
 
   if (version !== undefined && version !== null) {
     return String(version);

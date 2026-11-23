@@ -30,6 +30,17 @@ description: test
 });
 
 test('readBlueprintVersion extracts version from spec frontmatter', () => {
+  // A real blueprint: `spec_version` is the iNNfo spec it follows (shared by every
+  // blueprint), `blueprint_version` is the entry's own version. The entry version is
+  // the latter — reading `spec_version` stamped one shared value on every release entry.
+  const realBlueprint = `---
+name: executions
+spec_version: "V_0-5-0"
+blueprint_version: "V_0-4-1"
+---
+# Spec`;
+  assert.equal(readBlueprintVersion(realBlueprint), 'V_0-4-1');
+
   const specText = `---
 name: test-spec
 spec_version: "0.20.0"
