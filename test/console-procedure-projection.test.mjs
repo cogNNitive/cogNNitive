@@ -183,7 +183,7 @@ describe('procedure view projects a run from its pending drafts', () => {
     const actions = [...container.querySelectorAll('[data-proc-action]')].map((b) =>
       b.getAttribute('data-proc-action'),
     )
-    assert.deepEqual(actions.sort(), ['complete', 'fail', 'wait'])
+    assert.deepEqual([...new Set(actions)].sort(), ['complete', 'fail', 'wait'])
     assert.equal(container.querySelector('[data-proc-action="start"]'), null)
     assert.equal(container.querySelector('[data-proc-action="finish"]'), null)
     assert.equal(container.querySelector('[data-proc-action="cancel"]'), null)
@@ -191,10 +191,8 @@ describe('procedure view projects a run from its pending drafts', () => {
 
   it('an action proposes a Step Request pinned to the seq the person saw', () => {
     mount()
-    const select = container.querySelector('[data-proc-outcome]')
-    select.value = 'approve'
     container
-      .querySelector('[data-proc-action="complete"]')
+      .querySelector('[data-proc-action="complete"][data-proc-outcome="approve"]')
       .dispatchEvent(new doc.defaultView.Event('click'))
     const drafts = store.drafts()
     assert.equal(drafts.length, 1, 'one draft was proposed')
@@ -246,9 +244,9 @@ describe('procedure view projects a run from its pending drafts', () => {
     assert.match(item.textContent, /STEP_NOT_STARTED/)
   })
 
-  it('the legacy event log and the projection are gone from the view', () => {
+  it('draws no event log, and projects nothing while no answer is unsent', () => {
     mount({ 'q-001': { action: 'wait', status: 'done', step: 'review', value: 'ana' } })
     assert.equal(container.querySelector('.proc-run-events'), null, 'no event log is rendered')
-    assert.equal(container.querySelector('.proc-projection'), null, 'no projection box exists')
+    assert.equal(container.querySelector('[data-proc-projected]'), null, 'nothing projected')
   })
 })

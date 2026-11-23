@@ -170,10 +170,9 @@ describe('procedure view writes through the console controller (no mock store)',
 
   it('records the Step Request in the real store when a branch is chosen', () => {
     mount()
-    const select = container.querySelector('[data-proc-outcome]')
-    assert.ok(select, 'the branch control exists')
-    select.value = 'approve'
-    click(container.querySelector('[data-proc-action="complete"]'))
+    const approve = container.querySelector('[data-proc-outcome="approve"]')
+    assert.ok(approve, 'the branch control exists')
+    click(approve)
 
     assert.equal(store.drafts().length, 1, 'the request reached the store')
     const [d] = store.drafts()
@@ -186,23 +185,22 @@ describe('procedure view writes through the console controller (no mock store)',
     assert.equal(fields.request_status, 'pending')
   })
 
-  it('shows the pending banner once the draft really landed', () => {
+  it('shows the answer as decided and not sent once the draft really landed', () => {
     mount()
-    const select = container.querySelector('[data-proc-outcome]')
-    select.value = 'approve'
-    click(container.querySelector('[data-proc-action="complete"]'))
-    const banner = container.querySelector('.proc-draft-pending')
-    assert.ok(banner, 'the banner is rendered')
-    assert.match(banner.textContent, /apply_change/)
+    click(container.querySelector('[data-proc-outcome="approve"]'))
+    const decided = container.querySelector('[data-proc-decided]')
+    assert.ok(decided, 'the decision is shown on the step')
+    assert.match(decided.textContent, /Decided: approve/)
+    assert.match(decided.textContent, /not sent yet/)
   })
 
   it('surfaces a refusal instead of silently swallowing it', () => {
     mount()
-    // No branch chosen: the guard must say so, and write nothing.
-    click(container.querySelector('[data-proc-action="complete"]'))
+    // A failure without a reason: the guard must say so, and write nothing.
+    click(container.querySelector('[data-proc-action="fail"]'))
     assert.equal(store.drafts().length, 0, 'nothing written')
     const err = container.querySelector('.proc-action-error')
     assert.ok(err, 'the refusal is visible')
-    assert.match(err.textContent, /branch/i)
+    assert.match(err.textContent, /why it failed/i)
   })
 })

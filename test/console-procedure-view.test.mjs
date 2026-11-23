@@ -262,7 +262,7 @@ describe('procedure view (bluepriNNt)', () => {
       .querySelector('.dag-node[data-step="review"]')
       .dispatchEvent(new doc.defaultView.Event('click'))
     const branches = texts('.exec-step-card .branch-outcome')
-    assert.deepEqual(branches, ['Publish — outcome == approve', 'Rework — outcome == decline'])
+    assert.deepEqual(branches, ['Approve → Publish', 'Decline → Rework'])
     assert.match(container.querySelector('.exec-step-card').textContent, /Approve the draft\?/)
   })
 

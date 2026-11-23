@@ -137,6 +137,24 @@ describe('procedure_start', SLOW, () => {
     expect(csText).toMatch(/^atomic: true$/m)
   })
 
+  it('creates a run with no schema placeholder rows (no Example step, artifact, input or request)', async () => {
+    ok(await startReview())
+    const text = await runText('r1')
+    expect(text).not.toMatch(/Example/)
+    expect(text).not.toMatch(/<string>/)
+    expect(text).not.toMatch(/^## NN Step Request: /m)
+    expect(text).not.toMatch(/^## NN Input: /m)
+    const state = ok(await procedureState(root, { run: 'r1' }))
+    // Only the procedure's own artifacts and steps are folded.
+    expect(Object.keys((state.state as { artifacts: object }).artifacts)).not.toContain(
+      'example-run-artifact',
+    )
+    expect((await procedurePending(root, { run: 'r1' })) as Result).toMatchObject({
+      ok: true,
+      pending: 0,
+    })
+  })
+
   it('refuses an unknown procedure, a missing required slot and a taken run id', async () => {
     expect(await procedureStart(root, { procedure: 'ghost', params: {} })).toMatchObject({
       ok: false,
