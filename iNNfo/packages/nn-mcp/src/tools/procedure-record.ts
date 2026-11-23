@@ -75,8 +75,16 @@ async function commit(
   })
   const applied = await applyChange(root, written.path)
   if (!applied.success || (applied.errors ?? []).length > 0) {
+    // The header guard is the first change of every runner changeset: when the atomic apply
+    // reports this run's seq precondition as the conflicted one, another caller got there
+    // first and the caller must re-read. The check names the guarded target instead of
+    // matching message prose, so a reworded diagnostic cannot turn RUN_BUSY into a failure.
+    const headerTarget = `${meta.run}@${meta.run}&seq`
     const busy = (applied.errors ?? []).some(
-      (e) => e.code === 'ATOMIC_CHANGESET_CONFLICT' && /seq/.test(e.message),
+      (e) =>
+        e.code === 'ATOMIC_CHANGESET_CONFLICT' &&
+        typeof e.message === 'string' &&
+        e.message.includes(headerTarget),
     )
     if (busy)
       return fail('RUN_BUSY', 'Another caller wrote this run; re-read its state and retry.', {
@@ -538,9 +546,17 @@ function plan(
             'INVALID_ARGUMENT',
             `Artifact "${field}" is an element artifact with no address; give value as model@element.`,
           )
+        // The rev is the element's origin change id, and `origin()` is asked for
+        // `<model>@<element>`. An address with no `@` names no element at all: refuse it
+        // instead of slicing a different name out of it.
         const at = address.indexOf('@')
-        const unit = at !== -1 ? address.slice(at + 1) : address
-        elementRev = loadChangeLog(root).origin(`${address.slice(0, at)}@${unit}`)?.id
+        if (at <= 0 || at === address.length - 1)
+          return fail(
+            'INVALID_ARGUMENT',
+            `Artifact "${field}" is an element artifact; give value as model@element, not "${address}".`,
+            { artifact: field, address },
+          )
+        elementRev = loadChangeLog(root).origin(address)?.id
         if (!elementRev)
           return fail(
             'ARTIFACT_NOT_RECORDED',
@@ -598,6 +614,31 @@ function plan(
       if (!state.drift)
         return fail('NOT_DRIFTED', 'The run follows the current definition revision.')
       const next = value ?? state.drift.current ?? ''
+      // A definition that grew since the run started names steps and artifacts the model has
+      // no row for: without one, every later `start` or `artifact` on them addresses nothing.
+      // The rebase is the one call that accepts the new definition, so it creates their rows.
+      const stepRows: Change[] = Object.keys(graph.steps)
+        .filter((slug) => f.run.steps[slug] === undefined)
+        .map((slug) => ({
+          op: 'add_element',
+          target: run.id,
+          concept: 'Step Run',
+          name: graph.steps[slug]!.name,
+          slug,
+          to: JSON.stringify({ status: 'pending', attempt: 0 }),
+          evidence: 'decision',
+        }))
+      const artifactRows: Change[] = Object.keys(graph.artifacts)
+        .filter((slug) => f.run.artifacts[slug] === undefined)
+        .map((slug) => ({
+          op: 'add_element',
+          target: run.id,
+          concept: 'Run Artifact',
+          name: graph.artifacts[slug]!.name,
+          slug,
+          to: JSON.stringify({ kind: graph.artifacts[slug]!.kind, status: 'expected' }),
+          evidence: 'decision',
+        }))
       return {
         changes: [
           {
@@ -606,6 +647,8 @@ function plan(
             to: next,
             evidence: 'decision',
           },
+          ...stepRows,
+          ...artifactRows,
         ],
       }
     }
