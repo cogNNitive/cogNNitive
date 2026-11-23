@@ -207,8 +207,9 @@ Gentle-AI's ODD runs the agent; this repository narrows it:
   contract, land the contract first and start both from that commit.
 - **Derived artifacts belong to `main`, not to your branch.** The pre-commit hook no longer
   regenerates and stages them, and the gate accepts the ones your change moves
-  (`regen.js --check --tolerant`); after the merge the `regen` job commits them, plus the
-  derived version, before `auto-tag` plans. So do not commit a catalog, manifest render or
+  (`regen.js --check --tolerant`); after the merge the `regen` job regenerates them plus the
+  derived version and proposes them as a pull request on `chore/regen`, which `auto-tag` waits
+  for. So do not commit a catalog, manifest render or
   derived version into a PR: it collides with every other live branch by construction.
   **Exception: three artifacts are gated by tests, not by the regen gate, and a PR that moves
   them must commit them.** `scripts/lib/console-bundle.test.js` fails on a stale
@@ -260,8 +261,14 @@ gate on every PR to provide it. The cheap fix is arithmetic, not machinery.
   bundle.
 
 **The ruleset is two rules.** `main` (repo ruleset 27391067) forbids force-push and deletion and
-nothing else: no required checks, no pull request rule, no merge queue. `ci.yml` still carries
-the `merge_group` trigger so re-enabling a queue stays a ruleset change and not a PR; today it
+nothing else: no required checks, no pull request rule, no merge queue. **Nothing in CI pushes to
+`main` any more** — the `regen` write-back lands through a pull request on `chore/regen` — so
+those two rules can be joined by required checks and a pull request rule without locking the
+release lane. The exception has to be the other way round: the GitHub Actions integration is
+**not** accepted as a ruleset bypass actor on this repository (Dependabot is, Actions is not,
+verified), which is why the automation stopped writing to `main` instead of being excepted from
+it. `ci.yml` still carries the
+`merge_group` trigger so re-enabling a queue stays a ruleset change and not a PR; today it
 never fires because nothing creates a `merge_group` event.
 
 1. Push the session branch and open a PR to `main` without asking. That is the normal
@@ -280,9 +287,14 @@ never fires because nothing creates a `merge_group` event.
 
 ## 5. Release = merge to `main`
 
-After every green push to `main`, a `regen` job regenerates the derived artifacts and writes the
-derived version back, and only then CI's `auto-tag` job (`scripts/release/plan-auto-tags.js`)
-tags each key that changed and runs `release.yml` once per tag, `blueprints` first:
+After every green push to `main`, a `regen` job regenerates the derived artifacts and the derived
+version. When it produced a diff it does **not** push to `main`: it rebuilds the branch
+`chore/regen` from that tip and opens (or refreshes) one pull request, and reports
+`pending=true`. CI's `auto-tag` job (`scripts/release/plan-auto-tags.js`) is skipped while
+`pending` is true, because a tag has to point at the tree that carries the versions. Merging that
+pull request is what releases: its merge is a push to `main`, `regen` then finds nothing left to
+write (`pending=false`), and `auto-tag` tags each key that changed and runs `release.yml` once per
+tag, `blueprints` first:
 
 | Key | Ships when a commit touched | Version |
 |---|---|---|
@@ -290,6 +302,14 @@ tags each key that changed and runs `release.yml` once per tag, `blueprints` fir
 | `skills` | `skills/` | same |
 | `nn-mcp` | `iNNfo/packages/nn-mcp/src` and `test` | same |
 | `nn-console` | `iNNfo/specs/bluepriNNts/console`, `scripts/export-console.mjs`, `scripts/console-views.mjs` | same |
+
+**The write-back pull request arrives with no checks.** It is pushed and opened with
+`GITHUB_TOKEN`, and GitHub suppresses workflow runs caused by that token, so `pull_request` CI
+never fires on it. While the ruleset requires nothing it merges like any other. Once required
+checks exist it has to be merged with an admin bypass — that is the accepted cost of having no
+bypass actor for Actions. It carries nothing hand-written: it is the output of the generators the
+gate already ran on its parent, and the `regen` job's own `node scripts/regen.js --check` step
+proves the next pass reproduces it byte for byte.
 
 `repoPaths` and `changePaths` are different on purpose: `repoPaths` is what gets copied into the
 distribution repo, `changePaths` is what counts as a change. For `nn-mcp` the only repo path is
@@ -333,8 +353,9 @@ tag shapes are a contract. Nobody tags by hand.
   a hook tweak.
 - **You do not bump a release version.** The `regen` job derives it from the commits and writes
   it into the key's `package.json` (`scripts/release/write-pending-versions.js`), then
-  `npm run sync:versions` propagates it and the regeneration rebuilds what embeds it, all before
-  the tag exists. `release-bump` and `check-authored-bump` were retired with the authored model:
+  `npm run sync:versions` propagates it and the regeneration rebuilds what embeds it, all in the
+  write-back pull request — so before the tag exists, because that pull request has to land
+  first. `release-bump` and `check-authored-bump` were retired with the authored model:
   a hand bump travelled in 14 of 30 branches and was the only thing that could make a merge
   release nothing (#650, #670, #683).
 - **Close with evidence:** record the PR, exact head SHA, and observed checks.

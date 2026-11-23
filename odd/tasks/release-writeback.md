@@ -12,9 +12,15 @@ Test runner: `node --test <file>`, `node scripts/verify.js --fast`, `npm run che
   fails when a moved path is not a shared artifact. The list lives in
   `scripts/lib/shared-artifacts.js` and nowhere else. A branch is never required to commit a
   regenerated artifact. The gate still runs the generators.
-- S2 The regeneration and version write-back commit lands on `main` before `auto-tag` plans,
-  because the release copies the tag's tree. It carries a fixed message; a run whose last commit
-  has that message does nothing.
+- S2 The regeneration and version write-back reaches `main` before `auto-tag` plans, because the
+  release copies the tag's tree. It reaches it through one pull request on `chore/regen`, never as
+  a push to `main`: `regen` opens that pull request when it has something to write, refreshes the
+  same one on later pushes, and reports `pending`, which `auto-tag` reads. A write-back pull
+  request that lands leaves nothing to write, so the next pass proposes nothing and the lane
+  reaches a fixed point.
+- S7 Nothing in CI pushes to `main` directly. The write-back is proposed, not applied, so `main`
+  can require checks and a pull request rule without an automation bypass — which cannot exist
+  here, because the GitHub Actions integration is not accepted as a ruleset bypass actor.
 - S3 The planner ignores the generated files derived from the tags, so a bookkeeping commit cannot
   plan the release that produced it. Planning the same tree twice returns the same plan.
 - S4 `nn-mcp` and `nn-console` versions derive from commits touching their release paths
@@ -56,6 +62,17 @@ Test runner: `node --test <file>`, `node scripts/verify.js --fast`, `npm run che
     follow-up run exists at all because a push made with `GITHUB_TOKEN` does not trigger
     workflows. `node scripts/release/plan-auto-tags.js` on `79165ff88` returns `[]`, so the
     lane cannot re-enter even with a token that does trigger.
+- T8 S2/S7 — the write-back stops being a push to `main`: `scripts/lib/regen-writeback.js` pushes
+  `chore/regen` under a lease, verifies its parent is still `main` after the push, and decides
+  create/reuse/skip for the pull request; `scripts/regen-writeback.js` reports `pending` and
+  `branch`; `ci.yml` grants `pull-requests: write` and gates `auto-tag` on
+  `needs.regen.outputs.pending != 'true'`; the skill's §3/§4/§5 describe the pull request.
+  Route: inline. Status: done — 14/14 in `scripts/lib/regen-writeback.test.js`, including "the
+  write-back lands on its branch, and main never receives it", "a merge landing while the
+  artifacts are generated is re-derived, not proposed stale", "a second pass over the tree the
+  write-back already landed in pushes nothing", and a `ci.yml` contract case that fails if any
+  step pushes to `main` again. Dry run: the first pass writes the derived version, the second
+  pass on the resulting tree writes nothing.
 - L3 (2026-11-21): T5 changed shape while implementing it. `repoPaths` is what ships and
   `changePaths` is what triggers, and they are not the same for `nn-mcp`: its only repo path is
   the generated bundle, so deriving from it would mean the key never releases. Worse, that was
@@ -74,3 +91,14 @@ Test runner: `node --test <file>`, `node scripts/verify.js --fast`, `npm run che
   from the regenerated `main`: the regeneration job pushes, and planning runs on the commit that
   push produced, not on the merge SHA of the same workflow run. That is the piece to prototype
   carefully; everything else is contained.
+- L4 (2026-11-23): "Make `main` fully protectable by removing the only automated direct push to
+  it." The push L2 designed is now the blocker: it is the only automated direct write to `main`,
+  and it cannot be excepted — the GitHub Actions integration is not accepted as a ruleset bypass
+  actor on this repository (Dependabot is; verified), so `main` cannot require checks while the
+  lane keeps writing to it. The push therefore becomes a pull request on `chore/regen`, and the
+  ordering L2 established moves one step out: `regen` reports `pending`, and `auto-tag` waits for
+  that pull request to land. This supersedes the "a run whose last commit already has that
+  message does nothing" guard in S2 — the merge commit never carries the write-back subject, so
+  the idempotence guard is now the pass itself: the second run regenerates and finds no diff.
+  Loop evidence: the `regen` PR's merge is a push to `main`, that run's `regen` steps must all
+  report "fresh", and `node scripts/regen.js --check` in the same job asserts it.
