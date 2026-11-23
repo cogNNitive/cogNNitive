@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
+  DEFAULT_MAX_ATTEMPTS,
   DEFAULT_STEP_TIMEOUT_MS,
   MAX_STEP_TIMEOUT_MS,
   chooseNext,
@@ -25,6 +26,7 @@ import {
   foldStoredRun,
   readRun,
   resolveProcedure,
+  slotValuesOf,
   substitute,
 } from './procedure-state.js'
 import type { FoldedRun, ProcedureStateResult, RecordAction, ToolError } from './procedure-state.js'
@@ -398,6 +400,70 @@ function stepFor(
 const rowOf = (f: FoldedRun, step: string): StepRow =>
   f.run.steps[step] ?? { status: 'pending', attempt: 0, inputs: {} }
 
+/** A reopened step row: pending again, its attempt kept so the next start counts on from it. */
+const reopenedRow = (attempt: number): string =>
+  JSON.stringify({
+    status: 'pending',
+    attempt,
+    outcome: '',
+    next: '',
+    waiting_on: '',
+    failure: '',
+    holder: '',
+  })
+
+/**
+ * A loop's back-edge (design §10.2): `next` is a step the walk already passed before `step`.
+ * Taking it reopens that step and every step walked from it up to `step`: their rows go back
+ * to `pending` with their attempts kept, and every output of the span that was validated goes
+ * back to `produced`, so the fold reports it stale until its producer runs again. The caller
+ * writes `step`'s own row as reopened too, in the same changeset.
+ *
+ * Bounded: when the target already took its `max_attempts` (default `DEFAULT_MAX_ATTEMPTS`),
+ * the back-edge is refused with `LOOP_LIMIT` and nothing is written. Null for a forward next.
+ */
+function backEdge(
+  f: FoldedRun,
+  step: string,
+  next: string | undefined,
+): { changes: Change[] } | ToolError | null {
+  if (next === undefined) return null
+  const at = f.state.path.indexOf(next)
+  const from = f.state.path.indexOf(step)
+  if (at === -1 || from === -1 || at >= from) return null
+  const max = f.graph.steps[next]!.maxAttempts ?? DEFAULT_MAX_ATTEMPTS
+  const attempt = f.state.steps[next]!.attempt
+  if (attempt >= max)
+    return fail(
+      'LOOP_LIMIT',
+      `Step "${next}" already took ${attempt} of its ${max} attempts, so "${step}" cannot send the run back to it; fail "${step}" or take another branch.`,
+      { step: next, attempt, maxAttempts: max },
+    )
+  const span = f.state.path.slice(at, from)
+  const changes: Change[] = span.map((slug) => {
+    const row = rowOf(f, slug)
+    return {
+      op: 'set_fields',
+      target: `${f.run.id}@${slug}`,
+      from: JSON.stringify({ status: row.status, attempt: row.attempt }),
+      to: reopenedRow(row.attempt),
+      evidence: 'decision',
+    }
+  })
+  const outputs = new Set([...span, step].flatMap((slug) => f.graph.steps[slug]!.outputs))
+  for (const slug of outputs) {
+    if (f.run.artifacts[slug]?.status !== 'validated') continue
+    changes.push({
+      op: 'set_fields',
+      target: `${f.run.id}@${slug}`,
+      from: JSON.stringify({ status: 'validated' }),
+      to: JSON.stringify({ status: 'produced' }),
+      evidence: 'decision',
+    })
+  }
+  return { changes }
+}
+
 function planStepStart(
   f: FoldedRun,
   step: string,
@@ -540,7 +606,9 @@ function plan(
       let elementRev: string | undefined
       if (kind === 'element') {
         const address =
-          text(args['value']) ?? substitute(f.graph.artifacts[field]!.at, f.run.params) ?? undefined
+          text(args['value']) ??
+          substitute(f.graph.artifacts[field]!.at, slotValuesOf(f.run)) ??
+          undefined
         if (!address)
           return fail(
             'INVALID_ARGUMENT',
@@ -783,22 +851,28 @@ function plan(
     )
   const next = chosen.next
   const row = rowOf(f, step)
+  const loop = backEdge(f, step, next)
+  if (loop && 'ok' in loop) return loop
   // Completion (design §3.4): the step row guard (`from` status + attempt) is the fence
   // against a late completion from an older attempt. A waiting step completes the same way.
+  // Taking a loop's back-edge reopens this step with the rest of its span instead.
   return {
     step,
     attempt: row.attempt,
     changes: [
+      ...(loop?.changes ?? []),
       {
         op: 'set_fields',
         target: `${run.id}@${step}`,
         from: JSON.stringify({ status, attempt: row.attempt }),
-        to: JSON.stringify({
-          status: 'done',
-          attempt: row.attempt,
-          ...(outcome ? { outcome } : {}),
-          ...(next ? { next } : {}),
-        }),
+        to: loop
+          ? reopenedRow(row.attempt)
+          : JSON.stringify({
+              status: 'done',
+              attempt: row.attempt,
+              ...(outcome ? { outcome } : {}),
+              ...(next ? { next } : {}),
+            }),
         evidence: 'decision',
       },
     ],
@@ -836,7 +910,8 @@ function planEngineRun(
   if ('ok' in started) return Promise.resolve(started)
   const claim = started.changes[0] as { to: string }
   const claimFields = JSON.parse(claim.to) as { timeout_ms: number }
-  const command = substitute(def.command, f.run.params)!
+  const slots = slotValuesOf(f.run)
+  const command = substitute(def.command, slots)!
   const left = unresolvedSlots(command)
   if (left.length > 0)
     return Promise.resolve(
@@ -875,7 +950,7 @@ function planEngineRun(
       root,
       command,
       timeout,
-      params: f.run.params,
+      params: slots,
       onSpawn: (pid) => finishClaim?.(pid),
     })
     const pid = await Promise.race([
@@ -925,7 +1000,7 @@ function planEngineRun(
     // not guard the `active` status its sibling in the same batch writes. The claim's guard
     // (`from` status + attempt) is delivered once and fences the whole column.
     const finishRow = (
-      status: 'done' | 'waiting' | 'failed',
+      status: 'done' | 'waiting' | 'failed' | 'pending',
       extra: Record<string, string>,
     ): Change => ({
       op: 'set_fields',
@@ -934,6 +1009,19 @@ function planEngineRun(
       to: JSON.stringify({ ...claimTo, ...settledClaim, status, attempt, ...extra }),
       evidence: 'decision',
     })
+    // A transition the engine takes back to an earlier step is a loop's back-edge, exactly as
+    // in `complete`. The claim already landed, so a refused one fails the step instead.
+    const settle = (next: string | undefined, done: Record<string, string>): Change[] => {
+      const loop = backEdge(f, step, next)
+      if (loop && 'ok' in loop)
+        return [finishRow('failed', { failure: `${loop.code}: ${loop.detail}` })]
+      if (loop)
+        return [
+          ...loop.changes,
+          finishRow('pending', { outcome: '', next: '', waiting_on: '', failure: '' }),
+        ]
+      return [finishRow('done', done)]
+    }
 
     if (exitCode !== 0) {
       // Exit-code mapping (design §4.6): 0 is done, an unmapped nonzero is failed, and
@@ -974,9 +1062,10 @@ function planEngineRun(
           kind: 'engine',
           exitCode,
           claimedSeq: freshSeq,
-          changes: [
-            finishRow('done', { outcome: mapped, ...(chosen.next ? { next: chosen.next } : {}) }),
-          ],
+          changes: settle(chosen.next, {
+            outcome: mapped,
+            ...(chosen.next ? { next: chosen.next } : {}),
+          }),
         }
       }
       return {
@@ -996,7 +1085,7 @@ function planEngineRun(
     const missing: string[] = []
     const artifactChanges: Change[] = []
     for (const slug of def.outputs) {
-      const verify = substitute(f.graph.artifacts[slug]?.verify, f.run.params)
+      const verify = substitute(f.graph.artifacts[slug]?.verify, slots)
       if (!verify?.startsWith('file:')) continue
       const path = verify.slice('file:'.length).trim()
       const rev = fileRev(root, path)
@@ -1037,9 +1126,9 @@ function planEngineRun(
       claimedSeq,
       changes: [
         ...artifactChanges,
-        missing.length > 0
-          ? finishRow('failed', { failure: `missing ${missing.join(', ')}` })
-          : finishRow('done', { ...(next ? { next } : {}) }),
+        ...(missing.length > 0
+          ? [finishRow('failed', { failure: `missing ${missing.join(', ')}` })]
+          : settle(next, { ...(next ? { next } : {}) })),
       ],
     }
   })()

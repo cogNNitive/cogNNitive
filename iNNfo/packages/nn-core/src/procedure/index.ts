@@ -1,4 +1,10 @@
-export { procedureGraph, slotNames, fillSlots, unresolvedSlots } from './graph.js'
+export {
+  procedureGraph,
+  slotNames,
+  fillSlots,
+  unresolvedSlots,
+  DEFAULT_MAX_ATTEMPTS,
+} from './graph.js'
 export { foldRun } from './fold.js'
 export { runModelOf } from './run.js'
 export { chooseNext, holds, UNSTARTED_STEP_STATUSES } from './transitions.js'
