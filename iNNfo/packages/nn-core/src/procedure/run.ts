@@ -56,7 +56,7 @@ const ARTIFACT_STATES: ReadonlySet<string> = new Set([
   'rejected',
 ])
 const REQUEST_STATES: ReadonlySet<string> = new Set(['pending', 'done', 'stale', 'rejected'])
-const REQUEST_ACTIONS: ReadonlySet<string> = new Set(['wait', 'complete', 'fail'])
+const REQUEST_ACTIONS: ReadonlySet<string> = new Set(['start', 'wait', 'complete', 'fail'])
 
 /**
  * A template seed writes its field values as the type placeholders the bluepriNNt template
