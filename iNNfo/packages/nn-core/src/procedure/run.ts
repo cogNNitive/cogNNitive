@@ -135,6 +135,7 @@ function artifactRowOf(fields: Record<string, unknown>): ArtifactRow {
     status: artifactStatusOf(fields['status']),
     ...(str(fields['value']) !== undefined ? { value: str(fields['value']) } : {}),
     ...(str(fields['rev']) !== undefined ? { rev: str(fields['rev']) } : {}),
+    ...(str(fields['step']) !== undefined ? { step: str(fields['step']) } : {}),
   }
 }
 
@@ -159,6 +160,8 @@ export function runModelOf(model: ParsedKnowledge): RunModel | null {
   const inputs: Record<string, { value?: string; rev?: string }> = {}
   for (const el of model.elements.get('Input') ?? []) {
     if (!el.slug) continue
+    // A template seed writes placeholders; it is not an input the run recorded.
+    if (isTemplatePlaceholder(el.fields['rev'])) continue
     inputs[el.slug] = {
       ...(str(el.fields['value']) !== undefined ? { value: str(el.fields['value'])! } : {}),
       ...(str(el.fields['rev']) !== undefined ? { rev: str(el.fields['rev'])! } : {}),

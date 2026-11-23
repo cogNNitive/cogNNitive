@@ -251,8 +251,13 @@ describe('foldRun', () => {
       }),
       { defRev: 'V_1-0-0', currentRevs: { 'metrics-revenue': 'c2', 'metrics-cost': 'c7' } },
     )
-    expect(s.inputs).toEqual({})
-    expect(s.staleInputs).toEqual([])
+    // The fold surfaces what the run recorded, and names the ones the caller's current rev
+    // moved past: the computed value must be recomputed, the other stands.
+    expect(s.inputs).toEqual({
+      'metrics-revenue': { value: '10', rev: 'c1' },
+      'metrics-cost': { value: '4', rev: 'c7' },
+    })
+    expect(s.staleInputs).toEqual(['metrics-revenue'])
   })
 
   it('pause, cancel and terminal states', () => {

@@ -150,10 +150,26 @@ export function foldRun(graph: ProcedureGraph, run: RunModel, opts: FoldOptions)
     paused,
     blockedBy,
     canComplete: terminal === undefined && current === null && path.length > 0 && !blockedBy,
-    inputs: {},
-    staleInputs: [],
+    inputs: run.inputs,
+    staleInputs: staleInputs(run.inputs, opts.currentRevs),
     attempts: run.attempts,
   }
+}
+
+/**
+ * Recorded inputs whose rev no longer matches the current one the caller supplied (design A7):
+ * the computed value must be recomputed. Without a current rev there is nothing to compare the
+ * recorded one against, so nothing is stale.
+ */
+function staleInputs(
+  inputs: RunModel['inputs'],
+  current: Record<string, string> | undefined,
+): string[] {
+  if (!current) return []
+  return Object.keys(inputs).filter((name) => {
+    const recorded = inputs[name]?.rev
+    return recorded !== undefined && current[name] !== undefined && current[name] !== recorded
+  })
 }
 
 function rowStatusOf(row: StepRow | undefined): StepState['status'] {
