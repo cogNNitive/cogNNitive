@@ -51,4 +51,11 @@ describe('scaffoldBodyFromSchema and write policies', () => {
     expect(body).not.toContain('## NN Note: Example Note')
     expect(body).not.toContain('body:: <string>')
   })
+
+  it('still seeds a placeholder of a mutable concept in an ordinary (non-instance) model', () => {
+    const ordinary = scaffoldBodyFromSchema(schema)
+    expect(ordinary).toContain('## NN Note: Example Note')
+    expect(ordinary).toContain('body:: <string>')
+    expect(ordinary).not.toContain('## NN Execution Event:')
+  })
 })
