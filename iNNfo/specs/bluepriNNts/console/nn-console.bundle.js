@@ -6540,7 +6540,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   var STORE_PREFIX = 'nn-console:v4:'
   var STORE_VERSION = 4
   var BASE_HASH_PATTERN = /^[0-9a-f]{16}$/
-  var ITEM_KINDS = ['correction', 'comment', 'new', 'delete', 'verdict']
+  // `run_start` asks the domain owner's agent to start a procedure run: { procedure, params,
+  // run?, path? }. It targets no element, and the changeset export skips it (import_console
+  // starts the run through procedure_start).
+  var ITEM_KINDS = ['correction', 'comment', 'new', 'delete', 'verdict', 'run_start']
+  var RUN_SLUG = /^[a-z0-9][a-z0-9-]*$/
   // A verdict is a decision on a gate, not a mutation: it carries the gate, its outcome and
   // the hash of the content that was reviewed, never a `base_hash`.
   var VERDICTS = ['approved', 'needs-change']
@@ -6650,6 +6654,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (d.sources !== undefined && d.sources !== null) {
       draft.sources = Array.isArray(d.sources) ? deepCopy(d.sources) : d.sources
     }
+    // Run request keys: the procedure (id or domain-relative path), its slot values, and an
+    // optional run slug and resolution scope.
+    if (d.procedure != null && d.procedure !== '') draft.procedure = String(d.procedure)
+    if (isObject(d.params)) draft.params = deepCopy(d.params)
+    if (d.run != null && d.run !== '') draft.run = String(d.run)
+    if (d.path != null && d.path !== '') draft.path = String(d.path)
     return draft
   }
 
@@ -6855,6 +6865,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           if (VERDICTS.indexOf(String(raw.verdict)) === -1) {
             throw new TypeError('nnReview.createDraftStore: verdict must be one of ' + VERDICTS.join(', '))
           }
+        } else if (raw.kind === 'run_start') {
+          if (raw.procedure == null || String(raw.procedure).trim() === '') {
+            throw new TypeError('nnReview.createDraftStore: run_start draft requires procedure')
+          }
+          if (raw.params != null && !isObject(raw.params)) {
+            throw new TypeError('nnReview.createDraftStore: run_start params must be an object')
+          }
+          if (raw.run != null && raw.run !== '' && !RUN_SLUG.test(String(raw.run))) {
+            throw new TypeError('nnReview.createDraftStore: run_start run must be a lowercase slug')
+          }
         } else if (!isMatrix && (!raw.element_id || !raw.base_hash)) {
           throw new TypeError('nnReview.createDraftStore: element_id and base_hash required')
         }
@@ -6923,6 +6943,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // A verdict's authorisation is `reviewed_hash`, checked by the engine against the
     // content it is applied to; there is no element `base_hash` to compare here.
     if (d.kind === 'verdict') return false
+    // A run request targets no element.
+    if (d.kind === 'run_start') return false
     // Matrix-cell drafts have no element hash to compare against.
     if (d.matrix) return false
     var el = byId[d.element_id]
@@ -9738,7 +9760,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // by the export gate so the user must enter a real one before exporting.
   var DEFAULT_REVIEWER_NAME = 'reviewer'
   var MODEL_VERSION_PATTERN = /^V_\d+-\d+-\d+$/
-  var ITEM_KINDS = ['correction', 'comment', 'new', 'delete', 'verdict']
+  // `run_start` asks the domain owner's agent to start a procedure run (import_console calls
+  // procedure_start); it is never a changeset change, so the export skips it.
+  var ITEM_KINDS = ['correction', 'comment', 'new', 'delete', 'verdict', 'run_start']
   // Values the `is:` filter operator understands (see matchAtom).
   var KNOWN_IS_VALUES = ['draft', 'reviewed', 'changed']
   var activeState = null
@@ -13702,6 +13726,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
                 'cannot propose: kind must be one of ' + ITEM_KINDS.join(', ') + ' (got "' + p.kind + '")',
               )
             }
+            // A run request names a procedure, not an element: it goes straight to the store,
+            // which validates its contract (review.js addDraft).
+            if (p.kind === 'run_start') {
+              var started = opts.state.store.addDraft({
+                kind: 'run_start',
+                procedure: p.procedure,
+                params: p.params,
+                run: p.run,
+                path: p.path,
+              })
+              var rc = opts.getController()
+              if (rc) rc.refresh()
+              else opts.onDraftsChanged()
+              return started
+            }
             if (p.kind === 'comment' && !nonEmptyString(p.comment)) {
               throw new Error('cannot propose: a comment needs non-empty comment text')
             }
@@ -16148,6 +16187,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   function draftToChanges(draft, index, fallbackModel, author) {
     var d = isObject(draft) ? draft : {}
+    // A run request is not a model change: the owner's agent starts the run (import_console).
+    if (d.kind === 'run_start') return []
     var id = oneLine(d.id || 'c-' + String(index + 1).padStart(2, '0'))
     var model = oneLine(d.knowledge_id || fallbackModel || 'model')
     // A verdict is not a mutation: it records a human decision on a gate. It carries no
@@ -16406,6 +16447,56 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       filename: filename,
       items: drafts.length,
     }
+  }
+
+  /**
+   * The fields of a console's state that the changeset export reads, derived from the payload
+   * meta alone. Boot builds its state from this, and composeSavedExport rebuilds it from a
+   * saved console's slots, so the download and an agent's import share one derivation.
+   * `scope` names a scoped console's view: `{ view, label }`, or null for the whole domain.
+   */
+  function exportStateOf(meta, scope) {
+    meta = isObject(meta) ? meta : {}
+    var baseTitle = String(meta.title || meta.model || 'Model')
+    var baseId = String(meta.modelId || meta.model || meta.title || 'model')
+    var scopedTitle = scope ? baseTitle + ' - ' + scope.label : baseTitle
+    return {
+      modelTitle: scopedTitle,
+      // The displayed version comes from the domain meta `models[]` (D4), with no fallback.
+      modelVersion: domainModelVersion(meta),
+      artifactName: String(meta.title || 'console') + '_console.html',
+      modelId: meta.modelId || meta.model || meta.title || 'model',
+      modelSlug: scope
+        ? modelSlugOf({ modelSlug: meta.knowledge_slug || meta.modelSlug, modelId: baseId, modelTitle: baseTitle }) + '-' + scope.view
+        : meta.knowledge_slug || meta.modelSlug || undefined,
+      sourceSha256:
+        (Array.isArray(meta.models) && meta.models.length === 1 && meta.models[0] && meta.models[0].sha256) ||
+        meta.sha256 ||
+        meta.source_sha256,
+      // The changeset title comes from meta.title; a scoped export names its view there.
+      meta: scope ? Object.assign({}, meta, { title: scopedTitle }) : meta,
+    }
+  }
+
+  /**
+   * The "Download changes" export of a SAVED console, computed from its slots without a page:
+   * `input.meta` is the decoded nn-model payload meta, `input.drafts` the nn-drafts list,
+   * `input.reviewer` who signs it and `input.exportedAt` the save time (a stable filename).
+   * It is composeExport over the state boot would have built, so the bytes match a download.
+   */
+  function composeSavedExport(input) {
+    var i = isObject(input) ? input : {}
+    var meta = isObject(i.meta) ? i.meta : {}
+    var view = consoleScopeOf(meta)
+    var state = exportStateOf(meta, view ? { view: view, label: view } : null)
+    var drafts = Array.isArray(i.drafts) ? i.drafts : []
+    state.store = {
+      drafts: function () {
+        return drafts
+      },
+    }
+    if (nonEmptyString(i.exportedAt)) state.exportedAt = i.exportedAt
+    return composeExport(state, nonEmptyString(i.reviewer) ? i.reviewer : DEFAULT_REVIEWER_NAME)
   }
 
   function composeExport(state, identifier) {
@@ -17331,25 +17422,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (scopedToolbar && scopedToolbar.parentNode) scopedToolbar.parentNode.removeChild(scopedToolbar)
       if (active.documentElement) active.documentElement.setAttribute('data-nn-scope', scopedView)
     }
-    var baseTitle = String(meta.title || meta.model || 'Model')
     var baseId = String(meta.modelId || meta.model || meta.title || 'model')
-    // The displayed version comes from the domain meta `models[]` (D4), with no fallback.
-    var liveModelVersion = domainModelVersion(meta)
 
-    var state = {
-      modelTitle: scopedView ? baseTitle + ' - ' + (scopedDef ? scopedDef.title : scopedView) : baseTitle,
-      modelVersion: liveModelVersion,
-      artifactName: String(meta.title || 'console') + '_console.html',
-      modelId: meta.modelId || meta.model || meta.title || 'model',
-      modelSlug: scopedView
-        ? modelSlugOf({ modelSlug: meta.knowledge_slug || meta.modelSlug, modelId: baseId, modelTitle: baseTitle }) + '-' + scopedView
-        : meta.knowledge_slug || meta.modelSlug || undefined,
-      sourceSha256:
-      (Array.isArray(meta.models) && meta.models.length === 1 && meta.models[0] && meta.models[0].sha256) ||
-      meta.sha256 ||
-      meta.source_sha256,
-      // The changeset title comes from meta.title; a scoped export names its view there.
-      meta: scopedView ? Object.assign({}, meta, { title: baseTitle + ' - ' + (scopedDef ? scopedDef.title : scopedView) }) : meta,
+    var state = Object.assign(
+      exportStateOf(meta, scopedView ? { view: scopedView, label: scopedDef ? scopedDef.title : scopedView } : null),
+      {
       elements: elements,
       // The domain's changesets, newest first (export-console sorts them): the
       // Changes tab's applied history.
@@ -17374,7 +17451,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           },
         },
       ),
-    }
+      },
+    )
     state.refreshUi = function () {
       refresh(activeSearchQuery)
       refreshDraftCounts()
@@ -18131,6 +18209,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     focusElementCard: focusElementCard,
     ensureFeedbackUi: ensureFeedbackUi,
     composeExport: composeExport,
+    composeSavedExport: composeSavedExport,
+    exportStateOf: exportStateOf,
     composeChangesetExport: composeChangesetExport,
     verdictDraft: verdictDraft,
     downloadChangesetExport: downloadChangesetExport,

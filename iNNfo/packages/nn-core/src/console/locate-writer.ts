@@ -60,3 +60,26 @@ export function resolveConsoleModulePath(opts: ConsoleModuleOptions = {}): strin
   candidates.push(join(opts.home ?? homedir(), '.agents', 'console', EXPORT_MODULE))
   return candidates.find((candidate) => existsSync(candidate)) ?? null
 }
+
+/** The single-file console runtime every exported console embeds. */
+export const CONSOLE_BUNDLE = 'nn-console.bundle.js'
+
+/** Where the console sources (and the composed bundle) live in the dev checkout. */
+const DEV_CONSOLE_DIR = join('iNNfo', 'specs', 'bluepriNNts', 'console')
+
+/**
+ * Locate `nn-console.bundle.js` with the same trusted-location policy as
+ * {@link resolveConsoleModulePath}: `$INNFO_CONSOLE_DIR`, the cogNNitive dev checkout, then
+ * the installed set in `~/.agents/console`. Never from a domain or from a console file being
+ * imported: the bundle is executed, so a saved console's own embedded copy is never used.
+ */
+export function resolveConsoleBundlePath(opts: ConsoleModuleOptions = {}): string | null {
+  const env = opts.env ?? process.env
+  const candidates: string[] = []
+  if (env.INNFO_CONSOLE_DIR) candidates.push(join(env.INNFO_CONSOLE_DIR, CONSOLE_BUNDLE))
+  const devRoot =
+    opts.devRoot === undefined ? devCheckoutRoot({ requires: [join(DEV_CONSOLE_DIR, CONSOLE_BUNDLE)] }) : opts.devRoot
+  if (devRoot && existsSync(join(devRoot, DEV_ROOT_MARKER))) candidates.push(join(devRoot, DEV_CONSOLE_DIR, CONSOLE_BUNDLE))
+  candidates.push(join(opts.home ?? homedir(), '.agents', 'console', CONSOLE_BUNDLE))
+  return candidates.find((candidate) => existsSync(candidate)) ?? null
+}
