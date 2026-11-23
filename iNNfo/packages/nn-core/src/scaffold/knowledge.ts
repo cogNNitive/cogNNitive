@@ -41,9 +41,9 @@ function isDistributedConcept(concept: { storage?: { mode: string } }): boolean 
  *
  * With `root`, the document is an instance model: the distributed concept it
  * instantiates carries the root element (`## NN <Concept>: <name>` and
- * `slug:: <slug>`) instead of a placeholder, and every OTHER distributed concept
- * is left out — a second element of a distributed concept would make the file a
- * registry or a mixed-storage model (design A8).
+ * `slug:: <slug>`) instead of a placeholder, and no OTHER concept gets a
+ * placeholder element — the rows an instance adds later are its own, never
+ * seeded `Example <Concept>` facts (design A8, extended to compact rows).
  */
 export function scaffoldBodyFromSchema(schema: ScaffoldSchema, root?: ScaffoldRoot): string {
   const lines: string[] = []
@@ -89,7 +89,9 @@ export function scaffoldBodyFromSchema(schema: ScaffoldSchema, root?: ScaffoldRo
     }
     // A placeholder in a write-once or frozen concept is a fact nobody recorded, and its
     // policy forbids removing it: an append-only run log would fold it as a real event.
-    if (c.writePolicy && c.writePolicy.policy !== 'mutable') {
+    // An instance model (root given) likewise seeds no placeholder rows: only the root
+    // element exists until the runner adds rows, so compact concepts must not get one either.
+    if (root || (c.writePolicy && c.writePolicy.policy !== 'mutable')) {
       lines.push('')
       continue
     }
