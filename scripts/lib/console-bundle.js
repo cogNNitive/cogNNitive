@@ -16,7 +16,7 @@ const SOURCES = [
   ['vendor/preact.umd.js', 'preact'],
   ['vendor/htm.umd.js', 'htm'],
   ['nn-preact-init.js', 'nnPreact'],
-  ['uplot.iife.min.js', 'uPlot'],
+  ['vendor/echarts.min.js', 'echarts'],
   ['visuals.js', 'nnVisuals'],
   ['nn-icons.js', 'nnIcons'],
   ['ui-kit.js', 'nnUI'],
