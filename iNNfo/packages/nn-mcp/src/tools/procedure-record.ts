@@ -475,8 +475,7 @@ function unrecordedRequiredOutputs(
   f: FoldedRun,
   step: string,
 ): Array<{ slug: string; name: string }> {
-  return f.graph.steps[step]!.outputs
-    .filter((slug) => f.graph.artifacts[slug]?.required !== false)
+  return f.graph.steps[step]!.outputs.filter((slug) => f.graph.artifacts[slug]?.required !== false)
     .filter((slug) => {
       const status = f.state.artifacts[slug]?.status
       return status !== 'validated' && status !== 'not_required'
@@ -1171,7 +1170,9 @@ function planEngineRun(
     const unrecorded = [
       ...missing,
       ...unrecordedRequiredOutputs(f, step)
-        .filter((m) => !def.outputs.some((o) => f.graph.artifacts[o]?.verify?.trim().startsWith('file:')))
+        .filter(
+          (m) => !def.outputs.some((o) => f.graph.artifacts[o]?.verify?.trim().startsWith('file:')),
+        )
         .map((m) => m.name),
     ]
     return {
