@@ -2133,6 +2133,89 @@
       })
       renderArtifactRow(card, 'Artifacts', produced)
       hostEl.appendChild(card)
+      if (state.status === 'completed' && store) renderHandoff(hostEl)
+    }
+
+    // ---- Final handoff of a completed run (a DRAFT, like every answer) ----
+    var HANDOFF_CHOICES = [
+      ['administrator', 'Send to the administrator'],
+      ['agent', 'Register with the agent'],
+    ]
+
+    function handoffDraftOf(run) {
+      return (
+        allDrafts().filter(function (d) {
+          return d && d.kind === 'run_handoff' && d.run === run.id
+        })[0] || null
+      )
+    }
+
+    /**
+     * The run is complete: the person chooses what happens to its result. The choice is one
+     * draft; nothing is written until the saved response is imported, and what is recorded is
+     * the choice itself.
+     */
+    function renderHandoff(hostEl) {
+      var box = make('section', 'exec-step-card nn-card proc-handoff')
+      box.setAttribute('data-proc-handoff', activeRun.id)
+      box.appendChild(make('h3', 'exec-step-title', 'Hand off this run'))
+      var draft = handoffDraftOf(activeRun)
+      if (draft) {
+        var label = HANDOFF_CHOICES.filter(function (c) {
+          return c[0] === draft.choice
+        })[0]
+        var chosen = make('div', 'exec-step-fact')
+        chosen.appendChild(
+          make(
+            'span',
+            null,
+            'Your choice: ' + (label ? label[1] : draft.choice) + ' (not sent yet). ',
+          ),
+        )
+        chosen.appendChild(
+          button(
+            'proc-undo',
+            'Undo',
+            function () {
+              removeDraft(draft.id)
+            },
+            { 'data-proc-undo': draft.id || '' },
+          ),
+        )
+        box.appendChild(chosen)
+        box.appendChild(
+          make('div', 'proc-hint', 'Save your response to send your choice with the rest of it.'),
+        )
+      } else {
+        box.appendChild(
+          make(
+            'div',
+            'proc-hint',
+            'This run is complete. Choose what happens with its result. Nothing is added to the domaiNN until you save your response and the owner of the domaiNN imports it.',
+          ),
+        )
+        var actions = make('div', 'proc-actions')
+        HANDOFF_CHOICES.forEach(function (c) {
+          actions.appendChild(
+            button(
+              'proc-action',
+              c[1],
+              function () {
+                try {
+                  store.propose({ kind: 'run_handoff', run: activeRun.id, choice: c[0] })
+                } catch (e) {
+                  savedNote =
+                    'The console refused this choice: ' + String(e && e.message ? e.message : e)
+                }
+                render()
+              },
+              { 'data-proc-handoff-choice': c[0] },
+            ),
+          )
+        })
+        box.appendChild(actions)
+      }
+      hostEl.appendChild(box)
     }
 
     // ---- Actions a human may record (a DRAFT, never an apply) ----

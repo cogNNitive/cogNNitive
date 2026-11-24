@@ -617,6 +617,54 @@ describe('procedure runner UX (standalone console)', () => {
     assert.equal(state.getAttribute('title'), 'rev ' + REV)
   })
 
+  it('offers the final handoff of a completed run: two choices, one draft, undone until sent', () => {
+    const spy = storeSpy()
+    stepper.mount(
+      container,
+      payload([runOf('r-z', DONE_TRANSCRIBE, { state: 'completed', closed: true })]),
+      spy.ctx,
+    )
+    const card = container.querySelector('[data-proc-handoff]')
+    assert.ok(card, 'a completed run asks what to do with its result')
+    const labels = [...card.querySelectorAll('[data-proc-handoff-choice]')].map(
+      (b) => b.textContent,
+    )
+    assert.deepEqual(labels, ['Send to the administrator', 'Register with the agent'])
+    assert.match(card.textContent, /nothing is added to the domaiNN/i)
+    assert.deepEqual(spy.drafts, [], 'looking at the choices writes nothing')
+
+    click(card.querySelector('[data-proc-handoff-choice="administrator"]'))
+    assert.equal(spy.drafts.length, 1)
+    assert.equal(spy.drafts[0].kind, 'run_handoff')
+    assert.equal(spy.drafts[0].run, 'r-z')
+    assert.equal(spy.drafts[0].choice, 'administrator')
+    const chosen = container.querySelector('[data-proc-handoff]')
+    assert.equal(chosen.querySelector('[data-proc-handoff-choice]'), null, 'one choice per run')
+    assert.match(chosen.textContent, /Send to the administrator/)
+    assert.match(chosen.textContent, /not sent yet/)
+
+    click(chosen.querySelector('[data-proc-undo]'))
+    assert.equal(spy.drafts.length, 0, 'the choice is gone')
+    click(container.querySelector('[data-proc-handoff-choice="agent"]'))
+    assert.equal(spy.drafts[0].choice, 'agent')
+  })
+
+  it('offers no handoff before the run completes, or when it failed', () => {
+    for (const [events, state] of [
+      [WAITING_REVIEW, undefined],
+      [DONE_TRANSCRIBE, 'failed'],
+      [DONE_TRANSCRIBE, 'cancelled'],
+    ]) {
+      container.innerHTML = ''
+      stepper.mount(
+        container,
+        payload([runOf('r-x', events, { state, closed: !!state })]),
+        storeSpy().ctx,
+      )
+      assert.equal(container.querySelector('[data-proc-handoff]'), null, String(state))
+    }
+  })
+
   it('shows the embedded input the person reviews, and opens it without folder access', () => {
     stepper.mount(
       container,

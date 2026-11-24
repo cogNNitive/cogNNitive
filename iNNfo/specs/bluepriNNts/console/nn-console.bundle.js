@@ -6622,7 +6622,10 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
   // `run_start` asks the domain owner's agent to start a procedure run: { procedure, params,
   // run?, path? }. It targets no element, and the changeset export skips it (import_console
   // starts the run through procedure_start).
-  var ITEM_KINDS = ['correction', 'comment', 'new', 'delete', 'verdict', 'run_start']
+  // `run_handoff` is the person's final choice for a completed run: { run, choice }. It
+  // targets no element either, and the changeset export skips it (import_console records it).
+  var ITEM_KINDS = ['correction', 'comment', 'new', 'delete', 'verdict', 'run_start', 'run_handoff']
+  var HANDOFF_CHOICES = ['administrator', 'agent']
   var RUN_SLUG = /^[a-z0-9][a-z0-9-]*$/
   // A verdict is a decision on a gate, not a mutation: it carries the gate, its outcome and
   // the hash of the content that was reviewed, never a `base_hash`.
@@ -6739,6 +6742,7 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
     if (isObject(d.params)) draft.params = deepCopy(d.params)
     if (d.run != null && d.run !== '') draft.run = String(d.run)
     if (d.path != null && d.path !== '') draft.path = String(d.path)
+    if (d.choice != null && d.choice !== '') draft.choice = String(d.choice)
     return draft
   }
 
@@ -6954,6 +6958,16 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
           if (raw.run != null && raw.run !== '' && !RUN_SLUG.test(String(raw.run))) {
             throw new TypeError('nnReview.createDraftStore: run_start run must be a lowercase slug')
           }
+        } else if (raw.kind === 'run_handoff') {
+          if (raw.run == null || !RUN_SLUG.test(String(raw.run))) {
+            throw new TypeError('nnReview.createDraftStore: run_handoff draft requires a run slug')
+          }
+          if (HANDOFF_CHOICES.indexOf(String(raw.choice)) === -1) {
+            throw new TypeError(
+              'nnReview.createDraftStore: run_handoff choice must be one of ' +
+                HANDOFF_CHOICES.join(', '),
+            )
+          }
         } else if (!isMatrix && (!raw.element_id || !raw.base_hash)) {
           throw new TypeError('nnReview.createDraftStore: element_id and base_hash required')
         }
@@ -6975,6 +6989,17 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
                   var replaced = normalizeDraft(raw, prev.id)
                   s.drafts[i] = replaced
                   return replaced
+                }
+              }
+            }
+            // A run is handed off once: choosing again replaces the earlier choice in place.
+            if (raw.kind === 'run_handoff') {
+              for (var h = 0; h < s.drafts.length; h++) {
+                var held = s.drafts[h]
+                if (held && held.kind === 'run_handoff' && held.run === String(raw.run)) {
+                  var rechosen = normalizeDraft(raw, held.id)
+                  s.drafts[h] = rechosen
+                  return rechosen
                 }
               }
             }
@@ -7023,7 +7048,7 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
     // content it is applied to; there is no element `base_hash` to compare here.
     if (d.kind === 'verdict') return false
     // A run request targets no element.
-    if (d.kind === 'run_start') return false
+    if (d.kind === 'run_start' || d.kind === 'run_handoff') return false
     // Matrix-cell drafts have no element hash to compare against.
     if (d.matrix) return false
     var el = byId[d.element_id]
@@ -10457,7 +10482,8 @@ if (typeof window !== 'undefined') {
   var MODEL_VERSION_PATTERN = /^V_\d+-\d+-\d+$/
   // `run_start` asks the domain owner's agent to start a procedure run (import_console calls
   // procedure_start); it is never a changeset change, so the export skips it.
-  var ITEM_KINDS = ['correction', 'comment', 'new', 'delete', 'verdict', 'run_start']
+  // `run_handoff` records the person's final choice for a completed run (import_console too).
+  var ITEM_KINDS = ['correction', 'comment', 'new', 'delete', 'verdict', 'run_start', 'run_handoff']
   // Values the `is:` filter operator understands (see matchAtom).
   var KNOWN_IS_VALUES = ['draft', 'reviewed', 'changed']
   var activeState = null
@@ -14522,6 +14548,17 @@ if (typeof window !== 'undefined') {
               else opts.onDraftsChanged()
               return started
             }
+            if (p.kind === 'run_handoff') {
+              var handed = opts.state.store.addDraft({
+                kind: 'run_handoff',
+                run: p.run,
+                choice: p.choice,
+              })
+              var hc = opts.getController()
+              if (hc) hc.refresh()
+              else opts.onDraftsChanged()
+              return handed
+            }
             if (p.kind === 'comment' && !nonEmptyString(p.comment)) {
               throw new Error('cannot propose: a comment needs non-empty comment text')
             }
@@ -17765,7 +17802,7 @@ if (typeof window !== 'undefined') {
   function draftToChanges(draft, index, fallbackModel, author) {
     var d = isObject(draft) ? draft : {}
     // A run request is not a model change: the owner's agent starts the run (import_console).
-    if (d.kind === 'run_start') return []
+    if (d.kind === 'run_start' || d.kind === 'run_handoff') return []
     var id = oneLine(d.id || 'c-' + String(index + 1).padStart(2, '0'))
     var model = oneLine(d.knowledge_id || fallbackModel || 'model')
     // A verdict is not a mutation: it records a human decision on a gate. It carries no
@@ -22037,6 +22074,89 @@ if (typeof window !== 'undefined') {
       })
       renderArtifactRow(card, 'Artifacts', produced)
       hostEl.appendChild(card)
+      if (state.status === 'completed' && store) renderHandoff(hostEl)
+    }
+
+    // ---- Final handoff of a completed run (a DRAFT, like every answer) ----
+    var HANDOFF_CHOICES = [
+      ['administrator', 'Send to the administrator'],
+      ['agent', 'Register with the agent'],
+    ]
+
+    function handoffDraftOf(run) {
+      return (
+        allDrafts().filter(function (d) {
+          return d && d.kind === 'run_handoff' && d.run === run.id
+        })[0] || null
+      )
+    }
+
+    /**
+     * The run is complete: the person chooses what happens to its result. The choice is one
+     * draft; nothing is written until the saved response is imported, and what is recorded is
+     * the choice itself.
+     */
+    function renderHandoff(hostEl) {
+      var box = make('section', 'exec-step-card nn-card proc-handoff')
+      box.setAttribute('data-proc-handoff', activeRun.id)
+      box.appendChild(make('h3', 'exec-step-title', 'Hand off this run'))
+      var draft = handoffDraftOf(activeRun)
+      if (draft) {
+        var label = HANDOFF_CHOICES.filter(function (c) {
+          return c[0] === draft.choice
+        })[0]
+        var chosen = make('div', 'exec-step-fact')
+        chosen.appendChild(
+          make(
+            'span',
+            null,
+            'Your choice: ' + (label ? label[1] : draft.choice) + ' (not sent yet). ',
+          ),
+        )
+        chosen.appendChild(
+          button(
+            'proc-undo',
+            'Undo',
+            function () {
+              removeDraft(draft.id)
+            },
+            { 'data-proc-undo': draft.id || '' },
+          ),
+        )
+        box.appendChild(chosen)
+        box.appendChild(
+          make('div', 'proc-hint', 'Save your response to send your choice with the rest of it.'),
+        )
+      } else {
+        box.appendChild(
+          make(
+            'div',
+            'proc-hint',
+            'This run is complete. Choose what happens with its result. Nothing is added to the domaiNN until you save your response and the owner of the domaiNN imports it.',
+          ),
+        )
+        var actions = make('div', 'proc-actions')
+        HANDOFF_CHOICES.forEach(function (c) {
+          actions.appendChild(
+            button(
+              'proc-action',
+              c[1],
+              function () {
+                try {
+                  store.propose({ kind: 'run_handoff', run: activeRun.id, choice: c[0] })
+                } catch (e) {
+                  savedNote =
+                    'The console refused this choice: ' + String(e && e.message ? e.message : e)
+                }
+                render()
+              },
+              { 'data-proc-handoff-choice': c[0] },
+            ),
+          )
+        })
+        box.appendChild(actions)
+      }
+      hostEl.appendChild(box)
     }
 
     // ---- Actions a human may record (a DRAFT, never an apply) ----
