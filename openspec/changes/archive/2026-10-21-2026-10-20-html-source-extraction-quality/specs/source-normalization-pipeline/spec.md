@@ -13,7 +13,7 @@ whole page.
 
 #### Scenario: Navigation chrome is absent from the body
 
-- GIVEN `PMC9547138_20261017T173000Z.html`, whose page opens with `Skip to main content`,
+- GIVEN `pmc-chrome-synthetic.html`, whose page opens with `Skip to main content`,
   `Log in`, `Dashboard`, `Account settings` and a primary-site navigation menu
 - WHEN the file is cognitivized
 - THEN the sidecar body does not contain `Skip to main content`, `Log in`, `Dashboard` or
@@ -76,7 +76,7 @@ body MUST NOT be dominated by blank lines.
 
 #### Scenario: A CRLF document does not explode into blank lines
 
-- GIVEN `FT_55866_20261017T165551Z.html`, a CRLF document whose current body is 82.5% blank lines
+- GIVEN `crlf-entities-synthetic.html`, a CRLF document whose current body is 82.5% blank lines
 - WHEN the file is cognitivized
 - THEN fewer than 10% of the body's lines are blank
 - AND no run of more than one consecutive blank line remains
