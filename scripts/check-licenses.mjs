@@ -56,7 +56,7 @@ problems.push(...policyProblems(classified, policy))
 problems.push(...checkVendored(REPO_ROOT, policy).problems)
 
 if (problems.length === 0) {
-  const rendered = renderThirdParty({ classified, policy, projectLicense })
+  const rendered = renderThirdParty({ classified, policy, projectLicense, repoRoot: REPO_ROOT })
   if (write) {
     fs.writeFileSync(OUTPUT_FILE, rendered)
     console.log(

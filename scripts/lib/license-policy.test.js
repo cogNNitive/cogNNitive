@@ -209,13 +209,24 @@ test('a review verdict fails unless the exact package@version is in the reviewed
   assert.strictEqual(oddVerdict, 'review')
 
   const bare = policyProblems(classifiedFor(POLICY), { ...POLICY, reviewed: [] })
-  assert.ok(bare.some((m) => /review/.test(m) && m.includes('odd@1.0.0')), bare.join('|'))
+  assert.ok(
+    bare.some((m) => /review/.test(m) && m.includes('odd@1.0.0')),
+    bare.join('|'),
+  )
 
-  const listed = { ...POLICY, reviewed: [{ package: 'odd', version: '1.0.0', reason: 'MPL file-level copyleft, unmodified' }] }
+  const listed = {
+    ...POLICY,
+    reviewed: [{ package: 'odd', version: '1.0.0', reason: 'MPL file-level copyleft, unmodified' }],
+  }
   assert.ok(!policyProblems(classifiedFor(listed), listed).some((m) => m.includes('odd@1.0.0')))
 
-  const otherVersion = { ...POLICY, reviewed: [{ package: 'odd', version: '0.9.0', reason: 'older release' }] }
-  assert.ok(policyProblems(classifiedFor(otherVersion), otherVersion).some((m) => m.includes('odd@1.0.0')))
+  const otherVersion = {
+    ...POLICY,
+    reviewed: [{ package: 'odd', version: '0.9.0', reason: 'older release' }],
+  }
+  assert.ok(
+    policyProblems(classifiedFor(otherVersion), otherVersion).some((m) => m.includes('odd@1.0.0')),
+  )
 })
 
 test('policyProblems keeps failing deny and unknown verdicts', () => {
@@ -257,7 +268,8 @@ test('vendored license ids are classified against the policy', () => {
   const sha = crypto.createHash('sha256').update('x').digest('hex')
   const entry = { name: 'Asset', version: '1', path: 'asset.js', sha256: sha }
   const run = (license, extra = {}) =>
-    checkVendored(root, { ...POLICY, reviewed: [], ...extra, vendored: [{ ...entry, license }] }).problems
+    checkVendored(root, { ...POLICY, reviewed: [], ...extra, vendored: [{ ...entry, license }] })
+      .problems
   assert.deepStrictEqual(run('MIT'), [])
   assert.match(run('GPL-3.0')[0], /denied license/)
   assert.match(run('Weird-1.0')[0], /unknown license/)
@@ -278,6 +290,83 @@ test('THIRD_PARTY.md carries copyright and license text, and rendering is determ
     first.includes('| good | 1.0.0 | MIT | allow | app | Copyright (c) 2020 Good Authors |'),
   )
   assert.ok(first.includes('Permission is hereby granted.'))
+})
+
+/** A vendored entry with every attribution field, over a temp tree that holds its files. */
+function vendoredFixture() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'license-vendored-'))
+  fs.writeFileSync(path.join(root, 'asset.js'), 'x')
+  fs.writeFileSync(
+    path.join(root, 'ASSET-LICENSE.txt'),
+    'The MIT License\r\n\r\nCopyright (c) 2020 Asset Authors\r\n\r\nPermission is hereby granted.\r\n',
+  )
+  const entry = {
+    name: 'Asset',
+    version: '1',
+    license: 'MIT',
+    path: 'asset.js',
+    source: 'https://example.test/asset',
+    sha256: crypto.createHash('sha256').update('x').digest('hex'),
+    copyright: ['Copyright (c) 2020 Asset Authors'],
+    licenseFile: 'ASSET-LICENSE.txt',
+    notice:
+      'Asset\nCopyright 2020 The Asset Foundation\nThis product includes software developed at Asset.',
+    includes: [{ name: 'tiny', license: 'BSD-3-Clause', copyright: 'Copyright 2010 Tiny Author' }],
+  }
+  return { root, entry }
+}
+
+test('a vendored entry must state its copyright and its license file', () => {
+  const { entry } = vendoredFixture()
+  const base = { ...POLICY, reviewed: [] }
+  assert.deepStrictEqual(validatePolicy({ ...base, vendored: [entry] }), [])
+  const { copyright, licenseFile, ...bare } = entry
+  const errors = validatePolicy({ ...base, vendored: [bare] }).join('\n')
+  assert.match(errors, /vendored\[0\] \(Asset\): "copyright" is required/)
+  assert.match(errors, /vendored\[0\] \(Asset\): "licenseFile" is required/)
+  const badInclude = { ...entry, includes: [{ name: 'tiny' }] }
+  assert.match(
+    validatePolicy({ ...base, vendored: [badInclude] }).join('\n'),
+    /includes\[0\] \(tiny\): "license" and "copyright" are required/,
+  )
+})
+
+test('checkVendored fails when the license file of a vendored asset is missing', () => {
+  const { root, entry } = vendoredFixture()
+  const policy = { ...POLICY, reviewed: [], vendored: [entry] }
+  assert.deepStrictEqual(checkVendored(root, policy).problems, [])
+  fs.rmSync(path.join(root, 'ASSET-LICENSE.txt'))
+  assert.match(
+    checkVendored(root, policy).problems[0],
+    /Asset: license file ASSET-LICENSE.txt does not exist/,
+  )
+})
+
+test('THIRD_PARTY.md carries the copyright, NOTICE, inclusions and license text of vendored assets', () => {
+  const { root, entry } = vendoredFixture()
+  const input = {
+    classified: [],
+    policy: { vendored: [entry] },
+    projectLicense: 'MIT',
+    repoRoot: root,
+  }
+  const out = renderThirdParty(input)
+  assert.strictEqual(out, renderThirdParty(input))
+  assert.ok(
+    out.includes(
+      '| Asset | 1 | MIT | Copyright (c) 2020 Asset Authors | `asset.js` | https://example.test/asset |',
+    ),
+  )
+  assert.ok(out.includes('## Vendored asset notices and license texts'))
+  // Apache-2.0 §4(d): the NOTICE text is reproduced verbatim, not summarized.
+  assert.ok(
+    out.includes(
+      '```text\nAsset\nCopyright 2020 The Asset Foundation\nThis product includes software developed at Asset.\n```',
+    ),
+  )
+  assert.ok(out.includes('- tiny (BSD-3-Clause), Copyright 2010 Tiny Author'))
+  // The license text keeps its copyright line (LF-normalized), unlike the grouped npm texts.
+  assert.ok(out.includes('Copyright (c) 2020 Asset Authors\n\nPermission is hereby granted.\n```'))
 })
 
 let failed = 0
