@@ -43,6 +43,9 @@ const TARGETS = [
       ' * Source: iNNfo/packages/nn-core/src/trannsformPrimitives.ts\n' +
       ' * Regenerate: node scripts/build-core-mirrors.mjs\n' +
       ' * Drift-guarded by scripts/verify.js (core-mirror --check).\n' +
+      ' *\n' +
+      ' * Includes third-party code:\n' +
+      ' *   - yaml (ISC - Copyright (c) Eemeli Aro <eemeli@gmail.com>)\n' +
       ' */\n// @ts-nocheck',
   },
   {
@@ -65,6 +68,9 @@ const TARGETS = [
       ' * Source: scripts/core-mirrors/coNNtent.ts (nn-core scope, parser, changeset and apply)\n' +
       ' * Regenerate: node scripts/build-core-mirrors.mjs\n' +
       ' * Drift-guarded by scripts/verify.js (core-mirror --check).\n' +
+      ' *\n' +
+      ' * Includes third-party code:\n' +
+      ' *   - yaml (ISC - Copyright (c) Eemeli Aro <eemeli@gmail.com>)\n' +
       ' */\n// @ts-nocheck',
   },
 ]

@@ -43,6 +43,9 @@ test('DISTRIBUTION_PATHS is derived from RELEASE_TABLE', () => {
   assert.ok(DISTRIBUTION_PATHS.includes('iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js'));
   assert.ok(DISTRIBUTION_PATHS.includes('scripts/export-console.mjs'));
   assert.ok(DISTRIBUTION_PATHS.includes('scripts/console-views.mjs'));
+  assert.ok(DISTRIBUTION_PATHS.includes('THIRD_PARTY.md'));
+  assert.ok(DISTRIBUTION_PATHS.includes('LICENSE'));
+  assert.ok(DISTRIBUTION_PATHS.includes('third-party/licenses'));
 });
 
 test('RELEASE_OWNED_SITE_PATHS includes all release-owned paths relative to docs', () => {

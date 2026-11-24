@@ -66,6 +66,9 @@ const DISTRIBUTION_PATHS = Object.freeze([
   'iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js',
   'scripts/export-console.mjs',
   'scripts/console-views.mjs',
+  'THIRD_PARTY.md',
+  'LICENSE',
+  'third-party/licenses',
 ]);
 
 /**

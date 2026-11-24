@@ -120,6 +120,17 @@ function main() {
     console.log('✔ Bundle contains no fetch( and no type=module')
   }
 
+  // 6. Bundle contains third-party attribution header for Preact, htm, and Apache ECharts NOTICE.
+  {
+    const bundleContent = buildConsoleBundle(repoRoot)
+    assert.ok(bundleContent.includes('Preact 10.24.3 (MIT)'), 'Bundle must attribute Preact')
+    assert.ok(bundleContent.includes('htm 3.0.1 - 3.1.1 (Apache-2.0)'), 'Bundle must attribute htm')
+    assert.ok(bundleContent.includes('Apache ECharts 6.1.0 (Apache-2.0)'), 'Bundle must attribute ECharts')
+    assert.ok(bundleContent.includes('This product includes software developed at'), 'Bundle must carry ECharts NOTICE')
+    assert.ok(bundleContent.includes('Mike Bostock'), 'Bundle must attribute d3')
+    console.log('✔ Bundle contains third-party attribution and notices')
+  }
+
   console.log('All console-bundle unit tests passed successfully!')
 }
 

@@ -36,6 +36,9 @@ const BANNER =
   ' * Source: scripts/skills-manager.js (+ scripts/lib/*)\n' +
   ' * Regenerate: node scripts/build-skills-manager-bundle.mjs\n' +
   ' * Drift-guarded by scripts/verify.js (build-skills-manager-bundle --check).\n' +
+  ' *\n' +
+  ' * Includes third-party code:\n' +
+  ' *   - yaml (ISC - Copyright (c) Eemeli Aro <eemeli@gmail.com>)\n' +
   ' */\n// @ts-nocheck'
 
 /** Resolve esbuild from the hoisted iNNfo workspace (root has no node_modules). */

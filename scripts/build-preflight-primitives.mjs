@@ -93,6 +93,9 @@ const BUNDLE_TARGETS = [
       ' * Source: iNNfo/packages/nn-core (planDomainScaffold, parseKnowledge, serializeKnowledge, freeze_slugs)\n' +
       ' * Regenerate: node scripts/build-preflight-primitives.mjs\n' +
       ' * Drift-guarded by scripts/verify.js (build-preflight-primitives --check).\n' +
+      ' *\n' +
+      ' * Includes third-party code:\n' +
+      ' *   - yaml (ISC - Copyright (c) Eemeli Aro <eemeli@gmail.com>)\n' +
       ' */\n// @ts-nocheck',
   },
 ]
