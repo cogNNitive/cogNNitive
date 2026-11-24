@@ -4,7 +4,13 @@ import { JSDOM } from 'jsdom'
 import { createRequire } from 'node:module'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { decodedModelTextOf, draftsOf, modelOf, modelSlotMarkup, slotTextOf } from './helpers/console-slots.mjs'
+import {
+  decodedModelTextOf,
+  draftsOf,
+  modelOf,
+  modelSlotMarkup,
+  slotTextOf,
+} from './helpers/console-slots.mjs'
 
 const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -15,6 +21,7 @@ const reviewPath = join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 
 const nnConsole = require(runtimePath)
 const nnUI = require(uiKitPath)
 const nnReview = require(reviewPath)
+const nnFsa = require(join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'nn-fsa.js'))
 
 describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
   let dom
@@ -160,7 +167,11 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
       assert.ok(saved.uiState, 'uiState is serialized')
       assert.equal(saved.uiState.searchQuery, 'concept:ParanormalThreat')
       assert.equal(saved.uiState.activeTab, 'explorer')
-      assert.deepEqual(JSON.parse(document.getElementById('nn-drafts').textContent), saved, 'the live DOM holds the same slot')
+      assert.deepEqual(
+        JSON.parse(document.getElementById('nn-drafts').textContent),
+        saved,
+        'the live DOM holds the same slot',
+      )
 
       // The model stays compressed and carries neither drafts nor UI state:
       const modelText = slotTextOf(res.html, 'nn-model').trim()
@@ -168,13 +179,22 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
       const savedModel = modelOf(res.html)
       assert.equal(savedModel.drafts, undefined)
       assert.equal(savedModel.uiState, undefined)
-      assert.deepEqual(savedModel.elements.map((e) => e.id), ['threat-slimer', 'equip-trap'])
+      assert.deepEqual(
+        savedModel.elements.map((e) => e.id),
+        ['threat-slimer', 'equip-trap'],
+      )
       assert.equal(savedModel.meta.modelId, 'ghostbusters-model')
 
       // Verify complete HTML serialization:
       assert.ok(res.html.startsWith('<!DOCTYPE html>\n'), 'HTML starts with <!DOCTYPE html>\\n')
-      assert.ok(res.html.includes('Class VII (Vigorous)'), 'HTML contains proposed draft content (plain JSON drafts)')
-      assert.ok(!res.html.includes('data-nn-console-booted="true"'), 'data-nn-console-booted attribute is stripped for re-booting')
+      assert.ok(
+        res.html.includes('Class VII (Vigorous)'),
+        'HTML contains proposed draft content (plain JSON drafts)',
+      )
+      assert.ok(
+        !res.html.includes('data-nn-console-booted="true"'),
+        'data-nn-console-booted attribute is stripped for re-booting',
+      )
 
       // Verify live DOM keeps its boot attribute intact:
       assert.equal(document.documentElement.getAttribute('data-nn-console-booted'), 'true')
@@ -196,7 +216,11 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
       const raw = slotTextOf(res.html, 'nn-drafts')
       assert.equal(raw.includes('<'), false, 'no raw < inside the slot')
       assert.ok(raw.includes('\\u003c/script>'), 'the markup is escaped as \\u003c')
-      assert.equal(draftsOf(res.html).drafts[0].comment, '</script><script>alert(1)</script>', 'and decodes back verbatim')
+      assert.equal(
+        draftsOf(res.html).drafts[0].comment,
+        '</script><script>alert(1)</script>',
+        'and decodes back verbatim',
+      )
     })
 
     it('writes no _concept* runtime keys into the saved model elements (#718)', async () => {
@@ -208,9 +232,16 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
       const res = await nnConsole.saveSnapshot(document, state, { forceDownload: true })
       assert.ok(res.ok, String(res.error))
       for (const element of modelOf(res.html).elements) {
-        assert.deepEqual(Object.keys(element).filter((k) => k.startsWith('_concept')), [], element.id)
+        assert.deepEqual(
+          Object.keys(element).filter((k) => k.startsWith('_concept')),
+          [],
+          element.id,
+        )
       }
-      assert.deepEqual(modelOf(res.html).elements.map((e) => e.id), ['threat-slimer', 'equip-trap'])
+      assert.deepEqual(
+        modelOf(res.html).elements.map((e) => e.id),
+        ['threat-slimer', 'equip-trap'],
+      )
     })
 
     it('saves the exported shell, not the rendered DOM: markup outside <script> is unchanged (#718)', async () => {
@@ -312,6 +343,86 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
       assert.ok(writtenPayload.includes('<!DOCTYPE html>'), 'File content holds full document')
     })
 
+    it('overwrites the remembered file with no picker on the second save', async () => {
+      const bootRes = bootDoc(document)
+      const state = bootRes.state
+
+      const handle = {
+        name: 'ana_domaiNN_console.html',
+        written: '',
+        async createWritable() {
+          const self = handle
+          return {
+            async write(value) {
+              self.written = value
+            },
+            async close() {},
+          }
+        },
+        queryPermission: async () => 'granted',
+      }
+      const map = new Map()
+      const store = {
+        get: async (key) => map.get(key) || null,
+        set: async (key, value) => {
+          map.set(key, value)
+        },
+      }
+      const key = nnFsa.snapshotKey({
+        domainId: (state.meta && state.meta.domainId) || '',
+        name: 'domaiNN_console.html',
+      })
+      await store.set(key, handle)
+      window.nnFsa = {
+        createIndexedDbStore: () => store,
+        snapshotKey: nnFsa.snapshotKey,
+        saveToRememberedFile: nnFsa.saveToRememberedFile,
+      }
+
+      let pickerCalled = false
+      window.showSaveFilePicker = async () => {
+        pickerCalled = true
+        throw new Error('the picker must not open on a remembered save')
+      }
+
+      const res = await nnConsole.saveSnapshot(document, state, {
+        suggestedName: 'domaiNN_console.html',
+      })
+
+      assert.equal(res.ok, true)
+      assert.equal(res.inPlace, true, 'the save reports an in-place write')
+      assert.equal(res.filename, 'ana_domaiNN_console.html')
+      assert.equal(pickerCalled, false, 'no dialog on the second save')
+      assert.ok(handle.written.includes('<!DOCTYPE html>'), 'the same file received the page')
+
+      delete window.nnFsa
+    })
+
+    it('proposes the file the console was opened from, not a title-derived name', async () => {
+      const fileDom = new JSDOM(createConsoleHtml(), {
+        url: 'file:///C:/Users/ana/Downloads/domaiNN_console.html',
+      })
+      const fileDoc = fileDom.window.document
+      const bootRes = bootDoc(fileDoc)
+
+      let suggested = ''
+      let pickerOptions = null
+      fileDom.window.showSaveFilePicker = async (options) => {
+        pickerOptions = options
+        suggested = options.suggestedName
+        return {
+          name: options.suggestedName,
+          createWritable: async () => ({ write: async () => {}, close: async () => {} }),
+        }
+      }
+
+      const res = await nnConsole.saveSnapshot(fileDoc, bootRes.state)
+
+      assert.ok(res.ok, 'save succeeded')
+      assert.equal(suggested, 'domaiNN_console.html', 'the opened file name is proposed')
+      assert.equal(pickerOptions.id, 'nn-console-snapshot', 'the picker remembers its folder')
+    })
+
     it('gracefully handles user cancellation in showSaveFilePicker (AbortError)', async () => {
       const bootRes = bootDoc(document)
       const state = bootRes.state
@@ -351,10 +462,16 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
       assert.ok(typeof prompt === 'string')
       assert.ok(prompt.includes('# AI Agent Instructions: Apply Domain Console Changeset'))
       assert.ok(prompt.includes('GhostbustersModel'), 'Includes domain/model title')
-      assert.ok(prompt.includes('ghostbusters-model@slimer&severity'), 'Includes canonical target address')
+      assert.ok(
+        prompt.includes('ghostbusters-model@slimer&severity'),
+        'Includes canonical target address',
+      )
       assert.ok(prompt.includes('Class VII'), 'Includes proposed value')
       assert.ok(prompt.includes('apply_change'), 'Includes actionable apply_change instruction')
-      assert.ok(prompt.includes('npm run build:console'), 'Includes build verification instructions')
+      assert.ok(
+        prompt.includes('npm run build:console'),
+        'Includes build verification instructions',
+      )
     })
 
     it('copies agent prompt to clipboard and displays feedback toast', async () => {
@@ -370,7 +487,10 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
 
       const res = await nnConsole.copyAgentPrompt(document, state)
       assert.ok(res.ok, 'copyAgentPrompt succeeded')
-      assert.ok(clipboardText.includes('# AI Agent Instructions'), 'Clipboard received formatted prompt')
+      assert.ok(
+        clipboardText.includes('# AI Agent Instructions'),
+        'Clipboard received formatted prompt',
+      )
 
       // Verify toast feedback:
       const toast = document.querySelector('[data-nn="toast"]')
