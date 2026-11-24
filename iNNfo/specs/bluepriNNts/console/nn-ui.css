@@ -10865,3 +10865,64 @@ table.proc-steps-table tbody tr.on td:first-child {
   background: #f1f5f9;
   color: #475569;
 }
+
+/* ---- Map tab ---- */
+.nn-map {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nn-map-title {
+  margin: 8px 0 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.nn-map-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.nn-map-tree {
+  height: 460px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #ffffff;
+}
+
+.nn-map-picker {
+  font-size: 0.85rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nn-map-pick {
+  max-width: 420px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.nn-map-words {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.nn-map-words .nn-concept-link {
+  text-decoration: underline;
+}
+
+.nn-map-ego {
+  height: 340px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #ffffff;
+}

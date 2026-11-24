@@ -8632,7 +8632,15 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
       host.__nnChartObserver.disconnect()
       host.__nnChartObserver = null
     }
-    var chart = lib.init(host, null, { renderer: o.renderer || 'svg', width: o.width, height: o.height })
+    // A host in a hidden tab has no size yet: start from a fallback size and let the
+    // resize observer measure the real one ('auto') once the tab is shown.
+    var autoWidth = o.width === undefined
+    var autoHeight = o.height === undefined
+    var chart = lib.init(host, null, {
+      renderer: o.renderer || 'svg',
+      width: autoWidth ? (host.clientWidth ? undefined : 960) : o.width,
+      height: autoHeight ? (host.clientHeight ? undefined : 400) : o.height,
+    })
     var merged = {}
     Object.keys(option || {}).forEach(function (key) {
       merged[key] = option[key]
@@ -8640,9 +8648,11 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
     if (merged.backgroundColor === undefined) merged.backgroundColor = '#ffffff'
     if (merged.color === undefined) merged.color = CHART_PALETTE
     chart.setOption(merged)
-    if (typeof ResizeObserver !== 'undefined' && o.width === undefined) {
+    if (typeof ResizeObserver !== 'undefined' && (autoWidth || autoHeight)) {
       host.__nnChartObserver = new ResizeObserver(function () {
-        if (!chart.isDisposed()) chart.resize()
+        if (!chart.isDisposed() && host.clientWidth) {
+          chart.resize({ width: autoWidth ? 'auto' : o.width, height: autoHeight ? 'auto' : o.height })
+        }
       })
       host.__nnChartObserver.observe(host)
     }
@@ -14165,6 +14175,9 @@ if (typeof window !== 'undefined') {
     if (meta && meta.versions && typeof meta.versions === 'object') {
       views.push({ id: 'versions', title: 'Versions', icon: 'milestone', order: 50, tone: 'core', panelId: 'nn-tab-versions' })
     }
+    if (summaryModels(meta).length > 0 && Array.isArray(model && model.elements) && model.elements.length > 0) {
+      views.push({ id: 'map', title: 'Map', icon: 'network', order: 15, tone: 'core', panelId: 'nn-tab-map' })
+    }
     if (schema && Array.isArray(schema.concepts) && schema.concepts.length) {
       views.push({ id: 'metamodel', title: 'Schema', icon: 'metamodel', order: 10, tone: 'core', panelId: 'nn-tab-metamodel' })
     }
@@ -16657,6 +16670,293 @@ if (typeof window !== 'undefined') {
     host.appendChild(root)
   }
 
+  // ---- Map tab: how the domaiNN is built and what one element is linked to -------
+  // A treemap nests models, concepts and elements by size; below it, one element and
+  // its links one hop away (never the whole element graph: a force layout with a
+  // couple of thousand nodes blocks the page for many seconds).
+
+  // Links between elements: `relations` from the payload, plus field values that
+  // address another element (`model@slug`, a slug of the same model, or `[[Name]]`).
+  function elementLinks(elements) {
+    var byId = {}
+    var byModelName = {}
+    elements.forEach(function (e) {
+      byId[e.id] = e
+      byModelName[e.modelId + '\u0000' + String(e.name).toLowerCase()] = e
+    })
+    function resolve(from, raw) {
+      if (typeof raw !== 'string') return null
+      var v = raw.trim().replace(/^\[\[|\]\]$/g, '')
+      if (!v) return null
+      if (byId[v]) return byId[v]
+      if (byId[from.modelId + '@' + v]) return byId[from.modelId + '@' + v]
+      return byModelName[from.modelId + '\u0000' + v.toLowerCase()] || null
+    }
+    var out = {}
+    var inc = {}
+    var seen = {}
+    function add(from, to, field) {
+      if (!to || to.id === from.id) return
+      var key = from.id + '\u0000' + to.id + '\u0000' + field
+      if (seen[key]) return
+      seen[key] = true
+      ;(out[from.id] = out[from.id] || []).push({ id: to.id, field: field })
+      ;(inc[to.id] = inc[to.id] || []).push({ id: from.id, field: field })
+    }
+    elements.forEach(function (e) {
+      var fields = (e && e.fields) || {}
+      Object.keys(fields).forEach(function (name) {
+        var values = Array.isArray(fields[name]) ? fields[name] : [fields[name]]
+        values.forEach(function (v) {
+          add(e, resolve(e, v), name)
+        })
+      })
+      ;(Array.isArray(e.relations) ? e.relations : []).forEach(function (r) {
+        if (r && r.target) add(e, byId[r.target], r.field || '')
+      })
+    })
+    return { byId: byId, out: out, inc: inc }
+  }
+
+  function renderMapTree(host, domainTitle, models, elements, schema, onPick) {
+    var tree = models.map(function (m) {
+      var own = elements.filter(function (e) {
+        return e.modelId === m.id
+      })
+      var byConcept = {}
+      own.forEach(function (e) {
+        ;(byConcept[e.concept] = byConcept[e.concept] || []).push(e)
+      })
+      return {
+        name: (m.title || m.id) + (m.blueprint ? ' · ' + m.blueprint : ''),
+        children: Object.keys(byConcept).map(function (c) {
+          var color = conceptMetaOf(schema && schema.concepts, c).hexColor
+          return {
+            name: c,
+            value: byConcept[c].length,
+            itemStyle: { color: color },
+            label: { formatter: '{b} ({c})' },
+            children: byConcept[c].map(function (e) {
+              return { name: e.name || e.id, value: 1, elementId: e.id, itemStyle: { color: color } }
+            }),
+          }
+        }),
+      }
+    })
+    var chart = Studio.renderChart(host, {
+      animation: false,
+      tooltip: { formatter: '{b}: {c}' },
+      series: [
+        {
+          type: 'treemap',
+          name: domainTitle,
+          data: tree,
+          leafDepth: 2,
+          roam: false,
+          nodeClick: 'zoomToNode',
+          breadcrumb: { show: true, bottom: 6 },
+          upperLabel: { show: true, height: 24, color: '#111827', fontWeight: 'bold' },
+          label: { show: true, color: '#ffffff', fontSize: 11 },
+          levels: [
+            { itemStyle: { borderColor: '#e5e7eb', borderWidth: 4, gapWidth: 4 } },
+            { itemStyle: { borderColor: '#ffffff', borderWidth: 2, gapWidth: 2 } },
+            { itemStyle: { borderColor: '#ffffff', borderWidth: 1, gapWidth: 1 } },
+          ],
+        },
+      ],
+    })
+    if (chart) {
+      chart.on('click', function (params) {
+        if (params.data && params.data.elementId) onPick(params.data.elementId)
+      })
+    }
+  }
+
+  function renderMapView(doc, model, schema, meta) {
+    var host = doc.getElementById('nn-tab-map')
+    if (!host) return
+    host.innerHTML = ''
+    var models = summaryModels(meta)
+    var elements = (model && Array.isArray(model.elements) ? model.elements : []).filter(function (e) {
+      return e && e.id && e.modelId !== 'changes'
+    })
+    var titleOf = {}
+    models.forEach(function (m) {
+      titleOf[m.id] = m.title || m.id
+    })
+    var links = elementLinks(elements)
+    function linkCount(id) {
+      return (links.out[id] || []).length + (links.inc[id] || []).length
+    }
+
+    var root = el('div', 'nn-map')
+    root.appendChild(el('h3', 'nn-map-title', 'How the domaiNN is built'))
+    root.appendChild(
+      el(
+        'p',
+        'nn-map-hint',
+        'Each box is a model; inside it, its concepts; inside those, their elements. Bigger means more elements. Click a box to go in, the bar at the bottom to come back out, and an element to see its links below.',
+      ),
+    )
+    var treeHost = el('div', 'nn-map-tree')
+    root.appendChild(treeHost)
+
+    root.appendChild(el('h3', 'nn-map-title', 'Around one element'))
+    var picker = el('label', 'nn-map-picker', 'Element ')
+    var select = el('select', 'nn-map-pick')
+    models.forEach(function (m) {
+      var group = el('optgroup')
+      group.setAttribute('label', titleOf[m.id])
+      elements
+        .filter(function (e) {
+          return e.modelId === m.id
+        })
+        .forEach(function (e) {
+          var opt = el('option', null, (e.name || e.id) + ' (' + e.concept + ')')
+          opt.value = e.id
+          group.appendChild(opt)
+        })
+      select.appendChild(group)
+    })
+    picker.appendChild(select)
+    root.appendChild(picker)
+    var wordsHost = el('p', 'nn-map-words')
+    root.appendChild(wordsHost)
+    var egoHost = el('div', 'nn-map-ego')
+    root.appendChild(egoHost)
+    var open = el('button', 'nn-summary-model-open', 'Open in Knowledge')
+    open.setAttribute('type', 'button')
+    root.appendChild(open)
+    host.appendChild(root)
+
+    function nameOf(id) {
+      var e = links.byId[id]
+      return e ? e.name || e.id : id
+    }
+
+    function linkList(items) {
+      var span = el('span')
+      items.forEach(function (item, i) {
+        if (i) span.appendChild(doc.createTextNode(', '))
+        var a = el('a', 'nn-concept-link', nameOf(item.id))
+        a.setAttribute('href', '#map')
+        a.setAttribute('data-element', item.id)
+        a.addEventListener('click', function (event) {
+          if (event && event.preventDefault) event.preventDefault()
+          show(item.id)
+        })
+        span.appendChild(a)
+        if (item.field) span.appendChild(doc.createTextNode(' (' + item.field + ')'))
+      })
+      return span
+    }
+
+    function show(id) {
+      var center = links.byId[id]
+      if (!center) return
+      select.value = id
+      var outs = links.out[id] || []
+      var ins = links.inc[id] || []
+      wordsHost.innerHTML = ''
+      wordsHost.appendChild(
+        doc.createTextNode(nameOf(id) + ' (' + center.concept + ', ' + (titleOf[center.modelId] || center.modelId) + ') '),
+      )
+      if (outs.length) {
+        wordsHost.appendChild(doc.createTextNode('points to: '))
+        wordsHost.appendChild(linkList(outs))
+        wordsHost.appendChild(doc.createTextNode('. '))
+      } else {
+        wordsHost.appendChild(doc.createTextNode('points to nothing. '))
+      }
+      if (ins.length) {
+        wordsHost.appendChild(doc.createTextNode('Pointed to by: '))
+        wordsHost.appendChild(linkList(ins))
+        wordsHost.appendChild(doc.createTextNode('.'))
+      } else {
+        wordsHost.appendChild(doc.createTextNode('Nothing points to it.'))
+      }
+
+      var ids = [id]
+      outs.concat(ins).forEach(function (n) {
+        if (ids.indexOf(n.id) < 0) ids.push(n.id)
+      })
+      var chart = Studio.renderChart(
+        egoHost,
+        {
+          animation: false,
+          tooltip: { formatter: '{b}' },
+          series: [
+            {
+              type: 'graph',
+              layout: 'circular',
+              circular: { rotateLabel: false },
+              roam: true,
+              top: 50,
+              bottom: 60,
+              left: 120,
+              right: 120,
+              edgeSymbol: ['none', 'arrow'],
+              edgeSymbolSize: 9,
+              label: { show: true, position: 'bottom', fontSize: 11, color: '#1f2937' },
+              data: ids.map(function (nid) {
+                var e = links.byId[nid]
+                var isCenter = nid === id
+                return {
+                  id: nid,
+                  name: nameOf(nid),
+                  symbolSize: isCenter ? 46 : 26,
+                  itemStyle: {
+                    color: conceptMetaOf(schema && schema.concepts, e.concept).hexColor,
+                    borderColor: isCenter ? '#111827' : '#ffffff',
+                    borderWidth: isCenter ? 3 : 1,
+                  },
+                  label: { fontWeight: isCenter ? 'bold' : 'normal' },
+                }
+              }),
+              links: outs
+                .map(function (n) {
+                  return { source: id, target: n.id, field: n.field }
+                })
+                .concat(
+                  ins.map(function (n) {
+                    return { source: n.id, target: id, field: n.field }
+                  }),
+                )
+                .map(function (l) {
+                  return {
+                    source: l.source,
+                    target: l.target,
+                    lineStyle: { color: '#64748b', width: 1.5, curveness: 0.1 },
+                    label: { show: !!l.field, formatter: l.field, fontSize: 10, color: '#334155', backgroundColor: '#ffffff' },
+                  }
+                }),
+            },
+          ],
+        },
+        { height: 340 },
+      )
+      if (chart) {
+        chart.on('click', function (params) {
+          if (params.dataType === 'node' && params.data && params.data.id !== id) show(params.data.id)
+        })
+      }
+    }
+
+    open.addEventListener('click', function () {
+      if (select.value) focusElementCard(doc, select.value)
+    })
+    select.addEventListener('change', function () {
+      show(select.value)
+    })
+
+    renderMapTree(treeHost, (meta && meta.domain && meta.domain.title) || 'domaiNN', models, elements, schema, show)
+
+    var start = elements.reduce(function (best, e) {
+      return !best || linkCount(e.id) > linkCount(best.id) ? e : best
+    }, null)
+    if (start) show(start.id)
+  }
+
   // ---- Schema tab: the concepts as an entity-relationship diagram ----------------
   // One box per concept with its fields, grouped by the bluepriNNt that declares it;
   // solid lines are matrices, dashed lines are fields that point to another concept.
@@ -19128,6 +19428,7 @@ if (typeof window !== 'undefined') {
     renderMetamodelView(active, schema, matrices, elements)
     renderSummaryView(active, model, schema, meta)
     renderVersionsView(active, meta)
+    renderMapView(active, model, schema, meta)
 
     var searchBox = active.getElementById('nn-search')
     if (searchBox) {
