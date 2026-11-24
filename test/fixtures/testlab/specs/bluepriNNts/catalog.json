@@ -1,18 +1,40 @@
 {
   "blueprints": {
+    "changes": {
+      "name": "changes",
+      "adopted": "V_0-15-0",
+      "versions": [
+        {
+          "blueprint_version": "V_0-15-0",
+          "spec_version": "V_0-5-0",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/changes/spec_NN.md"
+        }
+      ]
+    },
     "executions": {
       "name": "executions",
       "adopted": "V_0-6-0",
       "versions": [
-        { "blueprint_version": "V_0-5-0", "spec_version": "V_0-5-0" },
-        { "blueprint_version": "V_0-6-0", "spec_version": "V_0-5-0", "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/executions/spec_NN.md" }
+        {
+          "blueprint_version": "V_0-5-0",
+          "spec_version": "V_0-5-0"
+        },
+        {
+          "blueprint_version": "V_0-6-0",
+          "spec_version": "V_0-5-0",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/executions/spec_NN.md"
+        }
       ]
     },
     "procedures": {
       "name": "procedures",
       "adopted": "V_0-6-1",
       "versions": [
-        { "blueprint_version": "V_0-6-1", "spec_version": "V_0-5-0", "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/procedures/spec_NN.md" }
+        {
+          "blueprint_version": "V_0-6-1",
+          "spec_version": "V_0-5-0",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/procedures/spec_NN.md"
+        }
       ]
     }
   }
