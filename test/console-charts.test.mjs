@@ -44,7 +44,11 @@ describe('console chart library', () => {
     const host = freshHost()
     const chart = nnConsole.renderChart(
       host,
-      { xAxis: { type: 'category', data: ['a', 'b'] }, yAxis: { type: 'value' }, series: [{ type: 'bar', data: [1, 2] }] },
+      {
+        xAxis: { type: 'category', data: ['a', 'b'] },
+        yAxis: { type: 'value' },
+        series: [{ type: 'bar', data: [1, 2] }],
+      },
       { width: 400, height: 200 },
     )
     assert.ok(chart, 'returns the chart instance')
@@ -53,7 +57,11 @@ describe('console chart library', () => {
   })
 
   it('renderChart keeps a background the option sets', () => {
-    const chart = nnConsole.renderChart(freshHost(), { backgroundColor: '#f0f0f0', series: [] }, { width: 200, height: 100 })
+    const chart = nnConsole.renderChart(
+      freshHost(),
+      { backgroundColor: '#f0f0f0', series: [] },
+      { width: 200, height: 100 },
+    )
     assert.equal(chart.getOption().backgroundColor, '#f0f0f0')
   })
 
@@ -77,7 +85,10 @@ describe('console chart library', () => {
       const second = nnConsole.renderChart(host, { series: [] })
       assert.ok(first.isDisposed(), 'the previous chart is disposed')
       assert.equal(global.echarts.getInstanceByDom(host), second)
-      assert.deepEqual(observers.map((o) => o.connected), [false, true])
+      assert.deepEqual(
+        observers.map((o) => o.connected),
+        [false, true],
+      )
     } finally {
       delete global.ResizeObserver
     }
@@ -87,7 +98,9 @@ describe('console chart library', () => {
     const saved = global.echarts
     delete global.echarts
     try {
-      const { result, warnings } = withWarnings(() => nnConsole.renderChart(freshHost(), { series: [] }))
+      const { result, warnings } = withWarnings(() =>
+        nnConsole.renderChart(freshHost(), { series: [] }),
+      )
       assert.equal(result, null)
       assert.ok(warnings.some((w) => /ECharts unavailable/.test(w)))
     } finally {
@@ -108,7 +121,13 @@ describe('console chart library', () => {
     const canvas = sections[0].querySelector('.nn-chart-canvas')
     const option = global.echarts.getInstanceByDom(canvas).getOption()
     assert.deepEqual(option.xAxis[0].data, ['2026-11', '2026-12', '2027-01'])
-    assert.deepEqual(option.series.map((s) => [s.type, s.name]), [['line', 'Base'], ['line', 'Optimistic']])
+    assert.deepEqual(
+      option.series.map((s) => [s.type, s.name]),
+      [
+        ['line', 'Base'],
+        ['line', 'Optimistic'],
+      ],
+    )
   })
 
   it('renderCharts still skips a declared chart with no series and warns', () => {
