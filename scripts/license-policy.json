@@ -27,15 +27,33 @@
   ],
   "vendored": [
     {
-      "name": "uPlot",
-      "version": "1.6.31",
-      "license": "MIT",
-      "path": "iNNfo/specs/bluepriNNts/console/uplot.iife.min.js",
-      "source": "https://github.com/leeoniya/uPlot",
-      "sha256": "2d27e8ad3d228164525ce213f9dc716f39b4e3aee0cc773fb3491c96cf4921a2",
-      "copyright": ["Copyright (c) 2022 Leon Sorokin"],
-      "licenseFile": "third-party/licenses/uPlot-LICENSE.txt",
-      "note": "Charts in the console bundle."
+      "name": "Apache ECharts",
+      "version": "6.1.0",
+      "license": "Apache-2.0",
+      "path": "iNNfo/specs/bluepriNNts/console/vendor/echarts.min.js",
+      "source": "https://github.com/apache/echarts",
+      "sha256": "b66b25aeb4df84e33199dc21694014d336d222cbd9deb0e5a7c14bd6aa0d0fd0",
+      "copyright": ["Copyright 2017-2026 The Apache Software Foundation"],
+      "licenseFile": "third-party/licenses/echarts-LICENSE.txt",
+      "notice": "Apache ECharts\nCopyright 2017-2026 The Apache Software Foundation\n\nThis product includes software developed at\nThe Apache Software Foundation (https://www.apache.org/).",
+      "includes": [
+        {
+          "name": "d3",
+          "license": "BSD-3-Clause",
+          "copyright": "Copyright 2010-2016 Mike Bostock"
+        },
+        {
+          "name": "ZRender 6.1.0",
+          "license": "BSD-3-Clause",
+          "copyright": "Copyright (c) 2017, Baidu Inc."
+        },
+        {
+          "name": "tslib",
+          "license": "0BSD",
+          "copyright": "Copyright (c) Microsoft Corporation"
+        }
+      ],
+      "note": "UMD build (dist/echarts.min.js) from the npm package echarts@6.1.0; the chart library of the console bundle. NOTICE: Apache ECharts, Copyright 2017-2026 The Apache Software Foundation; this product includes software developed at The Apache Software Foundation (https://www.apache.org/). Includes portions of d3 (BSD-3-Clause, Copyright 2010-2016 Mike Bostock)."
     },
     {
       "name": "Preact",

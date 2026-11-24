@@ -31,6 +31,11 @@ The console runtime does NOT compile JSX at runtime or during development.
 * All runtime code must belong to the 12 canonical sources listed in `scripts/lib/console-bundle.js`.
 * Adding a third-party library requires explicit maintainer approval and a standalone UMD vendor file placed under `iNNfo/specs/bluepriNNts/console/vendor/`.
 
+### Rule D: One Chart Library — ECharts Through `renderChart`
+* Every chart (built-in tabs and custom views) is an ECharts option drawn with `nnConsole.renderChart(host, option, opts?)`. It applies the console defaults (white background, palette) and returns the chart instance, or `null` with a warning when ECharts is missing.
+* Do not hand-draw charts with CSS or SVG, and do not add a second chart library. uPlot was removed on 2026-11-24.
+* Never render a whole element graph: a force layout with ~2000 nodes blocks the page for ~18 s. Show concepts, or a one-hop neighbourhood of one element.
+
 ---
 
 ## 2. Canonical Bundle Sources (`scripts/lib/console-bundle.js`)
@@ -42,8 +47,8 @@ The console bundle is composed strictly in dependency order:
 3. `vendor/preact.umd.js` (`preact`) — Preact core
 4. `vendor/htm.umd.js` (`htm`) — Hyperscript Tagged Markup
 5. `nn-preact-init.js` (`nnPreact`) — Global `html` binding
-6. `uplot.iife.min.js` (`uPlot`) — Lightweight time-series & metrics plotting
-7. `visuals.js` (`nnVisuals`) — Visual card components & uPlot wrappers
+6. `vendor/echarts.min.js` (`echarts`) — Apache ECharts 6.1.0, the one chart library (see Rule D)
+7. `visuals.js` (`nnVisuals`) — Colour vocabulary and visual helpers
 8. `nn-icons.js` (`nnIcons`) — Inline SVG icon library
 9. `ui-kit.js` (`nnUI`) — UI primitives (badges, status tags, accordions)
 10. `review.js` (`nnReview`) — Interactive changeset review widgets
