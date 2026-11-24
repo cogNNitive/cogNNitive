@@ -50,6 +50,8 @@ Every run records `produce_artifact` changes for the artifacts it writes, so the
 
 An exported console never runs a procedure and never writes to your domaiNN: it records what you decide, and the owner of the domaiNN applies it. Open **Procedures**, choose a procedure included in the export, then choose **Start a run**, fill in the fields, and select **Request the run**. The request is not running yet: use **Save your response** and send the saved HTML to the owner, who applies it with `import_console`.
 
+The run stays private until you decide: every answer is an exported draft that only changes the run's own private record when the owner imports it, and importing the same saved file again, or a later save that still carries your earlier answers, changes nothing a second time. When a run is complete its summary shows **Hand off this run** with two choices, **Send to the administrator** and **Register with the agent**. The choice is one more answer: save your response, and when the owner imports it the choice is recorded with the run. It adds nothing to the models of the domaiNN, and a run can only be handed off once.
+
 The same applies to answering a step. On a human step the Runner has not started yet, the answer buttons (or **Mark as done**) save the start and your answer together, so one response is enough. The step your answer leads to is shown as **Next action: save your previous response** (preview only) until the owner imports it and sends you an updated export.
 
 For Document SOP, choose an exported Markdown brief as **Description of the process**. An excerpt is shown if the export carried one. In **Name of the new SOP**, enter a name, not a path; the form shows the destination the procedure will use.
