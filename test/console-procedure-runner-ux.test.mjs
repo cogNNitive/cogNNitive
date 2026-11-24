@@ -649,6 +649,132 @@ describe('procedure runner UX (standalone console)', () => {
     assert.equal(spy.drafts[0].choice, 'agent')
   })
 
+  describe('handoff guidance modal', () => {
+    const completed = () =>
+      payload([runOf('r-z', DONE_TRANSCRIBE, { state: 'completed', closed: true })])
+    const modalOf = (choice) => doc.querySelector(`dialog[data-proc-handoff-dialog="${choice}"]`)
+    const isOpen = (d) => !!d && d.hasAttribute('open')
+    const keydown = (el, key) =>
+      el.dispatchEvent(new doc.defaultView.KeyboardEvent('keydown', { key, bubbles: true }))
+    const stubClipboard = (impl) =>
+      Object.defineProperty(dom.window.navigator, 'clipboard', {
+        value: impl,
+        configurable: true,
+      })
+
+    it('choosing the administrator opens a modal with what to do next, and records one draft', () => {
+      const spy = storeSpy()
+      stepper.mount(container, completed(), spy.ctx)
+      click(container.querySelector('[data-proc-handoff-choice="administrator"]'))
+      assert.equal(spy.drafts.length, 1, 'the choice is still one draft')
+      assert.equal(spy.drafts[0].choice, 'administrator')
+      const modal = modalOf('administrator')
+      assert.ok(isOpen(modal), 'the guidance is open')
+      assert.equal(modal.getAttribute('aria-modal'), 'true')
+      assert.ok(modal.getAttribute('aria-labelledby'), 'it is labelled by its title')
+      assert.match(modal.textContent, /Save your response/)
+      assert.match(modal.textContent, /administrator/i)
+      assert.match(modal.textContent, /send or share the saved HTML file/i)
+      assert.equal(modal.querySelector('[data-proc-handoff-copy]'), null, 'no prompt to copy here')
+      assert.equal(modalOf('agent'), null)
+
+      const close = modal.querySelector('[data-proc-handoff-close]')
+      assert.equal(close.textContent, 'Close')
+      click(close)
+      assert.equal(isOpen(modal), false, 'Close closes it')
+      assert.equal(spy.drafts.length, 1, 'closing the modal changes nothing')
+    })
+
+    it('moves focus into the modal and back to the handoff card on close', () => {
+      stepper.mount(container, completed(), storeSpy().ctx)
+      click(container.querySelector('[data-proc-handoff-choice="administrator"]'))
+      const modal = modalOf('administrator')
+      assert.ok(modal.contains(doc.activeElement), 'focus is inside the modal')
+      keydown(modal, 'Escape')
+      assert.equal(isOpen(modal), false, 'Escape closes it')
+      const card = container.querySelector('[data-proc-handoff]')
+      assert.ok(card.contains(doc.activeElement), 'focus returned to the handoff card')
+    })
+
+    it('choosing the agent shows a copyable prompt that names the run, the choice and import_console', async () => {
+      const spy = storeSpy()
+      let copied = null
+      stubClipboard({
+        writeText: (t) => {
+          copied = t
+          return Promise.resolve()
+        },
+      })
+      stepper.mount(container, completed(), spy.ctx)
+      click(container.querySelector('[data-proc-handoff-choice="agent"]'))
+      assert.equal(spy.drafts.length, 1)
+      assert.equal(spy.drafts[0].choice, 'agent')
+      const modal = modalOf('agent')
+      assert.ok(isOpen(modal))
+      assert.match(modal.textContent, /Register with the agent/)
+      const shown = modal.querySelector('[data-proc-handoff-prompt]')
+      assert.ok(shown, 'the prompt is readable in the modal')
+
+      click(modal.querySelector('[data-proc-handoff-copy]'))
+      await new Promise((r) => setTimeout(r, 0))
+      assert.equal(typeof copied, 'string', 'the prompt reached the clipboard')
+      assert.match(copied, /import_console/)
+      assert.match(copied, /apply/)
+      assert.match(copied, /r-z/)
+      assert.match(copied, /agent/)
+      assert.match(copied, /run_handoff/)
+      assert.doesNotMatch(copied, /nn-drafts|\{slot\}/)
+      assert.equal(shown.value, copied, 'what is shown is what is copied')
+      assert.match(modal.querySelector('[data-proc-handoff-status]').textContent, /Copied/)
+      assert.equal(spy.drafts.length, 1, 'copying writes nothing')
+
+      keydown(modal, 'Escape')
+      assert.equal(isOpen(modal), false)
+    })
+
+    it('falls back to select-and-copy when the clipboard is not available', () => {
+      stubClipboard(undefined)
+      stepper.mount(container, completed(), storeSpy().ctx)
+      click(container.querySelector('[data-proc-handoff-choice="agent"]'))
+      const modal = modalOf('agent')
+      click(modal.querySelector('[data-proc-handoff-copy]'))
+      assert.match(modal.querySelector('[data-proc-handoff-status]').textContent, /Select and copy/)
+      const area = modal.querySelector('[data-proc-handoff-prompt]')
+      assert.equal(area.selectionStart, 0)
+      assert.equal(area.selectionEnd, area.value.length, 'the whole prompt is selected')
+    })
+
+    it('a rejected clipboard write also falls back to select-and-copy', async () => {
+      stubClipboard({ writeText: () => Promise.reject(new Error('denied')) })
+      stepper.mount(container, completed(), storeSpy().ctx)
+      click(container.querySelector('[data-proc-handoff-choice="agent"]'))
+      const modal = modalOf('agent')
+      click(modal.querySelector('[data-proc-handoff-copy]'))
+      await new Promise((r) => setTimeout(r, 0))
+      assert.match(modal.querySelector('[data-proc-handoff-status]').textContent, /Select and copy/)
+    })
+
+    it('shows the instructions again for the choice already made, without a second draft', () => {
+      const spy = storeSpy()
+      stepper.mount(container, completed(), spy.ctx)
+      click(container.querySelector('[data-proc-handoff-choice="agent"]'))
+      click(modalOf('agent').querySelector('[data-proc-handoff-close]'))
+      assert.equal(isOpen(modalOf('agent')), false)
+
+      const again = container.querySelector('[data-proc-handoff-open="agent"]')
+      assert.ok(again, 'the chosen option can be opened again')
+      click(again)
+      assert.ok(isOpen(modalOf('agent')))
+      assert.equal(doc.querySelectorAll('dialog[data-proc-handoff-dialog]').length, 1, 'one modal')
+      assert.equal(spy.drafts.length, 1, 'no second draft')
+
+      click(modalOf('agent').querySelector('[data-proc-handoff-close]'))
+      click(container.querySelector('[data-proc-undo]'))
+      assert.equal(spy.drafts.length, 0, 'undo still removes the choice')
+      assert.equal(container.querySelector('[data-proc-handoff-open]'), null)
+    })
+  })
+
   it('offers no handoff before the run completes, or when it failed', () => {
     for (const [events, state] of [
       [WAITING_REVIEW, undefined],
