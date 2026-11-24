@@ -57,6 +57,32 @@ describe('console chart library', () => {
     assert.equal(chart.getOption().backgroundColor, '#f0f0f0')
   })
 
+  it('renderChart on the same host replaces the chart and its resize observer', () => {
+    const host = freshHost()
+    const observers = []
+    global.ResizeObserver = class {
+      constructor() {
+        this.connected = false
+        observers.push(this)
+      }
+      observe() {
+        this.connected = true
+      }
+      disconnect() {
+        this.connected = false
+      }
+    }
+    try {
+      const first = nnConsole.renderChart(host, { series: [] })
+      const second = nnConsole.renderChart(host, { series: [] })
+      assert.ok(first.isDisposed(), 'the previous chart is disposed')
+      assert.equal(global.echarts.getInstanceByDom(host), second)
+      assert.deepEqual(observers.map((o) => o.connected), [false, true])
+    } finally {
+      delete global.ResizeObserver
+    }
+  })
+
   it('renderChart warns and returns null when the library is missing', () => {
     const saved = global.echarts
     delete global.echarts

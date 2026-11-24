@@ -147,6 +147,10 @@
     var o = opts || {}
     var previous = lib.getInstanceByDom(host)
     if (previous) previous.dispose()
+    if (host.__nnChartObserver) {
+      host.__nnChartObserver.disconnect()
+      host.__nnChartObserver = null
+    }
     var chart = lib.init(host, null, { renderer: o.renderer || 'svg', width: o.width, height: o.height })
     var merged = {}
     Object.keys(option || {}).forEach(function (key) {
@@ -156,9 +160,10 @@
     if (merged.color === undefined) merged.color = CHART_PALETTE
     chart.setOption(merged)
     if (typeof ResizeObserver !== 'undefined' && o.width === undefined) {
-      new ResizeObserver(function () {
+      host.__nnChartObserver = new ResizeObserver(function () {
         if (!chart.isDisposed()) chart.resize()
-      }).observe(host)
+      })
+      host.__nnChartObserver.observe(host)
     }
     return chart
   }
