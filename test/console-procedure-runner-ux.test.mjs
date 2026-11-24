@@ -2,7 +2,7 @@
    values instead of `{slot}` placeholders, the run's seq on every request, one button per
    branch, the run projected through the real fold once answered, a run requested from a slot
    form, and the "Your turn" inbox first. Drives the real stepper over the real nn-core fold. */
-import { describe, it, beforeEach } from 'node:test'
+import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { readFileSync } from 'node:fs'
@@ -973,5 +973,359 @@ describe('changeset download name', () => {
     const out = runtime.composeExport(state, 'lucas')
     assert.equal(out.ok, true)
     assert.equal(out.changesetFilename, 'intake-sim_lucas_20261123T112806Z_changes_NN.md')
+  })
+})
+
+describe('procedure flow graph through the shared chart API', () => {
+  let dom
+  let doc
+  let container
+  let stepper
+  let calls
+  let originalRenderChart
+  let width
+  let reduced
+
+  const vendorEcharts = join(consoleDir, 'vendor', 'echarts.min.js')
+
+  /** One live store with `onChange`, as the console hands it (the stepper re-renders on it). */
+  function liveStore() {
+    const drafts = []
+    const listeners = []
+    let n = 0
+    return {
+      drafts,
+      add: (d) => {
+        drafts.push({ ...d, id: 'x' + ++n })
+        listeners.forEach((f) => f())
+      },
+      ctx: {
+        store: {
+          drafts: () => drafts.slice(),
+          propose: (p) => {
+            const d = { ...p, id: 'd' + ++n }
+            drafts.push(d)
+            return d
+          },
+          remove: (id) => {
+            const i = drafts.findIndex((d) => d.id === id)
+            if (i !== -1) drafts.splice(i, 1)
+          },
+          onChange: (f) => {
+            listeners.push(f)
+            return () => {}
+          },
+        },
+      },
+    }
+  }
+
+  /** The draft the console would hold after the person approved `review`. */
+  function approveDraft() {
+    const spy = storeSpy()
+    const d = new JSDOM('<!doctype html><body><div id="c"></div></body>')
+    global.document = d.window.document
+    global.window = d.window
+    const scratch = d.window.document.getElementById('c')
+    stepper.mount(scratch, payload([runOf('r1', WAITING_REVIEW)]), spy.ctx)
+    scratch
+      .querySelector('[data-proc-outcome="approve"]')
+      .dispatchEvent(new d.window.Event('click'))
+    global.document = doc
+    global.window = dom.window
+    const { id, ...rest } = spy.drafts[0]
+    return rest
+  }
+
+  beforeEach(() => {
+    dom = new JSDOM('<!doctype html><html><body><div id="c"></div></body></html>')
+    doc = dom.window.document
+    container = doc.getElementById('c')
+    global.window = dom.window
+    global.document = doc
+    global.self = dom.window
+    global.nnConsole = runtime
+    dom.window.nnConsole = runtime
+    width = 1200
+    reduced = false
+    Object.defineProperty(dom.window.HTMLElement.prototype, 'clientWidth', {
+      configurable: true,
+      get() {
+        return width
+      },
+    })
+    dom.window.matchMedia = (query) => ({
+      matches: reduced && /reduce/.test(query),
+      media: query,
+      addEventListener() {},
+      removeEventListener() {},
+      addListener() {},
+      removeListener() {},
+    })
+    delete require.cache[require.resolve(corePath)]
+    const core = require(corePath)
+    core.use({ foldRun: payloadCore.foldRun })
+    dom.window.nnProcedureCore = core
+    global.nnProcedureCore = core
+    stepper = require(stepperPath)
+
+    // A recording stand-in for the shared chart API: the stepper must go through it.
+    calls = []
+    originalRenderChart = runtime.renderChart
+    runtime.renderChart = (host, option, opts) => {
+      const handlers = {}
+      const chart = {
+        handlers,
+        setOptions: [],
+        on(name, fn) {
+          handlers[name] = fn
+        },
+        setOption(o) {
+          this.setOptions.push(o)
+        },
+        resize() {},
+        isDisposed: () => false,
+        dispose() {
+          this.disposed = true
+        },
+      }
+      calls.push({ host, option, opts, chart })
+      return chart
+    }
+  })
+
+  afterEach(() => {
+    runtime.renderChart = originalRenderChart
+    delete global.echarts
+  })
+
+  const click = (el) => el.dispatchEvent(new doc.defaultView.Event('click'))
+  const key = (el, k) =>
+    el.dispatchEvent(new doc.defaultView.KeyboardEvent('keydown', { key: k, bubbles: true }))
+  const lastCall = () => calls[calls.length - 1]
+  // The option the chart last drew: the one it was made with, or the latest setOption.
+  const optionOf = (call) => call.chart.setOptions.at(-1) ?? call.option
+  const graphOf = (call) => optionOf(call).series.find((s) => s.type === 'graph')
+  const pick = (call, slug) => call.chart.handlers.click({ dataType: 'node', data: { id: slug } })
+  const cardStep = () => container.querySelector('.exec-step-card').getAttribute('data-step')
+
+  it('draws the flow with the shared chart API: every step a node, every branch a labelled link', () => {
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    assert.equal(calls.length, 1, 'one chart for the one flow')
+    const { host, option } = calls[0]
+    assert.ok(host.closest('.exec-dag-view'), 'drawn inside the flow card')
+    assert.equal(container.querySelector('svg.dag-canvas'), null, 'no hand-drawn svg beside it')
+    const graph = graphOf(calls[0])
+    assert.deepEqual(graph.data.map((d) => d.id).sort(), [
+      'discard',
+      'normalize',
+      'review',
+      'transcribe',
+    ])
+    const links = graph.links.map((l) => `${l.source}>${l.target}`).sort()
+    assert.deepEqual(links, ['review>discard', 'review>normalize', 'transcribe>review'])
+    const labelOf = (to) => graph.links.find((l) => l.target === to).label
+    assert.equal(labelOf('normalize').formatter, 'approve')
+    assert.equal(labelOf('discard').formatter, 'reject')
+    assert.ok(
+      !graph.links.find((l) => l.target === 'review').label?.show,
+      'a single path is unlabelled',
+    )
+    assert.ok(option.xAxis && option.yAxis, 'positions are fractions of the host, so it resizes')
+  })
+
+  it('says each status in words on the node, never by colour alone', () => {
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    const node = (slug) => graphOf(calls[0]).data.find((d) => d.id === slug)
+    assert.match(node('review').label.formatter, /Review/)
+    assert.match(node('review').label.formatter, /waiting/i)
+    assert.match(node('transcribe').label.formatter, /done/i)
+    assert.match(node('normalize').label.formatter, /pending/i)
+    assert.equal(node('normalize').itemStyle.borderType, 'dashed', 'pending also differs in shape')
+  })
+
+  it('opens the step card of a node picked in the chart', () => {
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    pick(calls[0], 'transcribe')
+    assert.equal(cardStep(), 'transcribe')
+    assert.ok(lastCall() !== calls[0], 'the graph is drawn again')
+    const picked = graphOf(lastCall()).data.find((d) => d.id === 'transcribe')
+    assert.ok(picked.selected, 'and marks the picked node')
+  })
+
+  it('ignores a click on an edge or on nothing', () => {
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    calls[0].chart.handlers.click({
+      dataType: 'edge',
+      data: { source: 'review', target: 'discard' },
+    })
+    calls[0].chart.handlers.click({})
+    assert.equal(cardStep(), 'review')
+    assert.equal(calls.length, 1)
+  })
+
+  it('picking the active node follows the Runner; inspecting another node pins the card', () => {
+    const draft = approveDraft()
+
+    const following = liveStore()
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), following.ctx)
+    pick(lastCall(), 'review')
+    assert.equal(cardStep(), 'review')
+    following.add(draft)
+    assert.equal(cardStep(), 'normalize', 'the card moved on with the run')
+
+    const pinned = liveStore()
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), pinned.ctx)
+    pick(lastCall(), 'transcribe')
+    pinned.add(draft)
+    assert.equal(cardStep(), 'transcribe', 'a manual inspection stays put')
+  })
+
+  it('pulses the active step, and draws it still under prefers-reduced-motion', () => {
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    const pulse = optionOf(calls[0]).series.find((s) => s.type === 'effectScatter')
+    assert.ok(pulse, 'an animated ring')
+    assert.equal(pulse.data.length, 1)
+    assert.equal(pulse.data[0].id, 'review', 'on the current step only')
+    assert.equal(container.querySelector('[data-proc-graph]').getAttribute('data-pulse'), 'on')
+
+    reduced = true
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    const still = lastCall()
+    assert.equal(
+      optionOf(still).series.find((s) => s.type === 'effectScatter'),
+      undefined,
+      'no animated series',
+    )
+    assert.equal(container.querySelector('[data-proc-graph]').getAttribute('data-pulse'), 'off')
+    const current = graphOf(still).data.find((d) => d.id === 'review')
+    assert.ok(current.itemStyle.borderWidth >= 3, 'the active step is still marked, without motion')
+  })
+
+  it('lays the flow out for the width it has: wide nodes on a wide host, narrow ones on a phone', () => {
+    width = 1200
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    const wide = graphOf(calls[0]).data[0].symbolSize
+    width = 360
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    const narrow = graphOf(lastCall()).data[0].symbolSize
+    assert.ok(wide[0] >= 180, 'wide: ' + wide[0])
+    assert.ok(narrow[0] < wide[0] && narrow[0] * 2 <= 360, 'two branches fit: ' + narrow[0])
+    assert.ok(narrow[0] >= 80, 'but stay readable')
+  })
+
+  it('summarises the graph for assistive technology on a focusable group', () => {
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    const g = container.querySelector('[data-proc-graph]')
+    assert.equal(g.getAttribute('tabindex'), '0')
+    assert.equal(g.getAttribute('role'), 'group')
+    const label = g.getAttribute('aria-label')
+    assert.match(label, /4 steps/)
+    assert.match(label, /Review/)
+    assert.match(label, /waiting/)
+    assert.match(label, /arrow keys/i)
+    assert.equal(g.querySelector('[aria-live]').getAttribute('aria-live'), 'polite')
+  })
+
+  it('moves between connected steps with the arrow keys and selects with Enter or Space', () => {
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    const g = container.querySelector('[data-proc-graph]')
+    const focused = () => {
+      const d = graphOf(lastCall()).data.find((n) => n.focused)
+      return d && d.id
+    }
+    g.dispatchEvent(new doc.defaultView.Event('focus'))
+    assert.equal(focused(), 'review', 'starts on the active step')
+    key(g, 'ArrowDown')
+    assert.equal(focused(), 'normalize', 'down: the next step')
+    key(g, 'ArrowRight')
+    assert.equal(focused(), 'discard', 'right: the sibling branch')
+    key(g, 'ArrowLeft')
+    assert.equal(focused(), 'normalize')
+    key(g, 'ArrowUp')
+    assert.equal(focused(), 'review', 'up: where it came from')
+    assert.match(g.querySelector('[aria-live]').textContent, /Review/, 'announced')
+    key(g, 'ArrowUp')
+    assert.equal(focused(), 'transcribe')
+    assert.equal(cardStep(), 'review', 'moving alone selects nothing')
+
+    key(container.querySelector('[data-proc-graph]'), 'Enter')
+    assert.equal(cardStep(), 'transcribe')
+    key(container.querySelector('[data-proc-graph]'), 'ArrowDown')
+    key(container.querySelector('[data-proc-graph]'), ' ')
+    assert.equal(cardStep(), 'review', 'Space selects too')
+  })
+
+  it('keeps the same steps as a keyboard-reachable list with the status written out', () => {
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    const items = [...container.querySelectorAll('[data-proc-step-list] .proc-step-item')]
+    assert.equal(items.length, 4)
+    const box = container.querySelector('details.proc-step-list-box')
+    assert.ok(box.querySelector('summary'), 'a disclosure with a visible summary')
+    assert.equal(box.hasAttribute('open'), false, 'wide: closed until asked for')
+    const review = items.find((li) => li.getAttribute('data-step') === 'review')
+    assert.match(review.textContent, /waiting/)
+    const btn = review.querySelector('button')
+    assert.equal(btn.getAttribute('tabindex'), null, 'in the tab order')
+    click(items.find((li) => li.getAttribute('data-step') === 'transcribe').querySelector('button'))
+    assert.equal(cardStep(), 'transcribe')
+  })
+
+  it('falls back to the native svg when ECharts is not there', () => {
+    runtime.renderChart = originalRenderChart // the real entry point, no library loaded
+    const warn = console.warn
+    console.warn = () => {}
+    try {
+      stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    } finally {
+      console.warn = warn
+    }
+    assert.ok(container.querySelector('svg.dag-canvas'), 'native flow drawn')
+    assert.equal(container.querySelectorAll('.dag-node').length, 4)
+    assert.equal(container.querySelector('[data-proc-graph]'), null)
+    assert.ok(container.querySelector('.exec-dag-view-native'), 'marked, so narrow CSS can hide it')
+    const node = container.querySelector('.dag-node[data-step="review"]')
+    assert.equal(node.getAttribute('tabindex'), '0', 'native nodes are keyboard operable too')
+    assert.equal(node.getAttribute('role'), 'button')
+    key(container.querySelector('.dag-node[data-step="transcribe"]'), 'Enter')
+    assert.equal(cardStep(), 'transcribe')
+  })
+
+  it('falls back when the console has no chart entry point at all', () => {
+    runtime.renderChart = undefined
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    assert.equal(container.querySelectorAll('.dag-node').length, 4)
+  })
+
+  it('draws a real ECharts svg with the steps in it when the library is loaded', () => {
+    global.echarts = require(vendorEcharts)
+    runtime.renderChart = originalRenderChart
+    const mounted = stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    try {
+      const svg = container.querySelector('.exec-dag-view svg')
+      assert.ok(svg, 'a chart svg')
+      assert.equal(container.querySelector('svg.dag-canvas'), null)
+      const words = svg.textContent
+      for (const name of ['Transcribe', 'Review', 'Normalize', 'Discard'])
+        assert.ok(words.includes(name), name + ' is drawn')
+      assert.ok(words.includes('approve') && words.includes('reject'), 'branch labels drawn')
+    } finally {
+      mounted.unmount() // stops the pulse animation, which would keep the process alive
+    }
+  })
+
+  it('ships reduced-motion CSS for the pulse and a step list that is never hidden', () => {
+    const css = readFileSync(join(consoleDir, 'nn-ui.css'), 'utf8')
+    const reducedBlocks =
+      css.match(/@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]*?\n\}/g) || []
+    assert.ok(
+      reducedBlocks.some((b) => /\.dag-node\.current/.test(b) && /animation:\s*none/.test(b)),
+      'native pulse is switched off',
+    )
+    assert.ok(/@keyframes dag-pulse/.test(css), 'and exists to be switched off')
+    const rule = css.match(/\n\.proc-step-list\s*\{[^}]*\}/)
+    assert.ok(rule, 'base rule')
+    assert.doesNotMatch(rule[0], /display:\s*none|clip/, 'never hidden or clipped')
+    assert.match(css, /\.dag-graph:focus-visible/, 'a visible focus style')
   })
 })
