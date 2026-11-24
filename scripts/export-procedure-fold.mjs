@@ -59,10 +59,21 @@ async function run() {
     metafile: true,
   })
 
-  const generatedCode = result.outputFiles[0].text.replace(
+  let generatedCode = result.outputFiles[0].text.replace(
     /(?:\.\.\/)+node_modules\//g,
     'node_modules/',
   )
+
+  try {
+    const prettier = await import('prettier')
+    const config = (await prettier.resolveConfig(targetOutfile)) || {}
+    generatedCode = await prettier.format(generatedCode, {
+      ...config,
+      filepath: targetOutfile,
+    })
+  } catch {
+    // Keep unformatted if prettier fails to load
+  }
 
   if (isCheck) {
     if (!existsSync(targetOutfile)) {
