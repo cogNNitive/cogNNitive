@@ -1,12 +1,15 @@
-// @jsdom — the Summary tab: the domaiNN at a glance for someone who does not know it.
+// @jsdom — the Domain tab: the domaiNN at a glance for someone who does not know it.
 import { describe, it, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
-import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { JSDOM } from 'jsdom'
 import { bootConsole, consoleDir } from './helpers/console-boot.mjs'
 
 const require = createRequire(import.meta.url)
+const here = dirname(fileURLToPath(import.meta.url))
 
 const SCHEMA = {
   concepts: [{ name: 'Client', color: '#2563eb' }, { name: 'Deal' }, { name: 'Risk' }],
@@ -30,6 +33,7 @@ const MODEL = {
         blueprint: 'business',
         elementCount: 3,
         conceptNames: ['Client', 'Deal'],
+        declaredConcepts: ['Client', 'Deal', 'Risk'],
       },
       {
         id: 'pipeline',
@@ -37,6 +41,7 @@ const MODEL = {
         blueprint: 'metrics',
         elementCount: 1,
         conceptNames: ['Deal'],
+        declaredConcepts: ['Deal'],
       },
       {
         id: 'changes',
@@ -74,13 +79,13 @@ function boot() {
 
 function kpis(document) {
   const out = {}
-  document.querySelectorAll('#nn-tab-summary .nn-kpi-card').forEach((card) => {
+  document.querySelectorAll('#nn-tab-domain .nn-kpi-card').forEach((card) => {
     out[card.querySelector('.kpi-label').textContent] = card.querySelector('.kpi-value').textContent
   })
   return out
 }
 
-describe('Summary tab', () => {
+describe('Domain tab', () => {
   afterEach(() => {
     delete global.echarts
   })
@@ -88,8 +93,8 @@ describe('Summary tab', () => {
   it('is the first tab of the core band', () => {
     const { document } = boot()
     const tabs = [...document.querySelectorAll('.nn-view-tab')].map((b) => b.dataset.tab)
-    assert.equal(tabs[0], 'summary')
-    assert.equal(document.querySelector('.nn-view-tab[data-tab="summary"]').textContent, 'Summary')
+    assert.equal(tabs[0], 'domain')
+    assert.equal(document.querySelector('.nn-view-tab[data-tab="domain"]').textContent, 'Domain')
     assert.ok(tabs.indexOf('metamodel') > 0)
   })
 
@@ -107,7 +112,7 @@ describe('Summary tab', () => {
 
   it('has one card per model with its bluepriNNt, size and completeness', () => {
     const { document } = boot()
-    const cards = [...document.querySelectorAll('#nn-tab-summary .nn-summary-model')]
+    const cards = [...document.querySelectorAll('#nn-tab-domain .nn-summary-model')]
     assert.deepEqual(
       cards.map((c) => [
         c.querySelector('.nn-summary-model-title').textContent,
@@ -123,7 +128,7 @@ describe('Summary tab', () => {
 
   it('lists what to look at: empty concepts, thin concepts and pending changes', () => {
     const { document } = boot()
-    const items = [...document.querySelectorAll('#nn-tab-summary .nn-summary-attention li')].map(
+    const items = [...document.querySelectorAll('#nn-tab-domain .nn-summary-attention li')].map(
       (li) => li.textContent,
     )
     assert.deepEqual(items, [
@@ -136,35 +141,56 @@ describe('Summary tab', () => {
   it('names every empty concept in one hint', () => {
     const schema = { ...SCHEMA, concepts: [...SCHEMA.concepts, { name: 'Lead' }, { name: 'Task' }] }
     const { document } = bootConsole({ model: MODEL, schema })
-    const first = document.querySelector('#nn-tab-summary .nn-summary-attention li')
+    const first = document.querySelector('#nn-tab-domain .nn-summary-attention li')
     assert.equal(first.textContent, 'Risk, Lead and Task have no elements yet.')
     assert.deepEqual(
-      [...first.querySelectorAll('a')].map((a) => a.dataset.concept),
+      [...first.querySelectorAll('[data-concept]')].map((a) => a.dataset.concept),
       ['Risk', 'Lead', 'Task'],
     )
   })
 
-  it('labels each card bar with its concepts and counts', () => {
+  it('lists every concept its bluepriNNt declares, empty ones too, with their counts', () => {
     const { document } = boot()
-    const legend = document.querySelector(
-      '#nn-tab-summary .nn-summary-model[data-model="crm"] .nn-summary-model-legend',
-    )
+    const rows = [
+      ...document.querySelectorAll(
+        '#nn-tab-domain .nn-summary-model[data-model="crm"] .nn-summary-model-legend li',
+      ),
+    ]
     assert.deepEqual(
-      [...legend.querySelectorAll('a')].map((a) => a.textContent),
-      ['Client (2)', 'Deal (1)'],
+      rows.map((li) => [
+        li.querySelector('.nn-ku-label').textContent,
+        li.querySelector('.nn-summary-count').textContent,
+      ]),
+      [
+        ['Client', '2'],
+        ['Deal', '1'],
+        ['Risk', '0'],
+      ],
     )
-    assert.equal(legend.querySelector('.nn-summary-dot').style.background, 'rgb(37, 99, 235)')
+    assert.equal(rows[0].querySelector('.nn-summary-dot').style.background, 'rgb(37, 99, 235)')
   })
 
-  it('opens Knowledge filtered by the concept a hint names', () => {
+  it('opens the concept window when a concept on a card is clicked', () => {
     const { document } = boot()
-    const link = document.querySelector(
-      '#nn-tab-summary .nn-summary-attention a[data-concept="Deal"]',
-    )
-    link.click()
-    assert.equal(document.getElementById('nn-search').value, 'concept:Deal')
-    assert.ok(
-      document.querySelector('.nn-view-tab[data-tab="explorer"]').classList.contains('tab-active'),
+    document
+      .querySelector(
+        '#nn-tab-domain .nn-summary-model[data-model="crm"] [data-concept="Deal"] .nn-ku',
+      )
+      .click()
+    const dialog = document.querySelector('dialog.nn-ku-info-panel')
+    assert.ok(dialog, 'the concept window is open')
+    assert.equal(dialog.querySelector('.nn-ku-info-title').textContent, 'Deal')
+    assert.equal(dialog.getAttribute('data-nn-address'), 'crm@concept:deal')
+  })
+
+  it('opens the concept window when a concept in a hint is clicked', () => {
+    const { document } = boot()
+    document
+      .querySelector('#nn-tab-domain .nn-summary-attention [data-concept="Deal"] .nn-ku')
+      .click()
+    assert.equal(
+      document.querySelector('dialog.nn-ku-info-panel .nn-ku-info-title').textContent,
+      'Deal',
     )
   })
 
@@ -172,7 +198,7 @@ describe('Summary tab', () => {
     const { document } = boot()
     document
       .querySelector(
-        '#nn-tab-summary .nn-summary-model[data-model="pipeline"] .nn-summary-model-open',
+        '#nn-tab-domain .nn-summary-model[data-model="pipeline"] .nn-summary-model-open',
       )
       .click()
     assert.equal(document.getElementById('nn-search').value, 'model:pipeline')
@@ -194,7 +220,7 @@ describe('Summary tab', () => {
     global.echarts = require(join(consoleDir, 'vendor', 'echarts.min.js'))
     const { document } = boot()
     const bar = document.querySelector(
-      '#nn-tab-summary .nn-summary-model[data-model="crm"] .nn-summary-model-chart',
+      '#nn-tab-domain .nn-summary-model[data-model="crm"] .nn-summary-model-chart',
     )
     const option = global.echarts.getInstanceByDom(bar).getOption()
     assert.deepEqual(
@@ -210,16 +236,30 @@ describe('Summary tab', () => {
   it('still renders its numbers when ECharts is missing', () => {
     const { document } = boot()
     assert.equal(kpis(document).Models, '2')
-    assert.equal(document.querySelectorAll('#nn-tab-summary .nn-summary-model').length, 2)
+    assert.equal(document.querySelectorAll('#nn-tab-domain .nn-summary-model').length, 2)
   })
 
   it('is not shown for a console with no models', () => {
     const { document } = bootConsole()
-    assert.equal(document.querySelector('.nn-view-tab[data-tab="summary"]'), null)
+    assert.equal(document.querySelector('.nn-view-tab[data-tab="domain"]'), null)
   })
 
-  it('leaves Knowledge as the landing tab', () => {
-    const { document } = boot()
-    assert.equal(document.querySelector('.nn-view-tab.active').dataset.tab, 'explorer')
+  it('is where the domaiNN console lands, unless the URL carries a search', () => {
+    const config = { needs: ['feedback-export'], defaultView: 'domain' }
+    const active = (document) => document.querySelector('.nn-view-tab.active').dataset.tab
+    assert.equal(active(bootConsole({ model: MODEL, schema: SCHEMA, config }).document), 'domain')
+    const searched = bootConsole({
+      model: MODEL,
+      schema: SCHEMA,
+      config,
+      url: 'http://localhost/#q=Acme',
+    })
+    assert.equal(active(searched.document), 'explorer')
+  })
+
+  it('is the landing tab the whole-domaiNN export asks for', () => {
+    const html = readFileSync(join(here, 'fixtures', 'testlab', 'domaiNN_console.html'), 'utf8')
+    const config = JSON.parse(/id="nn-config">([\s\S]*?)<\/script>/.exec(html)[1])
+    assert.equal(config.defaultView, 'domain')
   })
 })
