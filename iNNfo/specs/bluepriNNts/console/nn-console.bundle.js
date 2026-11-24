@@ -14162,6 +14162,9 @@ if (typeof window !== 'undefined') {
     if (summaryModels(meta).length > 0) {
       views.push({ id: 'summary', title: 'Summary', icon: 'layout', order: 5, tone: 'core', panelId: 'nn-tab-summary' })
     }
+    if (meta && meta.versions && typeof meta.versions === 'object') {
+      views.push({ id: 'versions', title: 'Versions', icon: 'milestone', order: 50, tone: 'core', panelId: 'nn-tab-versions' })
+    }
     if (schema && Array.isArray(schema.concepts) && schema.concepts.length) {
       views.push({ id: 'metamodel', title: 'Domain', icon: 'metamodel', order: 10, tone: 'core', panelId: 'nn-tab-metamodel' })
     }
@@ -16514,6 +16517,146 @@ if (typeof window !== 'undefined') {
     })
   }
 
+  // ---- Versions tab: which bluepriNNts, whether they are current, what is installed ----
+
+  var VERSION_STATUS = {
+    current: ['Up to date', 'ok'],
+    'upgrade-available': ['Update available', 'warn'],
+    ahead: ['Newer than the catalog', 'info'],
+    unlisted: ['Not in the cogNNitive catalog', 'info'],
+    unpinned: ['No version pinned', 'warn'],
+    unknown: ['Not checked (catalog unavailable)', 'muted'],
+  }
+
+  function versionStatusLabel(row) {
+    var entry = VERSION_STATUS[row.status] || VERSION_STATUS.unknown
+    var gap = row.status === 'upgrade-available' && row.gap ? ' (' + row.gap + ')' : ''
+    return { text: entry[0] + gap, tone: entry[1] }
+  }
+
+  function versionOrigin(row) {
+    if (row.status === 'unlisted') return 'Local bluepriNNt'
+    if (row.status === 'unknown' || row.status === 'unpinned') return '—'
+    return 'Published by cogNNitive'
+  }
+
+  function versionsTable(cls, headers, rows) {
+    var table = el('table', 'nn-versions-table ' + cls)
+    // Software versions, not kNNowledge: no cell is an addressable unit.
+    table.setAttribute('data-ku-exempt', '1')
+    var thead = el('thead')
+    var htr = el('tr')
+    headers.forEach(function (h) {
+      htr.appendChild(el('th', null, h))
+    })
+    thead.appendChild(htr)
+    table.appendChild(thead)
+    var tbody = el('tbody')
+    rows.forEach(function (cells) {
+      var tr = el('tr')
+      cells.forEach(function (cell) {
+        if (cell && cell.nodeType) {
+          var td = el('td')
+          td.appendChild(cell)
+          tr.appendChild(td)
+        } else {
+          tr.appendChild(el('td', null, cell == null || cell === '' ? '—' : String(cell)))
+        }
+      })
+      tbody.appendChild(tr)
+    })
+    table.appendChild(tbody)
+    return table
+  }
+
+  var INSTALL_SCOPE_TEXT = {
+    domain: "This domaiNN's own installation (.agents/bootstrap-state.json in the domaiNN).",
+    user: "The installation of the user who exported this console (~/.agents/bootstrap-state.json).",
+    file: 'The installation record given at export time.',
+  }
+
+  function renderVersionsView(doc, meta) {
+    var host = doc.getElementById('nn-tab-versions')
+    if (!host) return
+    host.innerHTML = ''
+    var versions = (meta && meta.versions) || {}
+    var root = el('div', 'nn-versions')
+    var checked = meta && meta.generated ? String(meta.generated).slice(0, 10) : ''
+    root.appendChild(
+      el(
+        'p',
+        'nn-versions-checked',
+        (checked ? 'Checked on ' + checked + ', when this console was exported. ' : '') +
+          'The console never goes online: export it again to refresh these versions.',
+      ),
+    )
+
+    var bp = el('section', 'nn-versions-section nn-versions-blueprints')
+    bp.appendChild(el('h3', null, 'BluepriNNts used by this domaiNN'))
+    bp.appendChild(
+      el(
+        'p',
+        'nn-versions-hint',
+        'Each model follows a bluepriNNt. "Pinned" is the version the model declares; "Latest" is the newest one cogNNitive publishes.',
+      ),
+    )
+    var blueprints = Array.isArray(versions.blueprints) ? versions.blueprints : []
+    var titleById = {}
+    ;(meta && Array.isArray(meta.models) ? meta.models : []).forEach(function (m) {
+      if (m && m.id) titleById[m.id] = m.title || m.id
+    })
+    bp.appendChild(
+      versionsTable(
+        'nn-versions-blueprints-table',
+        ['BluepriNNt', 'Used by', 'Pinned', 'Latest', 'Status', 'Origin'],
+        blueprints.map(function (row) {
+          var label = versionStatusLabel(row)
+          var badge = el('span', 'nn-versions-status nn-versions-status--' + label.tone, label.text)
+          var usedBy = (row.models || []).map(function (id) {
+            return titleById[id] || id
+          })
+          return [row.name, usedBy.join(', '), row.pinned, row.adopted, badge, versionOrigin(row)]
+        }),
+      ),
+    )
+    if (versions.catalog === 'unavailable') {
+      bp.appendChild(el('p', 'nn-versions-hint', 'The bluepriNNt catalog could not be read at export time, so no version was checked.'))
+    }
+    if (
+      blueprints.some(function (row) {
+        return row.status === 'upgrade-available'
+      })
+    ) {
+      bp.appendChild(el('p', 'nn-versions-hint', 'To move a model to a newer bluepriNNt, use the nn-update skill.'))
+    }
+    root.appendChild(bp)
+
+    var inst = el('section', 'nn-versions-section nn-versions-installation')
+    inst.appendChild(el('h3', null, 'Installed cogNNitive'))
+    var record = versions.installation
+    if (record && Array.isArray(record.components) && record.components.length) {
+      inst.appendChild(el('p', 'nn-versions-hint', INSTALL_SCOPE_TEXT[record.scope] || ''))
+      inst.appendChild(
+        versionsTable(
+          'nn-versions-installation-table',
+          ['Component', 'Name', 'Version', 'Updated'],
+          record.components.map(function (c) {
+            return [c.kind, c.name, c.version, c.updatedAt]
+          }),
+        ),
+      )
+    } else {
+      inst.appendChild(el('p', 'nn-versions-hint', 'No installation record was found when this console was exported.'))
+    }
+    var check = el('p', 'nn-versions-hint')
+    check.appendChild(doc.createTextNode('Newer skills, MCP server and console versions cannot be checked offline. Run '))
+    check.appendChild(el('code', null, 'node skills-manager.js status'))
+    check.appendChild(doc.createTextNode(' to compare with the latest cogNNitive release.'))
+    inst.appendChild(check)
+    root.appendChild(inst)
+    host.appendChild(root)
+  }
+
   function renderMetamodelView(doc, schema, matrices, elements) {
     var host = doc.getElementById('nn-tab-metamodel')
     if (!host) return
@@ -18858,6 +19001,7 @@ if (typeof window !== 'undefined') {
     })
     renderMetamodelView(active, schema, matrices, elements)
     renderSummaryView(active, model, schema, meta)
+    renderVersionsView(active, meta)
 
     var searchBox = active.getElementById('nn-search')
     if (searchBox) {

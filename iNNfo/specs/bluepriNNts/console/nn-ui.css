@@ -10796,3 +10796,97 @@ table.proc-steps-table tbody tr.on td:first-child {
   flex-direction: column;
   gap: 10px;
 }
+
+/* ---- Versions tab ---- */
+.nn-versions {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 1100px;
+}
+
+.nn-versions-checked {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.nn-versions-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #ffffff;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nn-versions-section h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.nn-versions-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.nn-versions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.nn-versions-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 8px;
+}
+
+.nn-versions-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 7px 8px;
+  color: var(--text);
+  vertical-align: top;
+}
+
+.nn-versions-table td:first-child {
+  font-weight: 600;
+}
+
+.nn-versions-status {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 1px 9px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.nn-versions-status--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.nn-versions-status--warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.nn-versions-status--info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.nn-versions-status--muted {
+  background: #f1f5f9;
+  color: #475569;
+}
