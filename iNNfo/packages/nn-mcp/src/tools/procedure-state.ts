@@ -19,6 +19,8 @@ import { findKnowledgeFile } from './spec.js'
 import { listScopedProcedures } from './scoped-procedures.js'
 import { locateChain } from './resolve-effective.js'
 import { locateFloorProcedures } from './floor-procedures.js'
+import { readHandoff } from './run-handoff.js'
+import type { RunHandoff } from './run-handoff.js'
 
 /**
  * Reading side of the procedure runner (design §3.3): a run is an `executions` instance
@@ -278,6 +280,8 @@ export interface ProcedureStateResult {
   step: Record<string, unknown> | null
   allowedNext: RunState['allowedNext']
   actions: RecordAction[]
+  /** The person's final choice for a completed run, once an import recorded it. */
+  handoff?: RunHandoff
 }
 
 export function describeRun(folded: FoldedRun): ProcedureStateResult {
@@ -308,5 +312,6 @@ export async function procedureState(
   if (!read.ok) return read
   const folded = await foldStoredRun(root, read.run)
   if (!folded.ok) return folded
-  return describeRun(folded.folded)
+  const handoff = await readHandoff(root, read.run.id)
+  return { ...describeRun(folded.folded), ...(handoff ? { handoff } : {}) }
 }
