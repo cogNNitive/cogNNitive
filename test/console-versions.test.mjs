@@ -58,7 +58,11 @@ describe('versions at export', () => {
       INNFO_STATE_FILE: join(scratch, 'none.json'),
     })
     const rows = Object.fromEntries(model.meta.versions.blueprints.map((b) => [b.name, b]))
-    assert.deepEqual(Object.keys(rows), ['executions', 'procedures', 'TestLab'])
+    assert.deepEqual(Object.keys(rows), ['changes', 'executions', 'procedures', 'TestLab'])
+    // The changesets follow the changes bluepriNNt: it is listed like any other, once.
+    assert.equal(rows.changes.status, 'current')
+    assert.equal(rows.changes.adopted, 'V_0-15-0')
+    assert.deepEqual(rows.changes.models, ['changes'])
     assert.equal(rows.executions.status, 'current')
     assert.equal(rows.executions.adopted, 'V_0-6-0')
     assert.deepEqual(rows.executions.models, ['verify-lineage-1'])
