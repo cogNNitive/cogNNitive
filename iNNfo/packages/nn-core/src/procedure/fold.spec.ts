@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { foldRun, procedureGraph } from './index.js'
 import type { RunModel, StepRow } from './index.js'
-import { BUILD_MD, REPORT_MD, REVIEW_MD, parse } from './fixtures.js'
+import { BUILD_MD, LOOP_MD, REPORT_MD, REVIEW_MD, parse } from './fixtures.js'
 
 const review = procedureGraph(parse(REVIEW_MD))
 const report = procedureGraph(parse(REPORT_MD))
 const build = procedureGraph(parse(BUILD_MD))
+const loop = procedureGraph(parse(LOOP_MD))
 
 const step = (over: Partial<StepRow> = {}): StepRow => ({
   status: 'pending',
@@ -192,6 +193,72 @@ describe('foldRun', () => {
     expect(s.steps.write.status).toBe('reopened')
     expect(s.currentStep).toBe('write')
     expect(s.status).toBe('open')
+  })
+
+  it('loop: a span the runner reopened walks back to its target, and its outputs are stale', () => {
+    // The back-edge redraft -> review was taken: review and redraft are pending again with
+    // their attempts kept, and the draft the redraft produced is no longer validated.
+    const s = foldRun(
+      loop,
+      run({
+        steps: {
+          draft: step({ status: 'done', attempt: 1 }),
+          review: step({ status: 'pending', attempt: 1 }),
+          redraft: step({ status: 'pending', attempt: 1 }),
+        },
+        artifacts: {
+          'draft-doc': { kind: 'file', status: 'produced', rev: 'd2', step: 'redraft' },
+        },
+      }),
+      { defRev: 'V_1-0-0' },
+    )
+    expect(s.status).toBe('open')
+    expect(s.currentStep).toBe('review')
+    expect(s.path).toEqual(['draft', 'review'])
+    expect(s.steps.review).toMatchObject({ status: 'pending', attempt: 1 })
+    // Still reachable from the current step, so not off the path.
+    expect(s.steps.redraft.status).toBe('pending')
+    expect(s.steps.publish.status).toBe('pending')
+    expect(s.artifacts['draft-doc'].status).toBe('stale')
+    expect(s.stale).toEqual(['draft-doc'])
+    expect(s.reopened).toEqual([])
+
+    // Once the producer runs again, the artifact is the producer's to report: no longer stale.
+    const again = foldRun(
+      loop,
+      run({
+        steps: {
+          draft: step({ status: 'done', attempt: 1 }),
+          review: step({ status: 'done', attempt: 2, outcome: 'send-back', next: 'redraft' }),
+          redraft: step({ status: 'active', attempt: 2 }),
+        },
+        artifacts: {
+          'draft-doc': { kind: 'file', status: 'produced', rev: 'd2', step: 'redraft' },
+        },
+      }),
+      { defRev: 'V_1-0-0' },
+    )
+    expect(again.currentStep).toBe('redraft')
+    expect(again.steps.redraft).toMatchObject({ status: 'active', attempt: 2 })
+    expect(again.artifacts['draft-doc'].status).toBe('produced')
+    expect(again.stale).toEqual([])
+  })
+
+  it('loop: a back-edge recorded without reopening its span blocks the walk', () => {
+    const s = foldRun(
+      loop,
+      run({
+        steps: {
+          draft: step({ status: 'done', attempt: 1 }),
+          review: step({ status: 'done', attempt: 1, outcome: 'send-back', next: 'redraft' }),
+          redraft: step({ status: 'done', attempt: 1, next: 'review' }),
+        },
+      }),
+      { defRev: 'V_1-0-0' },
+    )
+    expect(s.status).toBe('blocked')
+    expect(s.currentStep).toBe('review')
+    expect(s.blockedBy).toMatch(/reached twice/)
   })
 
   it('offers an artifact guard evaluated against the run', () => {

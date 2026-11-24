@@ -60,6 +60,7 @@ import { explainEffective, resolveEffective } from './tools/resolve-effective.js
 import { procedureState } from './tools/procedure-state.js'
 import { procedurePending } from './tools/procedure-pending.js'
 import { procedureRecord, procedureStart } from './tools/procedure-record.js'
+import { importConsole } from './tools/import-console.js'
 import { envelope, envelopeList, findDomainRoot } from '@cognnitive/nn-core'
 
 /**
@@ -988,13 +989,20 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       description:
         'Record one fact of a procedure run as ONE changeset applied through apply_change (author_kind agent; engine for action run). Actions: start (step_started, attempt and frozen input revs computed), wait (value), complete (outcome; next is taken when one transition holds, else AMBIGUOUS_TRANSITION with the allowed transitions), fail (value), artifact (fact produced|validated|rejected, field = artifact slug, value, rev; only from a step that already started), input (field, value, rev), pause, resume, rebase (accept the current definition revision), cancel, finish (outcome completed, only when the walk can complete, or failed), and run (execute the engine step command with slots substituted, verify its file: artifacts by sha256, record the exit code). ' +
         'The call holds the run write lock across the fold and the apply, so two callers cannot both fold the same state and append the same fact: a second caller is refused with RUN_BUSY and writes nothing. ' +
-        'A terminal event and close_model go in the same changeset. Refusals write nothing: INVALID_ACTION, INVALID_ARGUMENT, RUN_NOT_FOUND, RUN_BUSY, RUN_CLOSED, RUN_DRIFTED, RUN_PAUSED, NOT_PAUSED, NOT_DRIFTED, UNKNOWN_STEP, STEP_NOT_CURRENT, STEP_NOT_STARTED, STEP_ALREADY_STARTED, UNKNOWN_ARTIFACT, INVALID_TRANSITION, AMBIGUOUS_TRANSITION, CANNOT_COMPLETE, NOT_ENGINE_STEP; APPLY_FAILED reports an apply refusal. Returns what was recorded and the new state.',
+        'A Step Request a person recorded in the console (see procedure_pending) is consumed by giving its id as request instead of an action: the request names the action, step, outcome or value, and the same changeset that records the action marks it done. A request made at an older base_seq whose step moved since is marked stale, and one the planner refuses is marked rejected with the reason; both marks are their own changeset and record nothing else. ' +
+        'A terminal event and close_model go in the same changeset. Refusals write nothing: INVALID_ACTION, INVALID_ARGUMENT, RUN_NOT_FOUND, REQUEST_NOT_FOUND, REQUEST_NOT_PENDING, REQUEST_STALE, RUN_BUSY, RUN_CLOSED, RUN_DRIFTED, RUN_PAUSED, NOT_PAUSED, NOT_DRIFTED, UNKNOWN_STEP, STEP_NOT_CURRENT, STEP_NOT_STARTED, STEP_ALREADY_STARTED, UNKNOWN_ARTIFACT, INVALID_TRANSITION, AMBIGUOUS_TRANSITION, CANNOT_COMPLETE, NOT_ENGINE_STEP; APPLY_FAILED reports an apply refusal. Returns what was recorded and the new state.',
       inputSchema: {
         type: 'object',
         properties: {
           run: { type: 'string', description: 'Run id' },
+          request: {
+            type: 'string',
+            description:
+              'Id of a pending Step Request to consume (from procedure_pending); give it instead of action, never both',
+          },
           action: {
             type: 'string',
+            description: 'The fact to record; required unless request is given',
             enum: [
               'start',
               'run',
@@ -1042,7 +1050,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           domain: { type: 'string', description: 'Optional domain root override' },
           root: { type: 'string', description: 'Optional domain root override (alias for domain)' },
         },
-        required: ['run', 'action'],
+        required: ['run'],
       },
     },
     handler: handleProcedureRecord,
@@ -1052,7 +1060,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'procedure_pending',
       annotations: { readOnlyHint: true },
       description:
-        'Read-only: the queue of Step Request rows a person recorded in the console (executions spec, "Requests, not writes"). A request is intent, never state: it names an action (wait, complete or fail), the step, the run seq it was asked at (base_seq) and an optional outcome or value. Only procedure_record consumes one, and it marks it done, stale or rejected. Without a run id it lists every run of the domaiNN. Returns each request with its id, run, step, action, base_seq, status and reason, plus how many are still pending. Never writes files. Codes: INVALID_ARGUMENT, RUN_NOT_FOUND.',
+        'Read-only: the queue of Step Request rows a person recorded in the console (executions spec, "Requests, not writes"). A request is intent, never state: it names an action (start, wait, complete or fail), the step, the run seq it was asked at (base_seq) and an optional outcome or value. Only procedure_record consumes one, and it marks it done, stale or rejected. Without a run id it lists every run of the domaiNN. Returns each request with its id, run, step, action, base_seq, status and reason, plus how many are still pending. Never writes files. Codes: INVALID_ARGUMENT, RUN_NOT_FOUND.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1066,6 +1074,42 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       },
     },
     handler: handleProcedurePending,
+  },
+  {
+    definition: {
+      name: 'import_console',
+      annotations: { readOnlyHint: false, destructiveHint: false },
+      description:
+        'Import a console HTML a person saved with "Save Snapshot" (for example an e-mail attachment) into this domaiNN. Reads its nn-drafts slot and turns the drafts into the changeset the console "Download changes" button would have produced (the console runtime composes it, so the bytes match a download) and writes it to changes/. ' +
+        'Without apply it writes only that changeset and reports the runs the person asked for (drafts of kind run_start: { kind: "run_start", procedure, params, run?, path? }). With apply it applies the changeset through apply_change, starts each requested run through procedure_start with the reviewer as actor, and with consume it also consumes every Step Request the changeset added through procedure_record request=, reporting each as done, stale, rejected or failed. The domain console is regenerated once at the end. ' +
+        'The file must be a console of THIS domaiNN (its meta.domainId). Refusals write nothing: INVALID_ARGUMENT, CONSOLE_NOT_FOUND, NOT_A_CONSOLE, DOMAIN_MISMATCH, REVIEWER_REQUIRED (the file names no reviewer and no author was given), INVALID_DRAFT, EXPORT_REFUSED, CHANGESET_EXISTS, CONSOLE_ASSETS_NOT_FOUND; APPLY_FAILED reports an apply refusal of the written changeset. Returns the changeset path, applied count, requests consumed, runs started and next_steps.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description:
+              'The saved console HTML, absolute (anywhere on disk) or relative to the domain root',
+          },
+          author: {
+            type: 'string',
+            description: 'Who signs the changes (default the reviewer the saved console names)',
+          },
+          apply: {
+            type: 'boolean',
+            description: 'Apply the changeset and start the requested runs (default false)',
+          },
+          consume: {
+            type: 'boolean',
+            description: 'With apply: consume the Step Requests it added (default false)',
+          },
+          domain: { type: 'string', description: 'Optional domain root override' },
+          root: { type: 'string', description: 'Optional domain root override (alias for domain)' },
+        },
+        required: ['path'],
+      },
+    },
+    handler: handleImportConsole,
   },
 ]
 
@@ -1478,6 +1522,10 @@ function handleProcedureRecord(args: Record<string, unknown>): Promise<CallToolR
 
 function handleProcedurePending(args: Record<string, unknown>): Promise<CallToolResult> {
   return runnerResult('innfo-procedure-pending', procedurePending, args)
+}
+
+function handleImportConsole(args: Record<string, unknown>): Promise<CallToolResult> {
+  return runnerResult('innfo-import-console', (root, a) => importConsole(root, a), args)
 }
 
 /* ── Response helpers ────────────────────────────────────────── */

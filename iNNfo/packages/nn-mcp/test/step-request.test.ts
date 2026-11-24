@@ -283,3 +283,38 @@ describe('Step Request queue', SLOW, () => {
     expect(pending.requests.find((r) => r.id === 'q-start')?.status).toBe('done')
   })
 })
+
+describe('procedure_record over MCP consumes a console request', SLOW, () => {
+  it('declares request in the tool schema, does not require action, and names start in procedure_pending', async () => {
+    const { toolDefinitions } = await import('../src/server.js')
+    const record = toolDefinitions.find((t) => t.name === 'procedure_record')!
+    const props = record.inputSchema.properties as Record<string, { type?: string }>
+    expect(props['request']).toMatchObject({ type: 'string' })
+    expect(record.inputSchema.required).toEqual(['run'])
+    expect(record.description).toMatch(/request/)
+    expect(record.description).toMatch(/REQUEST_NOT_FOUND/)
+    const pending = toolDefinitions.find((t) => t.name === 'procedure_pending')!
+    expect(pending.description).toMatch(/start, wait, complete or fail/)
+  })
+
+  it('a request id given through the dispatcher is consumed and marked done', async () => {
+    const { dispatchTool } = await import('../src/server.js')
+    ok(await startReview())
+    ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
+    const seq = await runSeq()
+    await requestRow('q-001', { action: 'complete', step: 'draft', base_seq: seq })
+
+    const res = await dispatchTool('procedure_record', {
+      run: 'r1',
+      request: 'q-001',
+      domain: root,
+    })
+    expect(res.isError).toBeFalsy()
+    const body = JSON.parse((res.content[0] as { text: string }).text)
+    expect(body).toMatchObject({ version: 'innfo-procedure-record@1', ok: true, seq: seq + 1 })
+    expect(body.state.steps.draft.status).toBe('done')
+    const after = ok(await procedurePending(root, { run: 'r1' }))
+    expect(after.pending).toBe(0)
+    expect(after.requests[0]).toMatchObject({ id: 'q-001', status: 'done' })
+  })
+})

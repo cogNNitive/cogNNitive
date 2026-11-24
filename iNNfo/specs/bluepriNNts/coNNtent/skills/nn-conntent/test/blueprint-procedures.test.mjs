@@ -66,16 +66,35 @@ function parseWork(text) {
   const work = elements.filter((element) => element.concept === 'Work')
   const root = work.find((element) => !element.fields.parent)
   const bySlug = new Map(work.map((element) => [element.fields.slug, element]))
-  // The chain in `next::` order, from the step no other step points at.
   const steps = work.filter((element) => element.fields.parent)
-  const targets = new Set(steps.map((step) => String(step.fields.next || '').replace(/^@/, '')))
+  const targets = new Set(steps.flatMap(nextOf))
+  const starts = steps.filter((candidate) => !targets.has(candidate.fields.slug))
+  // The default path: from the step no other step points at, through the first `next::`
+  // target of each step (a decision lists its default branch first).
   const chain = []
-  let step = steps.find((candidate) => !targets.has(candidate.fields.slug))
+  let step = starts[0]
   while (step && !chain.includes(step)) {
     chain.push(step)
-    step = bySlug.get(String(step.fields.next || '').replace(/^@/, ''))
+    step = bySlug.get(nextOf(step)[0])
   }
-  return { elements, root, steps, chain }
+  // Every step reachable from the start through any branch, each once.
+  const reachable = []
+  const todo = starts.slice(0, 1)
+  for (let next = todo.shift(); next; next = todo.shift()) {
+    if (reachable.includes(next)) continue
+    reachable.push(next)
+    todo.push(...nextOf(next).flatMap((slug) => (bySlug.has(slug) ? [bySlug.get(slug)] : [])))
+  }
+  return { elements, root, steps, starts, chain, reachable }
+}
+
+/** The `next::` targets of a step: `@a` or a branch list `[@a, @b]`, as slugs. */
+function nextOf(step) {
+  return String(step.fields.next || '')
+    .replace(/^\[|\]$/g, '')
+    .split(',')
+    .map((target) => target.trim().replace(/^@/, ''))
+    .filter((target) => target !== '')
 }
 
 const read = (rel) => fs.readFileSync(path.join(BLUEPRINT_DIR, rel), 'utf8')
@@ -138,14 +157,19 @@ test('every declared procedure resolves through the bluepriNNt floor loader', ()
 
 for (const [id, rel] of Object.entries(PROMOTED)) {
   test(`${id}: one procedure whose steps each declare exactly one tool and what it contributes`, () => {
-    const { root, steps, chain } = parseWork(read(rel))
+    const { root, steps, starts, reachable } = parseWork(read(rel))
     assert.ok(root, `${rel} has no unparented Work element`)
     assert.equal(root.fields.slug, id, `the procedure slug must be ${id}`)
     for (const field of ['level', 'condition', 'output']) {
       assert.ok(root.fields[field], `${id} has no ${field}::`)
     }
     assert.ok(steps.length > 0, `${id} has no steps`)
-    assert.equal(chain.length, steps.length, `${id}: next:: does not chain every step exactly once`)
+    assert.equal(starts.length, 1, `${id}: more than one step has no incoming next::`)
+    assert.equal(
+      reachable.length,
+      steps.length,
+      `${id}: next:: does not reach every step exactly once`,
+    )
     for (const step of steps) {
       assert.equal(step.fields.parent, `@${id}`, `step "${step.name}" is not addressed to @${id}`)
       const declarations = step.lines.filter((line) => /^tool::/.test(line))
@@ -190,7 +214,29 @@ test('draft-scene-visuals gates the draft on clean screenshots and rendered Hype
   const render = chain.findIndex((step) => /hyperframes/i.test(step.name))
   assert.ok(capture >= 0 && capture < gateIndex, 'screenshots are not captured before the gate')
   assert.ok(render >= 0 && render < gateIndex, 'clips are not rendered before the gate')
-  assert.equal(toolOf(chain.at(-1)), 'human', 'the draft ends in a human approval')
+  const approval = chain.find((step) => step.fields.step_type === 'decision')
+  assert.ok(approval, 'the draft is not approved by a decision step')
+  assert.equal(toolOf(approval), 'human', 'the draft is not approved by a human')
+})
+
+test('draft-scene-visuals approves the draft or sends one scene back, in a bounded loop', () => {
+  const { steps } = parseWork(read(PROMOTED['draft-scene-visuals']))
+  const bySlug = new Map(steps.map((step) => [step.fields.slug, step]))
+  const approval = bySlug.get('approve-the-draft')
+  assert.ok(approval, 'no approve-the-draft step')
+  assert.equal(approval.fields.step_type, 'decision')
+  const [approve, sendBack] = nextOf(approval)
+  assert.equal(bySlug.get(approve)?.fields.condition, 'outcome == approve')
+  assert.equal(bySlug.get(sendBack)?.fields.condition, 'outcome == send-back')
+  for (const token of ['approve', 'send-back'])
+    assert.ok(
+      approval.fields.decision.includes(`(${token})`),
+      `the decision does not name ${token}`,
+    )
+  assert.deepEqual(nextOf(bySlug.get(approve)), [], `${approve} must end the procedure`)
+  // The redraft goes back to the approval: the loop's back-edge, which the runner bounds by
+  // the approval's attempts.
+  assert.deepEqual(nextOf(bySlug.get(sendBack)), ['approve-the-draft'])
 })
 
 test('produce-video lists series through their scope documents and hands off to the declared procedure', () => {
@@ -210,4 +256,30 @@ test('produce-video lists series through their scope documents and hands off to 
   assert.match(handOff.name, /hand off/i)
   assert.match(body(handOff), /procedure_start/)
   assert.match(text, /spends nothing/i, 'the router does not state that it spends nothing')
+})
+
+test('produce-video branches the goal into a new episode, a new series or an existing episode', () => {
+  const { steps } = parseWork(read(PROMOTED['produce-video']))
+  const bySlug = new Map(steps.map((step) => [step.fields.slug, step]))
+  const clarify = bySlug.get('clarify-the-goal')
+  assert.ok(clarify, 'no clarify-the-goal step')
+  assert.equal(clarify.fields.step_type, 'decision')
+  const targets = nextOf(clarify)
+  assert.equal(
+    targets[0],
+    'list-the-series',
+    'the default branch (a new episode) is not listed first',
+  )
+  const guards = targets.map((slug) => bySlug.get(slug)?.fields.condition)
+  assert.deepEqual(guards, [
+    'outcome == new-episode',
+    'outcome == new-series',
+    'outcome == existing-episode',
+  ])
+  for (const token of ['new-episode', 'new-series', 'existing-episode'])
+    assert.ok(clarify.fields.decision.includes(`(${token}`), `the decision does not name ${token}`)
+  assert.match(body(bySlug.get(targets[1])), /Create a Series/)
+  assert.match(body(bySlug.get(targets[2])), /Produce an Episode/)
+  for (const slug of targets.slice(1))
+    assert.deepEqual(nextOf(bySlug.get(slug)), [], `${slug} must end the router`)
 })

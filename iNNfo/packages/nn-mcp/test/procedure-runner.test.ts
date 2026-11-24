@@ -137,6 +137,24 @@ describe('procedure_start', SLOW, () => {
     expect(csText).toMatch(/^atomic: true$/m)
   })
 
+  it('creates a run with no schema placeholder rows (no Example step, artifact, input or request)', async () => {
+    ok(await startReview())
+    const text = await runText('r1')
+    expect(text).not.toMatch(/Example/)
+    expect(text).not.toMatch(/<string>/)
+    expect(text).not.toMatch(/^## NN Step Request: /m)
+    expect(text).not.toMatch(/^## NN Input: /m)
+    const state = ok(await procedureState(root, { run: 'r1' }))
+    // Only the procedure's own artifacts and steps are folded.
+    expect(Object.keys((state.state as { artifacts: object }).artifacts)).not.toContain(
+      'example-run-artifact',
+    )
+    expect((await procedurePending(root, { run: 'r1' })) as Result).toMatchObject({
+      ok: true,
+      pending: 0,
+    })
+  })
+
   it('refuses an unknown procedure, a missing required slot and a taken run id', async () => {
     expect(await procedureStart(root, { procedure: 'ghost', params: {} })).toMatchObject({
       ok: false,
@@ -666,5 +684,137 @@ describe('step requests', SLOW, () => {
     const text = await runText('r1')
     void text
     void before
+  })
+})
+
+describe('bounded loops', SLOW, () => {
+  const startLoop = () => procedureStart(root, { procedure: 'loop', run: 'l1' })
+  const rec = (args: Record<string, unknown>) => procedureRecord(root, { run: 'l1', ...args })
+
+  /** Drafts, validates the draft at `rev`, and stops at the review step, started. */
+  async function untilReview(rev: string): Promise<void> {
+    ok(await startLoop())
+    ok(await rec({ action: 'start' }))
+    ok(await rec({ action: 'artifact', fact: 'validated', field: 'draft-doc', rev }))
+    ok(await rec({ action: 'complete' }))
+    ok(await rec({ action: 'start' }))
+  }
+
+  /** Sends the draft back from a started review and starts the redraft. */
+  async function sendBack(): Promise<void> {
+    ok(await rec({ action: 'complete', outcome: 'send-back' }))
+    ok(await rec({ action: 'start' }))
+  }
+
+  it('the forward branch out of a loop completes the run like any decision', async () => {
+    await untilReview('d1')
+    const approved = ok(await rec({ action: 'complete', outcome: 'approve' }))
+    expect(approved.state).toMatchObject({
+      currentStep: 'publish',
+      path: ['draft', 'review', 'publish'],
+    })
+    expect(approved.state.steps.redraft.status).toBe('off_path')
+    ok(await rec({ action: 'start' }))
+    expect(ok(await rec({ action: 'complete' })).state.canComplete).toBe(true)
+  })
+
+  it('a back-edge reopens its span in one changeset, and the target restarts at the next attempt', async () => {
+    await untilReview('d1')
+    await sendBack()
+    ok(
+      await rec({
+        action: 'artifact',
+        fact: 'validated',
+        field: 'draft-doc',
+        rev: 'd2',
+        step: 'redraft',
+      }),
+    )
+    const before = await changesets()
+
+    // redraft -> review is the back-edge: review and redraft go back to pending, attempts kept.
+    const looped = ok(await rec({ action: 'complete' }))
+    expect(await changesets()).toHaveLength(before.length + 1)
+    expect(looped.state).toMatchObject({
+      status: 'open',
+      currentStep: 'review',
+      path: ['draft', 'review'],
+    })
+    expect(looped.state.steps.review).toMatchObject({ status: 'pending', attempt: 1 })
+    expect(looped.state.steps.redraft).toMatchObject({ status: 'pending', attempt: 1 })
+    expect(looped.state.steps.review.outcome).toBeUndefined()
+    // The redraft's output is no longer validated: stale until the redraft runs again.
+    expect(looped.state.artifacts['draft-doc'].status).toBe('stale')
+    expect(looped.state.stale).toEqual(['draft-doc'])
+    const [cs] = (await changesets()).filter((f) => !before.includes(f))
+    const csText = await readFile(join(root, 'changes', cs!), 'utf-8')
+    expect(csText).toMatch(/^atomic: true$/m)
+    expect(csText).toContain('l1@review')
+    expect(csText).toContain('l1@redraft')
+    expect(csText).toContain('l1@draft-doc')
+
+    const restarted = ok(await rec({ action: 'start' }))
+    expect(restarted.state.steps.review).toMatchObject({ status: 'active', attempt: 2 })
+  })
+
+  it('LOOP_LIMIT: a back-edge to a target that used its attempts is refused and writes nothing', async () => {
+    await untilReview('d1')
+    await sendBack()
+    ok(await rec({ action: 'complete' }))
+    ok(await rec({ action: 'start' })) // review, attempt 2 of max_attempts:: 2
+    await sendBack()
+    const before = await snapshot()
+    const refused = await rec({ action: 'complete' })
+    expect(refused).toMatchObject({ ok: false, code: 'LOOP_LIMIT', step: 'review', maxAttempts: 2 })
+    expect(String((refused as { detail: string }).detail)).toMatch(/fail/)
+    expect(await snapshot()).toEqual(before)
+    // The way out stays open: the step can fail.
+    expect(ok(await rec({ action: 'fail', value: 'too many rounds' })).state.status).toBe('blocked')
+  })
+})
+
+describe('bounded loops on engine steps', SLOW, () => {
+  it('an exit code mapped to a back-edge reopens the span, and past max_attempts fails the step', async () => {
+    ok(await procedureStart(root, { procedure: 'retry', params: { code: 3 }, run: 'e1' }))
+    const rec = (args: Record<string, unknown>) => procedureRecord(root, { run: 'e1', ...args })
+    ok(await rec({ action: 'run' }))
+    // check exits 3 -> outcome retry -> back to fetch, the start step: both reopened.
+    const looped = ok(await rec({ action: 'run' }))
+    expect(looped.exitCode).toBe(3)
+    expect(looped.state).toMatchObject({ currentStep: 'fetch', path: ['fetch'] })
+    expect(looped.state.steps.fetch).toMatchObject({ status: 'pending', attempt: 1 })
+    expect(looped.state.steps.check).toMatchObject({ status: 'pending', attempt: 1 })
+
+    expect(ok(await rec({ action: 'run' })).state.steps.fetch).toMatchObject({
+      status: 'done',
+      attempt: 2,
+    })
+    // fetch took its 2 attempts: the claim already landed, so the step fails with the code.
+    const limited = ok(await rec({ action: 'run' }))
+    expect(limited.state.steps.check).toMatchObject({ status: 'failed', attempt: 2 })
+    expect(limited.state.steps.check.failure).toMatch(/^LOOP_LIMIT: /)
+    expect(limited.state.status).toBe('blocked')
+  })
+})
+
+describe('the {run} slot', SLOW, () => {
+  it('resolves to the run id in the state, an engine command and an artifact verify', async () => {
+    ok(await procedureStart(root, { procedure: 'runslot', run: 'rs1' }))
+    const state = ok(await procedureState(root, { run: 'rs1' }))
+    expect(state.step).toMatchObject({
+      command: `node -e "require('fs').writeFileSync('stamp-rs1.txt', 'stamped')"`,
+      outputs: { 'stamp-file': { verify: 'file:stamp-rs1.txt' } },
+    })
+    // The run id is never stored as a parameter the person gave.
+    expect(state.params).toEqual({})
+
+    const ran = ok(await procedureRecord(root, { run: 'rs1', action: 'run' }))
+    expect(ran.exitCode).toBe(0)
+    expect(await readFile(join(root, 'stamp-rs1.txt'), 'utf-8')).toBe('stamped')
+    expect(ran.state.artifacts['stamp-file']).toMatchObject({
+      status: 'validated',
+      value: 'stamp-rs1.txt',
+    })
+    expect(ran.step).toMatchObject({ decision: 'is stamp-rs1.txt right?' })
   })
 })
