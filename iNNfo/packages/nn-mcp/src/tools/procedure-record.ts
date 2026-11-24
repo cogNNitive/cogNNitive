@@ -464,6 +464,25 @@ function backEdge(
   return { changes }
 }
 
+/**
+ * A step's required outputs that were never recorded. Completing a step is the point where
+ * the runner stops letting an actor move on with an empty result: `required` emphasizes the
+ * gate for the artifacts every run needs, and an optional output (declared without it) is
+ * never a reason to stop. The fold already reports the worth of an output for this run; an
+ * artifact the fold marks `not_required` (off the walked path) is not asked of this step.
+ */
+function unrecordedRequiredOutputs(
+  f: FoldedRun,
+  step: string,
+): Array<{ slug: string; name: string }> {
+  return f.graph.steps[step]!.outputs.filter((slug) => f.graph.artifacts[slug]?.required !== false)
+    .filter((slug) => {
+      const status = f.state.artifacts[slug]?.status
+      return status !== 'validated' && status !== 'not_required'
+    })
+    .map((slug) => ({ slug, name: f.graph.artifacts[slug]!.name }))
+}
+
 function planStepStart(
   f: FoldedRun,
   step: string,
@@ -756,6 +775,22 @@ function plan(
           state.blockedBy ?? 'The walk has not reached a done terminal step.',
           { currentStep: state.currentStep },
         )
+      // The run's own gate: every required artifact the walked path produced is recorded
+      // before the execution closes. Optional outputs never block it.
+      const unrecorded = Object.entries(f.graph.artifacts)
+        .filter(([, def]) => def.required)
+        .filter(([, def]) => def.producers.some((p) => state.steps[p]?.status === 'done'))
+        .filter(([slug]) => {
+          const status = state.artifacts[slug]?.status
+          return status !== 'validated' && status !== 'not_required'
+        })
+        .map(([slug, def]) => ({ slug, name: def.name }))
+      if (unrecorded.length > 0)
+        return fail(
+          'MISSING_OUTPUT',
+          `The run cannot close: required output${unrecorded.length > 1 ? 's' : ''} not recorded: ${unrecorded.map((m) => `"${m.name}" (${m.slug})`).join(', ')}.`,
+          { missing: unrecorded },
+        )
       return {
         close: true,
         changes: [
@@ -832,6 +867,18 @@ function plan(
     }
 
   // complete
+  // Completing the step is where the runner refuses to walk past an unrecorded result: the
+  // outputs the procedure declares as required exist by the time it moves on. A refusal
+  // writes nothing, so the step stays active and the actor can attach the output and retry.
+  // This check runs before the transition is chosen on purpose: a missing output is the
+  // actionable answer, and reporting a transition problem first would hide it.
+  const missing = unrecordedRequiredOutputs(f, step)
+  if (missing.length > 0)
+    return fail(
+      'MISSING_OUTPUT',
+      `Step "${step}" must record its required output${missing.length > 1 ? 's' : ''}: ${missing.map((m) => `"${m.name}" (${m.slug})`).join(', ')}.`,
+      { step, missing },
+    )
   const outcome = text(args['outcome'])
   const targets = state.allowedNext
   const chosen = chooseNext(targets, outcome, text(args['next']))
@@ -1118,6 +1165,16 @@ function planEngineRun(
         { allowedNext: targets },
       )
     const next = chosen.ok ? chosen.next : undefined
+    // An engine step that finishes without one of its required outputs fails with that same
+    // `missing` reason, so a gate never looks like a plain absent command.
+    const unrecorded = [
+      ...missing,
+      ...unrecordedRequiredOutputs(f, step)
+        .filter(
+          (m) => !def.outputs.some((o) => f.graph.artifacts[o]?.verify?.trim().startsWith('file:')),
+        )
+        .map((m) => m.name),
+    ]
     return {
       step,
       attempt,
@@ -1126,8 +1183,8 @@ function planEngineRun(
       claimedSeq,
       changes: [
         ...artifactChanges,
-        ...(missing.length > 0
-          ? [finishRow('failed', { failure: `missing ${missing.join(', ')}` })]
+        ...(unrecorded.length > 0
+          ? [finishRow('failed', { failure: `missing ${unrecorded.join(', ')}` })]
           : settle(next, { ...(next ? { next } : {}) })),
       ],
     }

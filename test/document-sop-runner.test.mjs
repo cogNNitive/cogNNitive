@@ -128,8 +128,16 @@ test(
           params: { intake: 'intake.md', sop: output },
         })
       const record = (run, action, args = {}) => ok('procedure_record', { run, action, ...args })
-      const complete = async (run, step, outcome) => {
+      // A step's required output must be recorded `validated` before it can complete.
+      const deliver = (run, field) =>
+        record(run, 'artifact', {
+          field,
+          fact: 'validated',
+          rev: createHash('sha256').update(`${run}:${field}`).digest('hex'),
+        })
+      const complete = async (run, step, outcome, field) => {
         await record(run, 'start', { step })
+        if (field) await deliver(run, field)
         return record(run, 'complete', { step, outcome })
       }
       assert.equal(
@@ -137,7 +145,16 @@ test(
         'MISSING_REQUIRED_SLOT',
       )
       await start('rejected')
-      await complete('rejected', 'scope-trigger-identification')
+      await record('rejected', 'start', { step: 'scope-trigger-identification' })
+      const unrecorded = await call('procedure_record', {
+        run: 'rejected',
+        action: 'complete',
+        step: 'scope-trigger-identification',
+      })
+      assert.equal(unrecorded.code, 'MISSING_OUTPUT')
+      assert.equal(unrecorded.missing[0].slug, 'procedure-scope-definition')
+      await deliver('rejected', 'procedure-scope-definition')
+      await record('rejected', 'complete', { step: 'scope-trigger-identification' })
       await record('rejected', 'start', { step: 'scope-approval' })
       const beforeDenial = await ok('procedure_state', { run: 'rejected' })
       const denied = await call('procedure_record', {
@@ -163,21 +180,22 @@ test(
       ])
 
       await start('inventory-sop')
-      for (const [step, outcome] of [
-        ['scope-trigger-identification'],
+      for (const [step, outcome, field] of [
+        ['scope-trigger-identification', undefined, 'procedure-scope-definition'],
         ['scope-approval', 'approve'],
-        ['workflow-step-decomposition'],
-        ['artifact-tool-attachment'],
-        ['raci-governance-assignment'],
+        ['workflow-step-decomposition', undefined, 'decomposed-step-hierarchy'],
+        ['artifact-tool-attachment', undefined, 'toolchain-dependency-map'],
+        ['raci-governance-assignment', undefined, 'raci-accountability-matrix'],
       ])
-        await complete('inventory-sop', step, outcome)
+        await complete('inventory-sop', step, outcome, field)
       await record('inventory-sop', 'start', { step: 'integrity-syntax-verification' })
       const missing = await call('procedure_record', {
         run: 'inventory-sop',
         action: 'complete',
         next: 'confirm-validated-sop',
       })
-      assert.equal(missing.code, 'INVALID_TRANSITION')
+      assert.equal(missing.code, 'MISSING_OUTPUT')
+      assert.equal(missing.missing[0].slug, 'validated-innfo-level-3-model')
       await writeFile(join(domain, output), sample)
       const validation = await call('validate_knowledge', {
         id: 'review-monthly-inventory_procedures',

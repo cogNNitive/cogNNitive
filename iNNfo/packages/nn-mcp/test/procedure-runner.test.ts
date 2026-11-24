@@ -305,6 +305,48 @@ describe('procedure_record', SLOW, () => {
     expect(errors.map((e) => e.code).filter((c) => c?.startsWith('CITATION'))).toEqual([])
   })
 
+  it('refuses to walk past a step whose required output was never recorded', async () => {
+    // `gated` declares `draft-doc` as required (the default). The console already refuses this
+    // in its UI; the runner must refuse it too, or an agent calling the tool directly walks
+    // past an empty deliverable.
+    ok(await procedureStart(root, { procedure: 'gated', params: { doc: 'spec' }, run: 'g1' }))
+    ok(await procedureRecord(root, { run: 'g1', action: 'start' }))
+    const before = await snapshot()
+    const gated = await procedureRecord(root, {
+      run: 'g1',
+      action: 'artifact',
+      fact: 'produced',
+      field: 'draft-doc',
+      value: 'draft.md',
+    })
+    expect(gated).toMatchObject({ ok: true })
+    expect(await snapshot()).not.toEqual(before)
+
+    // Produced is not verified: the step still cannot advance, and the refusal writes nothing.
+    const settled = await snapshot()
+    const refused = await procedureRecord(root, { run: 'g1', action: 'complete' })
+    expect(refused).toMatchObject({
+      ok: false,
+      code: 'MISSING_OUTPUT',
+      missing: [{ slug: 'draft-doc' }],
+    })
+    expect(await snapshot()).toEqual(settled)
+
+    ok(
+      await procedureRecord(root, {
+        run: 'g1',
+        action: 'artifact',
+        fact: 'validated',
+        field: 'draft-doc',
+        rev: 'abc123',
+      }),
+    )
+    // With the required output recorded, the step completes and the walk moves on.
+    expect(ok(await procedureRecord(root, { run: 'g1', action: 'complete' })).state).toMatchObject({
+      currentStep: 'review',
+    })
+  })
+
   it('refuses facts the fold forbids, each with a stable code, and writes nothing', async () => {
     ok(await startReview())
     const refuse = async (args: Record<string, unknown>, code: string) => {
