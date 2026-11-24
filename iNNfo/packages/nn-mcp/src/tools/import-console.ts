@@ -102,6 +102,8 @@ export interface ImportConsoleOptions {
 
 const DRAFTS_SLOT = /<script type="application\/json" id="nn-drafts">([\s\S]*?)<\/script>/
 const RUN_SLUG = /^[a-z0-9][a-z0-9-]*$/
+/** The console `writeConsole` puts at the domain root; the default import source. */
+const DEFAULT_CONSOLE_FILE = 'domaiNN_console.html'
 /** The console's placeholder reviewer: the export treats it as "no identifier". */
 const DEFAULT_REVIEWER = 'reviewer'
 
@@ -185,7 +187,23 @@ export async function importConsole(
   opts: ImportConsoleOptions = {},
 ): Promise<ImportConsoleResult | ToolError> {
   const given = text(args['path'])
-  if (!given) return fail('INVALID_ARGUMENT', 'path must name the saved console HTML file.')
+  // Without a path the domaiNN's own console is the source: a console saved in place keeps
+  // the path it was opened from, so "the document is updated, import the changes" needs no
+  // argument. A console saved anywhere else still passes its path.
+  const file = given
+    ? isAbsolute(given)
+      ? given
+      : resolve(root, given)
+    : join(root, DEFAULT_CONSOLE_FILE)
+  if (!existsSync(file))
+    return fail(
+      'CONSOLE_NOT_FOUND',
+      given
+        ? `No file at ${file}.`
+        : `No saved console at ${file}; pass path to the file the person saved.`,
+    )
+  const html = await readFile(file, 'utf-8')
+
   const apply = args['apply'] === true
   const consume = args['consume'] === true
   if (consume && !apply)
@@ -193,9 +211,6 @@ export async function importConsole(
       'INVALID_ARGUMENT',
       'consume needs apply: a request is consumed after its row exists.',
     )
-  const file = isAbsolute(given) ? given : resolve(root, given)
-  if (!existsSync(file)) return fail('CONSOLE_NOT_FOUND', `No file at ${file}.`)
-  const html = await readFile(file, 'utf-8')
 
   const mod = await loadExportModule(opts)
   const bundlePath = resolveConsoleBundlePath(opts)
