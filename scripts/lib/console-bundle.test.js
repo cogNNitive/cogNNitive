@@ -61,6 +61,7 @@ function main() {
       'studio.js',
       'nn-fsa.js',
       // Defines the fold the stepper projects with, so it must precede the runtime and stepper.
+      'nn-procedure-fold.generated.js',
       'nn-procedure-core.js',
       'nn-runtime.js',
       'render-procedure-stepper.js',
