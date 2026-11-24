@@ -84,13 +84,16 @@ async function render() {
 async function main() {
   const check = process.argv.includes('--check')
   const outIdx = process.argv.indexOf('--out')
-  const customOut = outIdx !== -1 && process.argv[outIdx + 1] ? path.resolve(process.argv[outIdx + 1]) : null
+  const customOut =
+    outIdx !== -1 && process.argv[outIdx + 1] ? path.resolve(process.argv[outIdx + 1]) : null
   const outPath = customOut || OUT
   const rel = path.relative(REPO_ROOT, outPath).split(path.sep).join('/')
   const rendered = await render()
 
   if (check) {
-    const committed = fs.existsSync(outPath) ? fs.readFileSync(outPath, 'utf-8').replace(/\r\n/g, '\n') : null
+    const committed = fs.existsSync(outPath)
+      ? fs.readFileSync(outPath, 'utf-8').replace(/\r\n/g, '\n')
+      : null
     if (rendered !== committed) {
       console.error(`build-skills-manager-bundle: DRIFT — ${rel} is stale. Re-run without --check.`)
       process.exit(1)

@@ -27,7 +27,8 @@ const inlineCoreFromSource: Plugin = {
   setup(build) {
     build.onResolve({ filter: /^@cognnitive\/nn-core$/ }, () => ({ path: NN_CORE_SOURCE_ENTRY }))
     build.onResolve({ filter: /^\.\.?\/.*\.js$/ }, (args) => {
-      if (!resolve(args.importer || args.resolveDir).startsWith(NN_CORE_SOURCE_DIR)) return undefined
+      if (!resolve(args.importer || args.resolveDir).startsWith(NN_CORE_SOURCE_DIR))
+        return undefined
       const absolute = resolve(args.resolveDir, args.path)
       if (existsSync(absolute)) return undefined
       const source = `${absolute.slice(0, -'.js'.length)}.ts`

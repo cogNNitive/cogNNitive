@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*!
  * nn-mcp.bundle.js — standalone Model Context Protocol server for cogNNitive.
- * Version: 0.55.0
+ * Version: 0.56.0
  *
  * Includes third-party software:
  * - @modelcontextprotocol/sdk (MIT - Copyright (c) 2024 Anthropic, PBC.)
