@@ -49,3 +49,4 @@ output:: @draft-doc
 ## NN Artifact: Draft Doc
 slug:: draft-doc
 verify:: file:draft.md
+required:: false

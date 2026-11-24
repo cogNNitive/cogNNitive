@@ -50,3 +50,4 @@ condition:: outcome == decline
 ## NN Artifact: Draft Doc
 slug:: draft-doc
 verify:: file:{doc}.md
+required:: false
