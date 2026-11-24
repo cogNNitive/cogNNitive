@@ -78,6 +78,11 @@ def main():
 
         # ---- Domain console ----
         page.goto(f'file://{console}')
+        # The whole-domaiNN console lands on the Domain tab; Knowledge is one click away.
+        page.wait_for_selector('#nn-tab-domain .nn-summary-model', timeout=15000)
+        active_tab = page.get_attribute('#nn-view-tabs .nn-view-tab.active', 'data-tab')
+        check('console lands on the Domain tab', active_tab == 'domain', repr(active_tab))
+        page.click('#nn-view-tabs .nn-view-tab[data-tab="explorer"]')
         page.wait_for_selector('#nn-content', timeout=15000)
         page.wait_for_function(
             "document.querySelector('#nn-content').textContent.includes('Element 1A')",
