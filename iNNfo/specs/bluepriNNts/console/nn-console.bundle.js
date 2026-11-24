@@ -14166,7 +14166,7 @@ if (typeof window !== 'undefined') {
       views.push({ id: 'versions', title: 'Versions', icon: 'milestone', order: 50, tone: 'core', panelId: 'nn-tab-versions' })
     }
     if (schema && Array.isArray(schema.concepts) && schema.concepts.length) {
-      views.push({ id: 'metamodel', title: 'Domain', icon: 'metamodel', order: 10, tone: 'core', panelId: 'nn-tab-metamodel' })
+      views.push({ id: 'metamodel', title: 'Schema', icon: 'metamodel', order: 10, tone: 'core', panelId: 'nn-tab-metamodel' })
     }
     if ((Array.isArray(model && model.elements) && model.elements.length > 0) || shell.explorer) {
       views.push({ id: 'explorer', title: 'Knowledge', icon: 'explorer', order: 20, tone: 'core', panelId: 'nn-tab-explorer' })
@@ -16657,186 +16657,312 @@ if (typeof window !== 'undefined') {
     host.appendChild(root)
   }
 
+  // ---- Schema tab: the concepts as an entity-relationship diagram ----------------
+  // One box per concept with its fields, grouped by the bluepriNNt that declares it;
+  // solid lines are matrices, dashed lines are fields that point to another concept.
+  // The same schema is also told in words below the chart, so it reads without it.
+
+  var SCHEMA_BOX_WIDTH = 230
+  var SCHEMA_GAP_X = 100
+  var SCHEMA_GAP_Y = 110
+  var SCHEMA_MAX_COLS = 4
+  var SCHEMA_MAX_FIELDS = 8
+  var SCHEMA_LINE = 17
+  var SCHEMA_HEADER = 34
+  var SCHEMA_PAD = 20
+  var SCHEMA_ANCHOR = '__nn-schema-anchor-'
+
+  // The relationships between concepts: declared matrices, reference fields of the
+  // schema, and references found in the data. One entry per source, target and label.
+  function schemaEdges(schema, matrices, elements, conceptNames) {
+    var known = {}
+    conceptNames.forEach(function (c) {
+      known[c] = true
+    })
+    var seen = {}
+    var edges = []
+    function add(kind, source, target, label) {
+      if (!known[source] || !known[target]) return
+      var key = kind + '\u0000' + source + '\u0000' + target + '\u0000' + label
+      if (seen[key]) return
+      seen[key] = true
+      edges.push({ kind: kind, source: source, target: target, label: label })
+    }
+    var allMatrices = (Array.isArray(matrices) ? matrices : []).concat(
+      schema && Array.isArray(schema.matrices) ? schema.matrices : [],
+    )
+    allMatrices.forEach(function (m) {
+      if (m && m.source && m.target) add('matrix', m.source, m.target, m.name || '')
+    })
+    ;(schema && Array.isArray(schema.fields) ? schema.fields : []).forEach(function (f) {
+      ;(Array.isArray(f && f.target_concepts) ? f.target_concepts : []).forEach(function (t) {
+        add('reference', f.concept, t, f.name)
+      })
+    })
+    var conceptOf = {}
+    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
+      if (e && e.id) conceptOf[e.id] = e.concept
+    })
+    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
+      ;(Array.isArray(e && e.relations) ? e.relations : []).forEach(function (r) {
+        var t = r && conceptOf[r.target]
+        if (t) add('reference', e.concept, t, r.field || '')
+      })
+    })
+    return edges
+  }
+
+  function schemaFamilyOf(schema, concept) {
+    var list = schema && Array.isArray(schema.concepts) ? schema.concepts : []
+    for (var i = 0; i < list.length; i++) {
+      var c = list[i]
+      if (c && typeof c === 'object' && c.name === concept) return (c.declaredBy && c.declaredBy.family) || 'Other'
+    }
+    return 'Other'
+  }
+
+  function renderSchemaInWords(doc, groups, fieldsOf, counts, edges) {
+    var words = el('section', 'nn-schema-words')
+    words.appendChild(el('h3', 'nn-schema-words-title', 'The schema in words'))
+    groups.forEach(function (g) {
+      var group = el('div', 'nn-schema-group')
+      group.appendChild(el('h3', null, g.family))
+      var list = el('ul')
+      g.concepts.forEach(function (c) {
+        var li = el('li', 'nn-schema-concept')
+        li.appendChild(conceptLink(doc, c))
+        var text = ' — ' + plural(counts[c] || 0, 'element', 'elements') + '.'
+        var fields = fieldsOf[c] || []
+        if (fields.length) {
+          text +=
+            ' Fields: ' +
+            fields
+              .map(function (f) {
+                return f.name + ' (' + (f.type || 'text') + ')'
+              })
+              .join(', ') +
+            '.'
+        }
+        var refs = edges.filter(function (e) {
+          return e.kind === 'reference' && e.source === c
+        })
+        if (refs.length) {
+          text +=
+            ' Points to ' +
+            refs
+              .map(function (e) {
+                return e.target + (e.label ? ' (' + e.label + ')' : '')
+              })
+              .join(', ') +
+            '.'
+        }
+        var mats = edges.filter(function (e) {
+          return e.kind === 'matrix' && e.source === c
+        })
+        if (mats.length) {
+          text +=
+            ' Matrix with ' +
+            mats
+              .map(function (e) {
+                return e.target + (e.label ? ' (' + e.label + ')' : '')
+              })
+              .join(', ') +
+            '.'
+        }
+        li.appendChild(doc.createTextNode(text))
+        list.appendChild(li)
+      })
+      group.appendChild(list)
+      words.appendChild(group)
+    })
+    return words
+  }
+
   function renderMetamodelView(doc, schema, matrices, elements) {
     var host = doc.getElementById('nn-tab-metamodel')
     if (!host) return
     host.innerHTML = ''
-    var nodes = metamodelConceptNames(schema, elements)
-    if (!nodes.length) {
+    // A domaiNN schema keeps one concept per bluepriNNt, so a name can repeat; the
+    // diagram shows it once (graph nodes are keyed by name).
+    var conceptNames = metamodelConceptNames(schema, elements).filter(function (c, i, all) {
+      return all.indexOf(c) === i
+    })
+    if (!conceptNames.length) {
       host.appendChild(el('p', 'empty-state', 'No concepts to map.'))
       return
     }
-    var NS = 'http://www.w3.org/2000/svg'
-    var size = 680
-    var mid = size / 2
-    var r = nodes.length > 1 ? 235 : 0
-    var nodeR = 36
-    var pos = {}
-    nodes.forEach(function (name, i) {
-      var a = -Math.PI / 2 + (i * 2 * Math.PI) / nodes.length
-      pos[name] = { x: mid + r * Math.cos(a), y: mid + r * Math.sin(a) }
+    var counts = {}
+    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
+      if (e && e.concept) counts[e.concept] = (counts[e.concept] || 0) + 1
     })
-    var svg = doc.createElementNS(NS, 'svg')
-    svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size)
-    svg.setAttribute('class', 'nn-metamodel-svg')
-    svg.setAttribute('role', 'img')
-    svg.setAttribute('aria-label', 'Model metamodel map')
+    var fieldsOf = {}
+    ;(schema && Array.isArray(schema.fields) ? schema.fields : []).forEach(function (f) {
+      if (f && f.concept && f.name) (fieldsOf[f.concept] = fieldsOf[f.concept] || []).push(f)
+    })
+    var groups = []
+    var groupOf = {}
+    conceptNames.forEach(function (c) {
+      var family = schemaFamilyOf(schema, c)
+      if (!groupOf[family]) {
+        groupOf[family] = { family: family, concepts: [] }
+        groups.push(groupOf[family])
+      }
+      groupOf[family].concepts.push(c)
+    })
+    var edges = schemaEdges(schema, matrices, elements, conceptNames)
 
-    var defs = doc.createElementNS(NS, 'defs')
-    var marker = doc.createElementNS(NS, 'marker')
-    marker.setAttribute('id', 'nn-metamodel-arrow')
-    marker.setAttribute('viewBox', '0 0 10 10')
-    marker.setAttribute('refX', '9')
-    marker.setAttribute('refY', '5')
-    marker.setAttribute('markerWidth', '6')
-    marker.setAttribute('markerHeight', '6')
-    marker.setAttribute('orient', 'auto-start-reverse')
-    var arrowPath = doc.createElementNS(NS, 'path')
-    arrowPath.setAttribute('d', 'M 0 1 L 10 5 L 0 9 z')
-    arrowPath.setAttribute('fill', 'var(--primary, #2563eb)')
-    marker.appendChild(arrowPath)
-    defs.appendChild(marker)
-    svg.appendChild(defs)
+    var root = el('div', 'nn-schema')
+    var legend = el('p', 'nn-schema-legend')
+    legend.textContent =
+      'Each box is a concept with its fields, grouped by bluepriNNt. A solid line is a matrix; a dashed line is a field that points to another concept. Click a box to see its elements; drag or scroll to move around.'
+    root.appendChild(legend)
+    var chartHost = el('div', 'nn-schema-chart')
+    root.appendChild(chartHost)
+    root.appendChild(renderSchemaInWords(doc, groups, fieldsOf, counts, edges))
+    host.appendChild(root)
 
-    // Edges: matrices (explicit) + element field refs (implicit).
-    var edges = []
-    var seenEdge = {}
-    var pairCounts = {}
-    function pushEdge(source, target, name, kind) {
-      if (!source || !target || !pos[source] || !pos[target]) return
-      var key = source + '>' + target + '>' + (name || '')
-      if (seenEdge[key]) return
-      seenEdge[key] = true
-      var pairKey = source < target ? source + '|' + target : target + '|' + source
-      var slot = pairCounts[pairKey] || 0
-      pairCounts[pairKey] = slot + 1
-      edges.push({ source: source, target: target, name: name, kind: kind || 'matrix', pairKey: pairKey, slot: slot })
+    // Layout: each bluepriNNt starts a new band of rows; boxes keep their real size
+    // because the chart is sized to the layout instead of squeezing it into the view.
+    var nodes = []
+    var y = 0
+    var cols = 1
+    groups.forEach(function (g) {
+      for (var i = 0; i < g.concepts.length; i += SCHEMA_MAX_COLS) {
+        var row = g.concepts.slice(i, i + SCHEMA_MAX_COLS)
+        cols = Math.max(cols, row.length)
+        var heights = row.map(function (c) {
+          var lines = Math.min((fieldsOf[c] || []).length, SCHEMA_MAX_FIELDS)
+          if ((fieldsOf[c] || []).length > SCHEMA_MAX_FIELDS) lines++
+          return SCHEMA_HEADER + Math.max(lines, 1) * SCHEMA_LINE + 14
+        })
+        var rowHeight = Math.max.apply(null, heights)
+        row.forEach(function (c, k) {
+          nodes.push({
+            name: c,
+            h: heights[k],
+            x: SCHEMA_PAD + SCHEMA_BOX_WIDTH / 2 + k * (SCHEMA_BOX_WIDTH + SCHEMA_GAP_X),
+            y: SCHEMA_PAD + y + heights[k] / 2,
+          })
+        })
+        y += rowHeight + SCHEMA_GAP_Y
+      }
+    })
+    var width = cols * SCHEMA_BOX_WIDTH + (cols - 1) * SCHEMA_GAP_X + 2 * SCHEMA_PAD
+    var height = Math.max(200, y - SCHEMA_GAP_Y + 2 * SCHEMA_PAD)
+    // ECharts fits the node centres into the view. Two invisible anchors at the
+    // canvas corners make that box the whole canvas, so the scale stays 1:1 and
+    // no box is cut or squeezed.
+    var anchors = [
+      [SCHEMA_ANCHOR + 'start', 0, 0],
+      [SCHEMA_ANCHOR + 'end', width, height],
+    ].map(function (a) {
+      return { name: a[0], x: a[1], y: a[2], symbolSize: 0, silent: true, label: { show: false }, tooltip: { show: false } }
+    })
+    chartHost.style.height = height + 'px'
+    chartHost.style.width = width + 'px'
+
+    var chart = null
+    try {
+      chart = Studio.renderChart(
+      chartHost,
+      {
+        animation: false,
+        tooltip: { trigger: 'item', confine: true },
+        series: [
+          {
+            type: 'graph',
+            layout: 'none',
+            roam: true,
+            draggable: true,
+            left: 0,
+            top: 0,
+            width: width,
+            height: height,
+            edgeSymbol: ['none', 'arrow'],
+            edgeSymbolSize: 9,
+            autoCurveness: true,
+            data: anchors.concat(
+              nodes.map(function (n) {
+              var color = conceptMetaOf(schema && schema.concepts, n.name).hexColor
+              var fields = fieldsOf[n.name] || []
+              var lines = fields.slice(0, SCHEMA_MAX_FIELDS).map(function (f) {
+                return '{f|' + f.name + '}  {k|' + (f.type || 'text') + '}'
+              })
+              if (fields.length > SCHEMA_MAX_FIELDS) lines.push('{k|+' + (fields.length - SCHEMA_MAX_FIELDS) + ' more fields}')
+              if (!lines.length) lines.push('{k|no fields}')
+              return {
+                name: n.name,
+                x: n.x,
+                y: n.y,
+                symbol: 'rect',
+                symbolSize: [SCHEMA_BOX_WIDTH, n.h],
+                itemStyle: { color: '#ffffff', borderColor: color, borderWidth: 2 },
+                label: {
+                  show: true,
+                  position: [8, 8],
+                  align: 'left',
+                  verticalAlign: 'top',
+                  width: SCHEMA_BOX_WIDTH - 16,
+                  overflow: 'truncate',
+                  formatter: '{t|' + n.name + '  ·  ' + plural(counts[n.name] || 0, 'element', 'elements') + '}\n' + lines.join('\n'),
+                  rich: {
+                    t: {
+                      width: SCHEMA_BOX_WIDTH - 16,
+                      backgroundColor: color,
+                      color: '#ffffff',
+                      fontWeight: 'bold',
+                      fontSize: 12,
+                      padding: [5, 6],
+                      borderRadius: 3,
+                    },
+                    f: { fontSize: 11, color: '#1f2937', lineHeight: SCHEMA_LINE },
+                    k: { fontSize: 10, color: '#6b7280', lineHeight: SCHEMA_LINE },
+                  },
+                },
+                tooltip: {
+                  formatter:
+                    n.name +
+                    ': ' +
+                    (fields.length
+                      ? fields
+                          .map(function (f) {
+                            return f.name
+                          })
+                          .join(', ')
+                      : 'no fields'),
+                },
+              }
+            }),
+            ),
+            links: edges.map(function (e) {
+              return {
+                source: e.source,
+                target: e.target,
+                lineStyle: { type: e.kind === 'matrix' ? 'solid' : 'dashed', width: 1.5, color: '#64748b' },
+                label: {
+                  show: !!e.label,
+                  formatter: e.label,
+                  fontSize: 10,
+                  color: '#334155',
+                  backgroundColor: '#ffffff',
+                  padding: [1, 3],
+                },
+              }
+            }),
+          },
+        ],
+      },
+      { width: width, height: height },
+      )
+    } catch (err) {
+      // The schema in words below still explains the domaiNN without the diagram.
+      if (typeof console !== 'undefined' && console.warn) console.warn('nn-console: schema diagram failed', err)
     }
-    ;(Array.isArray(matrices) ? matrices : []).forEach(function (m) {
-      if (m) pushEdge(m.source, m.target, m.name, 'matrix')
-    })
-    var byConcept = {}
-    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
-      if (e && e.concept) byConcept[e.id] = e.concept
-    })
-    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
-      if (!e || !e.concept || !Array.isArray(e.relations)) return
-      e.relations.forEach(function (r) {
-        if (!r || !r.target) return
-        var tc = byConcept[r.target]
-        if (tc && tc !== e.concept) pushEdge(e.concept, tc, r.field || '', 'relation')
+    if (chart) {
+      chart.on('click', function (params) {
+        if (params.dataType === 'node') revealInKnowledge(doc, formatFacetToken('concept', params.name))
       })
-    })
-    var pendingEdgeLabels = []
-    edges.forEach(function (m) {
-      if (!m || !m.source || !m.target || !pos[m.source] || !pos[m.target]) return
-      var sx = pos[m.source].x
-      var sy = pos[m.source].y
-      var tx = pos[m.target].x
-      var ty = pos[m.target].y
-      var dx = tx - sx
-      var dy = ty - sy
-      var dist = Math.sqrt(dx * dx + dy * dy) || 1
-      var totalForPair = pairCounts[m.pairKey] || 1
-      // Canonical normal vector so parallel edges between the same pair separate cleanly
-      var canonDx = m.source < m.target ? dx : -dx
-      var canonDy = m.source < m.target ? dy : -dy
-      var nx = -canonDy / dist
-      var ny = canonDx / dist
-      var offsetIndex = m.slot - (totalForPair - 1) / 2
-      var perpShift = offsetIndex * 24
-      var x1 = (dist > nodeR * 2 ? sx + (dx / dist) * nodeR : sx) + nx * perpShift
-      var y1 = (dist > nodeR * 2 ? sy + (dy / dist) * nodeR : sy) + ny * perpShift
-      var x2 = (dist > nodeR * 2 ? tx - (dx / dist) * (nodeR + 4) : tx) + nx * perpShift
-      var y2 = (dist > nodeR * 2 ? ty - (dy / dist) * (nodeR + 4) : ty) + ny * perpShift
-      var line = doc.createElementNS(NS, 'line')
-      line.setAttribute('x1', x1)
-      line.setAttribute('y1', y1)
-      line.setAttribute('x2', x2)
-      line.setAttribute('y2', y2)
-      line.setAttribute('class', 'nn-metamodel-edge')
-      line.setAttribute('data-edge-kind', m.kind || 'matrix')
-      if (m.kind === 'relation') {
-        line.setAttribute('stroke-dasharray', '5,4')
-      }
-      line.setAttribute('marker-end', 'url(#nn-metamodel-arrow)')
-      svg.appendChild(line)
-      if (m.name) {
-        var rawName = String(m.name)
-        var shortName = rawName.length > 20 ? rawName.replace(/\s+Matrix$/i, '') : rawName
-        var tFrac = 0.5
-        var lx = x1 + (x2 - x1) * tFrac
-        var ly = y1 + (y2 - y1) * tFrac
-        pendingEdgeLabels.push({ x: lx, y: ly, text: shortName, fullText: rawName, kind: m.kind })
-      }
-    })
-
-    nodes.forEach(function (name) {
-      var c = doc.createElementNS(NS, 'circle')
-      c.setAttribute('cx', pos[name].x)
-      c.setAttribute('cy', pos[name].y)
-      c.setAttribute('r', String(nodeR))
-      c.setAttribute('class', 'nn-metamodel-node')
-      var nodeMeta = conceptMetaOf((schema && schema.concepts && schema.concepts.length ? schema.concepts : nodes), name)
-      if (nodeMeta && nodeMeta.hexColor) {
-        c.style.stroke = nodeMeta.hexColor
-        c.style.strokeWidth = '2.5px'
-        c.style.fill = 'color-mix(in srgb, ' + nodeMeta.hexColor + ' 10%, #ffffff)'
-      }
-      c.style.cursor = 'pointer'
-      var title = doc.createElementNS(NS, 'title')
-      title.textContent = String(name)
-      c.appendChild(title)
-      c.addEventListener('click', function () {
-        revealInKnowledge(doc, formatFacetToken('concept', name))
-      })
-      svg.appendChild(c)
-      var t = doc.createElementNS(NS, 'text')
-      t.setAttribute('x', pos[name].x)
-      t.setAttribute('y', pos[name].y + 4)
-      t.setAttribute('text-anchor', 'middle')
-      t.setAttribute('class', 'nn-metamodel-label')
-      t.style.pointerEvents = 'none'
-      t.textContent = name.length > 18 ? name.slice(0, 17) + '\u2026' : name
-      svg.appendChild(t)
-    })
-
-    pendingEdgeLabels.forEach(function (lbl) {
-      var padX = 7
-      var boxW = Math.max(38, lbl.text.length * 6.8 + padX * 2)
-      var boxH = 18
-      var bg = doc.createElementNS(NS, 'rect')
-      bg.setAttribute('x', lbl.x - boxW / 2)
-      bg.setAttribute('y', lbl.y - boxH / 2 - 2)
-      bg.setAttribute('width', boxW)
-      bg.setAttribute('height', boxH)
-      bg.setAttribute('rx', '9')
-      bg.setAttribute('class', 'nn-metamodel-edge-bg')
-      svg.appendChild(bg)
-
-      var lt = doc.createElementNS(NS, 'text')
-      lt.setAttribute('x', lbl.x)
-      lt.setAttribute('y', lbl.y + 2)
-      lt.setAttribute('text-anchor', 'middle')
-      lt.setAttribute('class', 'nn-metamodel-edge-label')
-      lt.textContent = lbl.text
-      if (lbl.fullText && lbl.fullText !== lbl.text) {
-        var lTitle = doc.createElementNS(NS, 'title')
-        lTitle.textContent = lbl.fullText
-        lt.appendChild(lTitle)
-      }
-      svg.appendChild(lt)
-    })
-
-    var wrap = el('div', 'nn-metamodel')
-    wrap.appendChild(svg)
-    var legend = el('div', 'nn-metamodel-legend')
-    legend.innerHTML =
-      '<span class="nn-mm-legend-item"><span class="nn-mm-line nn-mm-line--matrix"></span> Matrix relationship</span>' +
-      '<span class="nn-mm-legend-item"><span class="nn-mm-line nn-mm-line--relation"></span> Element reference (relation)</span>' +
-      '<span class="nn-mm-legend-hint">Click any concept node to filter in Model Explorer</span>'
-    wrap.appendChild(legend)
-    host.appendChild(wrap)
+    }
   }
 
   // Citation detail dialog (Console Citation Icons / Tanda C). Reuses the

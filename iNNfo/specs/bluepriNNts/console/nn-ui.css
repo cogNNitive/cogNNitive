@@ -6850,85 +6850,60 @@ button.btn-primary:hover:not(:disabled) {
   gap: 8px;
 }
 
-/* P2.9: Metamodel graph & legend */
-.nn-metamodel {
+/* Schema tab: entity-relationship diagram and the schema in words */
+.nn-schema {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  background: var(--nn-surface, #ffffff);
-  border: 1px solid var(--nn-border, #e5e5e5);
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: var(--nn-shadow);
+  gap: 14px;
+  overflow-x: auto;
 }
-.nn-metamodel-svg {
-  max-width: 640px;
-  width: 100%;
-  height: auto;
-  display: block;
+
+.nn-schema-legend {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
 }
-.nn-metamodel-node {
-  fill: #f4f4f5;
-  stroke: var(--nn-accent, #171717);
-  stroke-width: 2px;
-  transition: fill 0.15s ease;
+
+.nn-schema-chart {
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #ffffff;
 }
-.nn-metamodel-node:hover {
-  fill: #e4e4e7;
+
+.nn-schema-words {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #ffffff;
+  padding: 14px 16px;
 }
-.nn-metamodel-label {
-  font-family: var(--nn-font);
-  font-size: 12px;
+
+.nn-schema-words-title {
+  margin: 0 0 8px;
+  font-size: 1rem;
   font-weight: 700;
-  fill: var(--nn-text, #0a0a0a);
+  color: var(--text);
 }
-.nn-metamodel-edge {
-  stroke: var(--nn-accent, #171717);
-  stroke-width: 1.75px;
-}
-.nn-metamodel-edge[data-edge-kind="relation"] {
-  stroke: #52525b;
-}
-.nn-metamodel-edge-bg {
-  fill: #ffffff;
-  stroke: var(--nn-border, #e5e5e5);
-  stroke-width: 1px;
-}
-.nn-metamodel-edge-label {
-  font-family: var(--nn-mono);
-  font-size: 11px;
-  font-weight: 600;
-  fill: var(--nn-accent, #171717);
-}
-.nn-metamodel-legend {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  flex-wrap: wrap;
+
+.nn-schema-group h3 {
+  margin: 12px 0 4px;
+  font-family: var(--mono);
   font-size: 0.78rem;
-  color: var(--nn-muted, #666666);
-  border-top: 1px solid var(--nn-border, #e5e5e5);
-  padding-top: 10px;
-  width: 100%;
+  color: var(--muted);
 }
-.nn-mm-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  color: var(--nn-text, #0a0a0a);
+
+.nn-schema-group ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--text);
 }
-.nn-mm-line {
-  width: 22px;
-  height: 0;
-  border-top: 2px solid var(--nn-accent, #171717);
-  display: inline-block;
-}
-.nn-mm-line--relation {
-  border-top-style: dashed;
-  border-top-color: #52525b;
+
+.nn-schema-concept .nn-concept-link {
+  font-weight: 700;
 }
 
 /* P2.10: Matrix table proportions & cell polish */

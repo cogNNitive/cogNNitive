@@ -229,19 +229,18 @@ describe('Console type-aware rendering + field detail + incoming + metamodel', (
     assert.ok(dialog.querySelector('.nn-field-bool'), 'typed value in the dialog')
   })
 
-  it('mounts the Model Map tab with concept nodes and matrix edges', () => {
+  it('mounts the Schema tab with one entry per concept and its matrix and element-reference relations', () => {
     const { document } = bootConsole({ model: MODEL, schema: SCHEMA })
     const tab = document.querySelector('.nn-view-tab[data-tab="metamodel"]')
     assert.ok(tab, 'metamodel tab exists')
     const panel = document.getElementById('nn-tab-metamodel')
     assert.ok(panel, 'metamodel panel exists')
-    const svg = panel.querySelector('.nn-metamodel-svg')
-    assert.ok(svg, 'svg rendered')
-    assert.equal(panel.querySelectorAll('.nn-metamodel-node').length, 2)
-    // 2 edges since 35d4300b: matrix Duty (Fleet→Ghost) + implicit element
-    // relation haunts (Ghost→Fleet). Previously matrices only (1).
-    assert.equal(panel.querySelectorAll('.nn-metamodel-edge').length, 2)
-    assert.match(panel.textContent, /Fleet/)
+    const concepts = [...panel.querySelectorAll('.nn-schema-concept')].map((li) => li.textContent)
+    assert.equal(concepts.length, 2)
+    // Both relations since 35d4300b: matrix Duty (Fleet→Ghost) + implicit element
+    // relation haunts (Ghost→Fleet).
+    assert.match(panel.textContent, /Matrix with Ghost \(Duty\)/)
+    assert.match(panel.textContent, /Points to Fleet \(haunts\)/)
   })
 
   it('applies distinct concept slot colors to card borders and concept badges even without explicit schema colors', () => {
