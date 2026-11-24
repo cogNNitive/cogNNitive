@@ -146,6 +146,28 @@ async function runSeq(run: string): Promise<number> {
 }
 
 describe('import_console', SLOW, () => {
+  it('reads the domaiNN console itself when path is omitted', async () => {
+    // A save writes the console file the person opened, in place, so the domain's own
+    // console is the source: "the document is updated, import the changes" needs no path.
+    const file = join(root, 'domaiNN_console.html')
+    await writeFile(
+      file,
+      saveSnapshot(await exportConsole(root), [runStartDraft()], 'ana'),
+      'utf-8',
+    )
+
+    const res = ok(await importConsole(root, {}))
+    expect(res).toMatchObject({ applied: false, author: 'ana', drafts: 1, source: file })
+    expect(res.would_start).toEqual([{ procedure: 'review', params: { doc: 'guide' }, run: 'r2' }])
+  })
+
+  it('names the console to pass when the domaiNN console is missing and no path was given', async () => {
+    const res = await importConsole(root, {})
+    expect(res.ok).toBe(false)
+    expect(res.code).toBe('CONSOLE_NOT_FOUND')
+    expect(res.detail).toContain('pass path')
+  })
+
   it('without apply writes the console changeset to changes/ and reports the runs it would start', async () => {
     const file = await savedConsole([])
     const seq = await runSeq('r1')
@@ -360,7 +382,8 @@ describe('import_console over MCP', SLOW, () => {
     expect(Object.keys(tool.inputSchema.properties as object).sort()).toEqual(
       ['apply', 'author', 'consume', 'domain', 'path', 'root'].sort(),
     )
-    expect(tool.inputSchema.required).toEqual(['path'])
+    // `path` is optional: omitting it reads the domaiNN's own console (save in place).
+    expect(tool.inputSchema.required).toBeUndefined()
     const res = await dispatchTool('import_console', {
       path: join(inbox, 'ghost.html'),
       domain: root,

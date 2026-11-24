@@ -3831,7 +3831,7 @@
       return views
     }
     if (summaryModels(meta).length > 0) {
-      views.push({ id: 'summary', title: 'Summary', icon: 'layout', order: 5, tone: 'core', panelId: 'nn-tab-summary' })
+      views.push({ id: 'domain', title: 'Domain', icon: 'layout', order: 5, tone: 'core', panelId: 'nn-tab-domain' })
     }
     if (meta && meta.versions && typeof meta.versions === 'object') {
       views.push({ id: 'versions', title: 'Versions', icon: 'milestone', order: 50, tone: 'core', panelId: 'nn-tab-versions' })
@@ -4383,6 +4383,9 @@
         })
       }
       if (scopedView && has(scopedView)) return scopedView
+      // A search in the URL is a question for the explorer: show its answer there
+      // even when the console lands elsewhere by default.
+      if (has('explorer') && parseViewHash(doc.location ? doc.location.hash : '').q) return 'explorer'
       var preferred = opts.config && opts.config.defaultView
       if (preferred && has(preferred)) return preferred
       if (has('explorer')) return 'explorer'
@@ -6038,6 +6041,29 @@
     return a
   }
 
+  // A concept as the console's own concept badge: clicking its name opens the concept
+  // window (the badge's details panel, the same one its ⋮ opens).
+  function conceptBadge(doc, modelId, concept, schema) {
+    var holder = el('span', 'nn-summary-concept-ref')
+    holder.setAttribute('data-concept', concept)
+    var meta = conceptMetaOf(schema && schema.concepts, concept)
+    var badge = UI.Ku('section', { model: modelId, concept: concept, label: concept, index: meta.index, color: meta.color }, { doc: doc })
+    holder.appendChild(badge)
+    var unit = holder.querySelector('.nn-ku')
+    if (unit) {
+      unit.style.cursor = 'pointer'
+      unit.addEventListener('click', function () {
+        openConceptWindow(holder)
+      })
+    }
+    return holder
+  }
+
+  function openConceptWindow(holder) {
+    var more = holder && holder.querySelector('[data-ku-more]')
+    if (more && typeof more.click === 'function') more.click()
+  }
+
   // Each model card: title, bluepriNNt, size, completeness and a stacked bar of its
   // elements by concept (ECharts; the card still reads without it).
   function renderSummaryModelCard(doc, m, elements, schema) {
@@ -6070,13 +6096,23 @@
     )
     var chartHost = el('div', 'nn-summary-model-chart')
     card.appendChild(chartHost)
-    var legend = el('ul', 'nn-summary-model-legend')
+    // Every concept the model's bluepriNNt declares, the empty ones too, then any
+    // concept that only appears in the data.
+    var listed = (Array.isArray(m.declaredConcepts) ? m.declaredConcepts.slice() : []).filter(function (c, i, all) {
+      return all.indexOf(c) === i
+    })
     concepts.forEach(function (c) {
+      if (listed.indexOf(c) < 0) listed.push(c)
+    })
+    var legend = el('ul', 'nn-summary-model-legend')
+    listed.forEach(function (c) {
       var li = el('li')
+      li.setAttribute('data-concept', c)
       var dot = el('span', 'nn-summary-dot')
       dot.style.background = conceptMetaOf(schema && schema.concepts, c).hexColor
       li.appendChild(dot)
-      li.appendChild(conceptLink(doc, c, c + ' (' + byConcept[c] + ')'))
+      li.appendChild(conceptBadge(doc, m.id, c, schema))
+      li.appendChild(el('span', 'nn-summary-count', String(byConcept[c] || 0)))
       legend.appendChild(li)
     })
     card.appendChild(legend)
@@ -6106,7 +6142,8 @@
       })
       if (chart) {
         chart.on('click', function (params) {
-          revealInKnowledge(doc, formatFacetToken('concept', params.seriesName))
+          var row = legend.querySelector('li[data-concept="' + String(params.seriesName).replace(/"/g, '') + '"]')
+          openConceptWindow(row)
         })
       }
     }
@@ -6114,7 +6151,10 @@
   }
 
   function renderSummaryView(doc, model, schema, meta) {
-    var host = doc.getElementById('nn-tab-summary')
+    // Only into the panel of the built-in tab: a panel with this id that some other
+    // shell or view owns is left alone.
+    if (!summaryModels(meta).length) return
+    var host = doc.getElementById('nn-tab-domain')
     if (!host) return
     host.innerHTML = ''
     var models = summaryModels(meta)
@@ -6128,6 +6168,16 @@
     }).length
     var fill = fieldFill(elements, schema)
     var domain = (meta && meta.domain) || {}
+    // The model a concept belongs to, for its badge address: the first model that
+    // holds or declares it.
+    function conceptHome(c) {
+      for (var i = 0; i < models.length; i++) {
+        var mm = models[i]
+        var names = (mm.declaredConcepts || []).concat(mm.conceptNames || [])
+        if (names.indexOf(c) >= 0) return mm.id
+      }
+      return (meta && (meta.modelId || meta.model)) || ''
+    }
 
     var root = el('div', 'nn-summary')
     if (domain.title) root.appendChild(el('h2', 'nn-summary-title', domain.title))
@@ -6172,7 +6222,7 @@
         var li = el('li')
         ;(h.concepts || []).forEach(function (c, i) {
           if (i) li.appendChild(doc.createTextNode(i === h.concepts.length - 1 ? ' and ' : ', '))
-          li.appendChild(conceptLink(doc, c))
+          li.appendChild(conceptBadge(doc, conceptHome(c), c, schema))
         })
         li.appendChild(doc.createTextNode(h.text))
         list.appendChild(li)
@@ -6250,6 +6300,7 @@
   }
 
   function renderVersionsView(doc, meta) {
+    if (!(meta && meta.versions && typeof meta.versions === 'object')) return
     var host = doc.getElementById('nn-tab-versions')
     if (!host) return
     host.innerHTML = ''
@@ -6434,6 +6485,7 @@
   }
 
   function renderMapView(doc, model, schema, meta) {
+    if (!summaryModels(meta).length || !(Array.isArray(model && model.elements) && model.elements.length)) return
     var host = doc.getElementById('nn-tab-map')
     if (!host) return
     host.innerHTML = ''
@@ -8038,8 +8090,104 @@
     return out
   }
 
+  // The file the console was opened from, when it was opened from disk. A `file:` page has
+  // no writable handle for its own URL, but its NAME is what the save dialog must propose:
+  // that is what makes the person overwrite this console instead of creating another one.
+  function openedFileName(win) {
+    var loc = win && win.location
+    if (!loc || loc.protocol !== 'file:') return ''
+    var path = String(loc.pathname || '')
+    var name = path.slice(path.lastIndexOf('/') + 1)
+    try {
+      name = decodeURIComponent(name)
+    } catch {
+      /* a malformed escape keeps the raw name */
+    }
+    return /\.html?$/i.test(name) ? name : ''
+  }
+
+  // A separate database from the connected-folder handles: a snapshot is a file, never a
+  // folder, and one entry exists per domaiNN and file name (nn-fsa `snapshotKey`).
+  var SNAPSHOT_DB = 'nn-console-snapshot'
+
+  function snapshotStore(win) {
+    var api = win && win.nnFsa
+    if (!api || typeof api.createIndexedDbStore !== 'function') return null
+    try {
+      return api.createIndexedDbStore(null, SNAPSHOT_DB)
+    } catch {
+      return null
+    }
+  }
+
+  function consoleSnapshotKey(win, state, name) {
+    var api = win && win.nnFsa
+    if (!api || typeof api.snapshotKey !== 'function') return ''
+    return api.snapshotKey({
+      domainId: (state && state.meta && state.meta.domainId) || '',
+      name: name,
+    })
+  }
+
+  // The one save that asks: File System Access creates a handle only through a dialog. The
+  // handle is remembered afterwards, so this runs at most once per console and file name.
+  function writeThroughPicker(active, drafts, htmlContent, suggestedName, win, store, key) {
+    return win
+      .showSaveFilePicker({
+        id: 'nn-console-snapshot',
+        suggestedName: suggestedName,
+        types: [
+          {
+            description: 'HTML Document',
+            accept: { 'text/html': ['.html', '.htm'] },
+          },
+        ],
+      })
+      .then(
+        function (handle) {
+          return handle.createWritable().then(function (writable) {
+            return writable.write(htmlContent).then(function () {
+              return writable.close().then(function () {
+                return rememberHandle(store, key, handle).then(function () {
+                  showToast(active, 'Saved in place: ' + (handle.name || suggestedName), 'success')
+                  return {
+                    ok: true,
+                    method: 'file-system-access',
+                    inPlace: true,
+                    filename: handle.name || suggestedName,
+                    html: htmlContent,
+                    draftsCount: drafts.length,
+                  }
+                })
+              })
+            })
+          })
+        },
+        function (err) {
+          if (err && (err.name === 'AbortError' || err.code === 20)) {
+            return { ok: false, aborted: true }
+          }
+          return downloadFallback(active, htmlContent, suggestedName, drafts.length)
+        },
+      )
+  }
+
+  function rememberHandle(store, key, handle) {
+    if (!store || !key) return Promise.resolve()
+    try {
+      return Promise.resolve(store.set(key, handle)).then(
+        function () {},
+        function () {},
+      )
+    } catch {
+      return Promise.resolve()
+    }
+  }
+
   // Serializes the exported shell with the (already synchronized) slots and writes it in
   // place through the File System Access API, or downloads it when that API is unavailable.
+  // "In place" means the file this console was opened from: the first save picks it, its
+  // handle is remembered, and every later save overwrites it with no dialog at all.
   function writeSnapshot(active, state, opts, drafts) {
     // 2. Serializes the document: the exported shell when boot captured one, else the
     // live document without its boot marker.
@@ -8055,8 +8203,13 @@
       if (rootEl && hadBooted !== null) rootEl.setAttribute('data-nn-console-booted', hadBooted)
     }
 
-    // 3. In-Place File Overwrite via File System Access API with download fallback
-    var suggestedName = (opts && opts.suggestedName) ||
+    var win = (active && active.defaultView) || (typeof window !== 'undefined' ? window : null)
+
+    // 3. The opened file's own name first: a title-derived name would create a second
+    // console beside the one the person is looking at, which is the bug this avoids.
+    var suggestedName =
+      openedFileName(win) ||
+      (opts && opts.suggestedName) ||
       (state && state.artifactName) ||
       (state && state.meta && state.meta.domainId ? state.meta.domainId + '_console.html' : '') ||
       (active.title ? slugify(active.title) + '.html' : '') ||
@@ -8066,45 +8219,35 @@
       suggestedName += '.html'
     }
 
-    var win = (active && active.defaultView) || (typeof window !== 'undefined' ? window : null)
-    var canUsePicker = win && typeof win.showSaveFilePicker === 'function' && opts.forceDownload !== true
-
-    if (canUsePicker) {
-      return win.showSaveFilePicker({
-        suggestedName: suggestedName,
-        types: [
-          {
-            description: 'HTML Document',
-            accept: { 'text/html': ['.html', '.htm'] },
-          },
-        ],
-      }).then(
-        function (handle) {
-          return handle.createWritable().then(function (writable) {
-            return writable.write(htmlContent).then(function () {
-              return writable.close().then(function () {
-                showToast(active, 'Snapshot saved in-place to ' + (handle.name || suggestedName), 'success')
-                return {
-                  ok: true,
-                  method: 'file-system-access',
-                  filename: handle.name || suggestedName,
-                  html: htmlContent,
-                  draftsCount: drafts.length,
-                }
-              })
-            })
-          })
-        },
-        function (err) {
-          if (err && (err.name === 'AbortError' || err.code === 20)) {
-            return { ok: false, aborted: true }
-          }
-          return downloadFallback(active, htmlContent, suggestedName, drafts.length)
-        },
-      )
+    var canUsePicker =
+      win && typeof win.showSaveFilePicker === 'function' && opts.forceDownload !== true
+    if (!canUsePicker) {
+      return Promise.resolve(downloadFallback(active, htmlContent, suggestedName, drafts.length))
     }
 
-    return Promise.resolve(downloadFallback(active, htmlContent, suggestedName, drafts.length))
+    var store = snapshotStore(win)
+    var key = consoleSnapshotKey(win, state, suggestedName)
+    var fsa = win.nnFsa
+    if (store && key && fsa && typeof fsa.saveToRememberedFile === 'function') {
+      return fsa
+        .saveToRememberedFile({ store: store, key: key, text: htmlContent })
+        .then(function (saved) {
+          if (!saved || !saved.ok) {
+            return writeThroughPicker(active, drafts, htmlContent, suggestedName, win, store, key)
+          }
+          showToast(active, 'Saved in place: ' + (saved.filename || suggestedName), 'success')
+          return {
+            ok: true,
+            method: 'file-system-access',
+            inPlace: true,
+            filename: saved.filename || suggestedName,
+            html: htmlContent,
+            draftsCount: drafts.length,
+          }
+        })
+    }
+
+    return writeThroughPicker(active, drafts, htmlContent, suggestedName, win, store, key)
   }
 
   function mountNavbarActions(doc, state) {

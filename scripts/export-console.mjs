@@ -184,13 +184,35 @@ function blueprintVersionRows(uses, consoleDir, root) {
       status: c.status,
       gap: c.gap || null,
     }
-    row.models.push(use.modelId)
+    if (row.models.indexOf(use.modelId) < 0) row.models.push(use.modelId)
     byName.set(name, row)
   }
   return {
     catalog: catalog ? 'available' : 'unavailable',
     blueprints: Array.from(byName.values()).sort((a, b) => byCodeUnits(a.name, b.name)),
   }
+}
+
+/**
+ * The bluepriNNt the domaiNN's changesets follow (normally `changes`), read from each
+ * changeset's own frontmatter, so the Versions tab lists it like a model's bluepriNNt.
+ */
+function changesetBlueprintUses(root, changesets) {
+  const uses = []
+  for (const cs of Array.isArray(changesets) ? changesets : []) {
+    let fm = null
+    try {
+      fm = frontmatterOf(readFileSync(join(root, cs.path), 'utf8'))
+    } catch {
+      continue
+    }
+    const spec = fm && fm.parent_spec
+    const name =
+      spec && typeof spec === 'object' ? spec.name : typeof spec === 'string' ? spec : null
+    if (!name) continue
+    uses.push({ modelId: 'changes', name: String(name), url: (spec && spec.url) || null })
+  }
+  return uses
 }
 
 const INSTALL_KINDS = [
@@ -2344,6 +2366,9 @@ export async function writeConsole(opts = {}) {
         'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/console/nn-console.bundle.js',
     },
   }
+  // The whole-domaiNN console opens on the Domain tab; a single-model console keeps
+  // Knowledge as its landing page.
+  if (wholeDomain) config.defaultView = 'domain'
 
   const resolver = payloadHelper.createFsSourceResolver
     ? payloadHelper.createFsSourceResolver(root)
@@ -2560,6 +2585,17 @@ export async function writeConsole(opts = {}) {
         changeCount: changeCount,
         ownership: (payload.model.meta && payload.model.meta.ownership) || 'authored',
         conceptNames: Array.from(modelConcepts),
+        // Every concept the model's bluepriNNt declares, with or without elements.
+        declaredConcepts: Array.from(
+          new Set(
+            (payload && payload.schema && Array.isArray(payload.schema.concepts)
+              ? payload.schema.concepts
+              : []
+            )
+              .map((c) => (typeof c === 'string' ? c : c && c.name))
+              .filter(Boolean),
+          ),
+        ),
         elementCount: Array.isArray(payload.model.elements) ? payload.model.elements.length : 0,
       })
       scopeModelIds.push(mId)
@@ -2867,7 +2903,11 @@ export async function writeConsole(opts = {}) {
         ...(wholeDomain
           ? {
               versions: {
-                ...blueprintVersionRows(blueprintUses, consoleDir, root),
+                ...blueprintVersionRows(
+                  blueprintUses.concat(changesetBlueprintUses(root, changesets)),
+                  consoleDir,
+                  root,
+                ),
                 installation: installationRecord(root),
               },
             }

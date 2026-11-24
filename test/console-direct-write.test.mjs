@@ -43,20 +43,27 @@ function fakeDirectory({ domainText = DOMAIN, files = new Map(), permission = 'g
         if (options.create) throw Object.assign(new Error('exists'), { name: 'TypeMismatchError' })
         return files.get(name)
       }
-      if (!options.create) throw Object.assign(new Error('not found'), { name: 'NotFoundError', code: 8 })
-      const written = { text: '', async createWritable() {
-        const self = this
-        return {
-          async write(value) { self.text = value },
-          async close() {},
-        }
-      } }
+      if (!options.create)
+        throw Object.assign(new Error('not found'), { name: 'NotFoundError', code: 8 })
+      const written = {
+        text: '',
+        async createWritable() {
+          const self = this
+          return {
+            async write(value) {
+              self.text = value
+            },
+            async close() {},
+          }
+        },
+      }
       files.set(name, written)
       return written
     },
     async getDirectoryHandle(name, options = {}) {
       if (!dir.dirs.has(name)) {
-        if (!options.create) throw Object.assign(new Error('not found'), { name: 'NotFoundError', code: 8 })
+        if (!options.create)
+          throw Object.assign(new Error('not found'), { name: 'NotFoundError', code: 8 })
         dir.dirs.set(name, fakeDirectory({ files: new Map() }))
       }
       return dir.dirs.get(name)
@@ -74,14 +81,18 @@ function writerWith({ picker, store = memoryStore(), permission = 'granted', now
 
 test('names use the workspace, the reviewer slug and the stamp', () => {
   assert.equal(
-    nnFsa.changesetFilename({ workspaceId: 'ws-1', reviewer: 'Ana Pérez', stamp: '20261109T120000Z' }),
+    nnFsa.changesetFilename({
+      workspaceId: 'ws-1',
+      reviewer: 'Ana Pérez',
+      stamp: '20261109T120000Z',
+    }),
     'ws-1_ana_perez_20261109T120000Z_changes_NN.md',
   )
   assert.equal(nnFsa.slugifyReviewer('  Dr. John--Smith  '), 'dr_john_smith')
   assert.equal(nnFsa.slugifyReviewer(''), 'reviewer')
   assert.equal(nnFsa.compactStamp(new Date('2026-11-09T12:00:00.000Z')), '20261109T120000Z')
   assert.equal(nnFsa.workspaceIdOf(DOMAIN), 'ws-1')
-});
+})
 
 test('connecting stores the handle only for the matching workspace', async () => {
   const store = memoryStore()
@@ -90,11 +101,14 @@ test('connecting stores the handle only for the matching workspace', async () =>
   assert.equal(ok.ok, true)
   assert.equal(store.map.get('ws-1'), ok.handle)
 
-  const other = writerWith({ store: memoryStore(), picker: async () => fakeDirectory({ domainText: '---\nworkspace_id: "ws-2"\n---\n' }) }).writer
+  const other = writerWith({
+    store: memoryStore(),
+    picker: async () => fakeDirectory({ domainText: '---\nworkspace_id: "ws-2"\n---\n' }),
+  }).writer
   const mismatch = await other.connect('ws-1')
   assert.equal(mismatch.ok, false)
   assert.equal(mismatch.reason, 'workspace-mismatch')
-});
+})
 
 test('writing a changeset asks for permission and never overwrites (wx)', async () => {
   const store = memoryStore()
@@ -102,17 +116,31 @@ test('writing a changeset asks for permission and never overwrites (wx)', async 
   store.set('ws-1', handle)
   const { writer } = writerWith({ store })
 
-  const first = await writer.writeChangeset({ workspaceId: 'ws-1', reviewer: 'Ana', text: 'one', stamp: 'S1' })
+  const first = await writer.writeChangeset({
+    workspaceId: 'ws-1',
+    reviewer: 'Ana',
+    text: 'one',
+    stamp: 'S1',
+  })
   assert.equal(first.ok, true)
   assert.equal(first.filename, 'ws-1_ana_S1_changes_NN.md')
   const changes = handle.dirs.get('changes')
   assert.equal(changes.files.get('ws-1_ana_S1_changes_NN.md').text, 'one')
 
-  const again = await writer.writeChangeset({ workspaceId: 'ws-1', reviewer: 'Ana', text: 'two', stamp: 'S1' })
+  const again = await writer.writeChangeset({
+    workspaceId: 'ws-1',
+    reviewer: 'Ana',
+    text: 'two',
+    stamp: 'S1',
+  })
   assert.equal(again.ok, false)
   assert.equal(again.reason, 'exists')
-  assert.equal(changes.files.get('ws-1_ana_S1_changes_NN.md').text, 'one', 'an existing changeset is untouched')
-});
+  assert.equal(
+    changes.files.get('ws-1_ana_S1_changes_NN.md').text,
+    'one',
+    'an existing changeset is untouched',
+  )
+})
 
 test('a denied permission writes nothing', async () => {
   const store = memoryStore()
@@ -123,7 +151,7 @@ test('a denied permission writes nothing', async () => {
   const res = await writer.writeChangeset({ workspaceId: 'ws-1', reviewer: 'Ana', text: 'x' })
   assert.equal(res.ok, false)
   assert.equal(res.reason, 'permission-denied')
-});
+})
 
 test('no folder and no API fall back to the download path', async () => {
   const { writer } = writerWith({ store: memoryStore() })
@@ -134,4 +162,80 @@ test('no folder and no API fall back to the download path', async () => {
   const noApi = nnFsa.createWriter({ win: {}, store: memoryStore() })
   assert.equal(noApi.available(), false)
   assert.equal((await noApi.connect('ws-1')).reason, 'fsa-unavailable')
-});
+})
+
+// --- Save in place: the console's OWN file, remembered after the first picker -----------
+
+function fakeSnapshotHandle({
+  name = 'domaiNN_console.html',
+  permission = 'granted',
+  request = 'granted',
+} = {}) {
+  const handle = {
+    name,
+    written: '',
+    closed: false,
+    async createWritable() {
+      const self = handle
+      return {
+        async write(value) {
+          self.written = value
+        },
+        async close() {
+          self.closed = true
+        },
+      }
+    },
+    queryPermission: async () => permission,
+    requestPermission: async () => request,
+  }
+  return handle
+}
+
+test('a remembered console handle is overwritten with no picker', async () => {
+  const store = memoryStore()
+  const handle = fakeSnapshotHandle({ name: 'ana_domaiNN_console.html' })
+  await store.set(nnFsa.snapshotKey({ domainId: 'demo', name: 'ana_domaiNN_console.html' }), handle)
+
+  const res = await nnFsa.saveToRememberedFile({
+    store,
+    key: nnFsa.snapshotKey({ domainId: 'demo', name: 'ana_domaiNN_console.html' }),
+    text: '<html>edited</html>',
+  })
+
+  assert.equal(res.ok, true)
+  assert.equal(res.filename, 'ana_domaiNN_console.html')
+  assert.equal(handle.written, '<html>edited</html>', 'the same file received the content')
+  assert.equal(handle.closed, true)
+})
+
+test('no remembered handle falls back to the picker instead of failing the save', async () => {
+  const res = await nnFsa.saveToRememberedFile({
+    store: memoryStore(),
+    key: nnFsa.snapshotKey({ domainId: 'demo', name: 'domaiNN_console.html' }),
+    text: 'x',
+  })
+  assert.equal(res.ok, false)
+  assert.equal(res.reason, 'no-handle')
+})
+
+test('a denied permission asks, and reports the refusal instead of writing', async () => {
+  const store = memoryStore()
+  const handle = fakeSnapshotHandle({ permission: 'prompt', request: 'denied' })
+  const key = nnFsa.snapshotKey({ domainId: 'demo', name: 'domaiNN_console.html' })
+  await store.set(key, handle)
+
+  const res = await nnFsa.saveToRememberedFile({ store, key, text: 'x' })
+  assert.equal(res.ok, false)
+  assert.equal(res.reason, 'permission-denied')
+  assert.equal(handle.written, '')
+})
+
+test('the snapshot key separates one domaiNN and file name from another', () => {
+  const a = nnFsa.snapshotKey({ domainId: 'demo', name: 'domaiNN_console.html' })
+  const b = nnFsa.snapshotKey({ domainId: 'other', name: 'domaiNN_console.html' })
+  const c = nnFsa.snapshotKey({ domainId: 'demo', name: 'ana_console.html' })
+  assert.notEqual(a, b)
+  assert.notEqual(a, c)
+  assert.equal(a, nnFsa.snapshotKey({ domainId: 'demo', name: 'domaiNN_console.html' }))
+})
