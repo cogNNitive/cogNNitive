@@ -5,7 +5,7 @@
  * site additions, and release-owned paths in cogNNitive-web.
  */
 
-const RELEASE_KEYS = Object.freeze(['skills', 'blueprints', 'nn-mcp', 'nn-console']);
+const RELEASE_KEYS = Object.freeze(['skills', 'blueprints', 'nn-mcp', 'nn-console'])
 
 const RELEASE_TABLE = Object.freeze({
   skills: Object.freeze({
@@ -53,7 +53,7 @@ const RELEASE_TABLE = Object.freeze({
     ]),
     sitePaths: Object.freeze([]),
   }),
-});
+})
 
 /**
  * Unique list of distribution paths in the monorepo copied to cogNNitive-web.
@@ -66,7 +66,10 @@ const DISTRIBUTION_PATHS = Object.freeze([
   'iNNfo/packages/nn-mcp/bin/nn-mcp.bundle.js',
   'scripts/export-console.mjs',
   'scripts/console-views.mjs',
-]);
+  'THIRD_PARTY.md',
+  'LICENSE',
+  'third-party/licenses',
+])
 
 /**
  * Globs and paths in cogNNitive-web docs/ owned strictly by the release workflow.
@@ -83,9 +86,9 @@ const RELEASE_OWNED_GLOBS = Object.freeze([
   'use/manifest.md',
   'update/manifest.md',
   'use/manifests/*.md',
-]);
+])
 
-const RELEASE_OWNED_SITE_PATHS = RELEASE_OWNED_GLOBS;
+const RELEASE_OWNED_SITE_PATHS = RELEASE_OWNED_GLOBS
 
 module.exports = {
   RELEASE_KEYS,
@@ -93,4 +96,4 @@ module.exports = {
   DISTRIBUTION_PATHS,
   RELEASE_OWNED_GLOBS,
   RELEASE_OWNED_SITE_PATHS,
-};
+}

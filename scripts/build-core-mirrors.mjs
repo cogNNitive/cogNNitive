@@ -43,10 +43,14 @@ const TARGETS = [
       ' * Source: iNNfo/packages/nn-core/src/trannsformPrimitives.ts\n' +
       ' * Regenerate: node scripts/build-core-mirrors.mjs\n' +
       ' * Drift-guarded by scripts/verify.js (core-mirror --check).\n' +
+      ' *\n' +
+      ' * Includes third-party code:\n' +
+      ' *   - yaml (ISC - Copyright (c) Eemeli Aro <eemeli@gmail.com>)\n' +
       ' */\n// @ts-nocheck',
   },
   {
-    name: 'coNNtent',    entry: path.join(REPO_ROOT, 'scripts', 'core-mirrors', 'coNNtent.ts'),
+    name: 'coNNtent',
+    entry: path.join(REPO_ROOT, 'scripts', 'core-mirrors', 'coNNtent.ts'),
     out: path.join(
       REPO_ROOT,
       'iNNfo',
@@ -65,6 +69,9 @@ const TARGETS = [
       ' * Source: scripts/core-mirrors/coNNtent.ts (nn-core scope, parser, changeset and apply)\n' +
       ' * Regenerate: node scripts/build-core-mirrors.mjs\n' +
       ' * Drift-guarded by scripts/verify.js (core-mirror --check).\n' +
+      ' *\n' +
+      ' * Includes third-party code:\n' +
+      ' *   - yaml (ISC - Copyright (c) Eemeli Aro <eemeli@gmail.com>)\n' +
       ' */\n// @ts-nocheck',
   },
 ]
@@ -95,7 +102,8 @@ function withImportMetaUrl(code, banner) {
   if (!code.includes(IMPORT_META_URL)) return code
   const strictAnchor = `${banner}\n"use strict";\n`
   const anchor = code.startsWith(strictAnchor) ? strictAnchor : `${banner}\n`
-  if (!code.startsWith(anchor)) throw new Error('build-core-mirrors: generated code does not start with its banner')
+  if (!code.startsWith(anchor))
+    throw new Error('build-core-mirrors: generated code does not start with its banner')
   return `${anchor}${IMPORT_META_URL_SHIM}\n${code.slice(anchor.length)}`
 }
 
@@ -108,24 +116,36 @@ async function renderTarget(target, esbuild) {
     target: 'node20',
     absWorkingDir: REPO_ROOT,
     alias: {
-      '@cognnitive/nn-core': path.join(REPO_ROOT, 'iNNfo', 'packages', 'nn-core', 'dist', 'index.js'),
+      '@cognnitive/nn-core': path.join(
+        REPO_ROOT,
+        'iNNfo',
+        'packages',
+        'nn-core',
+        'dist',
+        'index.js',
+      ),
     },
     write: false,
     legalComments: 'none',
     define: { 'import.meta.url': IMPORT_META_URL },
     banner: { js: target.banner },
   })
-  const rawCode = withImportMetaUrl(result.outputFiles[0].text.replace(/\r\n/g, '\n'), target.banner)
-  return rawCode
-    // Normalize every path esbuild prints into the mirror. The relative forms are
-    // what a single-drive checkout produces; the absolute forms appear when the
-    // resolved module lives on another drive than the repo (a worktree whose
-    // node_modules points at a checkout elsewhere), and they must never be
-    // committed: they leak a local path and break the mirror determinism test.
-    .replace(/(?:\.\.\/)+(?:[\w.-]+\/)?node_modules\//g, 'node_modules/')
-    .replace(/(?:\.\.\/)+(?:[\w.-]+\/)?iNNfo\//g, 'iNNfo/')
-    .replace(/(?<![A-Za-z0-9:])[A-Za-z]:[\\/][^"'\n]*?[\\/]node_modules[\\/]/g, 'node_modules/')
-    .replace(/(?<![A-Za-z0-9:])[A-Za-z]:[\\/][^"'\n]*?[\\/]iNNfo[\\/]/g, 'iNNfo/')
+  const rawCode = withImportMetaUrl(
+    result.outputFiles[0].text.replace(/\r\n/g, '\n'),
+    target.banner,
+  )
+  return (
+    rawCode
+      // Normalize every path esbuild prints into the mirror. The relative forms are
+      // what a single-drive checkout produces; the absolute forms appear when the
+      // resolved module lives on another drive than the repo (a worktree whose
+      // node_modules points at a checkout elsewhere), and they must never be
+      // committed: they leak a local path and break the mirror determinism test.
+      .replace(/(?:\.\.\/)+(?:[\w.-]+\/)?node_modules\//g, 'node_modules/')
+      .replace(/(?:\.\.\/)+(?:[\w.-]+\/)?iNNfo\//g, 'iNNfo/')
+      .replace(/(?<![A-Za-z0-9:])[A-Za-z]:[\\/][^"'\n]*?[\\/]node_modules[\\/]/g, 'node_modules/')
+      .replace(/(?<![A-Za-z0-9:])[A-Za-z]:[\\/][^"'\n]*?[\\/]iNNfo[\\/]/g, 'iNNfo/')
+  )
 }
 
 function getArg(flag) {
@@ -143,12 +163,12 @@ async function main() {
     process.exit(2)
   }
 
-  const targets = targetFilter
-    ? TARGETS.filter((t) => t.name === targetFilter)
-    : TARGETS
+  const targets = targetFilter ? TARGETS.filter((t) => t.name === targetFilter) : TARGETS
 
   if (targets.length === 0) {
-    console.error(`build-core-mirrors: unknown target '${targetFilter}'. Valid: ${TARGETS.map((t) => t.name).join(', ')}`)
+    console.error(
+      `build-core-mirrors: unknown target '${targetFilter}'. Valid: ${TARGETS.map((t) => t.name).join(', ')}`,
+    )
     process.exit(2)
   }
 
