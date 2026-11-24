@@ -14090,6 +14090,58 @@ if (typeof window !== 'undefined') {
   }
 
   // Built-in tabs, registered per boot (they are not in the registry).
+  // The models a reader thinks of as the domaiNN's content: every model but the
+  // synthetic change log, which the Summary counts as changes instead.
+  function summaryModels(meta) {
+    var models = meta && Array.isArray(meta.models) ? meta.models : []
+    return models.filter(function (m) {
+      return m && m.id !== 'changes'
+    })
+  }
+
+  // One line under the tabs that translates the iNNfo vocabulary for a newcomer.
+  var VOCABULARY_LEGEND = [
+    ['bluepriNNt', 'the template a model follows'],
+    ['concept', 'a type of card'],
+    ['element', 'one card'],
+    ['field', 'one piece of data on a card'],
+  ]
+
+  function ensureVocabularyLegend(doc, nav) {
+    if (!nav || !nav.parentNode || doc.querySelector('.nn-vocab-legend')) return
+    var legend = el('p', 'nn-vocab-legend')
+    legend.setAttribute('aria-label', 'Vocabulary')
+    VOCABULARY_LEGEND.forEach(function (pair, i) {
+      if (i) legend.appendChild(doc.createTextNode(' · '))
+      legend.appendChild(el('strong', null, pair[0]))
+      legend.appendChild(doc.createTextNode(' = ' + pair[1]))
+    })
+    nav.parentNode.insertBefore(legend, nav.nextSibling)
+  }
+
+  // Switches to the Knowledge tab with `token` (a facet such as `concept:Deal`) in
+  // the search box. Every "show me these" link in the console goes through here.
+  function revealInKnowledge(doc, token) {
+    var search = doc.getElementById('nn-search')
+    if (search) {
+      search.value = token
+      if (typeof CustomEvent === 'function') {
+        search.dispatchEvent(new CustomEvent('input', { bubbles: true }))
+      }
+    }
+    var expBtn = doc.querySelector('.nn-view-tab[data-tab="explorer"]')
+    if (expBtn && typeof expBtn.click === 'function') expBtn.click()
+  }
+
+  // A dashboard number: label, value and an optional line of context.
+  function kpiCard(label, value, sub) {
+    var card = el('div', 'nn-kpi-card')
+    card.appendChild(el('div', 'kpi-label', label))
+    card.appendChild(el('div', 'kpi-value', value))
+    if (sub) card.appendChild(el('div', 'kpi-sub', sub))
+    return card
+  }
+
   function builtinViews(doc, config, model, meta, shell, schema) {
     var views = []
     // Files sits after the knowledge/changes band and only exists when the
@@ -14106,6 +14158,9 @@ if (typeof window !== 'undefined') {
         views.push({ id: 'files', title: 'Files', icon: 'folder', order: 25, tone: 'core', panelId: 'nn-tab-files' })
       }
       return views
+    }
+    if (summaryModels(meta).length > 0) {
+      views.push({ id: 'summary', title: 'Summary', icon: 'layout', order: 5, tone: 'core', panelId: 'nn-tab-summary' })
     }
     if (schema && Array.isArray(schema.concepts) && schema.concepts.length) {
       views.push({ id: 'metamodel', title: 'Domain', icon: 'metamodel', order: 10, tone: 'core', panelId: 'nn-tab-metamodel' })
@@ -14260,6 +14315,7 @@ if (typeof window !== 'undefined') {
       })
       nav.appendChild(btn)
     })
+    if (!scopedView) ensureVocabularyLegend(doc, nav)
     updateTabBadges(doc, opts.state)
 
     var current = ''
@@ -15069,11 +15125,7 @@ if (typeof window !== 'undefined') {
 
       var kpis = el('div', 'nn-files-kpis')
       function kpi(label, value, sub) {
-        var card = el('div', 'nn-kpi-card')
-        card.appendChild(el('div', 'kpi-label', label))
-        card.appendChild(el('div', 'kpi-value', value))
-        if (sub) card.appendChild(el('div', 'kpi-sub', sub))
-        kpis.appendChild(card)
+        kpis.appendChild(kpiCard(label, value, sub))
       }
       kpi('Files', String(stats.totalFiles || inventory.length), 'indexed in this workspace')
       kpi('Footprint', filesFmtBytes(stats.totalBytes || 0), 'total bytes on disk')
@@ -16259,6 +16311,209 @@ if (typeof window !== 'undefined') {
     return out
   }
 
+  // ---- Summary tab: the domaiNN at a glance -------------------------------------
+
+  function fieldHasValue(value) {
+    if (value === null || value === undefined) return false
+    if (typeof value === 'string') return value.trim() !== ''
+    if (Array.isArray(value)) return value.length > 0
+    return true
+  }
+
+  function pct(part, whole) {
+    return whole > 0 ? Math.round((part / whole) * 100) : 0
+  }
+
+  function plural(n, one, many) {
+    return n + ' ' + (n === 1 ? one : many)
+  }
+
+  // Declared vs filled fields over a set of elements. A field counts as declared
+  // when the schema lists it for the element's concept.
+  function fieldFill(elements, schema) {
+    var declared = {}
+    ;(schema && Array.isArray(schema.fields) ? schema.fields : []).forEach(function (f) {
+      if (!f || !f.concept || !f.name) return
+      ;(declared[f.concept] = declared[f.concept] || []).push(f.name)
+    })
+    var total = 0
+    var filled = 0
+    elements.forEach(function (e) {
+      var names = declared[e.concept] || []
+      var values = (e && e.fields) || {}
+      total += names.length
+      names.forEach(function (n) {
+        if (fieldHasValue(values[n])) filled++
+      })
+    })
+    return { total: total, filled: filled }
+  }
+
+  // A concept name that opens Knowledge filtered by that concept.
+  function conceptLink(doc, concept, label) {
+    var a = el('a', 'nn-concept-link', label || concept)
+    a.setAttribute('href', '#explorer')
+    a.setAttribute('data-concept', concept)
+    a.addEventListener('click', function (event) {
+      if (event && event.preventDefault) event.preventDefault()
+      revealInKnowledge(doc, formatFacetToken('concept', concept))
+    })
+    return a
+  }
+
+  // Each model card: title, bluepriNNt, size, completeness and a stacked bar of its
+  // elements by concept (ECharts; the card still reads without it).
+  function renderSummaryModelCard(doc, m, elements, schema) {
+    var own = elements.filter(function (e) {
+      return e.modelId === m.id
+    })
+    var byConcept = {}
+    own.forEach(function (e) {
+      byConcept[e.concept] = (byConcept[e.concept] || 0) + 1
+    })
+    var concepts = Object.keys(byConcept)
+    var fill = fieldFill(own, schema)
+    var card = el('article', 'nn-summary-model')
+    card.setAttribute('data-model', m.id)
+    var head = el('header', 'nn-summary-model-head')
+    head.appendChild(el('h3', 'nn-summary-model-title', m.title || m.id))
+    head.appendChild(el('span', 'nn-summary-model-blueprint', m.blueprint || ''))
+    card.appendChild(head)
+    card.appendChild(
+      el(
+        'p',
+        'nn-summary-model-stats',
+        plural(own.length, 'element', 'elements') +
+          ' · ' +
+          plural(concepts.length, 'concept', 'concepts') +
+          ' · ' +
+          pct(fill.filled, fill.total) +
+          '% fields filled',
+      ),
+    )
+    var chartHost = el('div', 'nn-summary-model-chart')
+    card.appendChild(chartHost)
+    var legend = el('ul', 'nn-summary-model-legend')
+    concepts.forEach(function (c) {
+      var li = el('li')
+      var dot = el('span', 'nn-summary-dot')
+      dot.style.background = conceptMetaOf(schema && schema.concepts, c).hexColor
+      li.appendChild(dot)
+      li.appendChild(conceptLink(doc, c, c + ' (' + byConcept[c] + ')'))
+      legend.appendChild(li)
+    })
+    card.appendChild(legend)
+    var open = el('button', 'nn-summary-model-open', 'Open in Knowledge')
+    open.setAttribute('type', 'button')
+    open.addEventListener('click', function () {
+      revealInKnowledge(doc, formatFacetToken('model', m.id))
+    })
+    card.appendChild(open)
+    if (concepts.length) {
+      var chart = Studio.renderChart(chartHost, {
+        animation: false,
+        grid: { left: 4, right: 4, top: 4, bottom: 4 },
+        tooltip: { trigger: 'item', formatter: '{a}: {c}' },
+        xAxis: { type: 'value', show: false, max: own.length },
+        yAxis: { type: 'category', show: false, data: [m.title || m.id] },
+        series: concepts.map(function (c) {
+          return {
+            type: 'bar',
+            name: c,
+            stack: 'elements',
+            barWidth: 18,
+            data: [byConcept[c]],
+            itemStyle: { color: conceptMetaOf(schema && schema.concepts, c).hexColor },
+          }
+        }),
+      })
+      if (chart) {
+        chart.on('click', function (params) {
+          revealInKnowledge(doc, formatFacetToken('concept', params.seriesName))
+        })
+      }
+    }
+    return card
+  }
+
+  function renderSummaryView(doc, model, schema, meta) {
+    var host = doc.getElementById('nn-tab-summary')
+    if (!host) return
+    host.innerHTML = ''
+    var models = summaryModels(meta)
+    var elements = (model && Array.isArray(model.elements) ? model.elements : []).filter(function (e) {
+      return e && e.modelId !== 'changes'
+    })
+    var conceptNames = metamodelConceptNames(schema, elements)
+    var changes = model && Array.isArray(model.changes) ? model.changes : []
+    var pending = changes.filter(function (c) {
+      return c && c.status === 'proposed'
+    }).length
+    var fill = fieldFill(elements, schema)
+    var domain = (meta && meta.domain) || {}
+
+    var root = el('div', 'nn-summary')
+    if (domain.title) root.appendChild(el('h2', 'nn-summary-title', domain.title))
+
+    var kpis = el('div', 'nn-files-kpis nn-summary-kpis')
+    kpis.appendChild(kpiCard('Models', String(models.length), 'documents of kNNowledge'))
+    kpis.appendChild(kpiCard('Concepts', String(conceptNames.length), 'types of card'))
+    kpis.appendChild(kpiCard('Elements', String(elements.length), 'cards across all models'))
+    kpis.appendChild(kpiCard('Sources', String(Number(domain.sourceCount) || 0), 'documents the models cite'))
+    kpis.appendChild(kpiCard('Pending changes', String(pending), 'proposed, not yet applied'))
+    kpis.appendChild(kpiCard('Fields filled', pct(fill.filled, fill.total) + '%', fill.filled + ' of ' + fill.total))
+    root.appendChild(kpis)
+
+    // What to look at: the gaps a newcomer should know about, each a link.
+    var hints = []
+    var counts = {}
+    elements.forEach(function (e) {
+      counts[e.concept] = (counts[e.concept] || 0) + 1
+    })
+    var empty = conceptNames.filter(function (c) {
+      return !counts[c]
+    })
+    if (empty.length === 1) hints.push({ concepts: empty, text: ' has no elements yet.' })
+    else if (empty.length > 1) hints.push({ concepts: empty, text: ' have no elements yet.' })
+    conceptNames.forEach(function (c) {
+      if (!counts[c]) return
+      var f = fieldFill(
+        elements.filter(function (e) {
+          return e.concept === c
+        }),
+        schema,
+      )
+      var p = pct(f.filled, f.total)
+      if (f.total > 0 && p < 50) hints.push({ concepts: [c], text: ': only ' + p + '% of its fields are filled.' })
+    })
+    if (pending) hints.push({ text: plural(pending, 'change is', 'changes are') + ' waiting for review.' })
+    if (hints.length) {
+      var attention = el('section', 'nn-summary-attention')
+      attention.appendChild(el('h3', null, 'What to look at'))
+      var list = el('ul')
+      hints.forEach(function (h) {
+        var li = el('li')
+        ;(h.concepts || []).forEach(function (c, i) {
+          if (i) li.appendChild(doc.createTextNode(i === h.concepts.length - 1 ? ' and ' : ', '))
+          li.appendChild(conceptLink(doc, c))
+        })
+        li.appendChild(doc.createTextNode(h.text))
+        list.appendChild(li)
+      })
+      attention.appendChild(list)
+      root.appendChild(attention)
+    }
+
+    root.appendChild(el('h3', 'nn-summary-section', 'Models'))
+    var grid = el('div', 'nn-summary-models')
+    root.appendChild(grid)
+    host.appendChild(root)
+    // Cards are drawn after they are in the document so the charts get a width.
+    models.forEach(function (m) {
+      grid.appendChild(renderSummaryModelCard(doc, m, elements, schema))
+    })
+  }
+
   function renderMetamodelView(doc, schema, matrices, elements) {
     var host = doc.getElementById('nn-tab-metamodel')
     if (!host) return
@@ -16390,15 +16645,7 @@ if (typeof window !== 'undefined') {
       title.textContent = String(name)
       c.appendChild(title)
       c.addEventListener('click', function () {
-        var search = doc.getElementById('nn-search')
-        if (search) {
-          search.value = formatFacetToken('concept', name)
-          if (typeof CustomEvent === 'function') {
-            search.dispatchEvent(new CustomEvent('input', { bubbles: true }))
-          }
-        }
-        var expBtn = doc.querySelector('.nn-view-tab[data-tab="explorer"]')
-        if (expBtn && typeof expBtn.click === 'function') expBtn.click()
+        revealInKnowledge(doc, formatFacetToken('concept', name))
       })
       svg.appendChild(c)
       var t = doc.createElementNS(NS, 'text')
@@ -18610,6 +18857,7 @@ if (typeof window !== 'undefined') {
       },
     })
     renderMetamodelView(active, schema, matrices, elements)
+    renderSummaryView(active, model, schema, meta)
 
     var searchBox = active.getElementById('nn-search')
     if (searchBox) {
