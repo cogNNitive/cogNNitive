@@ -74,8 +74,8 @@ function runOf(id, graph, events, opts = {}) {
   }
 }
 
-function payload(runs) {
-  const graph = graphOf(REVIEW)
+function payload(runs, text = REVIEW) {
+  const graph = graphOf(text)
   return {
     schema: { concepts: [] },
     model: {
@@ -262,10 +262,25 @@ describe('procedure view: an action records a Step Request', () => {
     assert.deepEqual(actionIds(), [], 'a console without a store offers no write')
   })
 
-  it('offers start on an unstarted manual step and disables upon proposing a draft', () => {
-    const BEFORE_REVIEW = [...STARTED, { kind: 'step_completed', step: 'draft', next: 'review' }]
+  const BEFORE_REVIEW = [...STARTED, { kind: 'step_completed', step: 'draft', next: 'review' }]
+
+  it('answers an unstarted manual decision with its outcomes: the start travels with the answer', () => {
     const spy = draftSpy()
     mount(payload([(g) => runOf('r1', g, BEFORE_REVIEW)]), spy.ctx)
+    assert.deepEqual(enabled(), ['complete', 'complete'], 'one button per outcome, no bare start')
+
+    click(container.querySelector('[data-proc-outcome="approve"]'))
+    assert.deepEqual(
+      spy.added.map((d) => JSON.parse(d.proposed).action),
+      ['start', 'complete'],
+    )
+  })
+
+  it('offers start on an unstarted manual step with no outcome to answer and disables upon proposing a draft', () => {
+    // No outcome guards: nothing the person could answer yet, only the step to start.
+    const LINEAR = REVIEW.replace(/condition:: outcome == \w+\n/g, '')
+    const spy = draftSpy()
+    mount(payload([(g) => runOf('r1', g, BEFORE_REVIEW)], LINEAR), spy.ctx)
     assert.deepEqual(enabled(), ['start'], 'a pending human step offers start')
 
     click(container.querySelector('[data-proc-action="start"]'))
