@@ -56,6 +56,14 @@ describe('console chart library', () => {
     assert.ok(host.querySelector('svg'), 'renders into the host')
   })
 
+  it('renderChart draws a host that has no size yet (a hidden tab) at a fallback size', () => {
+    const chart = nnConsole.renderChart(freshHost(), {
+      series: [{ type: 'treemap', data: [{ name: 'a', value: 1 }] }],
+    })
+    assert.equal(chart.getWidth(), 960)
+    assert.equal(chart.getHeight(), 400)
+  })
+
   it('renderChart keeps a background the option sets', () => {
     const chart = nnConsole.renderChart(
       freshHost(),

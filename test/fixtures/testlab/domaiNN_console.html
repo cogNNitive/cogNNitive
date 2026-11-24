@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-K61NzvjfUfmOdkCeByAP1iT8RZ4T79m+KD/Lz30eSOk=' 'sha256-qsjLjnpwNES4Y0CM36eMiDfJELR1nScCKX3nlAuFDJI='; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; media-src 'self' file: blob:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-ru0S/A/Id3OxgYpl5GiDz8iNaM12gCVlweQG0hPJJhE=' 'sha256-qsjLjnpwNES4Y0CM36eMiDfJELR1nScCKX3nlAuFDJI='; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; media-src 'self' file: blob:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -6882,85 +6882,60 @@ button.btn-primary:hover:not(:disabled) {
   gap: 8px;
 }
 
-/* P2.9: Metamodel graph & legend */
-.nn-metamodel {
+/* Schema tab: entity-relationship diagram and the schema in words */
+.nn-schema {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  background: var(--nn-surface, #ffffff);
-  border: 1px solid var(--nn-border, #e5e5e5);
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: var(--nn-shadow);
+  gap: 14px;
+  overflow-x: auto;
 }
-.nn-metamodel-svg {
-  max-width: 640px;
-  width: 100%;
-  height: auto;
-  display: block;
+
+.nn-schema-legend {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
 }
-.nn-metamodel-node {
-  fill: #f4f4f5;
-  stroke: var(--nn-accent, #171717);
-  stroke-width: 2px;
-  transition: fill 0.15s ease;
+
+.nn-schema-chart {
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #ffffff;
 }
-.nn-metamodel-node:hover {
-  fill: #e4e4e7;
+
+.nn-schema-words {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #ffffff;
+  padding: 14px 16px;
 }
-.nn-metamodel-label {
-  font-family: var(--nn-font);
-  font-size: 12px;
+
+.nn-schema-words-title {
+  margin: 0 0 8px;
+  font-size: 1rem;
   font-weight: 700;
-  fill: var(--nn-text, #0a0a0a);
+  color: var(--text);
 }
-.nn-metamodel-edge {
-  stroke: var(--nn-accent, #171717);
-  stroke-width: 1.75px;
-}
-.nn-metamodel-edge[data-edge-kind="relation"] {
-  stroke: #52525b;
-}
-.nn-metamodel-edge-bg {
-  fill: #ffffff;
-  stroke: var(--nn-border, #e5e5e5);
-  stroke-width: 1px;
-}
-.nn-metamodel-edge-label {
-  font-family: var(--nn-mono);
-  font-size: 11px;
-  font-weight: 600;
-  fill: var(--nn-accent, #171717);
-}
-.nn-metamodel-legend {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  flex-wrap: wrap;
+
+.nn-schema-group h3 {
+  margin: 12px 0 4px;
+  font-family: var(--mono);
   font-size: 0.78rem;
-  color: var(--nn-muted, #666666);
-  border-top: 1px solid var(--nn-border, #e5e5e5);
-  padding-top: 10px;
-  width: 100%;
+  color: var(--muted);
 }
-.nn-mm-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  color: var(--nn-text, #0a0a0a);
+
+.nn-schema-group ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--text);
 }
-.nn-mm-line {
-  width: 22px;
-  height: 0;
-  border-top: 2px solid var(--nn-accent, #171717);
-  display: inline-block;
-}
-.nn-mm-line--relation {
-  border-top-style: dashed;
-  border-top-color: #52525b;
+
+.nn-schema-concept .nn-concept-link {
+  font-weight: 700;
 }
 
 /* P2.10: Matrix table proportions & cell polish */
@@ -9406,6 +9381,161 @@ input[type="text"], input[type="search"], textarea, select {
   margin-top: 4px;
 }
 
+/* ---- Vocabulary legend (under the tabs) ---- */
+.nn-vocab-legend {
+  margin: -8px 0 14px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.nn-vocab-legend strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* ---- Summary tab ---- */
+.nn-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.nn-summary-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.nn-summary-section,
+.nn-summary-attention h3 {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.nn-summary-attention {
+  border: 1px solid var(--border);
+  border-left: 4px solid #f59e0b;
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 12px 16px;
+}
+
+.nn-summary-attention ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nn-summary-attention a {
+  color: var(--primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.nn-summary-models {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.nn-summary-model {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #ffffff;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--shadow-card);
+}
+
+.nn-summary-model-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nn-summary-model-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.nn-summary-model-blueprint {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+
+.nn-summary-model-stats {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.nn-summary-model-chart {
+  height: 26px;
+}
+
+.nn-summary-model-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 0.75rem;
+}
+
+.nn-summary-model-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.nn-summary-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.nn-concept-link {
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.nn-concept-link:hover,
+.nn-summary-attention .nn-concept-link {
+  text-decoration: underline;
+}
+
+.nn-summary-model-open {
+  align-self: flex-start;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: underline;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
 .nn-storage-bar-wrap {
   display: flex;
   flex-direction: column;
@@ -10673,6 +10803,161 @@ table.proc-steps-table tbody tr.on td:first-child {
   flex-direction: column;
   gap: 10px;
 }
+
+/* ---- Versions tab ---- */
+.nn-versions {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 1100px;
+}
+
+.nn-versions-checked {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.nn-versions-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #ffffff;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nn-versions-section h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.nn-versions-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.nn-versions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.nn-versions-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 8px;
+}
+
+.nn-versions-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 7px 8px;
+  color: var(--text);
+  vertical-align: top;
+}
+
+.nn-versions-table td:first-child {
+  font-weight: 600;
+}
+
+.nn-versions-status {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 1px 9px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.nn-versions-status--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.nn-versions-status--warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.nn-versions-status--info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.nn-versions-status--muted {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* ---- Map tab ---- */
+.nn-map {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nn-map-title {
+  margin: 8px 0 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.nn-map-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.nn-map-tree {
+  height: 460px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #ffffff;
+}
+
+.nn-map-picker {
+  font-size: 0.85rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nn-map-pick {
+  max-width: 420px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.nn-map-words {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.nn-map-words .nn-concept-link {
+  text-decoration: underline;
+}
+
+.nn-map-ego {
+  height: 340px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #ffffff;
+}
 </style>
     <style>
       :root,
@@ -10960,12 +11245,6 @@ table.proc-steps-table tbody tr.on td:first-child {
       .nn-field-detail-value { white-space: pre-wrap; word-break: break-word; font-family: var(--mono); font-size: 0.82rem; background: var(--surface-2); border-radius: var(--radius-sm); padding: 10px 12px; }
 
       /* Metamodel map */
-      .nn-metamodel { display: flex; justify-content: center; padding: 12px 0; }
-      .nn-metamodel-svg { width: 100%; max-width: 620px; height: auto; }
-      .nn-metamodel-node { fill: color-mix(in srgb, var(--primary) 12%, var(--surface)); stroke: var(--primary); stroke-width: 1.4; }
-      .nn-metamodel-label { font-size: 12px; fill: var(--text); font-weight: 600; }
-      .nn-metamodel-edge { stroke: color-mix(in srgb, var(--primary) 40%, var(--border)); stroke-width: 1.5; }
-      .nn-metamodel-edge-label { font-size: 10px; fill: var(--muted); font-family: var(--mono); }
       .nn-reviewer-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); }
       .nn-reviewer-name { width: 9rem; padding: 4px 8px; font: inherit; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); }
       .nn-rail-badge, .nn-card-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--danger); color: #fff; font-size: 0.7rem; font-weight: 700; border-radius: 999px; padding: 1px 6px; min-width: 16px; height: 16px; }
@@ -11061,7 +11340,7 @@ table.proc-steps-table tbody tr.on td:first-child {
 {"concepts":[{"name":"Procedure Execution","type":"list","icon":"play-circle","color":"purple","weight":100,"storage":{"mode":"distributed","placement":"executions/{slug}/"},"fields":[{"name":"procedure","type":"address","scope":"concept","description":"Address of the Procedure or root Work this run executes (model@element or document@container).","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"def_rev","type":"string","scope":"concept","description":"knowledge_version of the procedure model when the run started; the run follows that revision to the end.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"params","type":"string","scope":"concept","description":"Opaque parameters the run was started with (a JSON object of slot values).","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"seq","type":"number","scope":"concept","description":"The run's write counter. Every runner changeset increments it with a from guard, so any concurrent write to the same run conflicts the whole changeset.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"state","type":"select","options":["open","paused","completed","failed","cancelled"],"scope":"concept","description":"The stored lifecycle of the run. The status the tools return is the fold's derived RunStatus, which reports paused when this is paused.","transitions":{"":["open"],"open":["paused","completed","failed","cancelled"],"paused":["open","completed","failed","cancelled"],"completed":[],"failed":[],"cancelled":[]},"declaredBy":{"family":"executions-app","version":"V_0-6-0"}}],"declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"Step Run","type":"list","icon":"list-checks","color":"blue","weight":90,"description":"One row per step of the procedure. Its slug is the step slug. Mutable: the runner writes it as the step advances.","fields":[{"name":"attempt","type":"number","scope":"concept","description":"The attempt number of the current claim, 1 for the first try.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"outcome","type":"string","scope":"concept","description":"The answer the step recorded; for a decision step, the token its next conditions test.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"next","type":"string","scope":"concept","description":"The slug of the step this one moved to.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"inputs","type":"string","scope":"concept","description":"The input artifact revisions frozen at claim time: a JSON object mapping artifact slug to its rev.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"waiting_on","type":"string","scope":"concept","description":"What a waiting step waits on.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"failure","type":"string","scope":"concept","description":"Why the step failed.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"claimed_at","type":"string","scope":"concept","description":"When the current attempt was claimed (ISO 8601).","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"timeout_ms","type":"number","scope":"concept","description":"The budget of the current attempt. At most 300000.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"holder","type":"string","scope":"concept","description":"Who holds the claim, as pid@host. For an engine step it is the process that runs the command, not the server that reports it. A step whose holder is gone is a crash, derived from it; a claim that names neither a holder nor a claim time is broken, never a permanent holder.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"evidence","type":"string","scope":"concept","description":"The applied change ids a human step observed, such as the verdicts it waited on.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"status","type":"select","options":["pending","active","waiting","done","failed","expected","produced","validated","rejected"],"scope":"list","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed) or an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle; the rows never cross. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending","expected"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-6-0"}}],"declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"Run Artifact","type":"list","icon":"package","color":"orange","weight":80,"description":"One row per artifact of the procedure. Its slug is the artifact slug. Mutable: verification and staleness move it.","fields":[{"name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"How the artifact is carried: a file, a model element, or a changeset of several elements.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"value","type":"string","scope":"concept","description":"Where the artifact is: a path, a model@element address, or a changeset path.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"status","type":"select","options":["pending","active","waiting","done","failed","expected","produced","validated","rejected"],"scope":"list","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed) or an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle; the rows never cross. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending","expected"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact (sha256 for a file, the element's origin change id for an element, the applied change for a changeset) or the recorded input's value.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}}],"declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"Input","type":"list","icon":"log-in","color":"grey","weight":70,"description":"A computed or entered input the run recorded, with its revision. One row per input name.","fields":[{"name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact (sha256 for a file, the element's origin change id for an element, the applied change for a changeset) or the recorded input's value.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}}],"declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"Step Request","type":"list","icon":"inbox","color":"yellow","weight":60,"description":"One row per human request that an action be recorded on a step. Intent, never state: only the runner consumes it, and it never moves a Step Run row by itself.","fields":[{"name":"action","type":"select","options":["start","wait","complete","fail"],"scope":"concept","description":"The action the person asked the runner to record on the step.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"step","type":"string","scope":"concept","description":"The slug of the step the request names.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"base_seq","type":"number","scope":"concept","description":"The run's header seq when the request was made. A consumer refuses the request when the run has advanced past it.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"reason","type":"string","scope":"concept","description":"Why the request was rejected or found stale, as the runner reported it.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"request_status","type":"select","options":["pending","done","stale","rejected"],"scope":"concept","description":"The life of a request: pending while nobody consumed it, then done, stale or rejected. A resolved request never returns to pending.","transitions":{"":["pending"],"pending":["done","stale","rejected"],"done":[],"stale":[],"rejected":[]},"declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"requested_outcome","type":"string","scope":"concept","description":"The outcome the person asked for when the request names a branching step.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"requested_value","type":"string","scope":"concept","description":"The value the person attached to the request, such as who a step waits on or why it failed.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}}],"declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"name":"Concept 1","type":"list","icon":"box","color":"blue","weight":100,"description":"Baseline domain concept holding the 1A/1B/1C element triangle. Concept 1 carries every field type and anchors the Concept 1-Concept 2 matrix.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"manual","type":"markdown_file","scope":"concept","description":"External markdown file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"photo","type":"image","scope":"concept","description":"Image attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"demo_video","type":"video","scope":"concept","description":"Downloaded video asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"voice_note","type":"audio","scope":"concept","description":"Downloaded and transcribed audio asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"sibling","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"Reference to an element of Concept 2.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"status","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"Lifecycle status of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Concept 2","type":"list","icon":"boxes","color":"green","weight":90,"description":"Owner concept holding the 2A/2B elements that reference Concept 1. Concept 2 closes the matrix crossings and proves bidirectional reference resolution.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"owner","type":"reference","target_concepts":["Concept 1"],"scope":"concept","description":"Reference back to an element of Concept 1.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Edge Cases","type":"list","icon":"flask-conical","color":"amber","weight":80,"description":"Quarantined stress probes with literal names describing the case under test: traceability probes, the very-long-description probe, the file probe, the artifact-as-source probe, the broken reference probe, and the sourceless probe.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"photo","type":"image","scope":"concept","description":"Image attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Modification Cases","type":"list","icon":"git-pull-request","color":"violet","weight":70,"description":"One field per Level-1 field type, so the review pass can exercise every kind of modification (a field of each type) with a self-describing name.","fields":[{"name":"string_field","type":"string","scope":"concept","description":"A string field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"number_field","type":"number","scope":"concept","description":"A number field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"boolean_field","type":"boolean","scope":"concept","description":"A boolean field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"select_field","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"A select field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"reference_field","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"A reference field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"image_field","type":"image","scope":"concept","description":"An image field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"file_field","type":"file","scope":"concept","description":"A file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"video_field","type":"video","scope":"concept","description":"A video field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"audio_field","type":"audio","scope":"concept","description":"An audio field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"url_field","type":"url","scope":"concept","description":"A URL field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"markdown_inline_field","type":"markdown_inline","scope":"concept","description":"A markdown_inline field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"markdown_file_field","type":"markdown_file","scope":"concept","description":"A markdown_file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"knowledge_field","type":"knowledge","target_blueprint":"TestLab","scope":"concept","description":"A knowledge field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"address_field","type":"address","scope":"concept","description":"An address field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"citation_field","type":"citation","scope":"concept","description":"A citation field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Procedure","type":"list","icon":"workflow","color":"teal","weight":110,"fields":[{"name":"category","type":"select","options":["ingestion","transformation","audit","reporting","custom"],"scope":"concept","description":"Functional classification of the procedure workflow.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"summary","type":"string","scope":"concept","description":"Mandatory concise summary of the workflow intent and transformation steps.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"inputs_required","type":"string","scope":"concept","description":"References to required Source or Model concepts consumed as inputs.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"outputs_expected","type":"string","scope":"concept","description":"References to expected Artifact concepts produced by the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"executed_by","type":"string","scope":"concept","description":"Reference to responsible agent or functional role executing the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"procedure_model","type":"knowledge","scope":"concept","description":"Link to concrete procedure definition or executable stepper model _NN.md.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"Work","type":"list","icon":"list-ordered","color":"blue","weight":100,"fields":[{"name":"step_type","type":"select","options":["task","decision","event"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"parent","type":"reference","target_concepts":["Work"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"next","type":"reference","target_concepts":["Work"],"scope":"concept","description":"Step or steps that may follow. A decision step lists several targets as an inline list (next:: [@approve, @decline], addresses like every reference field); the run records the one it took.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"condition","type":"string","scope":"concept","description":"Guard to enter the step. Evaluable forms are outcome == \u003ctoken> and [[artifact]] validated; anything else is prose the actor asserts.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"decision","type":"string","scope":"concept","description":"Question a decision step asks; its answer is the outcome the run records.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"command","type":"string","scope":"concept","description":"Shell command an engine step runs; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"produces","type":"string","scope":"concept","description":"Path or address the step produces; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"executor","type":"select","options":["human","agent","engine"],"scope":"concept","description":"Who performs the step. A step without executor is performed by an agent.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"input","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"output","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"output_status","type":"string","scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"tool","type":"reference","target_concepts":["Tools"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"Artifact","type":"list","icon":"package","color":"orange","weight":80,"fields":[{"name":"verify","type":"string","scope":"concept","description":"How the artifact is checked: file:\u003cglob>, element:\u003caddress>, command:\u003ccmd> or human.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"required","type":"boolean","scope":"concept","description":"Whether a run must produce the artifact when its producer is on the walked path (default true).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"Tools","type":"list","icon":"wrench","color":"orange","weight":70,"fields":[{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"Roles","type":"list","icon":"users","color":"green","weight":60,"fields":[{"name":"scope","type":"select","options":["internal","external"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"fields":[{"concept":"Procedure Execution","name":"procedure","type":"address","scope":"concept","description":"Address of the Procedure or root Work this run executes (model@element or document@container).","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Procedure Execution","name":"def_rev","type":"string","scope":"concept","description":"knowledge_version of the procedure model when the run started; the run follows that revision to the end.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Procedure Execution","name":"params","type":"string","scope":"concept","description":"Opaque parameters the run was started with (a JSON object of slot values).","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Procedure Execution","name":"seq","type":"number","scope":"concept","description":"The run's write counter. Every runner changeset increments it with a from guard, so any concurrent write to the same run conflicts the whole changeset.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Procedure Execution","name":"state","type":"select","options":["open","paused","completed","failed","cancelled"],"scope":"concept","description":"The stored lifecycle of the run. The status the tools return is the fold's derived RunStatus, which reports paused when this is paused.","transitions":{"":["open"],"open":["paused","completed","failed","cancelled"],"paused":["open","completed","failed","cancelled"],"completed":[],"failed":[],"cancelled":[]},"declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Run","name":"attempt","type":"number","scope":"concept","description":"The attempt number of the current claim, 1 for the first try.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Run","name":"outcome","type":"string","scope":"concept","description":"The answer the step recorded; for a decision step, the token its next conditions test.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Run","name":"next","type":"string","scope":"concept","description":"The slug of the step this one moved to.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Run","name":"inputs","type":"string","scope":"concept","description":"The input artifact revisions frozen at claim time: a JSON object mapping artifact slug to its rev.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Run","name":"waiting_on","type":"string","scope":"concept","description":"What a waiting step waits on.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Run","name":"failure","type":"string","scope":"concept","description":"Why the step failed.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Run","name":"claimed_at","type":"string","scope":"concept","description":"When the current attempt was claimed (ISO 8601).","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Run","name":"timeout_ms","type":"number","scope":"concept","description":"The budget of the current attempt. At most 300000.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Run","name":"holder","type":"string","scope":"concept","description":"Who holds the claim, as pid@host. For an engine step it is the process that runs the command, not the server that reports it. A step whose holder is gone is a crash, derived from it; a claim that names neither a holder nor a claim time is broken, never a permanent holder.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Run","name":"evidence","type":"string","scope":"concept","description":"The applied change ids a human step observed, such as the verdicts it waited on.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Run","name":"status","type":"select","options":["pending","active","waiting","done","failed","expected","produced","validated","rejected"],"scope":"list","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed) or an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle; the rows never cross. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending","expected"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Run Artifact","name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"How the artifact is carried: a file, a model element, or a changeset of several elements.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Run Artifact","name":"value","type":"string","scope":"concept","description":"Where the artifact is: a path, a model@element address, or a changeset path.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Run Artifact","name":"status","type":"select","options":["pending","active","waiting","done","failed","expected","produced","validated","rejected"],"scope":"list","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed) or an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle; the rows never cross. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending","expected"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Run Artifact","name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact (sha256 for a file, the element's origin change id for an element, the applied change for a changeset) or the recorded input's value.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Input","name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact (sha256 for a file, the element's origin change id for an element, the applied change for a changeset) or the recorded input's value.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Request","name":"action","type":"select","options":["start","wait","complete","fail"],"scope":"concept","description":"The action the person asked the runner to record on the step.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Request","name":"step","type":"string","scope":"concept","description":"The slug of the step the request names.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Request","name":"base_seq","type":"number","scope":"concept","description":"The run's header seq when the request was made. A consumer refuses the request when the run has advanced past it.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Request","name":"reason","type":"string","scope":"concept","description":"Why the request was rejected or found stale, as the runner reported it.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Request","name":"request_status","type":"select","options":["pending","done","stale","rejected"],"scope":"concept","description":"The life of a request: pending while nobody consumed it, then done, stale or rejected. A resolved request never returns to pending.","transitions":{"":["pending"],"pending":["done","stale","rejected"],"done":[],"stale":[],"rejected":[]},"declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Request","name":"requested_outcome","type":"string","scope":"concept","description":"The outcome the person asked for when the request names a branching step.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Step Request","name":"requested_value","type":"string","scope":"concept","description":"The value the person attached to the request, such as who a step waits on or why it failed.","declaredBy":{"family":"executions-app","version":"V_0-6-0"}},{"concept":"Concept 1","name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"manual","type":"markdown_file","scope":"concept","description":"External markdown file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"photo","type":"image","scope":"concept","description":"Image attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"demo_video","type":"video","scope":"concept","description":"Downloaded video asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"voice_note","type":"audio","scope":"concept","description":"Downloaded and transcribed audio asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"sibling","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"Reference to an element of Concept 2.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"status","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"Lifecycle status of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"owner","type":"reference","target_concepts":["Concept 1"],"scope":"concept","description":"Reference back to an element of Concept 1.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"summary","type":"string","scope":"concept","description":"One-line summary of the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"photo","type":"image","scope":"concept","description":"Image attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"string_field","type":"string","scope":"concept","description":"A string field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"number_field","type":"number","scope":"concept","description":"A number field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"boolean_field","type":"boolean","scope":"concept","description":"A boolean field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"select_field","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"A select field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"reference_field","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"A reference field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"image_field","type":"image","scope":"concept","description":"An image field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"file_field","type":"file","scope":"concept","description":"A file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"video_field","type":"video","scope":"concept","description":"A video field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"audio_field","type":"audio","scope":"concept","description":"An audio field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"url_field","type":"url","scope":"concept","description":"A URL field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"markdown_inline_field","type":"markdown_inline","scope":"concept","description":"A markdown_inline field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"markdown_file_field","type":"markdown_file","scope":"concept","description":"A markdown_file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"knowledge_field","type":"knowledge","target_blueprint":"TestLab","scope":"concept","description":"A knowledge field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"address_field","type":"address","scope":"concept","description":"An address field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"citation_field","type":"citation","scope":"concept","description":"A citation field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Procedure","name":"category","type":"select","options":["ingestion","transformation","audit","reporting","custom"],"scope":"concept","description":"Functional classification of the procedure workflow.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"summary","type":"string","scope":"concept","description":"Mandatory concise summary of the workflow intent and transformation steps.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"inputs_required","type":"string","scope":"concept","description":"References to required Source or Model concepts consumed as inputs.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"outputs_expected","type":"string","scope":"concept","description":"References to expected Artifact concepts produced by the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"executed_by","type":"string","scope":"concept","description":"Reference to responsible agent or functional role executing the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"procedure_model","type":"knowledge","scope":"concept","description":"Link to concrete procedure definition or executable stepper model _NN.md.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"step_type","type":"select","options":["task","decision","event"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"parent","type":"reference","target_concepts":["Work"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"next","type":"reference","target_concepts":["Work"],"scope":"concept","description":"Step or steps that may follow. A decision step lists several targets as an inline list (next:: [@approve, @decline], addresses like every reference field); the run records the one it took.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"condition","type":"string","scope":"concept","description":"Guard to enter the step. Evaluable forms are outcome == \u003ctoken> and [[artifact]] validated; anything else is prose the actor asserts.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"decision","type":"string","scope":"concept","description":"Question a decision step asks; its answer is the outcome the run records.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"command","type":"string","scope":"concept","description":"Shell command an engine step runs; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"produces","type":"string","scope":"concept","description":"Path or address the step produces; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"executor","type":"select","options":["human","agent","engine"],"scope":"concept","description":"Who performs the step. A step without executor is performed by an agent.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"input","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"output","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"output_status","type":"string","scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"tool","type":"reference","target_concepts":["Tools"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Artifact","name":"verify","type":"string","scope":"concept","description":"How the artifact is checked: file:\u003cglob>, element:\u003caddress>, command:\u003ccmd> or human.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Artifact","name":"required","type":"boolean","scope":"concept","description":"Whether a run must produce the artifact when its producer is on the walked path (default true).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Artifact","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Artifact","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Tools","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Tools","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Roles","name":"scope","type":"select","options":["internal","external"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Roles","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Roles","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"markers":[],"matrices":[{"name":"Concept 1-Concept 2 Matrix","source":"Concept 1","target":"Concept 2","params":"","values":["relevant","archived"],"widgetType":"set","description":"Scores how relevant each Concept 1 element is to each Concept 2 element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"work-roles matrix","source":"Work","target":"Roles","params":"","values":["Responsible","Accountable","Consulted","Informed"],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"work-tools matrix","source":"Work","target":"Tools","params":"","values":["Uses"],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"work-artifacts matrix","source":"Work","target":"Artifact","params":"","values":["Creates","Modifies","Validates","Reviews"],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"procedures":[{"id":"usage","name":"Getting started","path":"procedures/usage_procedures_NN.md","status":"selected"}]}
 </script>
     <script type="application/x-nn-deflate-base64" id="nn-model">
-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
+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
 </script>
     <script type="application/json" id="nn-procedure-core"></script>
     <script type="application/json" id="nn-drafts">
@@ -19706,7 +19985,15 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
       host.__nnChartObserver.disconnect()
       host.__nnChartObserver = null
     }
-    var chart = lib.init(host, null, { renderer: o.renderer || 'svg', width: o.width, height: o.height })
+    // A host in a hidden tab has no size yet: start from a fallback size and let the
+    // resize observer measure the real one ('auto') once the tab is shown.
+    var autoWidth = o.width === undefined
+    var autoHeight = o.height === undefined
+    var chart = lib.init(host, null, {
+      renderer: o.renderer || 'svg',
+      width: autoWidth ? (host.clientWidth ? undefined : 960) : o.width,
+      height: autoHeight ? (host.clientHeight ? undefined : 400) : o.height,
+    })
     var merged = {}
     Object.keys(option || {}).forEach(function (key) {
       merged[key] = option[key]
@@ -19714,9 +20001,11 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
     if (merged.backgroundColor === undefined) merged.backgroundColor = '#ffffff'
     if (merged.color === undefined) merged.color = CHART_PALETTE
     chart.setOption(merged)
-    if (typeof ResizeObserver !== 'undefined' && o.width === undefined) {
+    if (typeof ResizeObserver !== 'undefined' && (autoWidth || autoHeight)) {
       host.__nnChartObserver = new ResizeObserver(function () {
-        if (!chart.isDisposed()) chart.resize()
+        if (!chart.isDisposed() && host.clientWidth) {
+          chart.resize({ width: autoWidth ? 'auto' : o.width, height: autoHeight ? 'auto' : o.height })
+        }
       })
       host.__nnChartObserver.observe(host)
     }
@@ -25164,6 +25453,58 @@ if (typeof window !== 'undefined') {
   }
 
   // Built-in tabs, registered per boot (they are not in the registry).
+  // The models a reader thinks of as the domaiNN's content: every model but the
+  // synthetic change log, which the Summary counts as changes instead.
+  function summaryModels(meta) {
+    var models = meta && Array.isArray(meta.models) ? meta.models : []
+    return models.filter(function (m) {
+      return m && m.id !== 'changes'
+    })
+  }
+
+  // One line under the tabs that translates the iNNfo vocabulary for a newcomer.
+  var VOCABULARY_LEGEND = [
+    ['bluepriNNt', 'the template a model follows'],
+    ['concept', 'a type of card'],
+    ['element', 'one card'],
+    ['field', 'one piece of data on a card'],
+  ]
+
+  function ensureVocabularyLegend(doc, nav) {
+    if (!nav || !nav.parentNode || doc.querySelector('.nn-vocab-legend')) return
+    var legend = el('p', 'nn-vocab-legend')
+    legend.setAttribute('aria-label', 'Vocabulary')
+    VOCABULARY_LEGEND.forEach(function (pair, i) {
+      if (i) legend.appendChild(doc.createTextNode(' · '))
+      legend.appendChild(el('strong', null, pair[0]))
+      legend.appendChild(doc.createTextNode(' = ' + pair[1]))
+    })
+    nav.parentNode.insertBefore(legend, nav.nextSibling)
+  }
+
+  // Switches to the Knowledge tab with `token` (a facet such as `concept:Deal`) in
+  // the search box. Every "show me these" link in the console goes through here.
+  function revealInKnowledge(doc, token) {
+    var search = doc.getElementById('nn-search')
+    if (search) {
+      search.value = token
+      if (typeof CustomEvent === 'function') {
+        search.dispatchEvent(new CustomEvent('input', { bubbles: true }))
+      }
+    }
+    var expBtn = doc.querySelector('.nn-view-tab[data-tab="explorer"]')
+    if (expBtn && typeof expBtn.click === 'function') expBtn.click()
+  }
+
+  // A dashboard number: label, value and an optional line of context.
+  function kpiCard(label, value, sub) {
+    var card = el('div', 'nn-kpi-card')
+    card.appendChild(el('div', 'kpi-label', label))
+    card.appendChild(el('div', 'kpi-value', value))
+    if (sub) card.appendChild(el('div', 'kpi-sub', sub))
+    return card
+  }
+
   function builtinViews(doc, config, model, meta, shell, schema) {
     var views = []
     // Files sits after the knowledge/changes band and only exists when the
@@ -25181,8 +25522,17 @@ if (typeof window !== 'undefined') {
       }
       return views
     }
+    if (summaryModels(meta).length > 0) {
+      views.push({ id: 'summary', title: 'Summary', icon: 'layout', order: 5, tone: 'core', panelId: 'nn-tab-summary' })
+    }
+    if (meta && meta.versions && typeof meta.versions === 'object') {
+      views.push({ id: 'versions', title: 'Versions', icon: 'milestone', order: 50, tone: 'core', panelId: 'nn-tab-versions' })
+    }
+    if (summaryModels(meta).length > 0 && Array.isArray(model && model.elements) && model.elements.length > 0) {
+      views.push({ id: 'map', title: 'Map', icon: 'network', order: 15, tone: 'core', panelId: 'nn-tab-map' })
+    }
     if (schema && Array.isArray(schema.concepts) && schema.concepts.length) {
-      views.push({ id: 'metamodel', title: 'Domain', icon: 'metamodel', order: 10, tone: 'core', panelId: 'nn-tab-metamodel' })
+      views.push({ id: 'metamodel', title: 'Schema', icon: 'metamodel', order: 10, tone: 'core', panelId: 'nn-tab-metamodel' })
     }
     if ((Array.isArray(model && model.elements) && model.elements.length > 0) || shell.explorer) {
       views.push({ id: 'explorer', title: 'Knowledge', icon: 'explorer', order: 20, tone: 'core', panelId: 'nn-tab-explorer' })
@@ -25334,6 +25684,7 @@ if (typeof window !== 'undefined') {
       })
       nav.appendChild(btn)
     })
+    if (!scopedView) ensureVocabularyLegend(doc, nav)
     updateTabBadges(doc, opts.state)
 
     var current = ''
@@ -26143,11 +26494,7 @@ if (typeof window !== 'undefined') {
 
       var kpis = el('div', 'nn-files-kpis')
       function kpi(label, value, sub) {
-        var card = el('div', 'nn-kpi-card')
-        card.appendChild(el('div', 'kpi-label', label))
-        card.appendChild(el('div', 'kpi-value', value))
-        if (sub) card.appendChild(el('div', 'kpi-sub', sub))
-        kpis.appendChild(card)
+        kpis.appendChild(kpiCard(label, value, sub))
       }
       kpi('Files', String(stats.totalFiles || inventory.length), 'indexed in this workspace')
       kpi('Footprint', filesFmtBytes(stats.totalBytes || 0), 'total bytes on disk')
@@ -27333,194 +27680,942 @@ if (typeof window !== 'undefined') {
     return out
   }
 
+  // ---- Summary tab: the domaiNN at a glance -------------------------------------
+
+  function fieldHasValue(value) {
+    if (value === null || value === undefined) return false
+    if (typeof value === 'string') return value.trim() !== ''
+    if (Array.isArray(value)) return value.length > 0
+    return true
+  }
+
+  function pct(part, whole) {
+    return whole > 0 ? Math.round((part / whole) * 100) : 0
+  }
+
+  function plural(n, one, many) {
+    return n + ' ' + (n === 1 ? one : many)
+  }
+
+  // Declared vs filled fields over a set of elements. A field counts as declared
+  // when the schema lists it for the element's concept.
+  function fieldFill(elements, schema) {
+    var declared = {}
+    ;(schema && Array.isArray(schema.fields) ? schema.fields : []).forEach(function (f) {
+      if (!f || !f.concept || !f.name) return
+      ;(declared[f.concept] = declared[f.concept] || []).push(f.name)
+    })
+    var total = 0
+    var filled = 0
+    elements.forEach(function (e) {
+      var names = declared[e.concept] || []
+      var values = (e && e.fields) || {}
+      total += names.length
+      names.forEach(function (n) {
+        if (fieldHasValue(values[n])) filled++
+      })
+    })
+    return { total: total, filled: filled }
+  }
+
+  // A concept name that opens Knowledge filtered by that concept.
+  function conceptLink(doc, concept, label) {
+    var a = el('a', 'nn-concept-link', label || concept)
+    a.setAttribute('href', '#explorer')
+    a.setAttribute('data-concept', concept)
+    a.addEventListener('click', function (event) {
+      if (event && event.preventDefault) event.preventDefault()
+      revealInKnowledge(doc, formatFacetToken('concept', concept))
+    })
+    return a
+  }
+
+  // Each model card: title, bluepriNNt, size, completeness and a stacked bar of its
+  // elements by concept (ECharts; the card still reads without it).
+  function renderSummaryModelCard(doc, m, elements, schema) {
+    var own = elements.filter(function (e) {
+      return e.modelId === m.id
+    })
+    var byConcept = {}
+    own.forEach(function (e) {
+      byConcept[e.concept] = (byConcept[e.concept] || 0) + 1
+    })
+    var concepts = Object.keys(byConcept)
+    var fill = fieldFill(own, schema)
+    var card = el('article', 'nn-summary-model')
+    card.setAttribute('data-model', m.id)
+    var head = el('header', 'nn-summary-model-head')
+    head.appendChild(el('h3', 'nn-summary-model-title', m.title || m.id))
+    head.appendChild(el('span', 'nn-summary-model-blueprint', m.blueprint || ''))
+    card.appendChild(head)
+    card.appendChild(
+      el(
+        'p',
+        'nn-summary-model-stats',
+        plural(own.length, 'element', 'elements') +
+          ' · ' +
+          plural(concepts.length, 'concept', 'concepts') +
+          ' · ' +
+          pct(fill.filled, fill.total) +
+          '% fields filled',
+      ),
+    )
+    var chartHost = el('div', 'nn-summary-model-chart')
+    card.appendChild(chartHost)
+    var legend = el('ul', 'nn-summary-model-legend')
+    concepts.forEach(function (c) {
+      var li = el('li')
+      var dot = el('span', 'nn-summary-dot')
+      dot.style.background = conceptMetaOf(schema && schema.concepts, c).hexColor
+      li.appendChild(dot)
+      li.appendChild(conceptLink(doc, c, c + ' (' + byConcept[c] + ')'))
+      legend.appendChild(li)
+    })
+    card.appendChild(legend)
+    var open = el('button', 'nn-summary-model-open', 'Open in Knowledge')
+    open.setAttribute('type', 'button')
+    open.addEventListener('click', function () {
+      revealInKnowledge(doc, formatFacetToken('model', m.id))
+    })
+    card.appendChild(open)
+    if (concepts.length) {
+      var chart = Studio.renderChart(chartHost, {
+        animation: false,
+        grid: { left: 4, right: 4, top: 4, bottom: 4 },
+        tooltip: { trigger: 'item', formatter: '{a}: {c}' },
+        xAxis: { type: 'value', show: false, max: own.length },
+        yAxis: { type: 'category', show: false, data: [m.title || m.id] },
+        series: concepts.map(function (c) {
+          return {
+            type: 'bar',
+            name: c,
+            stack: 'elements',
+            barWidth: 18,
+            data: [byConcept[c]],
+            itemStyle: { color: conceptMetaOf(schema && schema.concepts, c).hexColor },
+          }
+        }),
+      })
+      if (chart) {
+        chart.on('click', function (params) {
+          revealInKnowledge(doc, formatFacetToken('concept', params.seriesName))
+        })
+      }
+    }
+    return card
+  }
+
+  function renderSummaryView(doc, model, schema, meta) {
+    var host = doc.getElementById('nn-tab-summary')
+    if (!host) return
+    host.innerHTML = ''
+    var models = summaryModels(meta)
+    var elements = (model && Array.isArray(model.elements) ? model.elements : []).filter(function (e) {
+      return e && e.modelId !== 'changes'
+    })
+    var conceptNames = metamodelConceptNames(schema, elements)
+    var changes = model && Array.isArray(model.changes) ? model.changes : []
+    var pending = changes.filter(function (c) {
+      return c && c.status === 'proposed'
+    }).length
+    var fill = fieldFill(elements, schema)
+    var domain = (meta && meta.domain) || {}
+
+    var root = el('div', 'nn-summary')
+    if (domain.title) root.appendChild(el('h2', 'nn-summary-title', domain.title))
+
+    var kpis = el('div', 'nn-files-kpis nn-summary-kpis')
+    kpis.appendChild(kpiCard('Models', String(models.length), 'documents of kNNowledge'))
+    kpis.appendChild(kpiCard('Concepts', String(conceptNames.length), 'types of card'))
+    kpis.appendChild(kpiCard('Elements', String(elements.length), 'cards across all models'))
+    kpis.appendChild(kpiCard('Sources', String(Number(domain.sourceCount) || 0), 'documents the models cite'))
+    kpis.appendChild(kpiCard('Pending changes', String(pending), 'proposed, not yet applied'))
+    kpis.appendChild(kpiCard('Fields filled', pct(fill.filled, fill.total) + '%', fill.filled + ' of ' + fill.total))
+    root.appendChild(kpis)
+
+    // What to look at: the gaps a newcomer should know about, each a link.
+    var hints = []
+    var counts = {}
+    elements.forEach(function (e) {
+      counts[e.concept] = (counts[e.concept] || 0) + 1
+    })
+    var empty = conceptNames.filter(function (c) {
+      return !counts[c]
+    })
+    if (empty.length === 1) hints.push({ concepts: empty, text: ' has no elements yet.' })
+    else if (empty.length > 1) hints.push({ concepts: empty, text: ' have no elements yet.' })
+    conceptNames.forEach(function (c) {
+      if (!counts[c]) return
+      var f = fieldFill(
+        elements.filter(function (e) {
+          return e.concept === c
+        }),
+        schema,
+      )
+      var p = pct(f.filled, f.total)
+      if (f.total > 0 && p < 50) hints.push({ concepts: [c], text: ': only ' + p + '% of its fields are filled.' })
+    })
+    if (pending) hints.push({ text: plural(pending, 'change is', 'changes are') + ' waiting for review.' })
+    if (hints.length) {
+      var attention = el('section', 'nn-summary-attention')
+      attention.appendChild(el('h3', null, 'What to look at'))
+      var list = el('ul')
+      hints.forEach(function (h) {
+        var li = el('li')
+        ;(h.concepts || []).forEach(function (c, i) {
+          if (i) li.appendChild(doc.createTextNode(i === h.concepts.length - 1 ? ' and ' : ', '))
+          li.appendChild(conceptLink(doc, c))
+        })
+        li.appendChild(doc.createTextNode(h.text))
+        list.appendChild(li)
+      })
+      attention.appendChild(list)
+      root.appendChild(attention)
+    }
+
+    root.appendChild(el('h3', 'nn-summary-section', 'Models'))
+    var grid = el('div', 'nn-summary-models')
+    root.appendChild(grid)
+    host.appendChild(root)
+    // Cards are drawn after they are in the document so the charts get a width.
+    models.forEach(function (m) {
+      grid.appendChild(renderSummaryModelCard(doc, m, elements, schema))
+    })
+  }
+
+  // ---- Versions tab: which bluepriNNts, whether they are current, what is installed ----
+
+  var VERSION_STATUS = {
+    current: ['Up to date', 'ok'],
+    'upgrade-available': ['Update available', 'warn'],
+    ahead: ['Newer than the catalog', 'info'],
+    unlisted: ['Not in the cogNNitive catalog', 'info'],
+    unpinned: ['No version pinned', 'warn'],
+    unknown: ['Not checked (catalog unavailable)', 'muted'],
+  }
+
+  function versionStatusLabel(row) {
+    var entry = VERSION_STATUS[row.status] || VERSION_STATUS.unknown
+    var gap = row.status === 'upgrade-available' && row.gap ? ' (' + row.gap + ')' : ''
+    return { text: entry[0] + gap, tone: entry[1] }
+  }
+
+  function versionOrigin(row) {
+    if (row.status === 'unlisted') return 'Local bluepriNNt'
+    if (row.status === 'unknown' || row.status === 'unpinned') return '—'
+    return 'Published by cogNNitive'
+  }
+
+  function versionsTable(cls, headers, rows) {
+    var table = el('table', 'nn-versions-table ' + cls)
+    // Software versions, not kNNowledge: no cell is an addressable unit.
+    table.setAttribute('data-ku-exempt', '1')
+    var thead = el('thead')
+    var htr = el('tr')
+    headers.forEach(function (h) {
+      htr.appendChild(el('th', null, h))
+    })
+    thead.appendChild(htr)
+    table.appendChild(thead)
+    var tbody = el('tbody')
+    rows.forEach(function (cells) {
+      var tr = el('tr')
+      cells.forEach(function (cell) {
+        if (cell && cell.nodeType) {
+          var td = el('td')
+          td.appendChild(cell)
+          tr.appendChild(td)
+        } else {
+          tr.appendChild(el('td', null, cell == null || cell === '' ? '—' : String(cell)))
+        }
+      })
+      tbody.appendChild(tr)
+    })
+    table.appendChild(tbody)
+    return table
+  }
+
+  var INSTALL_SCOPE_TEXT = {
+    domain: "This domaiNN's own installation (.agents/bootstrap-state.json in the domaiNN).",
+    user: "The installation of the user who exported this console (~/.agents/bootstrap-state.json).",
+    file: 'The installation record given at export time.',
+  }
+
+  function renderVersionsView(doc, meta) {
+    var host = doc.getElementById('nn-tab-versions')
+    if (!host) return
+    host.innerHTML = ''
+    var versions = (meta && meta.versions) || {}
+    var root = el('div', 'nn-versions')
+    var checked = meta && meta.generated ? String(meta.generated).slice(0, 10) : ''
+    root.appendChild(
+      el(
+        'p',
+        'nn-versions-checked',
+        (checked ? 'Checked on ' + checked + ', when this console was exported. ' : '') +
+          'The console never goes online: export it again to refresh these versions.',
+      ),
+    )
+
+    var bp = el('section', 'nn-versions-section nn-versions-blueprints')
+    bp.appendChild(el('h3', null, 'BluepriNNts used by this domaiNN'))
+    bp.appendChild(
+      el(
+        'p',
+        'nn-versions-hint',
+        'Each model follows a bluepriNNt. "Pinned" is the version the model declares; "Latest" is the newest one cogNNitive publishes.',
+      ),
+    )
+    var blueprints = Array.isArray(versions.blueprints) ? versions.blueprints : []
+    var titleById = {}
+    ;(meta && Array.isArray(meta.models) ? meta.models : []).forEach(function (m) {
+      if (m && m.id) titleById[m.id] = m.title || m.id
+    })
+    bp.appendChild(
+      versionsTable(
+        'nn-versions-blueprints-table',
+        ['BluepriNNt', 'Used by', 'Pinned', 'Latest', 'Status', 'Origin'],
+        blueprints.map(function (row) {
+          var label = versionStatusLabel(row)
+          var badge = el('span', 'nn-versions-status nn-versions-status--' + label.tone, label.text)
+          var usedBy = (row.models || []).map(function (id) {
+            return titleById[id] || id
+          })
+          return [row.name, usedBy.join(', '), row.pinned, row.adopted, badge, versionOrigin(row)]
+        }),
+      ),
+    )
+    if (versions.catalog === 'unavailable') {
+      bp.appendChild(el('p', 'nn-versions-hint', 'The bluepriNNt catalog could not be read at export time, so no version was checked.'))
+    }
+    if (
+      blueprints.some(function (row) {
+        return row.status === 'upgrade-available'
+      })
+    ) {
+      bp.appendChild(el('p', 'nn-versions-hint', 'To move a model to a newer bluepriNNt, use the nn-update skill.'))
+    }
+    root.appendChild(bp)
+
+    var inst = el('section', 'nn-versions-section nn-versions-installation')
+    inst.appendChild(el('h3', null, 'Installed cogNNitive'))
+    var record = versions.installation
+    if (record && Array.isArray(record.components) && record.components.length) {
+      inst.appendChild(el('p', 'nn-versions-hint', INSTALL_SCOPE_TEXT[record.scope] || ''))
+      inst.appendChild(
+        versionsTable(
+          'nn-versions-installation-table',
+          ['Component', 'Name', 'Version', 'Updated'],
+          record.components.map(function (c) {
+            return [c.kind, c.name, c.version, c.updatedAt]
+          }),
+        ),
+      )
+    } else {
+      inst.appendChild(el('p', 'nn-versions-hint', 'No installation record was found when this console was exported.'))
+    }
+    var check = el('p', 'nn-versions-hint')
+    check.appendChild(doc.createTextNode('Newer skills, MCP server and console versions cannot be checked offline. Run '))
+    check.appendChild(el('code', null, 'node skills-manager.js status'))
+    check.appendChild(doc.createTextNode(' to compare with the latest cogNNitive release.'))
+    inst.appendChild(check)
+    root.appendChild(inst)
+    host.appendChild(root)
+  }
+
+  // ---- Map tab: how the domaiNN is built and what one element is linked to -------
+  // A treemap nests models, concepts and elements by size; below it, one element and
+  // its links one hop away (never the whole element graph: a force layout with a
+  // couple of thousand nodes blocks the page for many seconds).
+
+  // Links between elements: `relations` from the payload, plus field values that
+  // address another element (`model@slug`, a slug of the same model, or `[[Name]]`).
+  function elementLinks(elements) {
+    var byId = {}
+    var byModelName = {}
+    elements.forEach(function (e) {
+      byId[e.id] = e
+      byModelName[e.modelId + '\u0000' + String(e.name).toLowerCase()] = e
+    })
+    function resolve(from, raw) {
+      if (typeof raw !== 'string') return null
+      var v = raw.trim().replace(/^\[\[|\]\]$/g, '')
+      if (!v) return null
+      if (byId[v]) return byId[v]
+      if (byId[from.modelId + '@' + v]) return byId[from.modelId + '@' + v]
+      return byModelName[from.modelId + '\u0000' + v.toLowerCase()] || null
+    }
+    var out = {}
+    var inc = {}
+    var seen = {}
+    function add(from, to, field) {
+      if (!to || to.id === from.id) return
+      var key = from.id + '\u0000' + to.id + '\u0000' + field
+      if (seen[key]) return
+      seen[key] = true
+      ;(out[from.id] = out[from.id] || []).push({ id: to.id, field: field })
+      ;(inc[to.id] = inc[to.id] || []).push({ id: from.id, field: field })
+    }
+    elements.forEach(function (e) {
+      var fields = (e && e.fields) || {}
+      Object.keys(fields).forEach(function (name) {
+        var values = Array.isArray(fields[name]) ? fields[name] : [fields[name]]
+        values.forEach(function (v) {
+          add(e, resolve(e, v), name)
+        })
+      })
+      ;(Array.isArray(e.relations) ? e.relations : []).forEach(function (r) {
+        if (r && r.target) add(e, byId[r.target], r.field || '')
+      })
+    })
+    return { byId: byId, out: out, inc: inc }
+  }
+
+  function renderMapTree(host, domainTitle, models, elements, schema, onPick) {
+    var tree = models.map(function (m) {
+      var own = elements.filter(function (e) {
+        return e.modelId === m.id
+      })
+      var byConcept = {}
+      own.forEach(function (e) {
+        ;(byConcept[e.concept] = byConcept[e.concept] || []).push(e)
+      })
+      return {
+        name: (m.title || m.id) + (m.blueprint ? ' · ' + m.blueprint : ''),
+        children: Object.keys(byConcept).map(function (c) {
+          var color = conceptMetaOf(schema && schema.concepts, c).hexColor
+          return {
+            name: c,
+            value: byConcept[c].length,
+            itemStyle: { color: color },
+            label: { formatter: '{b} ({c})' },
+            children: byConcept[c].map(function (e) {
+              return { name: e.name || e.id, value: 1, elementId: e.id, itemStyle: { color: color } }
+            }),
+          }
+        }),
+      }
+    })
+    var chart = Studio.renderChart(host, {
+      animation: false,
+      tooltip: { formatter: '{b}: {c}' },
+      series: [
+        {
+          type: 'treemap',
+          name: domainTitle,
+          data: tree,
+          leafDepth: 2,
+          roam: false,
+          nodeClick: 'zoomToNode',
+          breadcrumb: { show: true, bottom: 6 },
+          upperLabel: { show: true, height: 24, color: '#111827', fontWeight: 'bold' },
+          label: { show: true, color: '#ffffff', fontSize: 11 },
+          levels: [
+            { itemStyle: { borderColor: '#e5e7eb', borderWidth: 4, gapWidth: 4 } },
+            { itemStyle: { borderColor: '#ffffff', borderWidth: 2, gapWidth: 2 } },
+            { itemStyle: { borderColor: '#ffffff', borderWidth: 1, gapWidth: 1 } },
+          ],
+        },
+      ],
+    })
+    if (chart) {
+      chart.on('click', function (params) {
+        if (params.data && params.data.elementId) onPick(params.data.elementId)
+      })
+    }
+  }
+
+  function renderMapView(doc, model, schema, meta) {
+    var host = doc.getElementById('nn-tab-map')
+    if (!host) return
+    host.innerHTML = ''
+    var models = summaryModels(meta)
+    var elements = (model && Array.isArray(model.elements) ? model.elements : []).filter(function (e) {
+      return e && e.id && e.modelId !== 'changes'
+    })
+    var titleOf = {}
+    models.forEach(function (m) {
+      titleOf[m.id] = m.title || m.id
+    })
+    var links = elementLinks(elements)
+    function linkCount(id) {
+      return (links.out[id] || []).length + (links.inc[id] || []).length
+    }
+
+    var root = el('div', 'nn-map')
+    root.appendChild(el('h3', 'nn-map-title', 'How the domaiNN is built'))
+    root.appendChild(
+      el(
+        'p',
+        'nn-map-hint',
+        'Each box is a model; inside it, its concepts; inside those, their elements. Bigger means more elements. Click a box to go in, the bar at the bottom to come back out, and an element to see its links below.',
+      ),
+    )
+    var treeHost = el('div', 'nn-map-tree')
+    root.appendChild(treeHost)
+
+    root.appendChild(el('h3', 'nn-map-title', 'Around one element'))
+    var picker = el('label', 'nn-map-picker', 'Element ')
+    var select = el('select', 'nn-map-pick')
+    models.forEach(function (m) {
+      var group = el('optgroup')
+      group.setAttribute('label', titleOf[m.id])
+      elements
+        .filter(function (e) {
+          return e.modelId === m.id
+        })
+        .forEach(function (e) {
+          var opt = el('option', null, (e.name || e.id) + ' (' + e.concept + ')')
+          opt.value = e.id
+          group.appendChild(opt)
+        })
+      select.appendChild(group)
+    })
+    picker.appendChild(select)
+    root.appendChild(picker)
+    var wordsHost = el('p', 'nn-map-words')
+    root.appendChild(wordsHost)
+    var egoHost = el('div', 'nn-map-ego')
+    root.appendChild(egoHost)
+    var open = el('button', 'nn-summary-model-open', 'Open in Knowledge')
+    open.setAttribute('type', 'button')
+    root.appendChild(open)
+    host.appendChild(root)
+
+    function nameOf(id) {
+      var e = links.byId[id]
+      return e ? e.name || e.id : id
+    }
+
+    function linkList(items) {
+      var span = el('span')
+      items.forEach(function (item, i) {
+        if (i) span.appendChild(doc.createTextNode(', '))
+        var a = el('a', 'nn-concept-link', nameOf(item.id))
+        a.setAttribute('href', '#map')
+        a.setAttribute('data-element', item.id)
+        a.addEventListener('click', function (event) {
+          if (event && event.preventDefault) event.preventDefault()
+          show(item.id)
+        })
+        span.appendChild(a)
+        if (item.field) span.appendChild(doc.createTextNode(' (' + item.field + ')'))
+      })
+      return span
+    }
+
+    function show(id) {
+      var center = links.byId[id]
+      if (!center) return
+      select.value = id
+      var outs = links.out[id] || []
+      var ins = links.inc[id] || []
+      wordsHost.innerHTML = ''
+      wordsHost.appendChild(
+        doc.createTextNode(nameOf(id) + ' (' + center.concept + ', ' + (titleOf[center.modelId] || center.modelId) + ') '),
+      )
+      if (outs.length) {
+        wordsHost.appendChild(doc.createTextNode('points to: '))
+        wordsHost.appendChild(linkList(outs))
+        wordsHost.appendChild(doc.createTextNode('. '))
+      } else {
+        wordsHost.appendChild(doc.createTextNode('points to nothing. '))
+      }
+      if (ins.length) {
+        wordsHost.appendChild(doc.createTextNode('Pointed to by: '))
+        wordsHost.appendChild(linkList(ins))
+        wordsHost.appendChild(doc.createTextNode('.'))
+      } else {
+        wordsHost.appendChild(doc.createTextNode('Nothing points to it.'))
+      }
+
+      var ids = [id]
+      outs.concat(ins).forEach(function (n) {
+        if (ids.indexOf(n.id) < 0) ids.push(n.id)
+      })
+      var chart = Studio.renderChart(
+        egoHost,
+        {
+          animation: false,
+          tooltip: { formatter: '{b}' },
+          series: [
+            {
+              type: 'graph',
+              layout: 'circular',
+              circular: { rotateLabel: false },
+              roam: true,
+              top: 50,
+              bottom: 60,
+              left: 120,
+              right: 120,
+              edgeSymbol: ['none', 'arrow'],
+              edgeSymbolSize: 9,
+              label: { show: true, position: 'bottom', fontSize: 11, color: '#1f2937' },
+              data: ids.map(function (nid) {
+                var e = links.byId[nid]
+                var isCenter = nid === id
+                return {
+                  id: nid,
+                  name: nameOf(nid),
+                  symbolSize: isCenter ? 46 : 26,
+                  itemStyle: {
+                    color: conceptMetaOf(schema && schema.concepts, e.concept).hexColor,
+                    borderColor: isCenter ? '#111827' : '#ffffff',
+                    borderWidth: isCenter ? 3 : 1,
+                  },
+                  label: { fontWeight: isCenter ? 'bold' : 'normal' },
+                }
+              }),
+              links: outs
+                .map(function (n) {
+                  return { source: id, target: n.id, field: n.field }
+                })
+                .concat(
+                  ins.map(function (n) {
+                    return { source: n.id, target: id, field: n.field }
+                  }),
+                )
+                .map(function (l) {
+                  return {
+                    source: l.source,
+                    target: l.target,
+                    lineStyle: { color: '#64748b', width: 1.5, curveness: 0.1 },
+                    label: { show: !!l.field, formatter: l.field, fontSize: 10, color: '#334155', backgroundColor: '#ffffff' },
+                  }
+                }),
+            },
+          ],
+        },
+        { height: 340 },
+      )
+      if (chart) {
+        chart.on('click', function (params) {
+          if (params.dataType === 'node' && params.data && params.data.id !== id) show(params.data.id)
+        })
+      }
+    }
+
+    open.addEventListener('click', function () {
+      if (select.value) focusElementCard(doc, select.value)
+    })
+    select.addEventListener('change', function () {
+      show(select.value)
+    })
+
+    renderMapTree(treeHost, (meta && meta.domain && meta.domain.title) || 'domaiNN', models, elements, schema, show)
+
+    var start = elements.reduce(function (best, e) {
+      return !best || linkCount(e.id) > linkCount(best.id) ? e : best
+    }, null)
+    if (start) show(start.id)
+  }
+
+  // ---- Schema tab: the concepts as an entity-relationship diagram ----------------
+  // One box per concept with its fields, grouped by the bluepriNNt that declares it;
+  // solid lines are matrices, dashed lines are fields that point to another concept.
+  // The same schema is also told in words below the chart, so it reads without it.
+
+  var SCHEMA_BOX_WIDTH = 230
+  var SCHEMA_GAP_X = 100
+  var SCHEMA_GAP_Y = 110
+  var SCHEMA_MAX_COLS = 4
+  var SCHEMA_MAX_FIELDS = 8
+  var SCHEMA_LINE = 17
+  var SCHEMA_HEADER = 34
+  var SCHEMA_PAD = 20
+  var SCHEMA_ANCHOR = '__nn-schema-anchor-'
+
+  // The relationships between concepts: declared matrices, reference fields of the
+  // schema, and references found in the data. One entry per source, target and label.
+  function schemaEdges(schema, matrices, elements, conceptNames) {
+    var known = {}
+    conceptNames.forEach(function (c) {
+      known[c] = true
+    })
+    var seen = {}
+    var edges = []
+    function add(kind, source, target, label) {
+      if (!known[source] || !known[target]) return
+      var key = kind + '\u0000' + source + '\u0000' + target + '\u0000' + label
+      if (seen[key]) return
+      seen[key] = true
+      edges.push({ kind: kind, source: source, target: target, label: label })
+    }
+    var allMatrices = (Array.isArray(matrices) ? matrices : []).concat(
+      schema && Array.isArray(schema.matrices) ? schema.matrices : [],
+    )
+    allMatrices.forEach(function (m) {
+      if (m && m.source && m.target) add('matrix', m.source, m.target, m.name || '')
+    })
+    ;(schema && Array.isArray(schema.fields) ? schema.fields : []).forEach(function (f) {
+      ;(Array.isArray(f && f.target_concepts) ? f.target_concepts : []).forEach(function (t) {
+        add('reference', f.concept, t, f.name)
+      })
+    })
+    var conceptOf = {}
+    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
+      if (e && e.id) conceptOf[e.id] = e.concept
+    })
+    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
+      ;(Array.isArray(e && e.relations) ? e.relations : []).forEach(function (r) {
+        var t = r && conceptOf[r.target]
+        if (t) add('reference', e.concept, t, r.field || '')
+      })
+    })
+    return edges
+  }
+
+  function schemaFamilyOf(schema, concept) {
+    var list = schema && Array.isArray(schema.concepts) ? schema.concepts : []
+    for (var i = 0; i < list.length; i++) {
+      var c = list[i]
+      if (c && typeof c === 'object' && c.name === concept) return (c.declaredBy && c.declaredBy.family) || 'Other'
+    }
+    return 'Other'
+  }
+
+  function renderSchemaInWords(doc, groups, fieldsOf, counts, edges) {
+    var words = el('section', 'nn-schema-words')
+    words.appendChild(el('h3', 'nn-schema-words-title', 'The schema in words'))
+    groups.forEach(function (g) {
+      var group = el('div', 'nn-schema-group')
+      group.appendChild(el('h3', null, g.family))
+      var list = el('ul')
+      g.concepts.forEach(function (c) {
+        var li = el('li', 'nn-schema-concept')
+        li.appendChild(conceptLink(doc, c))
+        var text = ' — ' + plural(counts[c] || 0, 'element', 'elements') + '.'
+        var fields = fieldsOf[c] || []
+        if (fields.length) {
+          text +=
+            ' Fields: ' +
+            fields
+              .map(function (f) {
+                return f.name + ' (' + (f.type || 'text') + ')'
+              })
+              .join(', ') +
+            '.'
+        }
+        var refs = edges.filter(function (e) {
+          return e.kind === 'reference' && e.source === c
+        })
+        if (refs.length) {
+          text +=
+            ' Points to ' +
+            refs
+              .map(function (e) {
+                return e.target + (e.label ? ' (' + e.label + ')' : '')
+              })
+              .join(', ') +
+            '.'
+        }
+        var mats = edges.filter(function (e) {
+          return e.kind === 'matrix' && e.source === c
+        })
+        if (mats.length) {
+          text +=
+            ' Matrix with ' +
+            mats
+              .map(function (e) {
+                return e.target + (e.label ? ' (' + e.label + ')' : '')
+              })
+              .join(', ') +
+            '.'
+        }
+        li.appendChild(doc.createTextNode(text))
+        list.appendChild(li)
+      })
+      group.appendChild(list)
+      words.appendChild(group)
+    })
+    return words
+  }
+
   function renderMetamodelView(doc, schema, matrices, elements) {
     var host = doc.getElementById('nn-tab-metamodel')
     if (!host) return
     host.innerHTML = ''
-    var nodes = metamodelConceptNames(schema, elements)
-    if (!nodes.length) {
+    // A domaiNN schema keeps one concept per bluepriNNt, so a name can repeat; the
+    // diagram shows it once (graph nodes are keyed by name).
+    var conceptNames = metamodelConceptNames(schema, elements).filter(function (c, i, all) {
+      return all.indexOf(c) === i
+    })
+    if (!conceptNames.length) {
       host.appendChild(el('p', 'empty-state', 'No concepts to map.'))
       return
     }
-    var NS = 'http://www.w3.org/2000/svg'
-    var size = 680
-    var mid = size / 2
-    var r = nodes.length > 1 ? 235 : 0
-    var nodeR = 36
-    var pos = {}
-    nodes.forEach(function (name, i) {
-      var a = -Math.PI / 2 + (i * 2 * Math.PI) / nodes.length
-      pos[name] = { x: mid + r * Math.cos(a), y: mid + r * Math.sin(a) }
+    var counts = {}
+    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
+      if (e && e.concept) counts[e.concept] = (counts[e.concept] || 0) + 1
     })
-    var svg = doc.createElementNS(NS, 'svg')
-    svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size)
-    svg.setAttribute('class', 'nn-metamodel-svg')
-    svg.setAttribute('role', 'img')
-    svg.setAttribute('aria-label', 'Model metamodel map')
+    var fieldsOf = {}
+    ;(schema && Array.isArray(schema.fields) ? schema.fields : []).forEach(function (f) {
+      if (f && f.concept && f.name) (fieldsOf[f.concept] = fieldsOf[f.concept] || []).push(f)
+    })
+    var groups = []
+    var groupOf = {}
+    conceptNames.forEach(function (c) {
+      var family = schemaFamilyOf(schema, c)
+      if (!groupOf[family]) {
+        groupOf[family] = { family: family, concepts: [] }
+        groups.push(groupOf[family])
+      }
+      groupOf[family].concepts.push(c)
+    })
+    var edges = schemaEdges(schema, matrices, elements, conceptNames)
 
-    var defs = doc.createElementNS(NS, 'defs')
-    var marker = doc.createElementNS(NS, 'marker')
-    marker.setAttribute('id', 'nn-metamodel-arrow')
-    marker.setAttribute('viewBox', '0 0 10 10')
-    marker.setAttribute('refX', '9')
-    marker.setAttribute('refY', '5')
-    marker.setAttribute('markerWidth', '6')
-    marker.setAttribute('markerHeight', '6')
-    marker.setAttribute('orient', 'auto-start-reverse')
-    var arrowPath = doc.createElementNS(NS, 'path')
-    arrowPath.setAttribute('d', 'M 0 1 L 10 5 L 0 9 z')
-    arrowPath.setAttribute('fill', 'var(--primary, #2563eb)')
-    marker.appendChild(arrowPath)
-    defs.appendChild(marker)
-    svg.appendChild(defs)
+    var root = el('div', 'nn-schema')
+    var legend = el('p', 'nn-schema-legend')
+    legend.textContent =
+      'Each box is a concept with its fields, grouped by bluepriNNt. A solid line is a matrix; a dashed line is a field that points to another concept. Click a box to see its elements; drag or scroll to move around.'
+    root.appendChild(legend)
+    var chartHost = el('div', 'nn-schema-chart')
+    root.appendChild(chartHost)
+    root.appendChild(renderSchemaInWords(doc, groups, fieldsOf, counts, edges))
+    host.appendChild(root)
 
-    // Edges: matrices (explicit) + element field refs (implicit).
-    var edges = []
-    var seenEdge = {}
-    var pairCounts = {}
-    function pushEdge(source, target, name, kind) {
-      if (!source || !target || !pos[source] || !pos[target]) return
-      var key = source + '>' + target + '>' + (name || '')
-      if (seenEdge[key]) return
-      seenEdge[key] = true
-      var pairKey = source < target ? source + '|' + target : target + '|' + source
-      var slot = pairCounts[pairKey] || 0
-      pairCounts[pairKey] = slot + 1
-      edges.push({ source: source, target: target, name: name, kind: kind || 'matrix', pairKey: pairKey, slot: slot })
+    // Layout: each bluepriNNt starts a new band of rows; boxes keep their real size
+    // because the chart is sized to the layout instead of squeezing it into the view.
+    var nodes = []
+    var y = 0
+    var cols = 1
+    groups.forEach(function (g) {
+      for (var i = 0; i < g.concepts.length; i += SCHEMA_MAX_COLS) {
+        var row = g.concepts.slice(i, i + SCHEMA_MAX_COLS)
+        cols = Math.max(cols, row.length)
+        var heights = row.map(function (c) {
+          var lines = Math.min((fieldsOf[c] || []).length, SCHEMA_MAX_FIELDS)
+          if ((fieldsOf[c] || []).length > SCHEMA_MAX_FIELDS) lines++
+          return SCHEMA_HEADER + Math.max(lines, 1) * SCHEMA_LINE + 14
+        })
+        var rowHeight = Math.max.apply(null, heights)
+        row.forEach(function (c, k) {
+          nodes.push({
+            name: c,
+            h: heights[k],
+            x: SCHEMA_PAD + SCHEMA_BOX_WIDTH / 2 + k * (SCHEMA_BOX_WIDTH + SCHEMA_GAP_X),
+            y: SCHEMA_PAD + y + heights[k] / 2,
+          })
+        })
+        y += rowHeight + SCHEMA_GAP_Y
+      }
+    })
+    var width = cols * SCHEMA_BOX_WIDTH + (cols - 1) * SCHEMA_GAP_X + 2 * SCHEMA_PAD
+    var height = Math.max(200, y - SCHEMA_GAP_Y + 2 * SCHEMA_PAD)
+    // ECharts fits the node centres into the view. Two invisible anchors at the
+    // canvas corners make that box the whole canvas, so the scale stays 1:1 and
+    // no box is cut or squeezed.
+    var anchors = [
+      [SCHEMA_ANCHOR + 'start', 0, 0],
+      [SCHEMA_ANCHOR + 'end', width, height],
+    ].map(function (a) {
+      return { name: a[0], x: a[1], y: a[2], symbolSize: 0, silent: true, label: { show: false }, tooltip: { show: false } }
+    })
+    chartHost.style.height = height + 'px'
+    chartHost.style.width = width + 'px'
+
+    var chart = null
+    try {
+      chart = Studio.renderChart(
+      chartHost,
+      {
+        animation: false,
+        tooltip: { trigger: 'item', confine: true },
+        series: [
+          {
+            type: 'graph',
+            layout: 'none',
+            roam: true,
+            draggable: true,
+            left: 0,
+            top: 0,
+            width: width,
+            height: height,
+            edgeSymbol: ['none', 'arrow'],
+            edgeSymbolSize: 9,
+            autoCurveness: true,
+            data: anchors.concat(
+              nodes.map(function (n) {
+              var color = conceptMetaOf(schema && schema.concepts, n.name).hexColor
+              var fields = fieldsOf[n.name] || []
+              var lines = fields.slice(0, SCHEMA_MAX_FIELDS).map(function (f) {
+                return '{f|' + f.name + '}  {k|' + (f.type || 'text') + '}'
+              })
+              if (fields.length > SCHEMA_MAX_FIELDS) lines.push('{k|+' + (fields.length - SCHEMA_MAX_FIELDS) + ' more fields}')
+              if (!lines.length) lines.push('{k|no fields}')
+              return {
+                name: n.name,
+                x: n.x,
+                y: n.y,
+                symbol: 'rect',
+                symbolSize: [SCHEMA_BOX_WIDTH, n.h],
+                itemStyle: { color: '#ffffff', borderColor: color, borderWidth: 2 },
+                label: {
+                  show: true,
+                  position: [8, 8],
+                  align: 'left',
+                  verticalAlign: 'top',
+                  width: SCHEMA_BOX_WIDTH - 16,
+                  overflow: 'truncate',
+                  formatter: '{t|' + n.name + '  ·  ' + plural(counts[n.name] || 0, 'element', 'elements') + '}\n' + lines.join('\n'),
+                  rich: {
+                    t: {
+                      width: SCHEMA_BOX_WIDTH - 16,
+                      backgroundColor: color,
+                      color: '#ffffff',
+                      fontWeight: 'bold',
+                      fontSize: 12,
+                      padding: [5, 6],
+                      borderRadius: 3,
+                    },
+                    f: { fontSize: 11, color: '#1f2937', lineHeight: SCHEMA_LINE },
+                    k: { fontSize: 10, color: '#6b7280', lineHeight: SCHEMA_LINE },
+                  },
+                },
+                tooltip: {
+                  formatter:
+                    n.name +
+                    ': ' +
+                    (fields.length
+                      ? fields
+                          .map(function (f) {
+                            return f.name
+                          })
+                          .join(', ')
+                      : 'no fields'),
+                },
+              }
+            }),
+            ),
+            links: edges.map(function (e) {
+              return {
+                source: e.source,
+                target: e.target,
+                lineStyle: { type: e.kind === 'matrix' ? 'solid' : 'dashed', width: 1.5, color: '#64748b' },
+                label: {
+                  show: !!e.label,
+                  formatter: e.label,
+                  fontSize: 10,
+                  color: '#334155',
+                  backgroundColor: '#ffffff',
+                  padding: [1, 3],
+                },
+              }
+            }),
+          },
+        ],
+      },
+      { width: width, height: height },
+      )
+    } catch (err) {
+      // The schema in words below still explains the domaiNN without the diagram.
+      if (typeof console !== 'undefined' && console.warn) console.warn('nn-console: schema diagram failed', err)
     }
-    ;(Array.isArray(matrices) ? matrices : []).forEach(function (m) {
-      if (m) pushEdge(m.source, m.target, m.name, 'matrix')
-    })
-    var byConcept = {}
-    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
-      if (e && e.concept) byConcept[e.id] = e.concept
-    })
-    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
-      if (!e || !e.concept || !Array.isArray(e.relations)) return
-      e.relations.forEach(function (r) {
-        if (!r || !r.target) return
-        var tc = byConcept[r.target]
-        if (tc && tc !== e.concept) pushEdge(e.concept, tc, r.field || '', 'relation')
+    if (chart) {
+      chart.on('click', function (params) {
+        if (params.dataType === 'node') revealInKnowledge(doc, formatFacetToken('concept', params.name))
       })
-    })
-    var pendingEdgeLabels = []
-    edges.forEach(function (m) {
-      if (!m || !m.source || !m.target || !pos[m.source] || !pos[m.target]) return
-      var sx = pos[m.source].x
-      var sy = pos[m.source].y
-      var tx = pos[m.target].x
-      var ty = pos[m.target].y
-      var dx = tx - sx
-      var dy = ty - sy
-      var dist = Math.sqrt(dx * dx + dy * dy) || 1
-      var totalForPair = pairCounts[m.pairKey] || 1
-      // Canonical normal vector so parallel edges between the same pair separate cleanly
-      var canonDx = m.source < m.target ? dx : -dx
-      var canonDy = m.source < m.target ? dy : -dy
-      var nx = -canonDy / dist
-      var ny = canonDx / dist
-      var offsetIndex = m.slot - (totalForPair - 1) / 2
-      var perpShift = offsetIndex * 24
-      var x1 = (dist > nodeR * 2 ? sx + (dx / dist) * nodeR : sx) + nx * perpShift
-      var y1 = (dist > nodeR * 2 ? sy + (dy / dist) * nodeR : sy) + ny * perpShift
-      var x2 = (dist > nodeR * 2 ? tx - (dx / dist) * (nodeR + 4) : tx) + nx * perpShift
-      var y2 = (dist > nodeR * 2 ? ty - (dy / dist) * (nodeR + 4) : ty) + ny * perpShift
-      var line = doc.createElementNS(NS, 'line')
-      line.setAttribute('x1', x1)
-      line.setAttribute('y1', y1)
-      line.setAttribute('x2', x2)
-      line.setAttribute('y2', y2)
-      line.setAttribute('class', 'nn-metamodel-edge')
-      line.setAttribute('data-edge-kind', m.kind || 'matrix')
-      if (m.kind === 'relation') {
-        line.setAttribute('stroke-dasharray', '5,4')
-      }
-      line.setAttribute('marker-end', 'url(#nn-metamodel-arrow)')
-      svg.appendChild(line)
-      if (m.name) {
-        var rawName = String(m.name)
-        var shortName = rawName.length > 20 ? rawName.replace(/\s+Matrix$/i, '') : rawName
-        var tFrac = 0.5
-        var lx = x1 + (x2 - x1) * tFrac
-        var ly = y1 + (y2 - y1) * tFrac
-        pendingEdgeLabels.push({ x: lx, y: ly, text: shortName, fullText: rawName, kind: m.kind })
-      }
-    })
-
-    nodes.forEach(function (name) {
-      var c = doc.createElementNS(NS, 'circle')
-      c.setAttribute('cx', pos[name].x)
-      c.setAttribute('cy', pos[name].y)
-      c.setAttribute('r', String(nodeR))
-      c.setAttribute('class', 'nn-metamodel-node')
-      var nodeMeta = conceptMetaOf((schema && schema.concepts && schema.concepts.length ? schema.concepts : nodes), name)
-      if (nodeMeta && nodeMeta.hexColor) {
-        c.style.stroke = nodeMeta.hexColor
-        c.style.strokeWidth = '2.5px'
-        c.style.fill = 'color-mix(in srgb, ' + nodeMeta.hexColor + ' 10%, #ffffff)'
-      }
-      c.style.cursor = 'pointer'
-      var title = doc.createElementNS(NS, 'title')
-      title.textContent = String(name)
-      c.appendChild(title)
-      c.addEventListener('click', function () {
-        var search = doc.getElementById('nn-search')
-        if (search) {
-          search.value = formatFacetToken('concept', name)
-          if (typeof CustomEvent === 'function') {
-            search.dispatchEvent(new CustomEvent('input', { bubbles: true }))
-          }
-        }
-        var expBtn = doc.querySelector('.nn-view-tab[data-tab="explorer"]')
-        if (expBtn && typeof expBtn.click === 'function') expBtn.click()
-      })
-      svg.appendChild(c)
-      var t = doc.createElementNS(NS, 'text')
-      t.setAttribute('x', pos[name].x)
-      t.setAttribute('y', pos[name].y + 4)
-      t.setAttribute('text-anchor', 'middle')
-      t.setAttribute('class', 'nn-metamodel-label')
-      t.style.pointerEvents = 'none'
-      t.textContent = name.length > 18 ? name.slice(0, 17) + '\u2026' : name
-      svg.appendChild(t)
-    })
-
-    pendingEdgeLabels.forEach(function (lbl) {
-      var padX = 7
-      var boxW = Math.max(38, lbl.text.length * 6.8 + padX * 2)
-      var boxH = 18
-      var bg = doc.createElementNS(NS, 'rect')
-      bg.setAttribute('x', lbl.x - boxW / 2)
-      bg.setAttribute('y', lbl.y - boxH / 2 - 2)
-      bg.setAttribute('width', boxW)
-      bg.setAttribute('height', boxH)
-      bg.setAttribute('rx', '9')
-      bg.setAttribute('class', 'nn-metamodel-edge-bg')
-      svg.appendChild(bg)
-
-      var lt = doc.createElementNS(NS, 'text')
-      lt.setAttribute('x', lbl.x)
-      lt.setAttribute('y', lbl.y + 2)
-      lt.setAttribute('text-anchor', 'middle')
-      lt.setAttribute('class', 'nn-metamodel-edge-label')
-      lt.textContent = lbl.text
-      if (lbl.fullText && lbl.fullText !== lbl.text) {
-        var lTitle = doc.createElementNS(NS, 'title')
-        lTitle.textContent = lbl.fullText
-        lt.appendChild(lTitle)
-      }
-      svg.appendChild(lt)
-    })
-
-    var wrap = el('div', 'nn-metamodel')
-    wrap.appendChild(svg)
-    var legend = el('div', 'nn-metamodel-legend')
-    legend.innerHTML =
-      '<span class="nn-mm-legend-item"><span class="nn-mm-line nn-mm-line--matrix"></span> Matrix relationship</span>' +
-      '<span class="nn-mm-legend-item"><span class="nn-mm-line nn-mm-line--relation"></span> Element reference (relation)</span>' +
-      '<span class="nn-mm-legend-hint">Click any concept node to filter in Model Explorer</span>'
-    wrap.appendChild(legend)
-    host.appendChild(wrap)
+    }
   }
 
   // Citation detail dialog (Console Citation Icons / Tanda C). Reuses the
@@ -29684,6 +30779,9 @@ if (typeof window !== 'undefined') {
       },
     })
     renderMetamodelView(active, schema, matrices, elements)
+    renderSummaryView(active, model, schema, meta)
+    renderVersionsView(active, meta)
+    renderMapView(active, model, schema, meta)
 
     var searchBox = active.getElementById('nn-search')
     if (searchBox) {
