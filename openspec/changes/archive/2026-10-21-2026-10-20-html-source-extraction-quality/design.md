@@ -75,7 +75,7 @@ raw .html bytes
 | `skills/nn-sources/scripts/lib/normalizer.js` | Modify | One line: flag the HTML body through the existing `notes` map |
 | `skills/nn-sources/scripts/scanner.js` | Modify | Refuse a zero-byte subject before cognitivizing |
 | `skills/nn-sources/test/unit/test-web-import.js` | Modify | Fidelity + wall + zero-byte assertions (superset of today's 6 happy-path checks) |
-| `skills/nn-sources/test/fixtures/html/**` | Create | The 6 `PD_NN` regression fixtures |
+| `skills/nn-sources/test/fixtures/html/**` | Create | The 6 synthetic regression fixtures |
 | `skills/nn-sources/SKILL.md` | Modify | Document the partial flag and the `error`-status convention for a wall source |
 
 ## Sequencing / Rollout
@@ -93,10 +93,10 @@ Runner: `node scripts/verify.js` (discovers skill `*.test.js|mjs`) and `npm --pr
 
 | Layer | What to Test | Approach |
 |-------|--------------|----------|
-| Unit | CRLF body < 10% blank lines; no run of >1 blank line | fixture `FT_55866` |
+| Unit | CRLF body < 10% blank lines; no run of >1 blank line | the CRLF fixture |
 | Unit | `&#243;`/`&#237;`/`&#160;`/`&iacute;` decode; literal `&amp;#243;` stays literal | fixture + double-decode guard |
-| Unit | nav/header/footer text absent; `<main>` prose retained | fixture `PMC9547138` + a `main`-bearing page |
-| Unit | wall fixtures → `looksPartial() === 'anti-bot-wall'`; a healthy article → `null` | `NBK1478`, `s10072`, `920` |
-| Unit | 0-byte subject refused; no sidecar written | fixture `37032388-15-year-…` (empty) |
+| Unit | nav/header/footer text absent; `<main>` prose retained | the PMC-chrome fixture + a `main`-bearing page |
+| Unit | wall fixtures → `looksPartial() === 'anti-bot-wall'`; a healthy article → `null` | the captcha, client-challenge and script-only wall fixtures |
+| Unit | 0-byte subject refused; no sidecar written | fixture `zero-byte-download.html` (empty) |
 | Integration | the scanner reports `(Partial)` with the reason for a wall fixture | native suite in `skills/nn-sources/test` |
-| Regression | the 6 `PD_NN` fixtures committed, each with an assertion | `test/fixtures/html/` |
+| Regression | the 6 synthetic fixtures committed, each with an assertion | `test/fixtures/html/` |
