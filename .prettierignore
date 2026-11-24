@@ -23,3 +23,4 @@ docs/innfo/blueprints/catalog.json
 **/*.generated.json
 iNNfo/packages/nn-core/src/schema/canonical-registry.ts
 iNNfo/specs/bluepriNNts/console/nn-console.bundle.js
+iNNfo/specs/bluepriNNts/console/vendor/**

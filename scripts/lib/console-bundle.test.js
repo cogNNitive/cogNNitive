@@ -53,7 +53,7 @@ function main() {
       'vendor/preact.umd.js',
       'vendor/htm.umd.js',
       'nn-preact-init.js',
-      'uplot.iife.min.js',
+      'vendor/echarts.min.js',
       'visuals.js',
       'nn-icons.js',
       'ui-kit.js',
