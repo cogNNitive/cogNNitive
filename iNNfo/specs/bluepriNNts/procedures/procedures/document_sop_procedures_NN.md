@@ -6,8 +6,20 @@ parent_spec:
 knowledge_version: "V_0-3-0"
 title: "Standard Operating Procedure: Documenting Procedures in iNNfo"
 slots:
-  - { name: intake, kind: value, required: true }
-  - { name: sop, kind: value, required: true }
+  - name: intake
+    kind: value
+    required: true
+    type: select
+    label: Description of the process
+    description: Choose an existing Markdown brief that explains the process you want to document.
+    source: markdown-files
+  - name: sop
+    kind: value
+    required: true
+    type: string
+    label: Name of the new SOP
+    description: Enter a name, not a path. The new SOP will be saved in the procedures folder.
+    output: { directory: procedures, suffix: _procedures_NN.md }
 ---
 
 # NN Work
