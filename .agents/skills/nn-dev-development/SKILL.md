@@ -111,6 +111,16 @@ node scripts/nn-session.mjs status --prs temp/prs.json    # every worktree: dirt
   GitHub outage. Fix: merge `origin/main` in and rebuild the gated artifacts, never
   hand-resolve a bundle. Until the merge is buildable, `gh workflow run "CI & Verify"
   --ref <branch>` is the only way to test the head, and it does test the real commit.
+- **A PR whose push GitHub did not process is recreated, not repaired.** Measured 2026-11-25 on
+  #873: the branch ref moved to `76640048` while `pulls/873` still reported `head=34453ab`, the
+  pushed sha got **no** CI run at all, `mergeable` stayed `unknown`, every merge attempt was
+  refused with `Head branch is out of date`, and `gh pr reopen` failed with `Could not open the
+  pull request` because the old head commits are unreachable after the rebase. Nothing in git is
+  broken. Save the body (`gh pr view <n> --json body | Out-File -Encoding utf8 temp/pr.md`),
+  recreate from the same branch (`gh pr create --base main --head <branch> --title <same>
+  --body-file temp/pr.md`), and let the old one stay closed. The mirror case needs no action at
+  all: a PR whose commits land through another branch is marked **merged** automatically, so
+  nothing is closed by hand (#874 landed through #876 that way).
 
 ## 1a. Before the first write: read the open PRs
 
@@ -225,7 +235,16 @@ Gentle-AI's ODD runs the agent; this repository narrows it:
   `node scripts/export-console.mjs test/fixtures/testlab --domain --no-open` to see its effect
   locally — the fixture embeds a CSP hash of the bundle — but the lane is what commits them.
   A conflicted generated artifact is resolved with `node scripts/regen.js`, never by hand: the
-  CC hooks refuse `checkout --theirs` and `restore --worktree` on it.
+  CC hooks refuse `checkout --theirs` and `restore --worktree` on it. **Regenerating needs a real
+  install in that worktree.** Measured 2026-11-25 on #875: a directory junction to the primary's
+  `node_modules` made `tsup --config tsup.dist.config.ts` die (a socket error, then a missing
+  `dist/server.js`), and the pre-push hook blocked on `typecheck failed` and `generated docs facts
+  are stale` — two messages that name the wrong cause. Remove the junction, run `npm ci` in the
+  worktree (41s, 327 packages; its `prepare` re-points `core.hooksPath`), then
+  `node scripts/build-mcp-bundle.mjs` rewrites the bundle from that tree and the conflict is
+  resolved by the generator. A checkout with no install at all is still fine to push from: the
+  gate #877 added reports each guard as "could not start" / "not installed", prints
+  `the push continues; CI runs them on the pull request`, and exits 0.
 
 ## 4. Land on `main`
 
@@ -252,24 +271,39 @@ gate on every PR to provide it. The cheap fix is arithmetic, not machinery.
   Not `--squash`: the merge commit
   keeps the session branch an ancestor of `main`, so `nn-session stop`/`sweep` can remove it.
   Two assertions make "green" mean something: every check is `SUCCESS` in `gh pr checks <n>`
-  (the ruleset requires none, so a red `quality` job still reads MERGEABLE — #759 merged
-  that way), and `git rev-list --count origin/<branch>..origin/main` is `0` (a green head
-  four commits behind is not ready either).
+  — the ruleset has required all five since 2026-11-25, so a red `quality` is `BLOCKED` rather
+  than `MERGEABLE`, and #759 only merged because the old ruleset required none — and
+  `git rev-list --count origin/<branch>..origin/main` is `0` (a green head four commits behind
+  is not ready either).
 - **The backlog is a single-writer surface.** Only the PR that lands a batch edits its row, and
   it edits it last, so a conflict is one line and not a rebase of the whole file.
 - **A conflicted generated artifact means rebase + `npm run regen`**, never a hand-resolved
   bundle.
 
-**The ruleset is two rules.** `main` (repo ruleset 27391067) forbids force-push and deletion and
-nothing else: no required checks, no pull request rule, no merge queue. **Nothing in CI pushes to
-`main` any more** — the `regen` write-back lands through a pull request on `chore/regen` — so
-those two rules can be joined by required checks and a pull request rule without locking the
-release lane. The exception has to be the other way round: the GitHub Actions integration is
-**not** accepted as a ruleset bypass actor on this repository (Dependabot is, Actions is not,
-verified), which is why the automation stopped writing to `main` instead of being excepted from
-it. `ci.yml` still carries the
-`merge_group` trigger so re-enabling a queue stays a ruleset change and not a PR; today it
-never fires because nothing creates a `merge_group` event.
+**The ruleset is five checks and a pull request.** Measured 2026-11-25, because this section
+described the opposite until then: repo ruleset 27391067 ("main: protected (pr + required
+checks)") carries `non_fast_forward`, `deletion` and `required_status_checks` for `verify`,
+`quality`, `site`, `spec-integrity` and `ui-smoke` with
+`strict_required_status_checks_policy: false`; ruleset 27889992 ("main: pull requests only")
+carries the `pull_request` rule with `allowed_merge_methods: ["merge"]`. `bypass_actors` is `[]`,
+so `gh pr merge --admin` is refused as well (`Repository rule violations found`) — do not reach
+for it. `allow_update_branch` is `false`, so a behind branch is synced by merging `origin/main`
+in its own worktree and pushing, one PR at a time: each landing moves the base under the next.
+`ci.yml` still carries the `merge_group` trigger, so re-enabling a queue stays a ruleset change
+and not a PR.
+
+**The write-back PR cannot be merged by checks, and it must be pushed, not dispatched.** `regen`
+opens it with `GITHUB_TOKEN`, so no `pull_request` run exists and all five required checks are
+simply absent: `gh pr merge` answers `5 of 5 required status checks are expected`. Dispatching
+does not help — `gh workflow run "CI & Verify" --ref chore/regen` goes green and satisfies
+nothing, because a `workflow_dispatch` run's check runs are not counted as the PR's checks
+(measured on #878, where the dispatch completed `success` and the PR stayed `BLOCKED`). Push a
+commit to the branch instead: `git commit --allow-empty -m "ci: run the pull request checks on
+the write-back"`, then merge on the real `pull_request` run. Work on a detached worktree at
+`origin/chore/regen` (`git worktree add --detach <tmp> origin/chore/regen`) and push
+`HEAD:refs/heads/chore/regen`: a local `chore/regen` left from an earlier attempt is usually
+stale and the push is rejected as a non-fast-forward. `ci:` is a conventional type the release
+plan accepts and it touches no `changePath`, so the commit cannot plan the release it rides on.
 
 1. Push the session branch and open a PR to `main` without asking. That is the normal
    end of a unit. Run `node scripts/pr-overlap.mjs --prs temp/prs.json` first: a `BLOCKING`
