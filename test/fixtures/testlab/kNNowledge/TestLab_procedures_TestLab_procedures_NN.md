@@ -1,9 +1,9 @@
 ---
 level: 3
 parent_spec:
-  name: "procedures_V_0-4-0"
+  name: "procedures_V_0-6-1"
   url: "iNNfo/specs/bluepriNNts/procedures/spec_NN.md"
-knowledge_version: "V_0-1-0"
+knowledge_version: "V_0-2-0"
 title: "TestLab Verification Procedures"
 ---
 
@@ -37,6 +37,7 @@ End-to-end walkthrough that proves the changeset lineage pipeline: open the gene
 
 ## NN Work: Open the Domain Console
 slug:: open-the-domain-console
+executor:: human
 parent:: @testlab-guided-verification
 step_type:: task
 next:: @enable-review-mode
@@ -46,6 +47,7 @@ Open domaiNN_console.html at the domain root. It is a single self-contained file
 
 ## NN Work: Enable Review Mode
 slug:: enable-review-mode
+executor:: human
 parent:: @testlab-guided-verification
 step_type:: task
 next:: @open-element-1b
@@ -55,6 +57,7 @@ Click "Review mode" in the top banner. Until this is on, element field anchors a
 
 ## NN Work: Open Element 1B
 slug:: open-element-1b
+executor:: human
 parent:: @testlab-guided-verification
 step_type:: task
 next:: @read-the-changeset-lineage
@@ -64,6 +67,7 @@ Open the TestLab Coverage Model and click a field row of Element 1B (for example
 
 ## NN Work: Read the Changeset Lineage
 slug:: read-the-changeset-lineage
+executor:: human
 parent:: @testlab-guided-verification
 step_type:: decision
 next:: @propose-a-change-in-the-console
@@ -73,6 +77,7 @@ Switch to the "History & Provenance" tab. Under "Changeset Lineage & Revision Hi
 
 ## NN Work: Propose a Change in the Console
 slug:: propose-a-change-in-the-console
+executor:: human
 parent:: @testlab-guided-verification
 step_type:: task
 next:: @copy-the-changeset-prompt
@@ -82,6 +87,7 @@ Change a field value or leave a comment in the element modal to record a draft. 
 
 ## NN Work: Copy the Changeset Prompt
 slug:: copy-the-changeset-prompt
+executor:: human
 parent:: @testlab-guided-verification
 step_type:: task
 condition:: At least one draft is pending
