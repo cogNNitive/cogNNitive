@@ -456,9 +456,12 @@ function backEdge(
       evidence: 'decision',
     }
   })
+  // What the completing step itself just recorded is the loop's fresh result (the revised
+  // report its review reads next), so only the earlier outputs of the span go back.
   const outputs = new Set([...span, step].flatMap((slug) => f.graph.steps[slug]!.outputs))
   for (const slug of outputs) {
     if (f.run.artifacts[slug]?.status !== 'validated') continue
+    if (f.run.artifacts[slug]?.step === step) continue
     changes.push({
       op: 'set_fields',
       target: `${f.run.id}@${slug}`,
@@ -588,6 +591,22 @@ function planStepStart(
         }),
         evidence: 'decision',
       },
+      // A loop sent the run back through this step (pending again after an attempt): what it
+      // validated in its earlier pass is not this pass's result, so it goes back to
+      // `produced` and the completion gate asks the step to record it again.
+      ...(row.status === 'pending' && (row.attempt ?? 0) > 0
+        ? f.graph.steps[step]!.outputs.filter(
+            (slug) =>
+              f.run.artifacts[slug]?.status === 'validated' &&
+              f.run.artifacts[slug]?.step === step,
+          ).map((slug) => ({
+            op: 'set_fields' as const,
+            target: `${f.run.id}@${slug}`,
+            from: JSON.stringify({ status: 'validated' }),
+            to: JSON.stringify({ status: 'produced' }),
+            evidence: 'decision' as const,
+          }))
+        : []),
     ],
   }
 }

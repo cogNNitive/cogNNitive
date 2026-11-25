@@ -809,7 +809,8 @@ describe('bounded loops', SLOW, () => {
     expect(looped.state.steps.review).toMatchObject({ status: 'pending', attempt: 1 })
     expect(looped.state.steps.redraft).toMatchObject({ status: 'pending', attempt: 1 })
     expect(looped.state.steps.review.outcome).toBeUndefined()
-    // The redraft's output is no longer validated: stale until the redraft runs again.
+    // The fold reports the redraft's output stale while the redraft can still run again; its
+    // row stays validated, since the redraft just recorded it as the loop's fresh result.
     expect(looped.state.artifacts['draft-doc'].status).toBe('stale')
     expect(looped.state.stale).toEqual(['draft-doc'])
     const [cs] = (await changesets()).filter((f) => !before.includes(f))
@@ -817,7 +818,7 @@ describe('bounded loops', SLOW, () => {
     expect(csText).toMatch(/^atomic: true$/m)
     expect(csText).toContain('l1@review')
     expect(csText).toContain('l1@redraft')
-    expect(csText).toContain('l1@draft-doc')
+    expect(csText).not.toContain('l1@draft-doc')
 
     const restarted = ok(await rec({ action: 'start' }))
     expect(restarted.state.steps.review).toMatchObject({ status: 'active', attempt: 2 })
@@ -890,7 +891,14 @@ describe('required outputs inside a loop', SLOW, () => {
       ok(await rec({ action: 'start' }))
       if (rev === 'r2') ok(await rec({ action: 'complete', outcome: 'send-back' }))
     }
-    expect(ok(await rec({ action: 'complete', outcome: 'approve' })).state.currentStep).toBe('ship')
+    // Once the loop exits, the last revised report stands: the run closes with it.
+    const approved = ok(await rec({ action: 'complete', outcome: 'approve' }))
+    expect(approved.state.currentStep).toBe('ship')
+    expect(approved.state.artifacts.report).toMatchObject({ status: 'validated', rev: 'r3' })
+    expect(approved.state.stale).toEqual([])
+    ok(await rec({ action: 'start' }))
+    ok(await rec({ action: 'complete' }))
+    expect(ok(await rec({ action: 'finish', outcome: 'completed' })).state.status).toBe('completed')
   })
 })
 
