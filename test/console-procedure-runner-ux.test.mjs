@@ -1390,13 +1390,64 @@ describe('procedure flow graph through the shared chart API', () => {
     }
     assert.ok(container.querySelector('svg.dag-canvas'), 'native flow drawn')
     assert.equal(container.querySelectorAll('.dag-node').length, 4)
-    assert.equal(container.querySelector('[data-proc-graph]'), null)
+    assert.ok(container.querySelector('svg.dag-canvas[data-proc-graph]'), 'the same graph hook')
     assert.ok(container.querySelector('.exec-dag-view-native'), 'marked, so narrow CSS can hide it')
     const node = container.querySelector('.dag-node[data-step="review"]')
     assert.equal(node.getAttribute('tabindex'), '0', 'native nodes are keyboard operable too')
     assert.equal(node.getAttribute('role'), 'button')
     key(container.querySelector('.dag-node[data-step="transcribe"]'), 'Enter')
     assert.equal(cardStep(), 'transcribe')
+  })
+
+  it('pulses the same step in both renderers, pending or active, and neither under reduced motion', () => {
+    const recording = runtime.renderChart
+    const pulseOf = (events, chart) => {
+      runtime.renderChart = chart ? recording : undefined
+      stepper.mount(container, payload([runOf('r1', events)]), storeSpy().ctx)
+      return container.querySelector('[data-proc-graph]').getAttribute('data-pulse')
+    }
+    for (const events of [DONE_TRANSCRIBE, WAITING_REVIEW]) {
+      const chart = pulseOf(events, true)
+      const native = pulseOf(events, false)
+      assert.equal(chart, 'on')
+      assert.equal(native, chart, 'the native svg pulses the step ECharts pulses')
+    }
+    reduced = true
+    assert.equal(pulseOf(WAITING_REVIEW, true), 'off')
+    assert.equal(pulseOf(WAITING_REVIEW, false), 'off')
+  })
+
+  it('scrolls the flow box so the step the arrow keys reach stays visible', () => {
+    stepper.mount(container, payload([runOf('r1', AT_TRANSCRIBE)]), storeSpy().ctx)
+    const view = container.querySelector('.exec-dag-view')
+    const g = container.querySelector('[data-proc-graph]')
+    // jsdom has no layout: a 100 px box over a chart that starts at its top.
+    Object.defineProperty(view, 'clientHeight', { configurable: true, value: 100 })
+    view.getBoundingClientRect = () => ({
+      top: 0,
+      bottom: 100,
+      left: 0,
+      right: 0,
+      width: 0,
+      height: 100,
+    })
+    g.querySelector('.dag-chart').getBoundingClientRect = () => ({
+      top: -view.scrollTop,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      width: 0,
+      height: 0,
+    })
+    g.dispatchEvent(new doc.defaultView.Event('focus'))
+    assert.equal(view.scrollTop, 0, 'the first row is already in view')
+    key(g, 'ArrowDown')
+    key(g, 'ArrowDown')
+    assert.ok(view.scrollTop > 0, 'a row below the box scrolls into it')
+    const reached = view.scrollTop
+    key(g, 'ArrowUp')
+    key(g, 'ArrowUp')
+    assert.ok(view.scrollTop < reached, 'and back up again')
   })
 
   it('falls back when the console has no chart entry point at all', () => {
@@ -1426,10 +1477,25 @@ describe('procedure flow graph through the shared chart API', () => {
     const css = readFileSync(join(consoleDir, 'nn-ui.css'), 'utf8')
     const reducedBlocks =
       css.match(/@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]*?\n\}/g) || []
-    assert.ok(
-      reducedBlocks.some((b) => /\.dag-node\.current/.test(b) && /animation:\s*none/.test(b)),
-      'native pulse is switched off',
-    )
+    // Every selector that animates the pulse is switched off by the same selector, so the
+    // reduced-motion rule (later in the file) wins the cascade instead of losing on specificity.
+    const pulsing = [
+      ...css
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .matchAll(/\n([^{}@\n][^{}]*)\{[^}]*animation:\s*dag-pulse/g),
+    ]
+      .flatMap((m) => m[1].split(',').map((s) => s.trim()))
+      .filter(Boolean)
+    assert.ok(pulsing.length > 0, 'the native pulse exists')
+    const offIn = (block, selector) => {
+      const at = block.indexOf(selector)
+      return at !== -1 && /animation:\s*none/.test(block.slice(at, block.indexOf('}', at)))
+    }
+    for (const selector of pulsing)
+      assert.ok(
+        reducedBlocks.some((b) => offIn(b, selector)),
+        'native pulse is switched off for ' + selector,
+      )
     assert.ok(/@keyframes dag-pulse/.test(css), 'and exists to be switched off')
     const rule = css.match(/\n\.proc-step-list\s*\{[^}]*\}/)
     assert.ok(rule, 'base rule')
