@@ -19,7 +19,7 @@ import { computePlanHash, formatStamp } from './lib/plan.mjs';
 import { normalizeModelId } from './lib/video-guard.mjs';
 import { loadCascadeBags, withScriptPresets } from './lib/video-scope.mjs';
 import { resolve } from './lib/cascade.mjs';
-import { isAvatarLayer, collectAvatarJobs, ttsCachePathFor, AVATAR_CACHE_EXT, AVATAR_CACHE_CATEGORY } from './lib/avatar-jobs.mjs';
+import { isAvatarLayer, collectAvatarJobs, ttsCachePathFor, AVATAR_CACHE_EXT, AVATAR_CACHE_CATEGORY, assertAvatarModelRunnable } from './lib/avatar-jobs.mjs';
 import { layerPrompt, imageCachePathFor } from './lib/image-options.mjs';
 import { imageModelsFor } from './lib/image-options.mjs';
 import { loadMergedCatalog, assertImageSize, isPriceStale, DEFAULT_STALE_AFTER_DAYS } from './lib/catalog.mjs';
@@ -200,6 +200,17 @@ export function estimateScriptCost(scriptContentOrPath, options = {}) {
   const catalog = loadMergedCatalog({ domainRoot: loaded.root });
   const { image: defaultImageModel, imageSize: defaultImageSize, imageSizing } = imageModelsFor({ bags, parsed, catalog });
   const defaultAvatarModel = normalizeModelId(resolve('avatar_model', bags).value);
+  // One up-front verdict on the avatar model, before any spend: the catalog entry must be
+  // complete and the guard must allow it. Without it the same misconfiguration surfaced as
+  // three errors from three stages (resolutions, allowedModels, unpriced).
+  const usesAvatars = (parsed.scenes || []).some((scene) => (scene.layers || []).some(isAvatarLayer))
+  if (usesAvatars && defaultAvatarModel) {
+    assertAvatarModelRunnable(defaultAvatarModel, {
+      catalog,
+      config: loaded.config,
+      allowModels: options.allowModels || [],
+    })
+  }
   const defaultTtsModel = normalizeModelId(resolve('voice_model', bags).value);
   const planModels = new Set();
   const noteModel = (model) => {
