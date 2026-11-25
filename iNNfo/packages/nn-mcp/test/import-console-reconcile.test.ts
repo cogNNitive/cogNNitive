@@ -448,6 +448,43 @@ describe('the final handoff of a completed run', SLOW, () => {
     expect(await ledgerModels()).toEqual(runDirs())
   })
 
+  it('names a run its answers brought to its end, so the agent can finish it', async () => {
+    const seq0 = await startRun()
+    // An answer that leaves the run open asks the agent for nothing.
+    const mid = await apply(
+      await saved('a.html', [
+        requestDraft('fb-001', 'q-001', { action: 'start', step: 'review', base_seq: seq0 }),
+        requestDraft('fb-002', 'q-002', {
+          action: 'complete',
+          step: 'review',
+          requested_outcome: 'approve',
+          base_seq: seq0,
+        }),
+      ]),
+    )
+    expect(mid['ready_to_finish']).toEqual([])
+    const seq1 = await seqOf('r1')
+    const before = await canonical()
+    const res = await apply(
+      await saved(
+        'b.html',
+        [
+          requestDraft('fb-003', 'q-003', { action: 'start', step: 'publish', base_seq: seq1 }),
+          requestDraft('fb-004', 'q-004', { action: 'complete', step: 'publish', base_seq: seq1 }),
+        ],
+        '2026-11-23T11:00:00.000Z',
+      ),
+    )
+    // Closing a run is never a request: the import says which run the agent may finish now.
+    expect(res['ready_to_finish']).toEqual(['r1'])
+    expect(res['next_steps'].notice).toMatch(
+      /Run r1 reached its end: record procedure_record action=finish outcome=completed/,
+    )
+    const state = await ok('procedure_state', { run: 'r1' })
+    expect(state['state']).toMatchObject({ status: 'open', canComplete: true })
+    expect(await canonical()).toEqual(before)
+  })
+
   it('records the choice with the run and publishes nothing', async () => {
     await completeRun()
     const before = await canonical()

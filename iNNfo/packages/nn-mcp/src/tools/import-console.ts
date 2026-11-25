@@ -15,7 +15,7 @@ import { applyWithConsole } from './console-regeneration.js'
 import type { RegenerateOptions } from './console-regeneration.js'
 import { procedurePending } from './procedure-pending.js'
 import { procedureRecord, procedureStart } from './procedure-record.js'
-import { fail, readRun } from './procedure-state.js'
+import { fail, foldStoredRun, readRun } from './procedure-state.js'
 import type { ToolError } from './procedure-state.js'
 import { isHandoffChoice } from './run-handoff.js'
 import { checkHandoff, recordHandoff } from './run-handoff-record.js'
@@ -116,6 +116,11 @@ export interface ImportConsoleResult {
   runs_started: RunStartReport[]
   /** The person's final choice per completed run; recorded only with apply. */
   handoffs: HandoffReport[]
+  /**
+   * Runs the consumed requests brought to their end (`canComplete`): closing a run is never a
+   * request, so the agent records `finish`, and only then can the person choose the handoff.
+   */
+  ready_to_finish: string[]
   console?: unknown
   manifest?: unknown
   next_steps: {
@@ -446,6 +451,7 @@ export async function importConsole(
       requests: [],
       runs_started: [],
       handoffs,
+      ready_to_finish: [],
       next_steps: {
         notice: lines.map((l, i) => `${i + 1}. ${l}`).join('\n'),
         approve: {
@@ -464,6 +470,7 @@ export async function importConsole(
   const requests: ConsumedRequest[] = []
   const started: RunStartReport[] = []
   const handed: HandoffReport[] = []
+  const readyToFinish: string[] = []
   const outcome = await applyWithConsole(
     root,
     async () => {
@@ -497,6 +504,7 @@ export async function importConsole(
             requests.push({ run, request, status: 'duplicate', row_status: dup.rowStatus })
           else requests.push(await consumeRequest(root, run, request, author))
         }
+        readyToFinish.push(...(await runsReadyToFinish(root, requests)))
       }
       for (const r of runStarts) {
         const res = await procedureStart(root, {
@@ -558,6 +566,10 @@ export async function importConsole(
           : `Run ${s.run} of "${s.procedure}" started.`
         : `Run of "${s.procedure}" not started: ${s.code}.`,
     ),
+    ...readyToFinish.map(
+      (r) =>
+        `Run ${r} reached its end: record procedure_record action=finish outcome=completed, then its person can choose the handoff in the regenerated console.`,
+    ),
     ...handoffNotes(handed),
     consoleOutcome?.status === 'failed'
       ? `The domain console could not be regenerated (${consoleOutcome.error ?? 'unknown error'}); call regenerate_console to retry.`
@@ -571,6 +583,7 @@ export async function importConsole(
     requests,
     runs_started: started,
     handoffs: handed,
+    ready_to_finish: readyToFinish,
     console: outcome['console'],
     ...(outcome['manifest'] ? { manifest: outcome['manifest'] } : {}),
     next_steps: {
@@ -650,6 +663,19 @@ function sameRequest(draft: Json, row: StepRequestRow): boolean {
     same(fields['requested_value'], row.value) &&
     same(fields['base_seq'], row.baseSeq)
   )
+}
+
+/** The runs a consumed request touched that are now open with nothing left to walk. */
+async function runsReadyToFinish(root: string, requests: ConsumedRequest[]): Promise<string[]> {
+  const runs = [...new Set(requests.filter((r) => r.status === 'done').map((r) => r.run))].sort()
+  const ready: string[] = []
+  for (const run of runs) {
+    const read = await readRun(root, run)
+    if (!read.ok || read.run.closed) continue
+    const folded = await foldStoredRun(root, read.run)
+    if (folded.ok && folded.folded.state.canComplete) ready.push(run)
+  }
+  return ready
 }
 
 /** Consumes one request through procedure_record and reads back what became of it. */
