@@ -172,7 +172,14 @@ describe('procedure_start', SLOW, () => {
   it('refuses a domaiNN without the executions bluepriNNt package and writes nothing', async () => {
     rmSync(join(root, 'specs'), { recursive: true, force: true })
     const before = await snapshot()
-    expect(await startReview()).toMatchObject({ ok: false, code: 'EXECUTIONS_NOT_INSTALLED' })
+    const refused = await startReview()
+    // The refusal names the tool call that fixes it, so an agent does not have to guess.
+    expect(refused).toMatchObject({
+      ok: false,
+      code: 'EXECUTIONS_NOT_INSTALLED',
+      fix: { tool: 'hydrate_blueprint', args: { blueprint_name: 'executions' } },
+    })
+    expect(String((refused as { detail: string }).detail)).toMatch(/hydrate_blueprint/)
     expect(await snapshot()).toEqual(before)
   })
 
@@ -231,6 +238,23 @@ describe('procedure_state', SLOW, () => {
       { to: 'rework', guard: { kind: 'outcome', token: 'decline' } },
     ])
     expect(s.actions).toEqual(['start', 'input', 'artifact', 'pause', 'cancel', 'finish'])
+  })
+
+  it('does not offer an artifact fact before any step started, since the runner refuses it', async () => {
+    ok(await startReview())
+    const fresh = ok(await procedureState(root, { run: 'r1' }))
+    expect(fresh.actions).toEqual(['start', 'input', 'pause', 'cancel', 'finish'])
+    expect(
+      await procedureRecord(root, {
+        run: 'r1',
+        action: 'artifact',
+        fact: 'validated',
+        field: 'draft-doc',
+        rev: 'd1',
+      }),
+    ).toMatchObject({ ok: false, code: 'STEP_NOT_STARTED' })
+    ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
+    expect(ok(await procedureState(root, { run: 'r1' })).actions).toContain('artifact')
   })
 
   it('refuses an unknown run', async () => {
@@ -785,7 +809,8 @@ describe('bounded loops', SLOW, () => {
     expect(looped.state.steps.review).toMatchObject({ status: 'pending', attempt: 1 })
     expect(looped.state.steps.redraft).toMatchObject({ status: 'pending', attempt: 1 })
     expect(looped.state.steps.review.outcome).toBeUndefined()
-    // The redraft's output is no longer validated: stale until the redraft runs again.
+    // The fold reports the redraft's output stale while the redraft can still run again; its
+    // row stays validated, since the redraft just recorded it as the loop's fresh result.
     expect(looped.state.artifacts['draft-doc'].status).toBe('stale')
     expect(looped.state.stale).toEqual(['draft-doc'])
     const [cs] = (await changesets()).filter((f) => !before.includes(f))
@@ -793,25 +818,89 @@ describe('bounded loops', SLOW, () => {
     expect(csText).toMatch(/^atomic: true$/m)
     expect(csText).toContain('l1@review')
     expect(csText).toContain('l1@redraft')
-    expect(csText).toContain('l1@draft-doc')
+    expect(csText).not.toContain('l1@draft-doc')
 
     const restarted = ok(await rec({ action: 'start' }))
     expect(restarted.state.steps.review).toMatchObject({ status: 'active', attempt: 2 })
   })
 
-  it('LOOP_LIMIT: a back-edge to a target that used its attempts is refused and writes nothing', async () => {
+  it('LOOP_LIMIT: the decision on its last attempt cannot choose the branch that only loops back', async () => {
     await untilReview('d1')
     await sendBack()
     ok(await rec({ action: 'complete' }))
     ok(await rec({ action: 'start' })) // review, attempt 2 of max_attempts:: 2
-    await sendBack()
     const before = await snapshot()
-    const refused = await rec({ action: 'complete' })
-    expect(refused).toMatchObject({ ok: false, code: 'LOOP_LIMIT', step: 'review', maxAttempts: 2 })
-    expect(String((refused as { detail: string }).detail)).toMatch(/fail/)
+    // Refused at the decision itself: accepting it would strand the run in redraft, whose
+    // back-edge to review is refused one step later.
+    const refused = await rec({ action: 'complete', outcome: 'send-back' })
+    expect(refused).toMatchObject({
+      ok: false,
+      code: 'LOOP_LIMIT',
+      step: 'review',
+      attempt: 2,
+      maxAttempts: 2,
+      next: 'redraft',
+    })
+    expect(String((refused as { detail: string }).detail)).toMatch(
+      /another outcome or fail "review"/,
+    )
     expect(await snapshot()).toEqual(before)
-    // The way out stays open: the step can fail.
+    // Both ways out stay open: the forward branch, or failing the decision.
+    const approved = ok(await rec({ action: 'complete', outcome: 'approve' }))
+    expect(approved.state).toMatchObject({ currentStep: 'publish' })
+  })
+
+  it('LOOP_LIMIT: a decision on its last attempt can still be failed', async () => {
+    await untilReview('d1')
+    await sendBack()
+    ok(await rec({ action: 'complete' }))
+    ok(await rec({ action: 'start' }))
     expect(ok(await rec({ action: 'fail', value: 'too many rounds' })).state.status).toBe('blocked')
+  })
+})
+
+describe('required outputs inside a loop', SLOW, () => {
+  const rec = (args: Record<string, unknown>) => procedureRecord(root, { run: 'v1', ...args })
+
+  it('every pass of the revise step records its own output, the first pass included', async () => {
+    ok(await procedureStart(root, { procedure: 'revise', run: 'v1' }))
+    ok(await rec({ action: 'start' }))
+    ok(await rec({ action: 'artifact', fact: 'validated', field: 'report', rev: 'r1' }))
+    ok(await rec({ action: 'complete' }))
+    ok(await rec({ action: 'start' }))
+    ok(await rec({ action: 'complete', outcome: 'send-back' }))
+
+    for (const rev of ['r2', 'r3']) {
+      ok(await rec({ action: 'start' })) // revise
+      const before = await snapshot()
+      // The report the build step validated is not the revise step's result.
+      const refused = await rec({ action: 'complete' })
+      expect(refused).toMatchObject({
+        ok: false,
+        code: 'MISSING_OUTPUT',
+        step: 'revise',
+        missing: [{ slug: 'report' }],
+      })
+      expect(await snapshot()).toEqual(before)
+
+      // With no step named, the current step reports the output it declares.
+      const recorded = ok(
+        await rec({ action: 'artifact', fact: 'validated', field: 'report', rev }),
+      )
+      expect(recorded.state.artifacts.report).toMatchObject({ status: 'validated', rev })
+      const looped = ok(await rec({ action: 'complete' }))
+      expect(looped.state.currentStep).toBe('check')
+      ok(await rec({ action: 'start' }))
+      if (rev === 'r2') ok(await rec({ action: 'complete', outcome: 'send-back' }))
+    }
+    // Once the loop exits, the last revised report stands: the run closes with it.
+    const approved = ok(await rec({ action: 'complete', outcome: 'approve' }))
+    expect(approved.state.currentStep).toBe('ship')
+    expect(approved.state.artifacts.report).toMatchObject({ status: 'validated', rev: 'r3' })
+    expect(approved.state.stale).toEqual([])
+    ok(await rec({ action: 'start' }))
+    ok(await rec({ action: 'complete' }))
+    expect(ok(await rec({ action: 'finish', outcome: 'completed' })).state.status).toBe('completed')
   })
 })
 

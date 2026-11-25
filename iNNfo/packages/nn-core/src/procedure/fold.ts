@@ -93,12 +93,20 @@ export function foldRun(graph: ProcedureGraph, run: RunModel, opts: FoldOptions)
     )
   })
   // A loop reopened the producer (pending again after an attempt): what it produced in the
-  // earlier pass is stale until the producer runs again and reports it.
+  // earlier pass is stale until the producer runs again and reports it. A producer the walk
+  // left (off the path once the loop exits) will not run again, so its last output stands.
+  const runsAgain = reachable(graph, current)
   for (const [slug, row] of Object.entries(run.artifacts)) {
     if (row.status !== 'produced' && row.status !== 'validated') continue
     const producer = row.step ?? graph.artifacts[slug]?.producers[0]
     const prow = producer ? run.steps[producer] : undefined
-    if (prow?.status === 'pending' && prow.attempt > 0 && !stale.includes(slug)) stale.push(slug)
+    if (
+      prow?.status === 'pending' &&
+      prow.attempt > 0 &&
+      (path.includes(producer!) || runsAgain.has(producer!)) &&
+      !stale.includes(slug)
+    )
+      stale.push(slug)
   }
   for (const slug of stale) artifacts[slug] = { ...artifacts[slug], status: 'stale' }
   // A done step is reopened by a stale output it produced itself; an artifact several steps

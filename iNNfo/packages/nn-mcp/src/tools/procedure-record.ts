@@ -22,6 +22,7 @@ import { findKnowledgeFile } from './spec.js'
 import { loadDeclarations } from './domain-index.js'
 import {
   describeRun,
+  ARTIFACT_REPORTING,
   fail,
   foldStoredRun,
   readRun,
@@ -205,7 +206,8 @@ export async function procedureStart(
   if (declared?.get('Procedure Execution')?.mode !== 'distributed')
     return fail(
       'EXECUTIONS_NOT_INSTALLED',
-      `The domaiNN does not carry the executions bluepriNNt package (${EXECUTIONS_LOCAL}).`,
+      `The domaiNN does not carry the executions bluepriNNt package (${EXECUTIONS_LOCAL}). Install it with hydrate_blueprint (blueprint_name: "executions"), then start the run again.`,
+      { fix: { tool: 'hydrate_blueprint', args: { blueprint_name: 'executions' } } },
     )
 
   const actor = text(args['actor']) ?? 'agent'
@@ -299,7 +301,6 @@ const ARTIFACT_STATUS = {
 } as const
 
 /** A step reports an artifact fact only once it has started. */
-const ARTIFACT_REPORTING: ReadonlySet<string> = new Set(['active', 'waiting', 'done', 'reopened'])
 
 export interface RecordResult extends ProcedureStateResult {
   /** The applied changeset path (the run context is on it); replaces the old event list. */
@@ -455,9 +456,12 @@ function backEdge(
       evidence: 'decision',
     }
   })
+  // What the completing step itself just recorded is the loop's fresh result (the revised
+  // report its review reads next), so only the earlier outputs of the span go back.
   const outputs = new Set([...span, step].flatMap((slug) => f.graph.steps[slug]!.outputs))
   for (const slug of outputs) {
     if (f.run.artifacts[slug]?.status !== 'validated') continue
+    if (f.run.artifacts[slug]?.step === step) continue
     changes.push({
       op: 'set_fields',
       target: `${f.run.id}@${slug}`,
@@ -470,11 +474,57 @@ function backEdge(
 }
 
 /**
- * A step's required outputs that were never recorded. Completing a step is the point where
- * the runner stops letting an actor move on with an empty result: `required` emphasizes the
- * gate for the artifacts every run needs, and an optional output (declared without it) is
+ * The loop step a forward `next` is certain to walk back to: following `next` through steps
+ * with a single successor (no branch left to choose) reaches a step already on the walked path
+ * at or before `step`. Null when the walk can leave the loop, or `next` is not forward.
+ */
+function certainLoopTarget(f: FoldedRun, step: string, next: string | undefined): string | null {
+  if (next === undefined) return null
+  const from = f.state.path.indexOf(step)
+  if (from === -1 || f.state.path.indexOf(next) !== -1) return null
+  const seen = new Set<string>()
+  let at: string | undefined = next
+  while (at !== undefined && !seen.has(at)) {
+    seen.add(at)
+    const succ: string[] = f.graph.steps[at]?.next ?? []
+    if (succ.length !== 1) return null
+    const to = succ[0]!
+    const idx = f.state.path.indexOf(to)
+    if (idx !== -1) return idx <= from ? to : null
+    at = to
+  }
+  return null
+}
+
+/**
+ * A decision on its loop target's last attempt cannot choose the branch that only leads back
+ * to it: that branch's back-edge would be refused with `LOOP_LIMIT` one step later, leaving the
+ * run with no way forward but failing the step it is sent to. Refusing here keeps the choice
+ * where it can still be made (another outcome, or failing the decision). Null when allowed.
+ */
+function exhaustedLoop(f: FoldedRun, step: string, next: string | undefined): ToolError | null {
+  const target = certainLoopTarget(f, step, next)
+  if (target === null) return null
+  const max = f.graph.steps[target]!.maxAttempts ?? DEFAULT_MAX_ATTEMPTS
+  const attempt = f.state.steps[target]!.attempt
+  if (attempt < max) return null
+  return fail(
+    'LOOP_LIMIT',
+    `Step "${target}" already took ${attempt} of its ${max} attempts, so "${step}" cannot choose "${next}": that branch only leads back to "${target}". Choose another outcome or fail "${step}".`,
+    { step: target, attempt, maxAttempts: max, next },
+  )
+}
+
+/**
+ * A step's required outputs that this step has not recorded. Completing a step is the point
+ * where the runner stops letting an actor move on with an empty result: `required` emphasizes
+ * the gate for the artifacts every run needs, and an optional output (declared without it) is
  * never a reason to stop. The fold already reports the worth of an output for this run; an
  * artifact the fold marks `not_required` (off the walked path) is not asked of this step.
+ *
+ * The output counts only when this step recorded it. An artifact another producer validated
+ * earlier (the first draft, before a loop's revise step) is not this step's result, so every
+ * pass of a loop records its own output, the first one included.
  */
 function unrecordedRequiredOutputs(
   f: FoldedRun,
@@ -483,7 +533,8 @@ function unrecordedRequiredOutputs(
   return f.graph.steps[step]!.outputs.filter((slug) => f.graph.artifacts[slug]?.required !== false)
     .filter((slug) => {
       const status = f.state.artifacts[slug]?.status
-      return status !== 'validated' && status !== 'not_required'
+      if (status === 'not_required') return false
+      return status !== 'validated' || f.run.artifacts[slug]?.step !== step
     })
     .map((slug) => ({ slug, name: f.graph.artifacts[slug]!.name }))
 }
@@ -540,6 +591,21 @@ function planStepStart(
         }),
         evidence: 'decision',
       },
+      // A loop sent the run back through this step (pending again after an attempt): what it
+      // validated in its earlier pass is not this pass's result, so it goes back to
+      // `produced` and the completion gate asks the step to record it again.
+      ...(row.status === 'pending' && (row.attempt ?? 0) > 0
+        ? f.graph.steps[step]!.outputs.filter(
+            (slug) =>
+              f.run.artifacts[slug]?.status === 'validated' && f.run.artifacts[slug]?.step === step,
+          ).map((slug) => ({
+            op: 'set_fields' as const,
+            target: `${f.run.id}@${slug}`,
+            from: JSON.stringify({ status: 'validated' }),
+            to: JSON.stringify({ status: 'produced' }),
+            evidence: 'decision' as const,
+          }))
+        : []),
     ],
   }
 }
@@ -609,7 +675,15 @@ function plan(
       const named = text(args['step'])
       if (named !== undefined && !graph.steps[named])
         return fail('UNKNOWN_STEP', `"${named}" is not a step of the procedure.`)
-      const step = named ?? graph.artifacts[field]!.producers[0] ?? state.currentStep ?? undefined
+      // With no step named, the current step reports the output when it declares it: a loop's
+      // revise step re-records the artifact the first producer made, and the gate asks it to.
+      const producers = graph.artifacts[field]!.producers
+      const current = state.currentStep ?? undefined
+      const step =
+        named ??
+        (current !== undefined && producers.includes(current) ? current : undefined) ??
+        producers[0] ??
+        current
       if (step === undefined)
         return fail(
           'STEP_NOT_STARTED',
@@ -905,6 +979,8 @@ function plan(
   const row = rowOf(f, step)
   const loop = backEdge(f, step, next)
   if (loop && 'ok' in loop) return loop
+  const exhausted = exhaustedLoop(f, step, next)
+  if (exhausted) return exhausted
   // Completion (design §3.4): the step row guard (`from` status + attempt) is the fence
   // against a late completion from an older attempt. A waiting step completes the same way.
   // Taking a loop's back-edge reopens this step with the rest of its span instead.
