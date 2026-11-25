@@ -75,11 +75,16 @@ describe('Map tab', () => {
     delete global.echarts
   })
 
-  it('sits between Schema and Knowledge', () => {
+  it('is a Domain sub-tab between Schema and Versions, not a top-level tab', () => {
     const { document } = boot()
-    const tabs = [...document.querySelectorAll('.nn-view-tab')].map((b) => b.dataset.tab)
-    assert.ok(tabs.indexOf('map') === tabs.indexOf('metamodel') + 1, tabs.join(','))
-    assert.ok(tabs.indexOf('map') < tabs.indexOf('explorer'))
+    const top = [...document.querySelectorAll('#nn-view-tabs .nn-view-tab')].map(
+      (b) => b.dataset.tab,
+    )
+    assert.equal(top.indexOf('map'), -1, top.join(','))
+    const sub = [...document.querySelectorAll('#nn-domain-subtabs .nn-view-tab')].map(
+      (b) => b.dataset.tab,
+    )
+    assert.ok(sub.indexOf('map') === sub.indexOf('metamodel') + 1, sub.join(','))
   })
 
   it('draws the domaiNN as nested boxes: models, then concepts, then elements', () => {

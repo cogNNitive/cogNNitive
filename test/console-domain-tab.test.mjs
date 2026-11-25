@@ -257,6 +257,57 @@ describe('Domain tab', () => {
     assert.equal(active(searched.document), 'explorer')
   })
 
+  it('holds Schema and Map as its sub-tabs instead of top-level tabs', () => {
+    const { document } = boot()
+    const top = [...document.querySelectorAll('#nn-view-tabs .nn-view-tab')].map(
+      (b) => b.dataset.tab,
+    )
+    assert.ok(top.includes('domain') && top.includes('explorer'), top.join(','))
+    assert.ok(
+      !top.includes('metamodel') && !top.includes('map') && !top.includes('versions'),
+      top.join(','),
+    )
+    const subnav = document.getElementById('nn-domain-subtabs')
+    assert.equal(subnav.getAttribute('aria-label'), 'Domain views')
+    const sub = [...subnav.querySelectorAll('.nn-view-tab')]
+    assert.deepEqual(
+      sub.map((b) => b.dataset.tab),
+      ['domain', 'metamodel', 'map'],
+    )
+    assert.deepEqual(
+      sub.map((b) => b.textContent),
+      ['Overview', 'Schema', 'Map'],
+    )
+  })
+
+  it('keeps Domain lit while a sub-tab shows, and hides the sub-tabs elsewhere', () => {
+    const { document } = boot()
+    const subnav = document.getElementById('nn-domain-subtabs')
+    const topDomain = document.querySelector('#nn-view-tabs .nn-view-tab[data-tab="domain"]')
+    subnav.querySelector('[data-tab="metamodel"]').click()
+    assert.ok(document.getElementById('nn-tab-metamodel').classList.contains('active'))
+    assert.ok(!document.getElementById('nn-tab-domain').classList.contains('active'))
+    assert.ok(topDomain.classList.contains('active'), 'Domain stays lit')
+    assert.ok(subnav.querySelector('[data-tab="metamodel"]').classList.contains('active'))
+    assert.ok(!subnav.querySelector('[data-tab="domain"]').classList.contains('active'))
+    assert.equal(subnav.style.display, 'flex')
+
+    document.querySelector('#nn-view-tabs .nn-view-tab[data-tab="explorer"]').click()
+    assert.equal(subnav.style.display, 'none')
+    assert.ok(!topDomain.classList.contains('active'))
+  })
+
+  it('opens a sub-tab from its hash route, with Domain lit', () => {
+    const { document } = bootConsole({ model: MODEL, schema: SCHEMA, url: 'http://localhost/#map' })
+    assert.ok(document.getElementById('nn-tab-map').classList.contains('active'))
+    assert.ok(
+      document
+        .querySelector('#nn-view-tabs .nn-view-tab[data-tab="domain"]')
+        .classList.contains('active'),
+    )
+    assert.equal(document.getElementById('nn-domain-subtabs').style.display, 'flex')
+  })
+
   it('is the landing tab the whole-domaiNN export asks for', () => {
     const html = readFileSync(join(here, 'fixtures', 'testlab', 'domaiNN_console.html'), 'utf8')
     const config = JSON.parse(/id="nn-config">([\s\S]*?)<\/script>/.exec(html)[1])
