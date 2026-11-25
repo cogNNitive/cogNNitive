@@ -680,6 +680,52 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
       assert.deepEqual(docTargetsOf(prompt), ['inntake-nn@ghost-element&note'])
     })
 
+    it('flags an element this console holds no record of, on a model it covers', () => {
+      const bogus = {
+        id: 'c-11',
+        element_id: 'Transcripciones_transcripcion@clase-99',
+        kind: 'correction',
+        field: 'note',
+        proposed: 'x',
+      }
+      const prompt = promptFor(domainModel, [bogus])
+      assert.ok(prompt.includes('## Blocking Problems'), 'the export says it cannot be applied')
+      assert.ok(
+        prompt.includes(
+          'element `clase-99` is not one of the elements this console holds for `Transcripciones_transcripcion`',
+        ),
+        'the reported shape names the element and its model',
+      )
+      assert.deepEqual(
+        docTargetsOf(prompt),
+        ['Transcripciones_transcripcion@clase-99&note'],
+        'the target still states what the draft names, never a plausible substitute',
+      )
+    })
+
+    it('reports nothing for an element the payload holds', () => {
+      const prompt = promptFor(domainModel, [draftOnNote])
+      assert.equal(prompt.includes('## Blocking Problems'), false)
+      assert.ok(prompt.includes('`Transcripciones_transcripcion@clase-01&note`'))
+    })
+
+    it('does not report the element a `new` draft is creating', () => {
+      const created = {
+        id: 'c-12',
+        knowledge_id: 'Transcripciones_transcripcion',
+        concept: 'Transcripción',
+        element: 'Clase 02',
+        kind: 'new',
+        proposed: { title: 'Clase 02' },
+      }
+      const prompt = promptFor(domainModel, [created])
+      assert.equal(prompt.includes('## Blocking Problems'), false)
+      assert.ok(
+        docTargetsOf(prompt).includes('Transcripciones_transcripcion@Transcripción'),
+        'addressed by concept',
+      )
+    })
+
     it('leaves the downloadable changeset free of an invented source version', () => {
       const state = { ...bootDomain(domainModel), store: { drafts: () => [draftOnNote] } }
       const composed = nnConsole.composeExport(state, 'Egon Spengler')

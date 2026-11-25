@@ -18610,7 +18610,8 @@ if (typeof window !== 'undefined') {
    * — each carries its own `modelId` and immutable `slug` — so a draft that records an
    * `element_id` but no `element_slug` (what the console UI itself does) still resolves.
    * A draft nothing resolves yields NO element part: the old `elem`/`unit` placeholders
-   * looked like addresses an agent could apply, and pointed at nothing.
+   * looked like addresses an agent could apply, and pointed at nothing. `elementFound`
+   * reports whether the slug came from a payload record or only from the draft's own text.
    */
   function draftIdentity(draft, fallbackModel, elements) {
     var d = isObject(draft) ? draft : {}
@@ -18652,7 +18653,22 @@ if (typeof window !== 'undefined') {
       model: oneLine(model),
       element: slug ? oneLine(slug) : '',
       field: field ? oneLine(field) : '',
+      // Whether the payload actually holds the element this draft names. A slug the payload
+      // does not carry still reaches the target verbatim (the console must not rewrite what
+      // the reviewer typed), so callers get the fact instead of re-scanning `elements`.
+      elementFound: !!rec,
     }
+  }
+
+  /** The operations that address one element, so their target must name one that exists. */
+  function isElementScopedOp(op) {
+    return (
+      op === 'update_field' ||
+      op === 'update_element_text' ||
+      op === 'remove_element' ||
+      op === 'rename_element' ||
+      op === 'update_matrix_cell'
+    )
   }
 
   // Why a draft cannot be exported as an applicable change, or '' when it can. Only the
@@ -18660,16 +18676,31 @@ if (typeof window !== 'undefined') {
   // no element by design.
   function draftTargetProblem(identity, op) {
     if (identity.element) return ''
-    if (
-      op === 'update_field' ||
-      op === 'update_element_text' ||
-      op === 'remove_element' ||
-      op === 'rename_element' ||
-      op === 'update_matrix_cell'
-    ) {
+    if (isElementScopedOp(op)) {
       return 'no element slug resolves for this draft, so its target names no element'
     }
     return ''
+  }
+
+  // Why an element-scoped draft names an element this console holds no record of, or '' when it
+  // does. A changeset addressing a nonexistent element is rejected by `apply_change`, and the
+  // reviewer only finds out after copying the export. Only a model the payload lists in
+  // `meta.models` is checked: that list is what proves the payload carries the model's full
+  // element set, so an absent record is real absence and never a partial payload. A `kind: 'new'`
+  // draft creates its element (`add_element`), and a draft that resolves no element at all is
+  // already reported by `draftTargetProblem`.
+  function draftElementProblem(identity, op, coveredModels) {
+    if (!isElementScopedOp(op)) return ''
+    if (!identity.element || identity.elementFound) return ''
+    var ids = Array.isArray(coveredModels) ? coveredModels : []
+    if (ids.indexOf(identity.model) === -1) return ''
+    return (
+      'element `' +
+      identity.element +
+      '` is not one of the elements this console holds for `' +
+      identity.model +
+      '`, so `apply_change` rejects this target'
+    )
   }
 
   /** A model's record in the console meta `models[]`, or null when it lists none by that id. */
@@ -18684,7 +18715,9 @@ if (typeof window !== 'undefined') {
   // The one plan a draft becomes: its blocks, the canonical target they share, and the
   // reason it cannot be applied as-is ('' when it can). `draftToChanges` is the block list
   // of this same plan, so a caller that also renders a summary reads the identical target.
-  function draftPlan(draft, index, fallbackModel, author, elements) {
+  // `coveredModels` (optional) names the models this console covers; the element-existence
+  // check reads it, because only a covered model's payload is known to hold every element.
+  function draftPlan(draft, index, fallbackModel, author, elements, coveredModels) {
     var d = isObject(draft) ? draft : {}
     // A run request is not a model change: the owner's agent starts the run (import_console).
     if (d.kind === 'run_start' || d.kind === 'run_handoff')
@@ -18764,6 +18797,7 @@ if (typeof window !== 'undefined') {
       op = 'comment'
     }
     var problem = draftTargetProblem(identity, op)
+    if (!problem) problem = draftElementProblem(identity, op, coveredModels)
 
     var lines = []
     lines.push('## NN Change: ' + id)
@@ -18877,8 +18911,8 @@ if (typeof window !== 'undefined') {
   }
 
   // The blocks of one draft; the plan's own target is what the summary table shows.
-  function draftToChanges(draft, index, fallbackModel, author, elements) {
-    return draftPlan(draft, index, fallbackModel, author, elements).blocks
+  function draftToChanges(draft, index, fallbackModel, author, elements, coveredModels) {
+    return draftPlan(draft, index, fallbackModel, author, elements, coveredModels).blocks
   }
 
   /** The first reason a verdict draft cannot be exported, or null. */
@@ -19255,9 +19289,13 @@ if (typeof window !== 'undefined') {
     var reviewer = getReviewerName()
 
     // One plan per draft: the summary table and the normative changeset below are the same
-    // resolution, so they cannot disagree about a target.
+    // resolution, so they cannot disagree about a target. The covered model ids are what makes
+    // an absent element record prove absence instead of a partial payload.
+    var coveredModelIds = models.map(function (m) {
+      return String((m && m.id) || '')
+    })
     var plans = drafts.map(function (d, i) {
-      return draftPlan(d, i, state && state.modelId, reviewer, elements)
+      return draftPlan(d, i, state && state.modelId, reviewer, elements, coveredModelIds)
     })
     var targetAddresses = []
     var targetModels = []
