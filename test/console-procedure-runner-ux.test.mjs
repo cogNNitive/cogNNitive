@@ -1279,6 +1279,33 @@ describe('procedure flow graph through the shared chart API', () => {
     assert.equal(cardStep(), 'transcribe')
   })
 
+  it('lays a loop out top-down: the decision sits above both of its branches', () => {
+    const loop = payload([])
+    loop.model.procedureGraphs[0].graph = payloadCore.procedureGraph(
+      payloadCore.parseKnowledge(
+        INGEST.replace('next:: [@normalize, @discard]', 'max_attempts:: 2\nnext:: [@normalize, @discard]')
+          .replace(
+            'condition:: outcome == reject',
+            'condition:: outcome == reject\nnext:: @review',
+          ),
+      ),
+    )
+    assert.deepEqual(loop.model.procedureGraphs[0].graph.steps.discard.next, ['review'])
+    stepper.mount(container, loop, storeSpy().ctx)
+    const order = [...container.querySelectorAll('[data-proc-step-list] .proc-step-item')].map(
+      (li) => li.getAttribute('data-step'),
+    )
+    assert.equal(order.length, 4)
+    assert.ok(order.indexOf('review') < order.indexOf('normalize'), order.join(' > '))
+    assert.ok(order.indexOf('review') < order.indexOf('discard'), order.join(' > '))
+    assert.equal(order[0], 'transcribe')
+  })
+
+  it('writes the flow hint in English', () => {
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    assert.match(container.querySelector('.rail-hint').textContent, /^The selected node/)
+  })
+
   it('falls back to the native svg when ECharts is not there', () => {
     runtime.renderChart = originalRenderChart // the real entry point, no library loaded
     const warn = console.warn
