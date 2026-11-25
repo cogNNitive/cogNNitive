@@ -1109,6 +1109,14 @@ describe('procedure flow graph through the shared chart API', () => {
   const pick = (call, slug) => call.chart.handlers.click({ dataType: 'node', data: { id: slug } })
   const cardStep = () => container.querySelector('.exec-step-card').getAttribute('data-step')
 
+  it('says in English whether the run has branches, and never calls a branching run linear', () => {
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    const note = container.querySelector('.proc-flow-note').textContent
+    assert.doesNotMatch(note, /[áéíóúñ]|Cadena|ramas/i, 'the note is English copy')
+    assert.doesNotMatch(note, /no branches|straight chain/i, 'review branches, so it is not linear')
+    assert.match(note, /branch/i)
+  })
+
   it('draws the flow with the shared chart API: every step a node, every branch a labelled link', () => {
     stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
     assert.equal(calls.length, 1, 'one chart for the one flow')
