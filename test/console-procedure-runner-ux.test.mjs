@@ -101,8 +101,51 @@ const COMPLETED_BY_A_PERSON = [
 
 const graph = () => payloadCore.procedureGraph(payloadCore.parseKnowledge(INGEST))
 
+/** A human task that writes a required deliverable and an optional one (private run outputs). */
+const DELIVER = `---
+level: 3
+parent_spec:
+  name: "procedures_V_0-6-1"
+  url: "https://example.invalid/procedures/spec_NN.md"
+knowledge_version: "V_1-0-0"
+title: "Document"
+---
+
+# NN Procedure
+
+## NN Procedure: Document
+slug:: document
+
+# NN Work
+
+## NN Work: Write SOP
+slug:: write-sop
+step_type:: task
+executor:: human
+output:: [@sop, @notes]
+next:: @publish
+
+## NN Work: Publish
+slug:: publish
+step_type:: task
+executor:: agent
+
+# NN Artifact
+
+## NN Artifact: Standard Operating Procedure
+slug:: sop
+verify:: file:docs/sop.md
+
+## NN Artifact: Notes
+slug:: notes
+required:: false
+verify:: file:docs/notes.md
+`
+const deliverGraph = () => payloadCore.procedureGraph(payloadCore.parseKnowledge(DELIVER))
+const AT_WRITE = [...STARTED, { kind: 'step_started', step: 'write-sop', attempt: 1 }]
+
 function runOf(id, events, opts = {}) {
-  const g = graph()
+  const g = opts.graph ?? graph()
   const defRev = 'V_1-0-0'
   const model = runModelOfEvents(events, { defRev, procedure: FILE, state: opts.state })
   model.params = opts.params ?? { batch: 'b1', language: 'es' }
@@ -124,7 +167,7 @@ function runOf(id, events, opts = {}) {
   }
 }
 
-function payload(runs) {
+function payload(runs, g = graph()) {
   return {
     schema: { concepts: [] },
     model: {
@@ -135,7 +178,7 @@ function payload(runs) {
         {
           file: FILE,
           title: 'Ingest',
-          graph: graph(),
+          graph: g,
           slots: [
             { name: 'batch', kind: 'value', required: true },
             { name: 'language', kind: 'value', required: false, default: 'es' },
@@ -684,6 +727,8 @@ describe('procedure runner UX (standalone console)', () => {
       assert.match(modal.textContent, /administrator/i)
       assert.match(modal.textContent, /send or share the saved HTML file/i)
       assert.equal(modal.querySelector('[data-proc-handoff-copy]'), null, 'no prompt to copy here')
+      assert.match(modal.textContent, /executions\/r-z\/outputs\//, 'it names the private outputs')
+      assert.match(modal.textContent, /travel with the run/)
       assert.equal(modalOf('agent'), null)
 
       const close = modal.querySelector('[data-proc-handoff-close]')
@@ -732,6 +777,11 @@ describe('procedure runner UX (standalone console)', () => {
       assert.match(copied, /agent/)
       assert.match(copied, /run_handoff/)
       assert.doesNotMatch(copied, /nn-drafts|\{slot\}/)
+      // The private outputs of the run: published where the procedure declares them, after
+      // the choice is recorded.
+      assert.match(copied, /executions\/r-z\/outputs\//)
+      assert.match(copied, /after .*record.*publish|publish .*after/is)
+      assert.match(copied, /where the procedure declares/)
       assert.equal(shown.value, copied, 'what is shown is what is copied')
       assert.match(modal.querySelector('[data-proc-handoff-status]').textContent, /Copied/)
       assert.equal(spy.drafts.length, 1, 'copying writes nothing')
@@ -906,6 +956,180 @@ describe('procedure runner UX (standalone console)', () => {
       /Attach this file to your reply/,
     )
   })
+
+  describe('private run outputs: the person writes the deliverable of their step', () => {
+    const deliver = (events, opts = {}) => {
+      const g = deliverGraph()
+      return payload([runOf('r1', events, { ...opts, graph: g })], g)
+    }
+    const editorOf = (slug) => container.querySelector(`[data-proc-output="${slug}"]`)
+    const typeInto = (el, value) => {
+      el.value = value
+      el.dispatchEvent(new doc.defaultView.Event('input', { bubbles: true }))
+    }
+    const doneButton = () => container.querySelector('[data-proc-action="complete"]')
+    const hint = () => container.querySelector('[data-proc-output-hint]')
+
+    it('offers an editor for each declared output the step has not validated yet', () => {
+      stepper.mount(container, deliver(AT_WRITE), storeSpy().ctx)
+      assert.ok(editorOf('sop'), 'the required deliverable')
+      assert.ok(editorOf('notes'), 'the optional one')
+      assert.match(container.querySelector('.exec-step-card').textContent, /Your deliverable/)
+      assert.ok(container.querySelector('input[type="file"][data-proc-output-file="sop"]'))
+      assert.ok(container.querySelector('[data-proc-output-name="sop"]'))
+
+      const validated = [
+        ...AT_WRITE,
+        {
+          kind: 'artifact_validated',
+          field: 'sop',
+          value: 'executions/r1/outputs/sop/sop.md',
+          rev: REV,
+          step: 'write-sop',
+        },
+      ]
+      stepper.mount(container, deliver(validated), storeSpy().ctx)
+      assert.equal(editorOf('sop'), null, 'this step already validated it')
+      assert.ok(editorOf('notes'))
+    })
+
+    it('keeps "Mark as done" disabled until the required deliverable is written, naming it', () => {
+      const spy = storeSpy()
+      stepper.mount(container, deliver(AT_WRITE), spy.ctx)
+      assert.equal(doneButton().disabled, true)
+      assert.match(hint().textContent, /Standard Operating Procedure/)
+      assert.doesNotMatch(hint().textContent, /Notes/, 'an optional output never blocks')
+      click(doneButton())
+      assert.deepEqual(spy.drafts, [], 'a disabled button proposes nothing')
+
+      typeInto(editorOf('sop'), '# SOP\nStep one.')
+      assert.equal(doneButton().disabled, false)
+      assert.equal(hint().textContent, '')
+    })
+
+    it('carries the deliverables on the complete request, leaving out an empty optional one', () => {
+      const spy = storeSpy()
+      stepper.mount(container, deliver(AT_WRITE), spy.ctx)
+      typeInto(editorOf('sop'), '# SOP\nStep one.')
+      typeInto(container.querySelector('[data-proc-output-name="sop"]'), 'sop-v1.md')
+      click(doneButton())
+      assert.equal(spy.drafts.length, 1)
+      const fields = JSON.parse(spy.drafts[0].proposed)
+      assert.equal(fields.action, 'complete')
+      assert.equal(fields.step, 'write-sop')
+      assert.equal(
+        fields.requested_outputs,
+        JSON.stringify({ sop: { name: 'sop-v1.md', text: '# SOP\nStep one.' } }),
+      )
+
+      // The card follows the projected run; the answered step shows the undo.
+      click(container.querySelector('.dag-node[data-step="write-sop"]'))
+      click(container.querySelector('[data-proc-undo]'))
+      assert.equal(spy.drafts.length, 0, 'undo removes the request and its deliverable')
+      assert.equal(editorOf('sop').value, '# SOP\nStep one.', 'what was typed is still there')
+      typeInto(editorOf('notes'), 'a note')
+      typeInto(container.querySelector('[data-proc-output-name="sop"]'), '')
+      click(doneButton())
+      assert.equal(
+        JSON.parse(spy.drafts[0].proposed).requested_outputs,
+        JSON.stringify({ sop: { text: '# SOP\nStep one.' }, notes: { text: 'a note' } }),
+      )
+    })
+
+    it('starts and completes a step not started yet, the deliverable on the completion only', () => {
+      const spy = storeSpy()
+      stepper.mount(container, deliver(STARTED), spy.ctx)
+      typeInto(editorOf('sop'), 'body')
+      click(doneButton())
+      const sent = spy.drafts.map((d) => JSON.parse(d.proposed))
+      assert.deepEqual(
+        sent.map((f) => f.action),
+        ['start', 'complete'],
+      )
+      assert.equal(sent[0].requested_outputs, undefined)
+      assert.equal(sent[1].requested_outputs, JSON.stringify({ sop: { text: 'body' } }))
+    })
+
+    it('refuses a deliverable over 256 KiB and proposes nothing', () => {
+      const spy = storeSpy()
+      stepper.mount(container, deliver(AT_WRITE), spy.ctx)
+      // 128 Ki + 1 two-byte characters: under 256 Ki characters, over 256 KiB of UTF-8.
+      typeInto(editorOf('sop'), 'é'.repeat(128 * 1024 + 1))
+      click(doneButton())
+      assert.deepEqual(spy.drafts, [])
+      assert.match(container.querySelector('.proc-action-error').textContent, /256 KiB/)
+      assert.match(
+        container.querySelector('.proc-action-error').textContent,
+        /Standard Operating Procedure/,
+      )
+    })
+
+    it('keeps what the person typed when the view renders again', () => {
+      stepper.mount(container, deliver(AT_WRITE), storeSpy().ctx)
+      typeInto(editorOf('sop'), 'draft text')
+      typeInto(container.querySelector('[data-proc-output-name="sop"]'), 'mine.md')
+      // Inspect another step, then come back: the card is rebuilt from scratch.
+      click(container.querySelector('.dag-node[data-step="publish"]'))
+      assert.equal(editorOf('sop'), null)
+      click(container.querySelector('.dag-node[data-step="write-sop"]'))
+      assert.equal(editorOf('sop').value, 'draft text')
+      assert.equal(container.querySelector('[data-proc-output-name="sop"]').value, 'mine.md')
+      assert.equal(doneButton().disabled, false)
+    })
+
+    it('loads a text file into the deliverable and its name', async () => {
+      stepper.mount(container, deliver(AT_WRITE), storeSpy().ctx)
+      const picker = container.querySelector('[data-proc-output-file="sop"]')
+      const file = new dom.window.File(['# From disk'], 'sop-draft.md', { type: 'text/markdown' })
+      Object.defineProperty(picker, 'files', { value: [file], configurable: true })
+      picker.dispatchEvent(new doc.defaultView.Event('change', { bubbles: true }))
+      await new Promise((r) => setTimeout(r, 20))
+      assert.equal(editorOf('sop').value, '# From disk')
+      assert.equal(container.querySelector('[data-proc-output-name="sop"]').value, 'sop-draft.md')
+      assert.equal(doneButton().disabled, false)
+    })
+
+    it('keeps the outcome buttons of a decision disabled until its required output is written', () => {
+      const data = payload([runOf('r1', WAITING_REVIEW)])
+      const g = data.model.procedureGraphs[0].graph
+      g.steps.review.outputs = ['verdict']
+      g.artifacts.verdict = {
+        slug: 'verdict',
+        name: 'Verdict',
+        kind: 'file',
+        required: true,
+        producers: ['review'],
+      }
+      const spy = storeSpy()
+      stepper.mount(container, data, spy.ctx)
+      const approve = () => container.querySelector('[data-proc-outcome="approve"]')
+      assert.equal(approve().disabled, true)
+      assert.equal(container.querySelector('[data-proc-outcome="reject"]').disabled, true)
+      assert.match(hint().textContent, /Verdict/)
+      typeInto(editorOf('verdict'), 'looks fine')
+      assert.equal(approve().disabled, false)
+      click(approve())
+      const fields = JSON.parse(spy.drafts[0].proposed)
+      assert.equal(fields.requested_outcome, 'approve')
+      assert.equal(fields.requested_outputs, JSON.stringify({ verdict: { text: 'looks fine' } }))
+    })
+
+    it('a step that declares no output answers as before, with no deliverable field', () => {
+      const spy = storeSpy()
+      stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), spy.ctx)
+      assert.equal(container.querySelector('[data-proc-output]'), null)
+      assert.equal(container.querySelector('[data-proc-outcome="approve"]').disabled, false)
+      click(container.querySelector('[data-proc-outcome="approve"]'))
+      const fields = JSON.parse(spy.drafts[0].proposed)
+      assert.deepEqual(Object.keys(fields).sort(), [
+        'action',
+        'base_seq',
+        'request_status',
+        'requested_outcome',
+        'step',
+      ])
+    })
+  })
 })
 
 describe('collectProcedureRuns carries what the standalone console needs', () => {
@@ -1023,6 +1247,17 @@ reason:: moved
       })
       assert.equal(again.runs[0].handoff, undefined, broken)
     }
+  })
+
+  it('embeds a private run output, a file the run keeps under executions/<run>/outputs/', async (context) => {
+    const value = 'executions/r1/outputs/raw-transcript/notes.md'
+    const [entry] = await exportOf(context, value, { [value]: '# Notes\nwritten by a person' })
+    assert.deepEqual(entry.runs[0].embeds['raw-transcript'], {
+      path: value,
+      kind: 'text',
+      bytes: 27,
+      text: '# Notes\nwritten by a person',
+    })
   })
 
   it('never embeds a file outside the domain, whatever path the run recorded', async (context) => {

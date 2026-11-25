@@ -19,6 +19,7 @@
  */
 
 import { pathToFileURL } from 'node:url'
+import { resolve } from 'node:path'
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js'
@@ -61,7 +62,7 @@ import { procedureState } from './tools/procedure-state.js'
 import { procedurePending } from './tools/procedure-pending.js'
 import { procedureRecord, procedureStart } from './tools/procedure-record.js'
 import { importConsole } from './tools/import-console.js'
-import { envelope, envelopeList, findDomainRoot } from '@cognnitive/nn-core'
+import { envelope, envelopeList, findDomainRoot, isDomainRoot } from '@cognnitive/nn-core'
 
 /**
  * Resolves the domaiNN root: `INNFO_DOMAIN_DIR` wins, else the nearest
@@ -111,7 +112,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'list_knowledge',
       annotations: { readOnlyHint: true },
       description:
-        "Scan the knowledge directory and list every iNNfo knowledge document with its id, path, version, blueprint and storage. Pass `collection` to list one concept's members instead (it spans distributed instances and compact copies; each item then carries its placement finding, if any)",
+        "Scan the knowledge directory and list every iNNfo knowledge document with its id, path, version, blueprint and storage. Pass `collection` to list one concept's members instead (it spans distributed instances and compact copies; each item then carries its placement finding, if any). The result always states the resolved `root`; when that root holds no domaiNN_NN.md or no model document the call returns ok=false with code NO_DOMAIN_ROOT or NO_MODELS instead of a bare empty list, so an empty answer never silently reads as 'the model does not exist'",
       inputSchema: {
         type: 'object',
         properties: {
@@ -990,8 +991,9 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       description:
         'Record one fact of a procedure run as ONE changeset applied through apply_change (author_kind agent; engine for action run). Actions: start (step_started, attempt and frozen input revs computed), wait (value), complete (outcome; next is taken when one transition holds, else AMBIGUOUS_TRANSITION with the allowed transitions), fail (value), artifact (fact produced|validated|rejected, field = artifact slug, value, rev; only from a step that already started), input (field, value, rev), pause, resume, rebase (accept the current definition revision), cancel, finish (outcome completed, only when the walk can complete, or failed), and run (execute the engine step command with slots substituted, verify its file: artifacts by sha256, record the exit code). ' +
         'The call holds the run write lock across the fold and the apply, so two callers cannot both fold the same state and append the same fact: a second caller is refused with RUN_BUSY and writes nothing. ' +
-        'A Step Request a person recorded in the console (see procedure_pending) is consumed by giving its id as request instead of an action: the request names the action, step, outcome or value, and the same changeset that records the action marks it done. A request made at an older base_seq whose step moved since is marked stale, and one the planner refuses is marked rejected with the reason; both marks are their own changeset and record nothing else. ' +
-        'A terminal event and close_model go in the same changeset. Refusals write nothing: INVALID_ACTION, INVALID_ARGUMENT, RUN_NOT_FOUND, REQUEST_NOT_FOUND, REQUEST_NOT_PENDING, REQUEST_STALE, RUN_BUSY, RUN_CLOSED, RUN_DRIFTED, RUN_PAUSED, NOT_PAUSED, NOT_DRIFTED, UNKNOWN_STEP, STEP_NOT_CURRENT, STEP_NOT_STARTED, STEP_ALREADY_STARTED, UNKNOWN_ARTIFACT, INVALID_TRANSITION, AMBIGUOUS_TRANSITION, CANNOT_COMPLETE, MISSING_OUTPUT, NOT_ENGINE_STEP; APPLY_FAILED reports an apply refusal. Returns what was recorded and the new state.',
+        'A Step Request a person recorded in the console (see procedure_pending) is consumed by giving its id as request instead of an action: the request names the action, step, outcome or value, and the same changeset that records the action marks it done. A complete request may carry requested_outputs, the same map as the outputs argument; outputs given together with a request are refused (INVALID_ARGUMENT), since the deliverable of a request is the one the person attached. A request made at an older base_seq whose step moved since is marked stale, and one the planner refuses is marked rejected with the reason; both marks are their own changeset and record nothing else. ' +
+        'A complete may carry outputs, the private deliverables of the step: { "<artifact slug>": { "name"?: string, "text": string } }, as an object or its JSON text. Every slug must be a file output of the step being completed and every text a string of at most 256 KiB of UTF-8, else INVALID_OUTPUT, checked before anything is written. Each text is written to executions/<run>/outputs/<slug>/<name> (name reduced to a basename of A-Z a-z 0-9 . _ -, default <slug>.md) right before the commit and removed if it does not apply, and the same atomic changeset records the artifact validated with that path as value, its sha256 as rev and the step, so the MISSING_OUTPUT gate counts it. Nothing is written outside executions/<run>/ and changes/. ' +
+        'A terminal event and close_model go in the same changeset. Refusals write nothing: INVALID_ACTION, INVALID_ARGUMENT, RUN_NOT_FOUND, REQUEST_NOT_FOUND, REQUEST_NOT_PENDING, REQUEST_STALE, RUN_BUSY, RUN_CLOSED, RUN_DRIFTED, RUN_PAUSED, NOT_PAUSED, NOT_DRIFTED, UNKNOWN_STEP, STEP_NOT_CURRENT, STEP_NOT_STARTED, STEP_ALREADY_STARTED, UNKNOWN_ARTIFACT, INVALID_TRANSITION, AMBIGUOUS_TRANSITION, CANNOT_COMPLETE, MISSING_OUTPUT, INVALID_OUTPUT, NOT_ENGINE_STEP; APPLY_FAILED reports an apply refusal. Returns what was recorded and the new state.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1040,6 +1042,11 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
               'wait: what it waits on; fail: reason; artifact/input: value; rebase: new revision',
           },
           rev: { type: 'string', description: 'artifact/input: revision of the value' },
+          outputs: {
+            type: 'object',
+            description:
+              'complete: the step file outputs a person wrote, { "<artifact slug>": { "name"?: string, "text": string } } (its JSON text is accepted too); each text at most 256 KiB, kept private under executions/<run>/outputs/',
+          },
           actor: {
             type: 'string',
             description: 'Who records the fact (default agent, or engine for run)',
@@ -1084,7 +1091,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         'Import a console HTML a person saved with "Save Snapshot" into this domaiNN. Saving writes the console file the person opened, in place, so the path the conversation already knows stays valid; without a path this reads the domaiNN\'s own domaiNN_console.html, and a console saved anywhere else (for example an e-mail attachment) still passes its path. ' +
         'Importing is repeatable: a Step Request the run already holds with the same content is reported as duplicate and not written again (a pending one that nobody consumed yet is consumed now), a name that exists with other content refuses the whole import with REQUEST_CONFLICT, and a run_start draft without a run id derives one from the draft, so the same saved file starts its run once (reported as already_started). Drafts of kind run_handoff ({ kind: "run_handoff", run, choice: "administrator" | "agent" }) are the final choice of the person for a COMPLETED run: with apply the choice is recorded once beside the run (executions/<run>/handoff.json, read back by procedure_state as handoff) and nothing is added to the models of the domaiNN; a run that is not completed or does not exist is refused alone (RUN_NOT_COMPLETED, RUN_NOT_FOUND), and a run already handed off differently refuses the whole import with HANDOFF_CONFLICT. ' +
         'Reads its nn-drafts slot and turns the drafts into the changeset the console "Download changes" button would have produced (the console runtime composes it, so the bytes match a download) and writes it to changes/. ' +
-        'Without apply it writes only that changeset and reports the runs the person asked for (drafts of kind run_start: { kind: "run_start", procedure, params, run?, path? }). With apply it applies the changeset through apply_change, starts each requested run through procedure_start with the reviewer as actor, and with consume it also consumes every Step Request the changeset added through procedure_record request=, reporting each as done, stale, rejected or failed. The domain console is regenerated once at the end. ' +
+        'Without apply it writes only that changeset and reports the runs the person asked for (drafts of kind run_start: { kind: "run_start", procedure, params, run?, path? }). With apply it applies the changeset through apply_change, starts each requested run through procedure_start with the reviewer as actor, and with consume it also consumes every Step Request the changeset added through procedure_record request=, reporting each as done, stale, rejected or failed. A complete request carrying requested_outputs (the deliverable a person wrote for a file output of the step) writes it privately to executions/<run>/outputs/<slug>/ and records it with the completion; a deliverable for a slug the step does not produce, a non-file output or a text over 256 KiB marks the request rejected with INVALID_OUTPUT. Duplicate detection compares requested_outputs too. The domain console is regenerated once at the end. ' +
         'The file must be a console of THIS domaiNN (its meta.domainId). Refusals write nothing: INVALID_ARGUMENT, CONSOLE_NOT_FOUND, NOT_A_CONSOLE, DOMAIN_MISMATCH, REVIEWER_REQUIRED (the file names no reviewer and no author was given), INVALID_DRAFT, REQUEST_CONFLICT, HANDOFF_CONFLICT, EXPORT_REFUSED, CHANGESET_EXISTS, CONSOLE_ASSETS_NOT_FOUND; APPLY_FAILED reports an apply refusal of the written changeset. Closing a run is never a request: ready_to_finish names each run the consumed requests brought to its end, for the agent to record procedure_record action=finish before its person can choose the handoff. Returns the changeset path, applied count, duplicates, requests consumed, runs started, handoffs, ready_to_finish and next_steps.',
       inputSchema: {
         type: 'object',
@@ -1163,16 +1170,61 @@ export async function dispatchTool(
 
 /* ── Handlers ────────────────────────────────────────────────── */
 
+/**
+ * `list_knowledge` answers with the root it read, and refuses to answer with a
+ * bare empty list when that root cannot prove absence. A root without a
+ * `domaiNN_NN.md` (or a domaiNN holding no model document) yields `[]` from the
+ * scan, which reads as "this model does not exist" while the truth is "the
+ * server is not looking at a domaiNN". Both cases are reported in the same
+ * `{ ok: false, code, detail }` shape every other tool uses for a structured
+ * failure, with `root` naming where the scan looked.
+ */
 async function handleListKnowledge(args: Record<string, unknown>): Promise<CallToolResult> {
-  const root = (args.domain as string) || (args.root as string) || ROOT_DIR
+  const root = resolve((args.domain as string) || (args.root as string) || ROOT_DIR)
   const collection =
     typeof args.collection === 'string' && args.collection.trim()
       ? args.collection.trim()
       : undefined
   const knowledge = await listKnowledge(root, collection ? { collection } : {})
-  return textResult(
-    JSON.stringify(envelopeList('innfo-list-knowledge', 'knowledge', knowledge), null, 2),
-  )
+  const list = envelopeList('innfo-list-knowledge', 'knowledge', knowledge)
+
+  if (!isDomainRoot(root)) {
+    return errorResult(
+      JSON.stringify(
+        {
+          ...list,
+          ok: false,
+          code: 'NO_DOMAIN_ROOT',
+          root,
+          detail: `${root} holds no domaiNN_NN.md, so it is not a domaiNN and this empty listing proves nothing about any model; point the server at a domaiNN (or pass domain) before concluding a model is absent.`,
+        },
+        null,
+        2,
+      ),
+    )
+  }
+
+  // An empty collection is a true answer when the domaiNN holds models; only an
+  // empty domaiNN makes "no model documents" the finding.
+  const unfiltered =
+    collection !== undefined && knowledge.length === 0 ? await listKnowledge(root) : knowledge
+  if (unfiltered.length === 0) {
+    return errorResult(
+      JSON.stringify(
+        {
+          ...list,
+          ok: false,
+          code: 'NO_MODELS',
+          root,
+          detail: `${root} holds a domaiNN_NN.md but no model document (level 3, resolvable parent_spec) was found under it, so this empty listing proves nothing about any model.`,
+        },
+        null,
+        2,
+      ),
+    )
+  }
+
+  return textResult(JSON.stringify({ ...list, ok: true, root }, null, 2))
 }
 
 async function handleReadKnowledge(args: Record<string, unknown>): Promise<CallToolResult> {

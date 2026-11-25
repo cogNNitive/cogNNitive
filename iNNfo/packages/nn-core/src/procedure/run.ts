@@ -83,6 +83,16 @@ function artifactStatusOf(v: unknown): ArtifactRowStatus {
   return text !== undefined && ARTIFACT_STATES.has(text) ? (text as ArtifactRowStatus) : 'expected'
 }
 
+/**
+ * A request's `requested_outputs` as JSON text. The property parser already turns a `{...}`
+ * value into an object, so an object is serialized back; anything else is kept as written, and
+ * the runner refuses what does not parse.
+ */
+function outputsTextOf(v: unknown): string | undefined {
+  if (v !== null && typeof v === 'object') return JSON.stringify(v)
+  return str(v)
+}
+
 function requestRowOf(fields: Record<string, unknown>): StepRequestRow | null {
   const action = str(fields['action'])
   const status = str(fields['request_status'])
@@ -103,6 +113,9 @@ function requestRowOf(fields: Record<string, unknown>): StepRequestRow | null {
       : {}),
     ...(str(fields['requested_value']) !== undefined
       ? { value: str(fields['requested_value']) }
+      : {}),
+    ...(outputsTextOf(fields['requested_outputs']) !== undefined
+      ? { outputs: outputsTextOf(fields['requested_outputs']) }
       : {}),
     ...(str(fields['reason']) !== undefined ? { reason: str(fields['reason']) } : {}),
     ...(str(fields['at']) !== undefined ? { at: str(fields['at']) } : {}),
