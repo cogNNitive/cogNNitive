@@ -153,6 +153,11 @@ export interface StepRequestRow {
   outcome?: string
   /** Who or what a wait waits on, or why a step failed. */
   value?: string
+  /**
+   * The `requested_outputs` of a `complete` request, as the JSON text it was stored as: artifact
+   * slug -> `{ name?, text }`. The runner parses and validates it; the reader keeps it verbatim.
+   */
+  outputs?: string
   /** Why the runner rejected the request or found it stale. */
   reason?: string
   /** When the request was made (ISO 8601). */

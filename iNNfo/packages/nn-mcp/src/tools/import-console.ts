@@ -661,8 +661,27 @@ function sameRequest(draft: Json, row: StepRequestRow): boolean {
     same(fields['step'], row.step) &&
     same(fields['requested_outcome'], row.outcome) &&
     same(fields['requested_value'], row.value) &&
+    sameOutputs(fields['requested_outputs'], row.outputs) &&
     same(fields['base_seq'], row.baseSeq)
   )
+}
+
+/**
+ * Two `requested_outputs` are the same when they hold the same map. Both sides are JSON text
+ * (the draft's one-line form, the row as the run model stores it), so each is parsed and
+ * serialized again before comparing; text that does not parse is compared as written.
+ */
+function sameOutputs(draft: unknown, row: string | undefined): boolean {
+  const canonical = (v: unknown): string | undefined => {
+    if (v === undefined || v === null || v === '') return undefined
+    if (typeof v !== 'string') return JSON.stringify(v)
+    try {
+      return JSON.stringify(JSON.parse(v))
+    } catch {
+      return v
+    }
+  }
+  return canonical(draft) === canonical(row)
 }
 
 /** The runs a consumed request touched that are now open with nothing left to walk. */
