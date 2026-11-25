@@ -12,6 +12,12 @@
  *   3. eslint, scoped to files changed against the integration base.
  * Each failure prints the exact command that fixes it. Exit code 1 on failure.
  *
+ * A check whose tooling is missing from this checkout (no `node_modules`, an eslint config
+ * that cannot load, a guard script that cannot resolve its modules) produced no verdict. It
+ * is reported as NOT verified and named, and the push continues: claiming "eslint reported
+ * errors" for a lint that never ran is what trains people to reach for `--no-verify`, which
+ * disarms every hook. CI runs those checks on the pull request.
+ *
  * `NN_PRE_PUSH_ROOT` overrides the repo root, and `NN_PRE_PUSH_SKIP_HEAVY=1` skips the
  * prerequisites — both used by `pre-push-check.test.js`.
  */
@@ -28,6 +34,10 @@ const LINTABLE = /^(iNNfo|scripts)\/.*\.(?:[cm]?js|ts|tsx)$/;
 const NO_CODE_PATHS = /^openspec\//;
 const BASES = ['origin/main'];
 const ZERO = /^0+$/;
+
+/** Output of a tool that never ran: module, config or command resolution, never a verdict. */
+const CANNOT_RUN =
+  /Cannot find (?:package|module)|ERR_MODULE_NOT_FOUND|MODULE_NOT_FOUND|is not recognized as an internal or external command|command not found/i;
 
 /** Runs git in `cwd`; returns trimmed stdout or null on failure. */
 function gitIn(cwd, ...args) {
@@ -121,14 +131,99 @@ function changedLintableFiles(pushedSha) {
 }
 
 function runLint(files) {
-  const eslint = path.join(repoRoot, 'node_modules', 'eslint', 'bin', 'eslint.js');
-  const res = spawnSync(process.execPath, [eslint, '--no-warn-ignored', '--quiet', ...files], { cwd: repoRoot, stdio: 'inherit' });
-  return res.status === 0;
+  return lintOutcome(path.join(repoRoot, 'node_modules', 'eslint', 'bin', 'eslint.js'), files);
 }
 
-/** Typecheck + docs-derived-facts prerequisites. Returns failure messages. */
+/** Most informative first: which module/command is missing, never the `throw` that reported it. */
+const REASON_PRIORITY = [
+  /Cannot find (?:package|module) '[^']+'/i,
+  /\b(\S+) not (?:found|installed)\b/i,
+  CANNOT_RUN,
+];
+
+/**
+ * The one line of a tool's output that names why it could not run: the module, config or
+ * command it failed to resolve, not the stack frame that happened to come first.
+ * @param {string} [output]
+ */
+function cannotRunReason(output) {
+  const lines = String(output || '')
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  for (const re of REASON_PRIORITY) {
+    const hit = lines.find((line) => re.test(line));
+    if (hit) return hit;
+  }
+  return lines[0] || 'no output';
+}
+
+/**
+ * 'unverified' when the check never loaded its tooling (module, config or command resolution,
+ * or the guard's own exit-2 "cannot run" contract), 'failed' when it ran and said no.
+ * Conflating them is what made a bare checkout report "eslint reported errors in changed files"
+ * while eslint could not even load its config -- and a gate that lies is what trains people to
+ * reach for --no-verify, which disarms every hook.
+ * @param {string} [output]
+ * @param {number} [status]
+ * @returns {'unverified' | 'failed'}
+ */
+function classifyFailure(output, status) {
+  if (status === 2) return 'unverified';
+  return CANNOT_RUN.test(String(output || '')) ? 'unverified' : 'failed';
+}
+
+/**
+ * Runs eslint over `files`. A missing or unloadable eslint produced no verdict, so it is
+ * reported as unverified instead of as lint errors.
+ * @returns {{ ok: boolean, output?: string, unverified?: string }}
+ */
+function lintOutcome(eslintPath, files, spawn = spawnSync, cwd = repoRoot) {
+  if (!fs.existsSync(eslintPath)) {
+    return { ok: false, unverified: 'eslint is not installed in this checkout (no node_modules)' };
+  }
+  const res = spawn(process.execPath, [eslintPath, '--no-warn-ignored', '--quiet', ...files], {
+    cwd,
+    encoding: 'utf8',
+  });
+  const output = `${res.stdout || ''}${res.stderr || ''}`;
+  if (res.status === 0) return { ok: true };
+  if (classifyFailure(output, res.status) === 'unverified') {
+    return { ok: false, unverified: `eslint could not load its tooling: ${cannotRunReason(output)}` };
+  }
+  return { ok: false, output };
+}
+
+/**
+ * Reports checks that produced no verdict. Never phrased as a pass: the push continues, and
+ * the report says exactly which checks CI still has to run.
+ * @param {Array<{ what: string, why: string }>} list
+ * @param {boolean} [blocking]
+ */
+function printUnverified(list, blocking = false) {
+  if (!list || list.length === 0) return;
+  console.error(
+    `\npre-push: WARNING - ${list.length} check(s) could not run in this checkout, so they are NOT verified here:`,
+  );
+  for (const item of list) console.error(`  - ${item.what}: ${item.why}`);
+  console.error(
+    blocking
+      ? '  they stay unverified until CI runs them.'
+      : '  the push continues; CI runs them on the pull request.',
+  );
+}
+
+/** Typecheck + docs-derived-facts prerequisites. Returns the failures and the unverifiable ones. */
 function runHeavyPrerequisites() {
-  if (process.env.NN_PRE_PUSH_SKIP_HEAVY) return [];
+  if (process.env.NN_PRE_PUSH_SKIP_HEAVY) return { failures: [], unverified: [] };
+  // Without an install these two steps cannot produce a verdict at all; saying "failed" would
+  // be a lie about a checkout that simply has no toolchain.
+  if (!fs.existsSync(path.join(repoRoot, 'node_modules'))) {
+    return {
+      failures: [],
+      unverified: [{ what: 'typecheck and docs-derived facts', why: 'no node_modules in this checkout' }],
+    };
+  }
   const failures = [];
   const env = { ...process.env, NODE_OPTIONS: process.env.NODE_OPTIONS || '--max-old-space-size=4096' };
   const nodeStep = (args) => spawnSync(process.execPath, args, { cwd: repoRoot, stdio: 'inherit', env });
@@ -141,7 +236,7 @@ function runHeavyPrerequisites() {
   if (nodeStep([path.join(repoRoot, 'scripts', 'generate-docs-facts.mjs'), '--check']).status !== 0) {
     failures.push("generated docs facts are stale.\n    fix: npm run regen (or node scripts/generate-docs-facts.mjs) and commit the result");
   }
-  return failures;
+  return { failures, unverified: [] };
 }
 
 function readStdin() {
@@ -170,6 +265,8 @@ async function main() {
   }
 
   const failures = [];
+  /** Checks whose tooling is absent: they produced no verdict, so they are not reported as passes. */
+  const unverified = [];
   const t0 = Date.now();
 
   // The guards read the working tree, but CI sees only committed content (verify.js
@@ -182,29 +279,43 @@ async function main() {
     );
   }
 
-  failures.push(...runHeavyPrerequisites());
+  const heavy = runHeavyPrerequisites();
+  failures.push(...heavy.failures);
+  unverified.push(...heavy.unverified);
 
   const guardFailures = await collectGuardFailures();
   for (const { guard, res } of guardFailures) {
+    const output = `${res.stdout || ''}${res.stderr || ''}`;
+    if (classifyFailure(output, res.status) === 'unverified') {
+      unverified.push({ what: guard.desc, why: `could not start: ${cannotRunReason(output)}` });
+      continue;
+    }
     failures.push(`${guard.desc} is stale.\n    fix: npm run regen   (all generators; or just: ${guard.regen}) then commit the result`);
-    process.stderr.write((res.stdout || '') + (res.stderr || ''));
+    process.stderr.write(output);
   }
   console.log(`pre-push: ${FRESHNESS_GUARDS.length} freshness guards in ${Date.now() - t0}ms`);
 
   const files = changedLintableFiles(branchPushes[0].localSha);
   if (files.length > 0) {
     const t1 = Date.now();
-    const ok = runLint(files);
+    const lint = runLint(files);
     console.log(`pre-push: eslint on ${files.length} changed file(s) in ${Date.now() - t1}ms`);
-    if (!ok) failures.push('eslint reported errors in changed files.\n    fix: npx eslint --fix <file>  (or npm run lint:fix)');
+    if (lint.unverified) {
+      unverified.push({ what: `eslint on ${files.length} changed file(s)`, why: lint.unverified });
+    } else if (!lint.ok) {
+      process.stderr.write(lint.output || '');
+      failures.push('eslint reported errors in changed files.\n    fix: npx eslint --fix <file>  (or npm run lint:fix)');
+    }
   }
 
   if (failures.length > 0) {
     console.error('\npre-push: blocked.');
     failures.forEach((f) => console.error(`  - ${f}`));
+    printUnverified(unverified, true);
     console.error('  bypass (discouraged): git push --no-verify');
     return 1;
   }
+  printUnverified(unverified);
   return 0;
 }
 
@@ -224,4 +335,6 @@ module.exports = {
   collectGuardFailures,
   changedLintableFiles,
   runHeavyPrerequisites,
+  classifyFailure,
+  lintOutcome,
 };

@@ -558,9 +558,12 @@ function planStepStart(
     return fail('STEP_ALREADY_STARTED', `Step "${step}" is already active.`)
   const row = rowOf(f, step)
   const inputs: Record<string, string> = {}
+  // The revision the step reads is the stored row's. The fold may call a validated input
+  // `stale` while a loop is open (its producer can still run again), but that revision is still
+  // the one this attempt consumes, so it is recorded.
   for (const a of f.graph.steps[step]!.inputs) {
-    const art = f.state.artifacts[a]
-    if (art?.status === 'validated' && art.rev !== undefined) inputs[a] = art.rev
+    const row = f.run.artifacts[a]
+    if (row?.status === 'validated' && row.rev !== undefined) inputs[a] = row.rev
   }
   const attempt = (row.attempt ?? 0) + 1
   const requested =
