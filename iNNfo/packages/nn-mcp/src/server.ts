@@ -941,7 +941,8 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         properties: {
           procedure: {
             type: 'string',
-            description: 'Procedure id (e.g. review) or domain-relative procedure document path',
+            description:
+              'Procedure id (e.g. review) or domain-relative procedure document path; append @<container-slug> to run one sub-procedure of a document that holds several',
           },
           params: { type: 'object', description: 'Run parameters: slot name -> value' },
           run: {

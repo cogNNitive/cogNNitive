@@ -182,7 +182,12 @@ export async function procedureStart(
       { missing: unfilled },
     )
 
-  const procId = procedureIdOf(ref)
+  // A container run is named after its document and the container: `usage-define-a-frame`.
+  const at = ref.lastIndexOf('@')
+  const procId =
+    at > 0 && !ref.slice(0, at).includes('://')
+      ? `${procedureIdOf(ref.slice(0, at))}-${ref.slice(at + 1)}`
+      : procedureIdOf(ref)
   const run = text(args['run']) ?? `${procId}-${formatUtcStamp(new Date()).toLowerCase()}`
   if (!RUN_ID.test(run)) return fail('INVALID_ARGUMENT', `run "${run}" must be a lowercase slug.`)
   let taken = existsSync(join(root, 'executions', run))

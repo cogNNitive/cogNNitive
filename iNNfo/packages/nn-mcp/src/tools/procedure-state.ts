@@ -98,19 +98,33 @@ export async function resolveProcedure(
   ref: string,
   scope = '.',
 ): Promise<{ ok: true; procedure: ResolvedProcedure } | ToolError> {
-  const byPath = ref.endsWith('.md')
-  const doc = byPath ? posix.normalize(ref.replace(/\\/g, '/')) : undefined
+  // `<doc-or-id>@<container-slug>` starts one sub-procedure of a document that holds several
+  // (design §4.6); the run header then records `<doc>@<container>`, which `loadProcedure` reads.
+  const at = ref.lastIndexOf('@')
+  const container = at > 0 && !ref.slice(0, at).includes('://') ? ref.slice(at + 1) : undefined
+  const target = container === undefined ? ref : ref.slice(0, at)
+  const byPath = target.endsWith('.md')
+  const doc = byPath ? posix.normalize(target.replace(/\\/g, '/')) : undefined
   const listing = await listScopedProcedures(root, doc ? dirname(dirname(doc)) : scope)
   if (!listing.ok) return fail(listing.code, listing.detail)
   const entry = listing.procedures.find((p) =>
-    doc ? p.doc === doc && p.source_kind === 'scope' : p.id === ref && p.status === 'selected',
+    doc ? p.doc === doc && p.source_kind === 'scope' : p.id === target && p.status === 'selected',
   )
   if (!entry)
-    return fail('PROCEDURE_NOT_FOUND', `No procedure "${ref}" is visible from "${scope}".`)
-  const address = entry.source_kind === 'blueprint' ? `${entry.source}/${entry.doc}` : entry.doc
+    return fail('PROCEDURE_NOT_FOUND', `No procedure "${target}" is visible from "${scope}".`)
+  const document = entry.source_kind === 'blueprint' ? `${entry.source}/${entry.doc}` : entry.doc
+  const address = container === undefined ? document : `${document}@${container}`
   const loaded = await loadProcedure(root, address)
   if (!loaded.ok) return loaded
-  return { ok: true, procedure: { address, slots: entry.slots, graph: loaded.graph } }
+  if (container !== undefined && Object.keys(loaded.graph.steps).length === 0)
+    return fail('PROCEDURE_NOT_FOUND', `"${target}" has no sub-procedure "${container}".`)
+  // A container runs on its own: it asks only for the slots its steps carry, not for every slot
+  // the document declares for its sibling procedures.
+  const slots =
+    container === undefined
+      ? entry.slots
+      : entry.slots.filter((s) => loaded.graph.slots.includes(s.name))
+  return { ok: true, procedure: { address, slots, graph: loaded.graph } }
 }
 
 export interface RunRecord extends RunModel {

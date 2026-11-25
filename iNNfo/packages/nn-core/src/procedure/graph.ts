@@ -210,9 +210,11 @@ export function procedureGraph(model: ParsedKnowledge, container?: string): Proc
           .split(',')
           .map((s) => s.trim().replace(/^\{|\}$/g, ''))
       : []
+  // A container is one sub-procedure: the document's declared slots belong to its siblings too,
+  // so only the placeholders its own steps and artifacts carry are asked for.
   const slots = [
     ...new Set([
-      ...declaredSlots.filter((s) => s !== ''),
+      ...(containerSlug ? [] : declaredSlots.filter((s) => s !== '')),
       ...slotNames(
         ...Object.values(steps).map((s) => s.command),
         ...Object.values(artifacts).map((a) => a.at),
