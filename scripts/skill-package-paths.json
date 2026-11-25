@@ -1,0 +1,42 @@
+{
+  "note": "Every skill-package script that climbs out of its own package with a literal relative-path chain, with the reason the read exists. Flat installs break these chains silently; the guard keeps the list honest. Test suites are not listed: <skill>/test/** is exempt.",
+  "allowed": [
+    {
+      "file": "skills/nn-preflight/scripts/preflight-check.js",
+      "climbs": 3,
+      "target": "iNNfo/specs/bluepriNNts/catalog.json",
+      "anchor": "repo-root",
+      "probe": true,
+      "reason": "First candidate source of the blueprint catalog for the preflight freshness line; a miss falls through to the network catalog URLs, so an install without the repo checkout is correct behaviour, not a failure."
+    },
+    {
+      "file": "iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/build-field-registry.mjs",
+      "climbs": 3,
+      "target": "iNNfo/specs/bluepriNNts/coNNtent/spec_NN.md",
+      "anchor": "blueprint-root",
+      "reason": "Default --spec for the Field registry generator, which reads the blueprint Field definitions; a missing spec exits 2 with blueprint not found, so a flat install must pass --spec explicitly."
+    },
+    {
+      "file": "iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/lib/catalog.mjs",
+      "climbs": 4,
+      "target": "iNNfo/specs/bluepriNNts/coNNtent/catalog/model-catalog_coNNtent_NN.md",
+      "anchor": "blueprint-root",
+      "reason": "Reference catalog the compiler reads at import time. Installed flat (~/.agents/skills/nn-conntent) the four climbs land on ~/.agents/catalog, where a stale orphan copy was read silently: renders produced silent audio and only died later at caption alignment."
+    },
+    {
+      "file": "iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/lib/component-portfolio.mjs",
+      "climbs": 4,
+      "target": "iNNfo/specs/bluepriNNts/coNNtent",
+      "anchor": "blueprint-root",
+      "reason": "Resource read of the blueprint package root, which is then joined with library/components; installed flat the climbs land on ~/.agents and the portfolio silently comes back empty instead of the blueprint components."
+    },
+    {
+      "file": "iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/lib/video-scope.mjs",
+      "climbs": 3,
+      "target": "iNNfo/specs/bluepriNNts/coNNtent/skills/specs/bluepriNNts/coNNtent",
+      "anchor": "blueprint-root",
+      "probe": true,
+      "reason": "Third and last candidate of findBlueprintPackage, after the two package-relative ones; each candidate is probed with existsSync(spec_NN.md) and a miss falls through to the next, so this dead candidate path is correct behaviour and the target below is informational only."
+    }
+  ]
+}
