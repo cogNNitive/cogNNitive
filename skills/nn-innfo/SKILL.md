@@ -914,8 +914,11 @@ run's recorded events.
    again with their attempts kept, their outputs read `stale`, and the state's
    current step is the one the loop returned to: start it again (its attempt counts
    on). A loop is bounded by its target's `max_attempts` (3 by default): past it,
-   `complete` refuses `LOOP_LIMIT` and writes nothing. Tell the user, then `fail` the
-   step or take another branch; never retry the same back-edge.
+   `complete` refuses `LOOP_LIMIT` and writes nothing, already at the decision that
+   would send the run back. Tell the user, then take another outcome or `fail` the
+   step; never retry the same back-edge. Each pass of a step that declares a required
+   output records that output again (`MISSING_OUTPUT` otherwise), even when an
+   earlier step already validated it.
 4. **Console requests.** A person acting from the console never writes the run: they
    record a Step Request (`start`, `wait`, `complete` or `fail` a step) or a
    `run_start` draft (a new run). A saved console arrives through `import_console`

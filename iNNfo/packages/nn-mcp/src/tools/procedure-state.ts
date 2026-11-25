@@ -218,6 +218,14 @@ export type RecordAction =
   | 'cancel'
   | 'finish'
 
+/** The step statuses from which an artifact fact may be reported. */
+export const ARTIFACT_REPORTING: ReadonlySet<string> = new Set([
+  'active',
+  'waiting',
+  'done',
+  'reopened',
+])
+
 /** The `procedure_record` actions the fold allows now, in a stable order. */
 export function allowedActions({ run, graph, state }: FoldedRun): RecordAction[] {
   if (run.closed || ['completed', 'failed', 'cancelled'].includes(state.status)) return []
@@ -227,7 +235,10 @@ export function allowedActions({ run, graph, state }: FoldedRun): RecordAction[]
   // Drift blocks every step action and every artifact fact until `rebase` is recorded
   // (`procedure-record.ts` `plan`), so the advertisement must not offer them.
   if (state.drift) return ['rebase', 'input', ...rest]
-  const open: RecordAction[] = ['input', 'artifact', ...rest]
+  // An artifact fact is reported by a step that started (`procedure-record.ts` refuses it
+  // otherwise with STEP_NOT_STARTED), so it is offered only once some step can report it.
+  const reporting = Object.values(state.steps).some((s) => ARTIFACT_REPORTING.has(s.status))
+  const open: RecordAction[] = ['input', ...(reporting ? (['artifact'] as const) : []), ...rest]
   if (state.paused) return open
   const actions: RecordAction[] = []
   const current = state.currentStep

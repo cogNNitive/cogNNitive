@@ -935,7 +935,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       description:
         'Start a run of a procedure. Resolves the procedure with the list_blueprint_procedures precedence (an id visible from path, or a domain-relative *_procedures_NN.md path), applies slot defaults to params and refuses a missing required slot (MISSING_REQUIRED_SLOT) or an unknown procedure (PROCEDURE_NOT_FOUND). ' +
         'Creates the run as an executions instance model (executions/<run>/) with its header (procedure, def_rev pinned to the procedure knowledge_version, params) and its started event, in ONE changeset applied through apply_change. ' +
-        'Other codes: RUN_EXISTS, EXECUTIONS_NOT_INSTALLED (the domaiNN does not carry specs/bluepriNNts/executions/spec_NN.md), INVALID_ARGUMENT, APPLY_FAILED. Returns the run id and its folded state.',
+        'Other codes: RUN_EXISTS, EXECUTIONS_NOT_INSTALLED (the domaiNN does not carry specs/bluepriNNts/executions/spec_NN.md; install it with hydrate_blueprint blueprint_name=executions), INVALID_ARGUMENT, APPLY_FAILED. Returns the run id and its folded state.',
       inputSchema: {
         type: 'object',
         properties: {
