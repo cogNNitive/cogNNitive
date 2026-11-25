@@ -4,6 +4,9 @@ import type {
   ArtifactRowStatus,
   RunModel,
   RunStateValue,
+  StepRequestAction,
+  StepRequestRow,
+  StepRequestStatus,
   StepRow,
   StepRowStatus,
 } from './types.js'
@@ -52,6 +55,18 @@ const ARTIFACT_STATES: ReadonlySet<string> = new Set([
   'validated',
   'rejected',
 ])
+const REQUEST_STATES: ReadonlySet<string> = new Set(['pending', 'done', 'stale', 'rejected'])
+const REQUEST_ACTIONS: ReadonlySet<string> = new Set(['start', 'wait', 'complete', 'fail'])
+
+/**
+ * A template seed writes its field values as the type placeholders the bluepriNNt template
+ * carries (`<string>`, `<model>@<element>`, …). A value that is exactly one of those is not a
+ * value a person recorded.
+ */
+function isTemplatePlaceholder(v: unknown): boolean {
+  const text = str(v)
+  return text !== undefined && /^<[^>]+>(@<[^>]+>)?$/.test(text)
+}
 
 function runStateOf(v: unknown): RunStateValue {
   const text = str(v)
@@ -66,6 +81,32 @@ function stepStatusOf(v: unknown): StepRowStatus {
 function artifactStatusOf(v: unknown): ArtifactRowStatus {
   const text = str(v)
   return text !== undefined && ARTIFACT_STATES.has(text) ? (text as ArtifactRowStatus) : 'expected'
+}
+
+function requestRowOf(fields: Record<string, unknown>): StepRequestRow | null {
+  const action = str(fields['action'])
+  const status = str(fields['request_status'])
+  // `add_model` seeds one example row per list concept from the bluepriNNt template, whose
+  // field values are `<type>` placeholders. That seed is not a person's request.
+  if (action === undefined || !REQUEST_ACTIONS.has(action)) return null
+  if (isTemplatePlaceholder(fields['step'])) return null
+  return {
+    action: action as StepRequestAction,
+    status:
+      status !== undefined && REQUEST_STATES.has(status)
+        ? (status as StepRequestStatus)
+        : 'pending',
+    ...(num(fields['base_seq']) !== undefined ? { baseSeq: num(fields['base_seq']) } : {}),
+    ...(str(fields['step']) !== undefined ? { step: str(fields['step']) } : {}),
+    ...(str(fields['requested_outcome']) !== undefined
+      ? { outcome: str(fields['requested_outcome']) }
+      : {}),
+    ...(str(fields['requested_value']) !== undefined
+      ? { value: str(fields['requested_value']) }
+      : {}),
+    ...(str(fields['reason']) !== undefined ? { reason: str(fields['reason']) } : {}),
+    ...(str(fields['at']) !== undefined ? { at: str(fields['at']) } : {}),
+  }
 }
 
 function stepRowOf(fields: Record<string, unknown>): StepRow {
@@ -94,6 +135,7 @@ function artifactRowOf(fields: Record<string, unknown>): ArtifactRow {
     status: artifactStatusOf(fields['status']),
     ...(str(fields['value']) !== undefined ? { value: str(fields['value']) } : {}),
     ...(str(fields['rev']) !== undefined ? { rev: str(fields['rev']) } : {}),
+    ...(str(fields['step']) !== undefined ? { step: str(fields['step']) } : {}),
   }
 }
 
@@ -118,10 +160,18 @@ export function runModelOf(model: ParsedKnowledge): RunModel | null {
   const inputs: Record<string, { value?: string; rev?: string }> = {}
   for (const el of model.elements.get('Input') ?? []) {
     if (!el.slug) continue
+    // A template seed writes placeholders; it is not an input the run recorded.
+    if (isTemplatePlaceholder(el.fields['rev'])) continue
     inputs[el.slug] = {
       ...(str(el.fields['value']) !== undefined ? { value: str(el.fields['value'])! } : {}),
       ...(str(el.fields['rev']) !== undefined ? { rev: str(el.fields['rev'])! } : {}),
     }
+  }
+  const requests: Record<string, StepRequestRow> = {}
+  for (const el of model.elements.get('Step Request') ?? []) {
+    if (!el.slug) continue
+    const row = requestRowOf(el.fields)
+    if (row) requests[el.slug] = row
   }
   return {
     state: runStateOf(header.fields['state']),
@@ -132,6 +182,7 @@ export function runModelOf(model: ParsedKnowledge): RunModel | null {
     steps,
     artifacts,
     inputs,
+    requests,
     attempts: {},
   }
 }

@@ -245,11 +245,10 @@ jobs:
 
       - run: npm ci
 
-      # Publish the tree the release is cut from, not the one this run started on: `regen`
-      # may have pushed a write-back commit with regenerated artifacts and versions, and
-      # publishing before it would ship the previous copy until the next push. `site` stays
-      # the gate that proves the docs build; this job builds what it publishes from `main`.
-      - name: Check out the regenerated main
+      # Publish `main` as it stands at publish time. The write-back no longer arrives as a push
+      # inside this run: it lands through the `chore/regen` pull request, and that merge is its
+      # own push, so the regenerated artifacts reach the site on the run that merge starts.
+      - name: Check out the current main
         run: |
           set -euo pipefail
           git fetch --no-tags origin main
@@ -275,16 +274,28 @@ jobs:
   #    `release` job is skipped (#725).
   # ── Regeneration: derived artifacts belong to `main`, not to a change branch. A PR carries
   #    source only (the gate accepts the artifact that moves with it, `--tolerant`); this job
-  #    commits the regenerated files and the derived version write-back here, BEFORE auto-tag
-  #    plans, because the release publishes the tree of the tag it cuts. The commit carries a
-  #    fixed message, and a run whose last commit already has it does nothing: the push below
-  #    triggers that second run, and it must not regenerate again.
+  #    regenerates them plus the derived version write-back, and proposes the result as a pull
+  #    request on `chore/regen`.
+  #
+  #    It does NOT push to `main`. That push was the only automated direct write to the branch,
+  #    and it cannot be excepted from branch protection: the GitHub Actions integration is not
+  #    accepted as a ruleset bypass actor on this repository (Dependabot is; Actions is not). So
+  #    the automation has to stop writing to `main` for `main` to be able to require checks.
+  #
+  #    Ordering is still what it was, moved one step out: the write-back has to land before the
+  #    tag, because the release publishes the tree of the tag it cuts. The job therefore reports
+  #    `pending`, and `auto-tag` refuses to plan while the write-back is still a proposal.
   regen:
     needs: [verify, quality, spec-integrity]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # `scripts/regen-writeback.js` opens and lists the write-back pull request with this token.
+      pull-requests: write
+    outputs:
+      pending: ${{ steps.writeback.outputs.pending }}
+      branch: ${{ steps.writeback.outputs.branch }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -298,13 +309,16 @@ jobs:
 
       - run: npm ci
 
-      - name: Regenerate and commit when a derived artifact or a version moved
-        # The push can be rejected because another merge landed while the artifacts were
-        # generated: each run checks out the commit its trigger saw, so the generated commit is
-        # behind by the time it is pushed. Inline, that rejection aborted the job and
-        # `auto-tag`/`release` were skipped, so the release lane went quiet without saying so.
-        # `scripts/regen-writeback.js` re-derives on the new tip and retries only a moved branch;
-        # a policy refusal is still a failure. Tests: scripts/lib/regen-writeback.test.js.
+      - name: Regenerate and propose the write-back on its branch
+        id: writeback
+        # The write-back goes to `chore/regen` and a pull request, never to `main`. The push races
+        # the same way it always did: each run checks out the commit its trigger saw, so a merge
+        # that lands meanwhile makes the generated commit stale. `scripts/regen-writeback.js`
+        # re-derives on the new tip and retries only a moved ref; a policy refusal still fails.
+        # It also owns the "reuse the open pull request" decision and the `pending` output that
+        # `auto-tag` reads. Tests: scripts/lib/regen-writeback.test.js.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/regen-writeback.js
 
       - name: Assert a second pass moves nothing outside the HEAD-dependent artifacts
@@ -312,13 +326,22 @@ jobs:
           # A second pass must move nothing OUTSIDE the artifacts whose bytes depend on HEAD.
           # The tag-derived catalogs are excluded by the gate itself: committing changes HEAD,
           # which changes the release_tag they are stamped with, so they can never be stable
-          # across the commit that created them. Everything else must reproduce exactly, which
-          # is the equality the artifact tests no longer assert from a change branch.
+          # across the commit that created them.
+          #
+          # This is also the loop break for the write-back pull request: a merged write-back is a
+          # push to `main` whose tree already carries the regeneration, so this run has to find
+          # nothing to write. If this step ever goes red, the next `regen` run will open the pull
+          # request again, forever.
           node scripts/regen.js --check
 
   auto-tag:
     needs: [verify, site, quality, spec-integrity, regen]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # The tag must point at the tree that carries the versions, so tagging must wait for the
+    # regen PR to land. While it is open `regen` reports `pending=true` and `main` does not carry
+    # the regenerated artifacts or the derived version yet. When that PR merges, its merge is a
+    # push to `main`, `regen` finds nothing to write, `pending` is false, and this job plans and
+    # tags the commit that does carry them.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.regen.outputs.pending != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -333,8 +356,9 @@ jobs:
         id: plan
         run: |
           set -euo pipefail
-          # The regeneration commit is the tree that ships, so plan (and tag) THAT, not the
-          # merge commit this run started on. `regen` has already pushed it by now.
+          # Plan (and tag) the tree that ships: `main` as it stands now. Since `regen` no longer
+          # pushes a write-back commit mid-run, this is the commit the run started on — and the
+          # `pending` guard above is what guarantees it is not a tree still waiting for one.
           git fetch --no-tags origin main
           git checkout --detach FETCH_HEAD
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"

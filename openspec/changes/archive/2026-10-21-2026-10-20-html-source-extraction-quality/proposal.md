@@ -11,11 +11,11 @@ The `nn-sources` pipeline is mechanically sound (sidecars, `sha256`, lineage, `s
 - collapses whitespace with `\n{3,}`/`\n[ \t]+`, which never fires on CRLF input,
 - returns the text of an anti-bot interstitial as if it were the document.
 
-Measured on `PD_NN` (25 HTML sources):
+Measured on one user domaiNN (25 HTML sources):
 
 | Symptom | Measurement |
 |---|---|
-| Anti-bot interstitials ingested as ordinary sources | 3 walls (reCAPTCHA, Springer `Client Challenge`, PMC) + 1 body of 21 chars; one of them is **cited** by a model |
+| Anti-bot interstitials ingested as ordinary sources | 3 walls (reCAPTCHA, Springer `Client Challenge`, JavaScript-only) + 1 body of 21 chars; one of them is **cited** by a model |
 | Nav chrome in the body | ~120 lines of `Skip to main content / Log in / Dashboard`; ~200 lines of journal menu |
 | Blank-line explosion (CRLF) | one sidecar is **82.5% empty lines** (1313/1583) |
 | Undecoded HTML entities | **5497**, incl. `&#243;`(ó)×1185, `&#237;`(í)×591, `&#160;`+`&#xa0;`×2453 |
@@ -28,7 +28,7 @@ The PDF/DOCX/TXT path (`reflowExtractedText()`) is materially better and is **no
 - `scanner-converters.js`: the `.html`/`.htm` conversion path — line endings, entities, boilerplate.
 - Flagging a wall/empty extraction, **reusing the `partial`/`note` convention that already exists** for PDFs.
 - Refusing a zero-byte subject, **reusing the existing `rejected` + reason path**.
-- Tests + the 6 `PD_NN` regression fixtures.
+- Tests + the 6 synthetic regression fixtures.
 
 ### Out of Scope (deferred, with reason — see `design.md` §Deliberate Deferrals)
 - A main-content extractor dependency (`@mozilla/readability` + `linkedom`). No success criterion here requires it; only add it if this change measurably falls short.
@@ -37,7 +37,7 @@ The PDF/DOCX/TXT path (`reflowExtractedText()`) is materially better and is **no
 
 ### Adjacent findings (separate, not this change)
 - `SOURCE_FORMAT_OPTIONS` (`innfo-core/src/lineage/project.ts:88`) omits `html`/`htm`, so `mapSourceFormat` falls back to `'md'` — a **one-line** fix. Reported on #266.
-- 7 `LC_programas` `SIDECAR_SUBJECT_MISMATCH` sidecars + 2 zero-byte `.txt` subjects, and 1 zero-byte `.html` in `PD_NN` — data repairs on user domaiNNs, consent-gated. Reported on #266.
+- 7 `LC_programas` `SIDECAR_SUBJECT_MISMATCH` sidecars + 2 zero-byte `.txt` subjects, and 1 zero-byte `.html` in another user domaiNN — data repairs on user domaiNNs, consent-gated. Reported on #266.
 
 ## Capabilities
 
@@ -80,11 +80,11 @@ Fully reversible: edits to two converters plus a scanner guard. No data migrates
 
 ## Success Criteria
 
-- [x] `FT_55866` re-cognitivized → no run of more than one blank line, with a material reduction of blank lines. Measured **49.8%** (was 82.5%). The original `< 10%` target is unreachable without merging the document's 243 `<p>` blocks, which discards its own line structure; that alternative was measured and rejected. Criterion relaxed by maintainer decision (2026-10-21).
-- [x] `PD_NN` re-scan → 0 undecoded HTML entities (was 5497).
-- [x] `PMC9547138` body does not begin with `Skip to main content`/`Log in`/`Dashboard`.
+- [x] The CRLF fixture re-cognitivized → no run of more than one blank line, with a material reduction of blank lines. Measured **49.8%** (was 82.5%). The original `< 10%` target is unreachable without merging the document's 243 `<p>` blocks, which discards its own line structure; that alternative was measured and rejected. Criterion relaxed by maintainer decision (2026-10-21).
+- [x] User domaiNN re-scan → 0 undecoded HTML entities (was 5497).
+- [x] The PMC-chrome fixture body does not begin with `Skip to main content`/`Log in`/`Dashboard`.
 - [x] A captcha/JS-wall page is reported as a partial extraction with a reason (not silent).
 - [x] A 0-byte `.html` subject is refused and produces no usable source entry.
-- [x] The 6 `PD_NN` regression fixtures are committed and green.
+- [x] The 6 synthetic regression fixtures are committed and green.
 - [x] `node scripts/verify.js --fast` + `npm --prefix skills/nn-sources test` green.
 - [x] No new dependency, no blueprint version bump, no change to the `Source.status` value set.

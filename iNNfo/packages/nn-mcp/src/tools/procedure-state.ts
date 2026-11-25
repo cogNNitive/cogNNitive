@@ -19,6 +19,8 @@ import { findKnowledgeFile } from './spec.js'
 import { listScopedProcedures } from './scoped-procedures.js'
 import { locateChain } from './resolve-effective.js'
 import { locateFloorProcedures } from './floor-procedures.js'
+import { readHandoff } from './run-handoff.js'
+import type { RunHandoff } from './run-handoff.js'
 
 /**
  * Reading side of the procedure runner (design §3.3): a run is an `executions` instance
@@ -96,19 +98,33 @@ export async function resolveProcedure(
   ref: string,
   scope = '.',
 ): Promise<{ ok: true; procedure: ResolvedProcedure } | ToolError> {
-  const byPath = ref.endsWith('.md')
-  const doc = byPath ? posix.normalize(ref.replace(/\\/g, '/')) : undefined
+  // `<doc-or-id>@<container-slug>` starts one sub-procedure of a document that holds several
+  // (design §4.6); the run header then records `<doc>@<container>`, which `loadProcedure` reads.
+  const at = ref.lastIndexOf('@')
+  const container = at > 0 && !ref.slice(0, at).includes('://') ? ref.slice(at + 1) : undefined
+  const target = container === undefined ? ref : ref.slice(0, at)
+  const byPath = target.endsWith('.md')
+  const doc = byPath ? posix.normalize(target.replace(/\\/g, '/')) : undefined
   const listing = await listScopedProcedures(root, doc ? dirname(dirname(doc)) : scope)
   if (!listing.ok) return fail(listing.code, listing.detail)
   const entry = listing.procedures.find((p) =>
-    doc ? p.doc === doc && p.source_kind === 'scope' : p.id === ref && p.status === 'selected',
+    doc ? p.doc === doc && p.source_kind === 'scope' : p.id === target && p.status === 'selected',
   )
   if (!entry)
-    return fail('PROCEDURE_NOT_FOUND', `No procedure "${ref}" is visible from "${scope}".`)
-  const address = entry.source_kind === 'blueprint' ? `${entry.source}/${entry.doc}` : entry.doc
+    return fail('PROCEDURE_NOT_FOUND', `No procedure "${target}" is visible from "${scope}".`)
+  const document = entry.source_kind === 'blueprint' ? `${entry.source}/${entry.doc}` : entry.doc
+  const address = container === undefined ? document : `${document}@${container}`
   const loaded = await loadProcedure(root, address)
   if (!loaded.ok) return loaded
-  return { ok: true, procedure: { address, slots: entry.slots, graph: loaded.graph } }
+  if (container !== undefined && Object.keys(loaded.graph.steps).length === 0)
+    return fail('PROCEDURE_NOT_FOUND', `"${target}" has no sub-procedure "${container}".`)
+  // A container runs on its own: it asks only for the slots its steps carry, not for every slot
+  // the document declares for its sibling procedures.
+  const slots =
+    container === undefined
+      ? entry.slots
+      : entry.slots.filter((s) => loaded.graph.slots.includes(s.name))
+  return { ok: true, procedure: { address, slots, graph: loaded.graph } }
 }
 
 export interface RunRecord extends RunModel {
@@ -153,7 +169,14 @@ export const substitute = (
     ? undefined
     : fillSlots(text, Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])))
 
-/** The `{name}` placeholders a command still carries after substitution, so a run can refuse. */
+/**
+ * The values a run fills `{slot}` placeholders with: its parameters plus the built-in `{run}`,
+ * the run id. The id is never stored as a parameter the person gave.
+ */
+export const slotValuesOf = (run: Pick<RunRecord, 'id' | 'params'>): Record<string, unknown> => ({
+  ...run.params,
+  run: run.id,
+})
 
 export interface FoldedRun {
   run: RunRecord
@@ -229,20 +252,21 @@ export function currentStepNeeds({ run, graph, state }: FoldedRun): Record<strin
   const slug = state.currentStep
   if (!slug) return null
   const def = graph.steps[slug]!
+  const slots = slotValuesOf(run)
   const artifact = (a: string) => ({
     status: state.artifacts[a]?.status ?? 'expected',
     ...(state.artifacts[a]?.rev ? { rev: state.artifacts[a]!.rev } : {}),
     ...(graph.artifacts[a]?.verify
-      ? { verify: substitute(graph.artifacts[a]!.verify, run.params) }
+      ? { verify: substitute(graph.artifacts[a]!.verify, slots) }
       : {}),
   })
   const optional = {
     stepType: def.stepType,
     executor: def.executor,
     condition: def.condition,
-    decision: substitute(def.decision, run.params),
-    command: substitute(def.command, run.params),
-    produces: substitute(def.produces, run.params),
+    decision: substitute(def.decision, slots),
+    command: substitute(def.command, slots),
+    produces: substitute(def.produces, slots),
   }
   return {
     slug,
@@ -270,6 +294,8 @@ export interface ProcedureStateResult {
   step: Record<string, unknown> | null
   allowedNext: RunState['allowedNext']
   actions: RecordAction[]
+  /** The person's final choice for a completed run, once an import recorded it. */
+  handoff?: RunHandoff
 }
 
 export function describeRun(folded: FoldedRun): ProcedureStateResult {
@@ -300,5 +326,6 @@ export async function procedureState(
   if (!read.ok) return read
   const folded = await foldStoredRun(root, read.run)
   if (!folded.ok) return folded
-  return describeRun(folded.folded)
+  const handoff = await readHandoff(root, read.run.id)
+  return { ...describeRun(folded.folded), ...(handoff ? { handoff } : {}) }
 }

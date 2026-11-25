@@ -637,6 +637,8 @@ function buildSteps(repoRoot, options = {}) {
   steps.push(ro('procedures-version', 'Check Procedures Version Coherence', 'scripts/check-procedures-version.mjs'));
   // 7c-quater. Usage procedure convention: every procedure-bearing blueprint declares a `usage` procedure.
   steps.push(ro('usage-procedure', 'Check Usage Procedure Convention', 'scripts/check-usage-procedure.mjs'));
+  // 7c-quinquies. Runnable procedures: nn-core's procedureGraph reports no error for any shipped procedure.
+  steps.push(ro('procedures-runnable', 'Check Shipped Procedures Runnable', 'scripts/check-procedures-runnable.mjs'));
   // 4d. OpenSpec delta guard: offline mirror of the `openspec validate` delta rules.
   //     The CLI is a global tool, not a CI gate, so an invalid delta used to commit
   //     silently and only fail when a maintainer ran validate by hand.

@@ -27,7 +27,8 @@ const inlineCoreFromSource: Plugin = {
   setup(build) {
     build.onResolve({ filter: /^@cognnitive\/nn-core$/ }, () => ({ path: NN_CORE_SOURCE_ENTRY }))
     build.onResolve({ filter: /^\.\.?\/.*\.js$/ }, (args) => {
-      if (!resolve(args.importer || args.resolveDir).startsWith(NN_CORE_SOURCE_DIR)) return undefined
+      if (!resolve(args.importer || args.resolveDir).startsWith(NN_CORE_SOURCE_DIR))
+        return undefined
       const absolute = resolve(args.resolveDir, args.path)
       if (existsSync(absolute)) return undefined
       const source = `${absolute.slice(0, -'.js'.length)}.ts`
@@ -89,7 +90,21 @@ const bundleConfig = {
   // createRequire — otherwise the bundle throws at load ("Dynamic require of
   // 'process' is not supported").
   banner: {
-    js: "import{createRequire as __innfoCreateRequire}from'module';const require=__innfoCreateRequire(import.meta.url);",
+    js:
+      `/*!\n` +
+      ` * nn-mcp.bundle.js — standalone Model Context Protocol server for cogNNitive.\n` +
+      ` * Version: ${pkg.version}\n` +
+      ` *\n` +
+      ` * Includes third-party software:\n` +
+      ` * - @modelcontextprotocol/sdk (MIT - Copyright (c) 2024 Anthropic, PBC.)\n` +
+      ` * - yaml (ISC - Copyright (c) Eemeli Aro <eemeli@gmail.com>)\n` +
+      ` * - ajv (MIT - Copyright (c) 2012-2021 Evgeny Poberezkin)\n` +
+      ` * - fast-deep-equal (MIT - Copyright (c) 2017 Evgeny Poberezkin)\n` +
+      ` * - json-schema-traverse (MIT - Copyright (c) 2018 Evgeny Poberezkin)\n` +
+      ` * - uri-js (BSD-2-Clause - Copyright 2011 Gary Court)\n` +
+      ` * Full notices & license texts: https://github.com/cogNNitive/cogNNitive/blob/main/THIRD_PARTY.md\n` +
+      ` */\n` +
+      "import{createRequire as __innfoCreateRequire}from'module';const require=__innfoCreateRequire(import.meta.url);",
   },
   esbuildPlugins: [inlineCoreFromSource],
 } satisfies import('tsup').Options

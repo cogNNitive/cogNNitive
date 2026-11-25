@@ -20,6 +20,11 @@ export interface ProcedureStep {
   /** Artifact slugs consumed / produced. */
   inputs: string[]
   outputs: string[]
+  /**
+   * The most attempts the step may take when a loop sends the run back to it (`max_attempts`).
+   * Absent means `DEFAULT_MAX_ATTEMPTS`.
+   */
+  maxAttempts?: number
 }
 
 /** How an output artifact is carried (design §4.1). */
@@ -121,8 +126,37 @@ export interface RunModel {
   artifacts: Record<string, ArtifactRow>
   /** Input name -> the value and revision the run recorded. */
   inputs: Record<string, { value?: string; rev?: string }>
+  /** Request slug -> the human request that an action be recorded. Empty when nobody asked. */
+  requests: Record<string, StepRequestRow>
   /** Each step's attempts as the model's change log recorded them, oldest first. */
   attempts: Record<string, AttemptRecord[]>
+}
+
+/** The action a `Step Request` asks the runner to record. Closing a run is never one of them. */
+export type StepRequestAction = 'start' | 'wait' | 'complete' | 'fail'
+
+/** The life of one request: nobody consumed it yet, or what became of it. */
+export type StepRequestStatus = 'pending' | 'done' | 'stale' | 'rejected'
+
+/**
+ * One `Step Request` row as stored. Intent, never state: it names an action and the `seq` it
+ * was asked at, and only the runner consumes it.
+ */
+export interface StepRequestRow {
+  action: StepRequestAction
+  status: StepRequestStatus
+  /** The run header's `seq` at creation; a consumer refuses the request when the run moved on. */
+  baseSeq?: number
+  /** The step slug the request names. */
+  step?: string
+  /** The outcome the person asked for, on a branching step. */
+  outcome?: string
+  /** Who or what a wait waits on, or why a step failed. */
+  value?: string
+  /** Why the runner rejected the request or found it stale. */
+  reason?: string
+  /** When the request was made (ISO 8601). */
+  at?: string
 }
 
 /** One attempt of a step, rebuilt from the run model's change log (design B2 acceptance). */

@@ -3,29 +3,50 @@
 /**
  * scripts/lib/regen-writeback.js
  *
- * The push half of the `regen` lane on `main` (`.github/workflows/ci.yml`).
+ * The write-back half of the `regen` lane on `main` (`.github/workflows/ci.yml`).
  *
- * `npm run regen` rewrites derived artifacts; this module commits them and lands the commit on
- * `main`. It lives here, not inline in the workflow, because the push is the part that races:
- * two merges landing minutes apart each start a run whose checkout is the commit *that trigger
- * saw*, so the first run's generated commit is behind the branch by the time it is pushed and
- * `git push` rejects it as non-fast-forward.
+ * `npm run regen` rewrites derived artifacts; this module commits them and lands them on a
+ * branch. It lives here, not inline in the workflow, because three decisions inside it are
+ * the ones that go wrong silently, and a YAML file cannot pin any of them:
  *
- * That rejection used to abort the job (`set -euo pipefail`), which skipped `auto-tag` and
- * `release`: the release lane went quiet and nothing said so. The fix is to re-apply the same
- * generated change on the commit that actually arrived and try again, a bounded number of
- * times, and to report exhaustion as a failure rather than as a success with nothing to do.
+ *  - which branch the write-back lands on (`WRITE_BACK_BRANCH`, never `main`), so the branch
+ *    protection on `main` has no automated writer to except;
+ *  - whether a pull request has to be opened, reused, or left alone (`planPullRequest`), so a
+ *    later push refreshes the one pull request instead of stacking a duplicate or failing
+ *    because it already exists;
+ *  - what the job reports (`regenOutputs`), which is the `pending` flag `auto-tag` reads.
  *
- * The generated change is re-derived, never replayed: after a rebase the working tree is stale
- * (the generator reads the sources it checked out), so the caller re-runs the pass. Keeping
- * that decision here instead of in the workflow is what makes it testable.
+ * The push is also the part that races: two merges landing minutes apart each start a run whose
+ * checkout is the commit *that trigger saw*. The write-back commit is therefore rebuilt on the
+ * tip that actually exists and force-pushed with a lease, and a rejection that says the branch
+ * moved re-derives instead of aborting the job.
+ *
+ * Two constraints shape the tree it publishes, and both are older than this module:
+ *  - the commit must land before the tag, because the release copies the tag's tree, so a
+ *    write-back that lands after `auto-tag` ships the stale artifacts (release-writeback S2);
+ *  - the regeneration must reach a fixed point, or the lane opens a pull request forever. It
+ *    does: `write-pending-versions` writes a version only when the file does not already carry
+ *    it, and `npm run regen` writes only committed artifacts whose sources moved. The tag-derived
+ *    catalog is not rewritten by the write pass at all (`WRITE_SKIPS` in scripts/regen.js).
  */
 
 const { execFileSync } = require('node:child_process')
 
-/** Commit subject the lane writes; also the idempotence guard the workflow checks. */
+/** Commit subject the lane writes; also the title of the pull request it opens. */
 const WRITE_BACK_SUBJECT =
   'chore(regen): regenerate derived artifacts and write back the pending versions'
+
+/**
+ * Branch the write-back lands on.
+ *
+ * Not `main`: a push to `main` is the only automated direct write this repository had, and it is
+ * what made `main` impossible to require checks on — there is no bypass actor for Actions on this
+ * repository, so the automation has to stop writing to the branch instead of being excepted.
+ */
+const WRITE_BACK_BRANCH = 'chore/regen'
+
+/** Branch the write-back is proposed against. */
+const WRITE_BACK_BASE = 'main'
 
 /**
  * Runs one git command in `cwd`.
@@ -52,11 +73,15 @@ function git(cwd, args, options = {}) {
 }
 
 /**
- * True when a push was refused only because the branch moved forward under us.
+ * True when a push was refused only because the ref it targeted moved under us.
  *
- * `git` rejects a stale push with `[rejected] ... (non-fast-forward)` or `(fetch first)` on
- * stderr. Any other rejection — a protected branch, a missing permission, a hook — is a real
- * failure and must not be retried: retrying it hides an authority problem behind a loop.
+ * Two texts mean that with the lease this module pushes under:
+ *  - `(non-fast-forward)` / `(fetch first)` when the branch moved forward, and
+ *  - `(stale info)` when the expected value of `--force-with-lease` no longer matches, which is
+ *    the same situation seen by a force push: a concurrent run already rebuilt the branch.
+ *
+ * Any other rejection — a protected branch, a missing permission, a hook — is a real failure and
+ * must not be retried: retrying it hides an authority problem behind a loop.
  *
  * @param {string} stderr
  * @returns {boolean}
@@ -64,7 +89,8 @@ function git(cwd, args, options = {}) {
 function isStalePushRejection(stderr) {
   if (stderr === '') return false
   const text = stderr.toLowerCase()
-  const stale = text.includes('non-fast-forward') || text.includes('fetch first')
+  const stale =
+    text.includes('non-fast-forward') || text.includes('fetch first') || text.includes('stale info')
   const rejected = text.includes('rejected') || text.includes('[remote rejected]')
   return stale && rejected
 }
@@ -83,19 +109,6 @@ function hasPendingChange(cwd) {
 }
 
 /**
- * True when HEAD is already the lane's own regeneration commit.
- *
- * The guard makes a re-run of the same push a no-op instead of an empty commit, and stops the
- * retry loop from spinning when the pass reproduces bytes that are already committed.
- *
- * @param {string} cwd
- * @returns {boolean}
- */
-function headIsWriteBack(cwd) {
-  return git(cwd, ['log', '-1', '--format=%s']).stdout === WRITE_BACK_SUBJECT
-}
-
-/**
  * Commits every pending change with the lane's subject.
  * @param {string} cwd
  * @param {{ name: string, email: string }} author
@@ -110,54 +123,116 @@ function commitPendingChange(cwd, author) {
 }
 
 /**
- * Moves HEAD onto the current remote `main`, keeping the generated change as working-tree edits.
+ * The sha the write-back branch currently points at, or `null` when it does not exist.
  *
- * `--autostash` is not used on purpose: the caller re-runs the generator afterwards, so a
- * conflicted stash would be a second, worse problem. Resetting to the fetched tip and
- * re-deriving is the only state that is guaranteed consistent, which is why this function
- * reports `rederive: true` and leaves the tree clean.
+ * Read from the remote rather than from a remote-tracking ref: the value is the lease the push
+ * in `writeBack` is conditioned on, so it has to be what the remote says now, not what the last
+ * fetch happened to leave behind. A branch deleted by `deleteBranchOnMerge` reads as `null`,
+ * which is the ordinary case after the write-back pull request landed.
  *
  * @param {string} cwd
  * @param {string} branch
- * @returns {{ ok: boolean, redrive: boolean, error: string }}
+ * @returns {string|null}
  */
-function resetToRemoteBranch(cwd, branch) {
-  const fetched = git(cwd, ['fetch', 'origin', `${branch}:refs/remotes/origin/${branch}`], {
+function remoteBranchSha(cwd, branch) {
+  const result = git(cwd, ['ls-remote', '--heads', 'origin', `refs/heads/${branch}`], {
     allowFailure: true,
   })
-  if (!fetched.ok) {
-    return { ok: false, redrive: false, error: fetched.error }
-  }
-  const reset = git(cwd, ['reset', '--hard', `origin/${branch}`], { allowFailure: true })
-  if (!reset.ok) {
-    return { ok: false, redrive: false, error: reset.error }
-  }
-  return { ok: true, redrive: true, error: '' }
+  if (!result.ok || result.stdout === '') return null
+  const [sha] = result.stdout.split(/\s+/)
+  return sha === '' || sha === undefined ? null : sha
 }
 
 /**
- * Runs the write-back to completion.
+ * Builds the lease argument for `git push`.
+ *
+ * `--force-with-lease=<ref>:<expect>` with an empty `<expect>` asserts the ref does not exist,
+ * which is what makes "create the branch" and "replace the branch" one code path: a concurrent
+ * run that created or rebuilt it in between rejects the push instead of being overwritten.
+ *
+ * @param {string} branch
+ * @param {string|null} expected current remote sha, or null when the branch must not exist
+ * @returns {string}
+ */
+function leaseArgument(branch, expected) {
+  return `--force-with-lease=refs/heads/${branch}:${expected === null ? '' : expected}`
+}
+
+/**
+ * Fetches `branch` from origin and returns the sha it points at now.
+ * @param {string} cwd
+ * @param {string} branch
+ * @returns {{ ok: boolean, sha: string, error: string }}
+ */
+function fetchOriginBranch(cwd, branch) {
+  const fetched = git(cwd, ['fetch', 'origin', `${branch}:refs/remotes/origin/${branch}`], {
+    allowFailure: true,
+  })
+  if (!fetched.ok) return { ok: false, sha: '', error: fetched.error }
+  return {
+    ok: true,
+    sha: git(cwd, ['rev-parse', `refs/remotes/origin/${branch}`]).stdout,
+    error: '',
+  }
+}
+
+/**
+ * Puts HEAD on the current remote `base`, reporting whether that moved it.
+ *
+ * `--autostash` is not used on purpose: the caller re-runs the generator afterwards, so a
+ * conflicted stash would be a second, worse problem. Resetting to the fetched tip and
+ * re-deriving is the only state that is guaranteed consistent.
+ *
+ * This is not only the retry path. A run's checkout is the commit its trigger saw, which is not
+ * necessarily the tip: `main` is never cancelled by the concurrency group (every `main` commit
+ * keeps its gate), so a queued run can start on a commit that has already been superseded.
+ *
+ * @param {string} cwd
+ * @param {string} branch
+ * @returns {{ ok: boolean, moved: boolean, sha: string, error: string }}
+ */
+function syncToRemoteBranch(cwd, branch) {
+  const tip = fetchOriginBranch(cwd, branch)
+  if (!tip.ok) return { ok: false, moved: false, sha: '', error: tip.error }
+
+  const head = git(cwd, ['rev-parse', 'HEAD'], { allowFailure: true })
+  if (head.ok && head.stdout === tip.sha) return { ok: true, moved: false, sha: tip.sha, error: '' }
+
+  const reset = git(cwd, ['reset', '--hard', tip.sha], { allowFailure: true })
+  if (!reset.ok) return { ok: false, moved: false, sha: '', error: reset.error }
+  return { ok: true, moved: true, sha: tip.sha, error: '' }
+}
+
+/**
+ * Runs the write-back to the branch, never to `main`.
  *
  * `regenerate` is the caller's pass function: it writes the artifacts and returns nothing. It
- * runs once per attempt, because after `resetToRemoteBranch` the tree is the new tip and the
- * bytes must be derived again from it — replaying the old tree would push artifacts built from
- * sources that no longer exist.
+ * runs once per attempt, because after `syncToRemoteBranch` the tree is the new tip and the bytes
+ * must be derived again from it — replaying the old tree would push artifacts built from sources
+ * that no longer exist.
+ *
+ * A push to a branch cannot be rejected by `main` moving, which is why the base is verified
+ * *after* the push: a write-back commit whose parent is no longer `main` carries a diff against
+ * the new tip that silently reverts whatever landed in between. The lease covers the branch, the
+ * parent check covers the base, and a mismatch re-derives instead of proposing that commit.
  *
  * @param {{
  *   cwd: string,
+ *   base?: string,
  *   branch?: string,
  *   author?: { name: string, email: string },
  *   regenerate: () => void,
  *   maxAttempts?: number,
  *   log?: (message: string) => void,
  * }} options
- * @returns {{ status: 'pushed', sha: string, attempts: number }
+ * @returns {{ status: 'pushed', sha: string, base: string, branch: string, replaced: string|null, attempts: number }
  *   | { status: 'no-change', attempts: number }
  *   | { status: 'exhausted', attempts: number, error: string }}
  */
 function writeBack(options) {
   const cwd = options.cwd
-  const branch = options.branch === undefined ? 'main' : options.branch
+  const base = options.base === undefined ? WRITE_BACK_BASE : options.base
+  const branch = options.branch === undefined ? WRITE_BACK_BRANCH : options.branch
   const author =
     options.author === undefined
       ? {
@@ -168,13 +243,19 @@ function writeBack(options) {
   const maxAttempts = options.maxAttempts === undefined ? 3 : options.maxAttempts
   const log = options.log === undefined ? () => {} : options.log
 
-  if (headIsWriteBack(cwd)) {
-    log('the last commit is already a regeneration: nothing to do')
-    return { status: 'no-change', attempts: 0 }
-  }
-
   let lastError = ''
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const synced = syncToRemoteBranch(cwd, base)
+    if (!synced.ok) {
+      return { status: 'exhausted', attempts: attempt, error: synced.error }
+    }
+    if (synced.moved) {
+      log(
+        `${base} moved since this run checked out (attempt ${attempt}/${maxAttempts}); ` +
+          're-deriving on the new tip',
+      )
+    }
+
     options.regenerate()
 
     if (!hasPendingChange(cwd)) {
@@ -182,40 +263,105 @@ function writeBack(options) {
       return { status: 'no-change', attempts: attempt }
     }
 
+    const replaced = remoteBranchSha(cwd, branch)
     const sha = commitPendingChange(cwd, author)
-    const pushed = git(cwd, ['push', 'origin', `HEAD:${branch}`], { allowFailure: true })
-    if (pushed.ok) {
-      return { status: 'pushed', sha, attempts: attempt }
-    }
-
-    if (!isStalePushRejection(pushed.error)) {
-      return { status: 'exhausted', attempts: attempt, error: pushed.error }
-    }
-
-    lastError = pushed.error
-    log(
-      `${branch} moved while the artifacts were generated (attempt ${attempt}/${maxAttempts}); ` +
-        're-deriving on the new tip',
+    const pushed = git(
+      cwd,
+      ['push', leaseArgument(branch, replaced), 'origin', `HEAD:refs/heads/${branch}`],
+      { allowFailure: true },
     )
-    const reset = resetToRemoteBranch(cwd, branch)
-    if (!reset.ok) {
-      return { status: 'exhausted', attempts: attempt, error: reset.error }
+    if (!pushed.ok) {
+      if (!isStalePushRejection(pushed.error)) {
+        return { status: 'exhausted', attempts: attempt, error: pushed.error }
+      }
+      lastError = pushed.error
+      log(
+        `${branch} moved while the artifacts were generated (attempt ` +
+          `${attempt}/${maxAttempts}); re-deriving on the new tip`,
+      )
+      continue
+    }
+
+    const parent = git(cwd, ['rev-parse', 'HEAD^']).stdout
+    const tip = fetchOriginBranch(cwd, base)
+    if (!tip.ok) {
+      return { status: 'exhausted', attempts: attempt, error: tip.error }
+    }
+    if (tip.sha !== parent) {
+      lastError = `${base} moved to ${tip.sha} while ${sha} was generated`
+      log(`${lastError} (attempt ${attempt}/${maxAttempts}); re-deriving on the new tip`)
+      continue
+    }
+
+    return {
+      status: 'pushed',
+      sha,
+      base: synced.sha,
+      branch,
+      replaced,
+      attempts: attempt,
     }
   }
 
   return {
     status: 'exhausted',
     attempts: maxAttempts,
-    error: `${branch} kept moving; last rejection: ${lastError}`,
+    error: `${base} or ${branch} kept moving; last rejection: ${lastError}`,
+  }
+}
+
+/**
+ * What the lane does with the pull request that proposes the write-back.
+ *
+ * `reuse` is not "do nothing": the push that reported it has already updated the open pull
+ * request in place, which is the whole point — a second one would be a duplicate of the same
+ * regenerated tree, and `gh pr create` would refuse it anyway, turning an ordinary second merge
+ * into a red job.
+ *
+ * `skip` covers two states on purpose: nothing to write, and nothing to write while an earlier
+ * pull request is still open. That pull request is obsolete, but closing it from here races a
+ * concurrent run that is opening it (two merges can overlap, and the second run rebuilds the
+ * branch it already found), so the stale pull request is left visible to the maintainer instead
+ * of being closed behind its back.
+ *
+ * @param {{ hasPending: boolean, openNumber: number|null }} input
+ * @returns {'skip'|'create'|'reuse'}
+ */
+function planPullRequest({ hasPending, openNumber }) {
+  if (!hasPending) return 'skip'
+  return openNumber === null ? 'create' : 'reuse'
+}
+
+/**
+ * The `regen` job's outputs.
+ *
+ * `pending` is `'true'` while a write-back pull request is open, which is exactly when `main`
+ * does not yet carry the derived artifacts and the derived version. `auto-tag` reads it: the tag
+ * must point at the tree that carries the versions, so tagging waits for that pull request to
+ * land. The values are strings with no other spelling, because the workflow compares them.
+ *
+ * @param {{ hasPending: boolean, branch?: string }} input
+ * @returns {{ pending: 'true'|'false', branch: string }}
+ */
+function regenOutputs({ hasPending, branch }) {
+  return {
+    pending: hasPending ? 'true' : 'false',
+    branch: branch === undefined ? WRITE_BACK_BRANCH : branch,
   }
 }
 
 module.exports = {
   WRITE_BACK_SUBJECT,
+  WRITE_BACK_BRANCH,
+  WRITE_BACK_BASE,
   commitPendingChange,
+  fetchOriginBranch,
   hasPendingChange,
-  headIsWriteBack,
   isStalePushRejection,
-  resetToRemoteBranch,
+  leaseArgument,
+  planPullRequest,
+  regenOutputs,
+  remoteBranchSha,
+  syncToRemoteBranch,
   writeBack,
 }

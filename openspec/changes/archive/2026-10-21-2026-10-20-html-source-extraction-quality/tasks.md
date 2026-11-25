@@ -1,7 +1,6 @@
 # Tasks: html-source-extraction-quality
 
-Evidence paths are relative to the repo root. `PD_NN` fixtures come from
-`Y:\My Drive\_NN\PD_NN\sources\import\`; committed copies go under
+Evidence paths are relative to the repo root. Fixtures are synthetic pages that reproduce each defect; they go under
 `skills/nn-sources/test/fixtures/html/`. TDD order per `openspec/config.yaml`
 (`strict_tdd: true`): red test → green implementation → verify.
 
@@ -9,7 +8,7 @@ One phase. No dependency, no blueprint bump, no contract change.
 
 ## 1. Conversion fidelity
 
-- [x] 1.1 RED — `test/unit/test-web-import.js`: added the CRLF fixture (`FT_55866`) and asserted
+- [x] 1.1 RED — `test/unit/test-web-import.js`: added the CRLF fixture and asserted
       no run of more than one blank line, `&#243;`/`&#237;`/`&#160;`/`&iacute;` decode, a literal
       `&amp;#243;` is **not** double-decoded, and nav/header/footer/aside text is absent while
       `<main>` prose is retained. Confirmed failing against the previous `htmlToPlainText`.
@@ -28,9 +27,9 @@ One phase. No dependency, no blueprint bump, no contract change.
 
 ## 2. Flag an incomplete extraction (reuse the existing channel)
 
-- [x] 2.1 RED — `looksPartial(body)` asserted `'anti-bot-wall'` for `NBK1478` and `s10072`,
+- [x] 2.1 RED — `looksPartial(body)` asserted `'anti-bot-wall'` for the captcha and client-challenge wall fixtures,
       `'empty'` for `920` and for an empty/whitespace body, `'trivial'` for a short body, and
-      `null` for the healthy `PMC9547138` article; the scanner is asserted to report the wall
+      `null` for the healthy PMC-chrome fixture article; the scanner is asserted to report the wall
       fixture as partial with a reason.
 - [x] 2.2 GREEN — `scanner-converters.js`: exports the pure `looksPartial(body)` predicate
       (`htmlToPlainText` keeps its signature).
@@ -51,7 +50,7 @@ One phase. No dependency, no blueprint bump, no contract change.
 
 ## 4. Regression fixtures
 
-- [x] 4.1 Committed the 6 `PD_NN` fixtures under `skills/nn-sources/test/fixtures/html/`, with a
+- [x] 4.1 Committed the 6 synthetic fixtures under `skills/nn-sources/test/fixtures/html/`, with a
       one-line provenance note each in that directory's `README.md`.
 - [x] 4.2 Each fixture has at least one assertion from §1–§3; the suite runs them.
 
@@ -73,14 +72,14 @@ One phase. No dependency, no blueprint bump, no contract change.
 - [ ] 6.1 `SOURCE_FORMAT_OPTIONS` (`innfo-core/src/lineage/project.ts:88`) omits `html`/`htm`, so
       `mapSourceFormat` falls back to `'md'` — a one-line fix. Separate item.
 - [ ] 6.2 Data repairs on user domaiNNs (consent-gated): 7 `LC_programas`
-      `SIDECAR_SUBJECT_MISMATCH` sidecars; 3 zero-byte subjects (`PD_NN` ×1, `LC_programas` ×2).
-- [ ] 6.3 Re-cognitivize the affected `PD_NN` sources once the fix lands.
+      `SIDECAR_SUBJECT_MISMATCH` sidecars; 3 zero-byte subjects (another domaiNN ×1, `LC_programas` ×2).
+- [ ] 6.3 Re-cognitivize the affected user-domaiNN sources once the fix lands.
 
 ## Acceptance
 
 - [x] Every Success Criterion in `proposal.md` holds.
       **Resolved by maintainer decision (2026-10-21):** the CRLF criterion
-      *"`FT_55866` → blank lines < 10%"* was relaxed to *"no run of more than one
+      *"CRLF fixture → blank lines < 10%"* was relaxed to *"no run of more than one
       blank line, with a material reduction"*. The change takes the body from 82.5% to
       49.8% blank lines and removes every run of more than one blank line; reaching
       <10% would require merging the document's 243 `<p>` blocks, and the measured

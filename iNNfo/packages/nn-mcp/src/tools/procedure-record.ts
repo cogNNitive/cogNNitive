@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
+  DEFAULT_MAX_ATTEMPTS,
   DEFAULT_STEP_TIMEOUT_MS,
   MAX_STEP_TIMEOUT_MS,
   chooseNext,
@@ -25,6 +26,7 @@ import {
   foldStoredRun,
   readRun,
   resolveProcedure,
+  slotValuesOf,
   substitute,
 } from './procedure-state.js'
 import type { FoldedRun, ProcedureStateResult, RecordAction, ToolError } from './procedure-state.js'
@@ -75,8 +77,16 @@ async function commit(
   })
   const applied = await applyChange(root, written.path)
   if (!applied.success || (applied.errors ?? []).length > 0) {
+    // The header guard is the first change of every runner changeset: when the atomic apply
+    // reports this run's seq precondition as the conflicted one, another caller got there
+    // first and the caller must re-read. The check names the guarded target instead of
+    // matching message prose, so a reworded diagnostic cannot turn RUN_BUSY into a failure.
+    const headerTarget = `${meta.run}@${meta.run}&seq`
     const busy = (applied.errors ?? []).some(
-      (e) => e.code === 'ATOMIC_CHANGESET_CONFLICT' && /seq/.test(e.message),
+      (e) =>
+        e.code === 'ATOMIC_CHANGESET_CONFLICT' &&
+        typeof e.message === 'string' &&
+        e.message.includes(headerTarget),
     )
     if (busy)
       return fail('RUN_BUSY', 'Another caller wrote this run; re-read its state and retry.', {
@@ -172,7 +182,12 @@ export async function procedureStart(
       { missing: unfilled },
     )
 
-  const procId = procedureIdOf(ref)
+  // A container run is named after its document and the container: `usage-define-a-frame`.
+  const at = ref.lastIndexOf('@')
+  const procId =
+    at > 0 && !ref.slice(0, at).includes('://')
+      ? `${procedureIdOf(ref.slice(0, at))}-${ref.slice(at + 1)}`
+      : procedureIdOf(ref)
   const run = text(args['run']) ?? `${procId}-${formatUtcStamp(new Date()).toLowerCase()}`
   if (!RUN_ID.test(run)) return fail('INVALID_ARGUMENT', `run "${run}" must be a lowercase slug.`)
   let taken = existsSync(join(root, 'executions', run))
@@ -390,6 +405,89 @@ function stepFor(
 const rowOf = (f: FoldedRun, step: string): StepRow =>
   f.run.steps[step] ?? { status: 'pending', attempt: 0, inputs: {} }
 
+/** A reopened step row: pending again, its attempt kept so the next start counts on from it. */
+const reopenedRow = (attempt: number): string =>
+  JSON.stringify({
+    status: 'pending',
+    attempt,
+    outcome: '',
+    next: '',
+    waiting_on: '',
+    failure: '',
+    holder: '',
+  })
+
+/**
+ * A loop's back-edge (design §10.2): `next` is a step the walk already passed before `step`.
+ * Taking it reopens that step and every step walked from it up to `step`: their rows go back
+ * to `pending` with their attempts kept, and every output of the span that was validated goes
+ * back to `produced`, so the fold reports it stale until its producer runs again. The caller
+ * writes `step`'s own row as reopened too, in the same changeset.
+ *
+ * Bounded: when the target already took its `max_attempts` (default `DEFAULT_MAX_ATTEMPTS`),
+ * the back-edge is refused with `LOOP_LIMIT` and nothing is written. Null for a forward next.
+ */
+function backEdge(
+  f: FoldedRun,
+  step: string,
+  next: string | undefined,
+): { changes: Change[] } | ToolError | null {
+  if (next === undefined) return null
+  const at = f.state.path.indexOf(next)
+  const from = f.state.path.indexOf(step)
+  if (at === -1 || from === -1 || at >= from) return null
+  const max = f.graph.steps[next]!.maxAttempts ?? DEFAULT_MAX_ATTEMPTS
+  const attempt = f.state.steps[next]!.attempt
+  if (attempt >= max)
+    return fail(
+      'LOOP_LIMIT',
+      `Step "${next}" already took ${attempt} of its ${max} attempts, so "${step}" cannot send the run back to it; fail "${step}" or take another branch.`,
+      { step: next, attempt, maxAttempts: max },
+    )
+  const span = f.state.path.slice(at, from)
+  const changes: Change[] = span.map((slug) => {
+    const row = rowOf(f, slug)
+    return {
+      op: 'set_fields',
+      target: `${f.run.id}@${slug}`,
+      from: JSON.stringify({ status: row.status, attempt: row.attempt }),
+      to: reopenedRow(row.attempt),
+      evidence: 'decision',
+    }
+  })
+  const outputs = new Set([...span, step].flatMap((slug) => f.graph.steps[slug]!.outputs))
+  for (const slug of outputs) {
+    if (f.run.artifacts[slug]?.status !== 'validated') continue
+    changes.push({
+      op: 'set_fields',
+      target: `${f.run.id}@${slug}`,
+      from: JSON.stringify({ status: 'validated' }),
+      to: JSON.stringify({ status: 'produced' }),
+      evidence: 'decision',
+    })
+  }
+  return { changes }
+}
+
+/**
+ * A step's required outputs that were never recorded. Completing a step is the point where
+ * the runner stops letting an actor move on with an empty result: `required` emphasizes the
+ * gate for the artifacts every run needs, and an optional output (declared without it) is
+ * never a reason to stop. The fold already reports the worth of an output for this run; an
+ * artifact the fold marks `not_required` (off the walked path) is not asked of this step.
+ */
+function unrecordedRequiredOutputs(
+  f: FoldedRun,
+  step: string,
+): Array<{ slug: string; name: string }> {
+  return f.graph.steps[step]!.outputs.filter((slug) => f.graph.artifacts[slug]?.required !== false)
+    .filter((slug) => {
+      const status = f.state.artifacts[slug]?.status
+      return status !== 'validated' && status !== 'not_required'
+    })
+    .map((slug) => ({ slug, name: f.graph.artifacts[slug]!.name }))
+}
+
 function planStepStart(
   f: FoldedRun,
   step: string,
@@ -532,15 +630,25 @@ function plan(
       let elementRev: string | undefined
       if (kind === 'element') {
         const address =
-          text(args['value']) ?? substitute(f.graph.artifacts[field]!.at, f.run.params) ?? undefined
+          text(args['value']) ??
+          substitute(f.graph.artifacts[field]!.at, slotValuesOf(f.run)) ??
+          undefined
         if (!address)
           return fail(
             'INVALID_ARGUMENT',
             `Artifact "${field}" is an element artifact with no address; give value as model@element.`,
           )
+        // The rev is the element's origin change id, and `origin()` is asked for
+        // `<model>@<element>`. An address with no `@` names no element at all: refuse it
+        // instead of slicing a different name out of it.
         const at = address.indexOf('@')
-        const unit = at !== -1 ? address.slice(at + 1) : address
-        elementRev = loadChangeLog(root).origin(`${address.slice(0, at)}@${unit}`)?.id
+        if (at <= 0 || at === address.length - 1)
+          return fail(
+            'INVALID_ARGUMENT',
+            `Artifact "${field}" is an element artifact; give value as model@element, not "${address}".`,
+            { artifact: field, address },
+          )
+        elementRev = loadChangeLog(root).origin(address)?.id
         if (!elementRev)
           return fail(
             'ARTIFACT_NOT_RECORDED',
@@ -598,6 +706,31 @@ function plan(
       if (!state.drift)
         return fail('NOT_DRIFTED', 'The run follows the current definition revision.')
       const next = value ?? state.drift.current ?? ''
+      // A definition that grew since the run started names steps and artifacts the model has
+      // no row for: without one, every later `start` or `artifact` on them addresses nothing.
+      // The rebase is the one call that accepts the new definition, so it creates their rows.
+      const stepRows: Change[] = Object.keys(graph.steps)
+        .filter((slug) => f.run.steps[slug] === undefined)
+        .map((slug) => ({
+          op: 'add_element',
+          target: run.id,
+          concept: 'Step Run',
+          name: graph.steps[slug]!.name,
+          slug,
+          to: JSON.stringify({ status: 'pending', attempt: 0 }),
+          evidence: 'decision',
+        }))
+      const artifactRows: Change[] = Object.keys(graph.artifacts)
+        .filter((slug) => f.run.artifacts[slug] === undefined)
+        .map((slug) => ({
+          op: 'add_element',
+          target: run.id,
+          concept: 'Run Artifact',
+          name: graph.artifacts[slug]!.name,
+          slug,
+          to: JSON.stringify({ kind: graph.artifacts[slug]!.kind, status: 'expected' }),
+          evidence: 'decision',
+        }))
       return {
         changes: [
           {
@@ -606,6 +739,8 @@ function plan(
             to: next,
             evidence: 'decision',
           },
+          ...stepRows,
+          ...artifactRows,
         ],
       }
     }
@@ -644,6 +779,22 @@ function plan(
           'CANNOT_COMPLETE',
           state.blockedBy ?? 'The walk has not reached a done terminal step.',
           { currentStep: state.currentStep },
+        )
+      // The run's own gate: every required artifact the walked path produced is recorded
+      // before the execution closes. Optional outputs never block it.
+      const unrecorded = Object.entries(f.graph.artifacts)
+        .filter(([, def]) => def.required)
+        .filter(([, def]) => def.producers.some((p) => state.steps[p]?.status === 'done'))
+        .filter(([slug]) => {
+          const status = state.artifacts[slug]?.status
+          return status !== 'validated' && status !== 'not_required'
+        })
+        .map(([slug, def]) => ({ slug, name: def.name }))
+      if (unrecorded.length > 0)
+        return fail(
+          'MISSING_OUTPUT',
+          `The run cannot close: required output${unrecorded.length > 1 ? 's' : ''} not recorded: ${unrecorded.map((m) => `"${m.name}" (${m.slug})`).join(', ')}.`,
+          { missing: unrecorded },
         )
       return {
         close: true,
@@ -721,6 +872,18 @@ function plan(
     }
 
   // complete
+  // Completing the step is where the runner refuses to walk past an unrecorded result: the
+  // outputs the procedure declares as required exist by the time it moves on. A refusal
+  // writes nothing, so the step stays active and the actor can attach the output and retry.
+  // This check runs before the transition is chosen on purpose: a missing output is the
+  // actionable answer, and reporting a transition problem first would hide it.
+  const missing = unrecordedRequiredOutputs(f, step)
+  if (missing.length > 0)
+    return fail(
+      'MISSING_OUTPUT',
+      `Step "${step}" must record its required output${missing.length > 1 ? 's' : ''}: ${missing.map((m) => `"${m.name}" (${m.slug})`).join(', ')}.`,
+      { step, missing },
+    )
   const outcome = text(args['outcome'])
   const targets = state.allowedNext
   const chosen = chooseNext(targets, outcome, text(args['next']))
@@ -740,22 +903,28 @@ function plan(
     )
   const next = chosen.next
   const row = rowOf(f, step)
+  const loop = backEdge(f, step, next)
+  if (loop && 'ok' in loop) return loop
   // Completion (design §3.4): the step row guard (`from` status + attempt) is the fence
   // against a late completion from an older attempt. A waiting step completes the same way.
+  // Taking a loop's back-edge reopens this step with the rest of its span instead.
   return {
     step,
     attempt: row.attempt,
     changes: [
+      ...(loop?.changes ?? []),
       {
         op: 'set_fields',
         target: `${run.id}@${step}`,
         from: JSON.stringify({ status, attempt: row.attempt }),
-        to: JSON.stringify({
-          status: 'done',
-          attempt: row.attempt,
-          ...(outcome ? { outcome } : {}),
-          ...(next ? { next } : {}),
-        }),
+        to: loop
+          ? reopenedRow(row.attempt)
+          : JSON.stringify({
+              status: 'done',
+              attempt: row.attempt,
+              ...(outcome ? { outcome } : {}),
+              ...(next ? { next } : {}),
+            }),
         evidence: 'decision',
       },
     ],
@@ -793,7 +962,8 @@ function planEngineRun(
   if ('ok' in started) return Promise.resolve(started)
   const claim = started.changes[0] as { to: string }
   const claimFields = JSON.parse(claim.to) as { timeout_ms: number }
-  const command = substitute(def.command, f.run.params)!
+  const slots = slotValuesOf(f.run)
+  const command = substitute(def.command, slots)!
   const left = unresolvedSlots(command)
   if (left.length > 0)
     return Promise.resolve(
@@ -832,7 +1002,7 @@ function planEngineRun(
       root,
       command,
       timeout,
-      params: f.run.params,
+      params: slots,
       onSpawn: (pid) => finishClaim?.(pid),
     })
     const pid = await Promise.race([
@@ -869,6 +1039,10 @@ function planEngineRun(
     }
     const claimedSeq = f.run.seq + 1
     const { exitCode, reason: runError } = await child.done
+    // Re-read the run model: if other writes landed while the command was running, the
+    // header seq moved. Re-reading ensures the completion changeset guards the CURRENT seq.
+    const reloaded = await readRun(root, f.run.id)
+    const freshSeq = reloaded.ok ? reloaded.run.seq : claimedSeq
     // The holder is the child's pid, so the crash probe names the process that runs the
     // command; the completion clears that column.
     const settledClaim = { ...claimTo, holder: '' }
@@ -878,7 +1052,7 @@ function planEngineRun(
     // not guard the `active` status its sibling in the same batch writes. The claim's guard
     // (`from` status + attempt) is delivered once and fences the whole column.
     const finishRow = (
-      status: 'done' | 'waiting' | 'failed',
+      status: 'done' | 'waiting' | 'failed' | 'pending',
       extra: Record<string, string>,
     ): Change => ({
       op: 'set_fields',
@@ -887,6 +1061,19 @@ function planEngineRun(
       to: JSON.stringify({ ...claimTo, ...settledClaim, status, attempt, ...extra }),
       evidence: 'decision',
     })
+    // A transition the engine takes back to an earlier step is a loop's back-edge, exactly as
+    // in `complete`. The claim already landed, so a refused one fails the step instead.
+    const settle = (next: string | undefined, done: Record<string, string>): Change[] => {
+      const loop = backEdge(f, step, next)
+      if (loop && 'ok' in loop)
+        return [finishRow('failed', { failure: `${loop.code}: ${loop.detail}` })]
+      if (loop)
+        return [
+          ...loop.changes,
+          finishRow('pending', { outcome: '', next: '', waiting_on: '', failure: '' }),
+        ]
+      return [finishRow('done', done)]
+    }
 
     if (exitCode !== 0) {
       // Exit-code mapping (design §4.6): 0 is done, an unmapped nonzero is failed, and
@@ -899,7 +1086,7 @@ function planEngineRun(
           attempt,
           kind: 'engine',
           exitCode,
-          claimedSeq,
+          claimedSeq: freshSeq,
           changes: [finishRow('waiting', { waiting_on: reason })],
         }
       if (mapped && mapped !== 'failed') {
@@ -926,10 +1113,11 @@ function planEngineRun(
           attempt,
           kind: 'engine',
           exitCode,
-          claimedSeq,
-          changes: [
-            finishRow('done', { outcome: mapped, ...(chosen.next ? { next: chosen.next } : {}) }),
-          ],
+          claimedSeq: freshSeq,
+          changes: settle(chosen.next, {
+            outcome: mapped,
+            ...(chosen.next ? { next: chosen.next } : {}),
+          }),
         }
       }
       return {
@@ -937,7 +1125,7 @@ function planEngineRun(
         attempt,
         kind: 'engine',
         exitCode,
-        claimedSeq,
+        claimedSeq: freshSeq,
         changes: [
           finishRow('failed', {
             failure: mapped && mapped !== 'failed' ? `${mapped}: ${reason}` : reason,
@@ -949,7 +1137,7 @@ function planEngineRun(
     const missing: string[] = []
     const artifactChanges: Change[] = []
     for (const slug of def.outputs) {
-      const verify = substitute(f.graph.artifacts[slug]?.verify, f.run.params)
+      const verify = substitute(f.graph.artifacts[slug]?.verify, slots)
       if (!verify?.startsWith('file:')) continue
       const path = verify.slice('file:'.length).trim()
       const rev = fileRev(root, path)
@@ -982,6 +1170,16 @@ function planEngineRun(
         { allowedNext: targets },
       )
     const next = chosen.ok ? chosen.next : undefined
+    // An engine step that finishes without one of its required outputs fails with that same
+    // `missing` reason, so a gate never looks like a plain absent command.
+    const unrecorded = [
+      ...missing,
+      ...unrecordedRequiredOutputs(f, step)
+        .filter(
+          (m) => !def.outputs.some((o) => f.graph.artifacts[o]?.verify?.trim().startsWith('file:')),
+        )
+        .map((m) => m.name),
+    ]
     return {
       step,
       attempt,
@@ -990,20 +1188,74 @@ function planEngineRun(
       claimedSeq,
       changes: [
         ...artifactChanges,
-        missing.length > 0
-          ? finishRow('failed', { failure: `missing ${missing.join(', ')}` })
-          : finishRow('done', { ...(next ? { next } : {}) }),
+        ...(unrecorded.length > 0
+          ? [finishRow('failed', { failure: `missing ${unrecorded.join(', ')}` })]
+          : settle(next, { ...(next ? { next } : {}) })),
       ],
     }
   })()
+}
+
+/**
+ * Marks a request `stale` or `rejected` in its own small changeset and reports the mark instead
+ * of the refusal that produced it. The mark IS the answer the person gets, so the tool succeeds
+ * at marking even though the action was refused: the queue must say what happened to the ask.
+ */
+async function markRequest(
+  root: string,
+  run: string,
+  id: string,
+  seq: number,
+  status: 'stale' | 'rejected',
+  meta: { title: string; reason: string },
+): Promise<RecordResult | ToolError> {
+  const committed = await commit(
+    root,
+    [
+      seqGuard(run, seq),
+      {
+        op: 'set_fields',
+        target: `${run}@${id}`,
+        from: JSON.stringify({ request_status: 'pending' }),
+        to: JSON.stringify({ request_status: status, reason: meta.reason }),
+        evidence: 'decision',
+      },
+    ],
+    { title: meta.title, actor: 'agent', kind: 'agent', run: runContext(run) },
+  )
+  if (!committed.ok) return committed
+  const after = await reload(root, run)
+  if (!after.ok) return after
+  return { ...after, changeset: committed.changeset }
+}
+
+/** A request whose action the planner refused: mark it, and report the planner's refusal. */
+async function rejectRequest(
+  root: string,
+  read: { run: { id: string; seq: number } },
+  requestId: string | undefined,
+  refused: ToolError,
+): Promise<RecordResult | ToolError> {
+  if (requestId === undefined) return refused
+  await markRequest(root, read.run.id, requestId, read.run.seq, 'rejected', {
+    title: `request ${requestId} rejected`,
+    reason: `${refused.code}: ${refused.detail}`,
+  })
+  return refused
 }
 
 export async function procedureRecord(
   root: string,
   args: Record<string, unknown>,
 ): Promise<RecordResult | ToolError> {
+  const requestId = text(args['request'])
   const action = text(args['action']) as RecordAction | undefined
-  if (!action || !ACTIONS.includes(action))
+  if (requestId === undefined && (!action || !ACTIONS.includes(action)))
+    return fail(
+      'INVALID_ACTION',
+      `action must be one of ${ACTIONS.join(', ')} unless a request names it.`,
+    )
+  if (action !== undefined && !ACTIONS.includes(action))
     return fail('INVALID_ACTION', `action must be one of ${ACTIONS.join(', ')}.`)
   const runId = text(args['run'])
   if (!runId) return fail('INVALID_ARGUMENT', 'run must be a non-empty run id.')
@@ -1012,22 +1264,132 @@ export async function procedureRecord(
   if (!read.ok) return read
   const folded = await foldStoredRun(root, read.run)
   if (!folded.ok) return folded
-  const planned = await plan(folded.folded, action, args, root)
-  if ('ok' in planned) return planned
+
+  // A request is consumed here and marked in the same changeset that records the action: one
+  // read, one plan, one write. An action given alongside a request is refused rather than
+  // merged, so nobody can feed two intents into one call.
+  let effectiveArgs = args
+  let resolvedAction = action
+  let requestMark: Change | undefined
+  if (requestId !== undefined) {
+    if (action !== undefined)
+      return fail(
+        'INVALID_ARGUMENT',
+        'give a request or an action, never both: the request already names the action.',
+      )
+    const request = read.run.requests[requestId]
+    if (!request) return fail('REQUEST_NOT_FOUND', `Run "${runId}" has no request "${requestId}".`)
+    if (request.status !== 'pending')
+      return fail(
+        'REQUEST_NOT_PENDING',
+        `Request "${requestId}" is ${request.status}; only a pending request can be consumed.`,
+      )
+    const currentSeq = read.run.seq
+    const targetStep = request.step ?? folded.folded.state.currentStep
+    const stepRow = targetStep ? read.run.steps[targetStep] : undefined
+    const stepStatus = stepRow?.status ?? 'pending'
+
+    let isStale = false
+    let staleReason = ''
+    if (request.baseSeq === undefined) {
+      isStale = true
+      staleReason = `Request "${requestId}" carries no baseSeq.`
+    } else if (request.baseSeq > currentSeq) {
+      isStale = true
+      staleReason = `Request "${requestId}" was made at future seq ${request.baseSeq}; run is at ${currentSeq}.`
+    } else if (request.baseSeq < currentSeq) {
+      // The run advanced since the request was made. A request is only stale if the step it
+      // targets moved away from the state the action needed.
+      if (
+        targetStep &&
+        request.action === 'start' &&
+        (stepStatus === 'active' || stepStatus === 'done')
+      ) {
+        isStale = true
+        staleReason = `Step "${targetStep}" moved to status "${stepStatus}" before the start request was consumed.`
+      } else if (
+        targetStep &&
+        (request.action === 'complete' || request.action === 'fail') &&
+        stepStatus !== 'active' &&
+        stepStatus !== 'waiting'
+      ) {
+        isStale = true
+        staleReason = `Step "${targetStep}" moved to status "${stepStatus}" before the ${request.action} request was consumed.`
+      } else if (targetStep && request.action === 'wait' && stepStatus !== 'active') {
+        isStale = true
+        staleReason = `Step "${targetStep}" moved to status "${stepStatus}" before the wait request was consumed.`
+      }
+    }
+
+    if (isStale) {
+      const marked = await markRequest(root, runId, requestId, currentSeq, 'stale', {
+        title: `request ${requestId} stale`,
+        reason: staleReason,
+      })
+      if ('ok' in marked && !marked.ok) return marked
+      return fail(
+        'REQUEST_STALE',
+        `Request "${requestId}" was made at seq ${request.baseSeq ?? '?'}; the run is at ${currentSeq}. It is marked stale: ${staleReason}`,
+        { request: requestId, baseSeq: request.baseSeq, seq: currentSeq },
+      )
+    }
+    resolvedAction = request.action
+    effectiveArgs = {
+      ...args,
+      action: request.action,
+      ...(request.step !== undefined ? { step: request.step } : {}),
+      ...(request.outcome !== undefined ? { outcome: request.outcome } : {}),
+      ...(request.value !== undefined ? { value: request.value } : {}),
+    }
+    requestMark = {
+      op: 'set_fields',
+      target: `${runId}@${requestId}`,
+      from: JSON.stringify({ request_status: 'pending' }),
+      to: JSON.stringify({ request_status: 'done' }),
+      evidence: 'decision',
+    }
+  }
+
+  const planned = await plan(folded.folded, resolvedAction!, effectiveArgs, root)
+  if ('ok' in planned) return rejectRequest(root, read, requestId, planned)
 
   const kind = planned.kind ?? 'agent'
   const actor = text(args['actor']) ?? kind
   const run = read.run.id
   // A plan that already wrote its own claim continues the counter it advanced.
-  const seq = planned.claimedSeq ?? read.run.seq
+  let seq = planned.claimedSeq ?? read.run.seq
+  if (planned.kind === 'engine') {
+    const fresh = await readRun(root, run)
+    if (fresh.ok) seq = fresh.run.seq
+  }
   const changes: Change[] = [seqGuard(run, seq), ...planned.changes]
+  if (requestMark) changes.push(requestMark)
   if (planned.close) changes.push({ op: 'close_model', target: run, evidence: 'decision' })
-  const committed = await commit(root, changes, {
-    title: `${action} ${run}`,
+  let committed = await commit(root, changes, {
+    title: `${resolvedAction} ${run}`,
     actor,
     kind,
     run: runContext(run, planned.step),
   })
+  if (!committed.ok && committed.code === 'RUN_BUSY' && planned.kind === 'engine') {
+    // Retry completion once if another writer bumped seq at this exact instant
+    const fresh = await readRun(root, run)
+    if (
+      fresh.ok &&
+      fresh.run.steps[planned.step!]?.status === 'active' &&
+      fresh.run.steps[planned.step!]?.attempt === planned.attempt
+    ) {
+      const retryChanges = [seqGuard(run, fresh.run.seq), ...planned.changes]
+      if (requestMark) retryChanges.push(requestMark)
+      if (planned.close) retryChanges.push({ op: 'close_model', target: run, evidence: 'decision' })
+      committed = await commit(root, retryChanges, {
+        title: `${resolvedAction} ${run}`,
+        actor,
+        kind,
+        run: runContext(run, planned.step),
+      })
+    }
+  }
   if (!committed.ok) return committed
   const after = await reload(root, run)
   if (!after.ok) return after

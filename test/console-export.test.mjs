@@ -565,7 +565,7 @@ scenarioMonths:: 12
       assert.equal(doc.getElementById('nn-timeline-grid'), null, 'no global timeline host id')
     })
 
-    it('boots under jsdom, registers each view with id == slug and opens the model explorer', async () => {
+    it('boots under jsdom, registers each view with id == slug and opens the Domain tab', async () => {
       await addView('pipeline')
       await addView('other', PIPELINE.replace('order: 1', 'order: 2').replace('Pipeline', 'Other'))
       assert.equal((await runCli([tempDir, '--domain'])).code, 0)
@@ -590,7 +590,8 @@ scenarioMonths:: 12
       assert.ok(tabs.indexOf('pipeline') >= 0 && tabs.indexOf('other') > tabs.indexOf('pipeline'), 'tabs come from the registry, ordered')
       assert.ok(tabs.indexOf('explorer') < tabs.indexOf('pipeline'), 'core tabs precede domain custom tabs')
       assert.equal(doc.getElementById('nn-view-errors'), null, 'no registration errors')
-      assert.equal(doc.querySelector('#nn-view-tabs .nn-view-tab.active').dataset.tab, 'explorer')
+      // The whole-domaiNN console lands on Domain (maintainer decision, 2026-11-24).
+      assert.equal(doc.querySelector('#nn-view-tabs .nn-view-tab.active').dataset.tab, 'domain')
       doc.querySelector('#nn-view-tabs [data-tab="pipeline"]').click()
       assert.match(doc.getElementById('nn-tab-pipeline').textContent, /pipeline mounted with 2 elements/)
     })

@@ -46,8 +46,16 @@ describe('scaffoldBodyFromSchema and write policies', () => {
     expect(readOnly).not.toContain('## NN Snapshot:')
   })
 
-  it('still seeds the root element and placeholders of mutable concepts', () => {
+  it('seeds only the root element in an instance model, not placeholders of other mutable concepts', () => {
     expect(body).toContain('## NN Procedure Execution: Onboard ACME')
-    expect(body).toContain('## NN Note: Example Note')
+    expect(body).not.toContain('## NN Note: Example Note')
+    expect(body).not.toContain('body:: <string>')
+  })
+
+  it('still seeds a placeholder of a mutable concept in an ordinary (non-instance) model', () => {
+    const ordinary = scaffoldBodyFromSchema(schema)
+    expect(ordinary).toContain('## NN Note: Example Note')
+    expect(ordinary).toContain('body:: <string>')
+    expect(ordinary).not.toContain('## NN Execution Event:')
   })
 })

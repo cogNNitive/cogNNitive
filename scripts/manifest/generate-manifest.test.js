@@ -314,6 +314,22 @@ channels:
     console.log('✔ console-assets block rendering in preview test passed');
   }
 
+  // 12. An explicit blueprint `version:` override in manifest/source.yaml is the blueprint's own
+  // `blueprint_version`; validate-manifest compares it with the spec at the pinned commit.
+  {
+    const mod = freshGeneratorModule();
+    const { readBlueprintVersion } = require('./lib/entry-version.js');
+    const repoRoot = path.join(__dirname, '..', '..');
+    const source = mod.parseSourceYaml(fs.readFileSync(path.join(repoRoot, 'manifest', 'source.yaml'), 'utf-8'), repoRoot);
+    const drifted = [];
+    for (const bp of source.blueprints) {
+      const declared = readBlueprintVersion(fs.readFileSync(path.join(repoRoot, bp.path), 'utf-8'));
+      if (String(bp.version) !== String(declared)) drifted.push(`${bp.name}: source.yaml ${bp.version} vs spec ${declared}`);
+    }
+    assert.deepStrictEqual(drifted, [], 'manifest/source.yaml blueprint version overrides must equal blueprint_version');
+    console.log('✔ blueprint version overrides track blueprint_version test passed');
+  }
+
   console.log('All generate-manifest unit tests passed successfully!');
 }
 

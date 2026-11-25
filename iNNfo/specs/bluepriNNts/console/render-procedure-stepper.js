@@ -9,11 +9,17 @@
   'use strict'
 
   /*
-   * Procedure viewer. It shows what nn-core derived at export time and never derives anything
-   * itself: `payload.model.procedureGraphs` holds one entry per procedure document, with the
-   * graph from `procedureGraph` and every run of the domaiNN (`executions/<run>/`) folded by
-   * `foldRun`. It writes nothing: runs are recorded by the nn-mcp runner tools
-   * (`procedure_start` / `procedure_state` / `procedure_record`).
+   * Procedure runner view. It shows what nn-core derived at export time: `payload.model.
+   * procedureGraphs` holds one entry per procedure document, with the graph from
+   * `procedureGraph` and every run of the domaiNN (`executions/<run>/`) folded by `foldRun`.
+   *
+   * A person runs the HUMAN steps from here (decide, complete, fail, ask for a new run). Each
+   * answer is a draft (a `Step Request`, or a `run_start`), never a write to the run: the
+   * console travels as a standalone file, the person saves it with the drafts inside and sends
+   * it back, and the domain owner's agent imports it (`import_console`). Until then the view
+   * projects the run "as if my answers were applied" with the same `foldRun` (the
+   * `nnProcedureCore` slot), so the run visibly advances and every answer can be undone.
+   * Engine and agent steps never run in the browser: the view says so.
    */
 
   var GLOBAL =
@@ -25,7 +31,7 @@
           ? globalThis
           : this
 
-  var RENDERER_VERSION = '0.3.1'
+  var RENDERER_VERSION = '0.4.0'
 
   // The console draws icons from `nnIcons`, which renders each path once into a per-document
   // sprite and every instance as a `<use>`. `nnVisuals.iconSvg` was the older path and the
@@ -40,13 +46,263 @@
 
   var TERMINAL_RUN = { completed: true, failed: true, cancelled: true }
 
+  var MARK_SYMBOLS = {
+    done: '✓',
+    failed: '✕',
+    waiting: '◍',
+    pending: '○',
+    active: '▶',
+    definition: '·',
+    off_path: '—',
+  }
+
+  /** The slot types a start form can draw: the editor's own field types. */
+  var START_TYPES = [
+    'string',
+    'number',
+    'boolean',
+    'select',
+    'multiselect',
+    'reference',
+    'markdown',
+    'markdown_inline',
+  ]
+
+  /** The sentence an engine or agent step shows: the browser never runs it (S2). */
+  var SYSTEM_STEP_NOTE =
+    'No action for you on this step. The agent or Runner handles it outside this HTML.'
+
+  // ---- Pure helpers (exported for tests) ----
+
+  /** A `{name}` placeholder in prose, a command or a path. */
+  var SLOT_RE = /\{([A-Za-z_][\w-]*)\}/g
+
+  /** The slot values of a run as strings; `{run}` is the built-in run id. */
+  function slotValuesOf(run) {
+    var out = {}
+    var params = run && run.params && typeof run.params === 'object' ? run.params : {}
+    Object.keys(params).forEach(function (k) {
+      if (params[k] !== undefined && params[k] !== null) out[k] = String(params[k])
+    })
+    if (run && run.id) out.run = String(run.id)
+    return out
+  }
+
+  /**
+   * Replaces every `{name}` with the run's value. A placeholder with no value (the definition,
+   * or a slot the run never set) is shown as `‹name›`, never as raw braces that read like a
+   * broken template.
+   */
+  function fillSlots(text, values) {
+    if (text === undefined || text === null) return ''
+    var v = values || {}
+    return String(text).replace(SLOT_RE, function (whole, name) {
+      return Object.prototype.hasOwnProperty.call(v, name) ? v[name] : '‹' + name + '›'
+    })
+  }
+
+  /** A hash shown short (8 characters); the full value stays in the title. */
+  function shortHash(value) {
+    var s = String(value == null ? '' : value)
+    return /^[0-9a-f]{12,}$/i.test(s) ? s.slice(0, 8) : s
+  }
+
+  /** "approve" -> "Approve", "needs-change" -> "Needs change". */
+  function labelOfToken(token) {
+    var s = String(token || '').replace(/[-_]+/g, ' ')
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : s
+  }
+
+  function isSystemStep(step) {
+    return !!step && (step.executor === 'engine' || step.executor === 'agent')
+  }
+
+  function isHumanStep(step) {
+    return !!step && step.executor === 'human'
+  }
+
+  /** The proposed fields of a draft, parsed. */
+  function draftFields(d) {
+    var fields = d && d.proposed
+    if (typeof fields === 'string') {
+      try {
+        fields = JSON.parse(fields)
+      } catch {
+        return null
+      }
+    }
+    return fields && typeof fields === 'object' ? fields : null
+  }
+
+  /** The unsent Step Requests a draft list holds for one run, oldest first. */
+  function draftRequestsFor(drafts, runId) {
+    var out = []
+    ;(Array.isArray(drafts) ? drafts : []).forEach(function (d) {
+      if (!d || d.concept !== 'Step Request') return
+      if (String(d.knowledge_id) !== String(runId)) return
+      var fields = draftFields(d)
+      if (!fields) return
+      out.push({
+        id: d.element_slug || d.element || 'draft',
+        draftId: d.id,
+        action: fields.action,
+        status: fields.request_status || 'pending',
+        step: fields.step,
+        baseSeq: fields.base_seq,
+        outcome: fields.requested_outcome,
+        value: fields.requested_value,
+        isDraft: true,
+      })
+    })
+    return out
+  }
+
+  /** The recorded requests of a run, in slug order. */
+  function recordedRequestsOf(run) {
+    if (!run || !run.requests || typeof run.requests !== 'object') return []
+    return Object.keys(run.requests)
+      .sort()
+      .map(function (id) {
+        var row = run.requests[id] || {}
+        return {
+          id: id,
+          action: row.action,
+          status: row.status,
+          step: row.step,
+          baseSeq: row.baseSeq,
+          outcome: row.outcome,
+          value: row.value,
+          reason: row.reason,
+          at: row.at,
+        }
+      })
+      .filter(function (r) {
+        return r && r.action && r.status
+      })
+  }
+
+  /** The step a completed request moves to: the branch its outcome selects, or the only one. */
+  function nextOf(graph, state, step, outcome) {
+    var targets =
+      state && state.currentStep === step && Array.isArray(state.allowedNext)
+        ? state.allowedNext
+        : []
+    if (outcome) {
+      for (var i = 0; i < targets.length; i++) {
+        var g = targets[i].guard
+        if (g && g.kind === 'outcome' && g.token === outcome) return targets[i].to
+      }
+    }
+    if (targets.length === 1) return targets[0].to
+    var def = graph && graph.steps ? graph.steps[step] : null
+    if (def && Array.isArray(def.next) && def.next.length === 1) return def.next[0]
+    return undefined
+  }
+
+  /** The fold events an unsent request would cause once the runner records it. */
+  function eventsOfRequests(graph, run, requests) {
+    var events = []
+    var rows = (run && run.model && run.model.steps) || {}
+    ;(requests || []).forEach(function (r) {
+      if (!r || !r.step) return
+      if (r.action === 'complete') {
+        var ev = { kind: 'step_completed', step: r.step }
+        if (r.outcome) ev.outcome = r.outcome
+        var next = nextOf(graph, run && run.state, r.step, r.outcome)
+        if (next) ev.next = next
+        events.push(ev)
+      } else if (r.action === 'fail') {
+        events.push({ kind: 'step_failed', step: r.step, value: r.value || '' })
+      } else if (r.action === 'wait') {
+        events.push({ kind: 'step_waiting', step: r.step, value: r.value || '' })
+      } else if (r.action === 'start') {
+        var row = rows[r.step]
+        events.push({
+          kind: 'step_started',
+          step: r.step,
+          attempt: ((row && row.attempt) || 0) + 1,
+        })
+      }
+    })
+    return events
+  }
+
+  /**
+   * The run as it would be with these unsent requests applied: the same nn-core fold the
+   * exporter ran, over the recorded rows plus the request events. Null when no fold is wired
+   * (a console exported without the slot), so a caller can tell "no projection" apart.
+   */
+  function projectRun(core, graph, run, requests) {
+    if (!core || typeof core.project !== 'function' || !graph || !run) return null
+    if (typeof core.available === 'function' && !core.available()) return null
+    if (!Array.isArray(requests) || !requests.length) return null
+    try {
+      return core.project(
+        { graph: graph, model: run.model, events: run.events },
+        requests,
+        run.defRev ? { defRev: run.defRev } : {},
+      )
+    } catch {
+      return null
+    }
+  }
+
+  var INBOX_RANK = { waiting: 0, active: 1, pending: 2 }
+
+  /**
+   * "Your turn": every open run whose current step is a human step nobody answered yet,
+   * neither recorded nor drafted. Waiting steps first, then active, then not started; ties
+   * by procedure file, then run id.
+   */
+  function inboxOf(entries, drafts) {
+    var items = []
+    ;(Array.isArray(entries) ? entries : []).forEach(function (entry) {
+      if (!entry || !entry.graph) return
+      ;(Array.isArray(entry.runs) ? entry.runs : []).forEach(function (run) {
+        var state = run && run.state
+        if (!state || run.closed || TERMINAL_RUN[state.status] || state.drift || state.paused)
+          return
+        var slug = state.currentStep
+        var step = slug ? entry.graph.steps[slug] : null
+        if (!isHumanStep(step)) return
+        var answered = recordedRequestsOf(run)
+          .concat(draftRequestsFor(drafts, run.id))
+          .some(function (r) {
+            return r.status === 'pending' && r.step === slug
+          })
+        if (answered) return
+        var row = state.steps && state.steps[slug]
+        var status = row ? row.status : 'pending'
+        var values = slotValuesOf(run)
+        items.push({
+          entry: entry,
+          run: run,
+          step: slug,
+          stepName: step.name || slug,
+          status: status,
+          question: step.decision ? fillSlots(step.decision, values) : '',
+        })
+      })
+    })
+    items.sort(function (a, b) {
+      var ra = INBOX_RANK[a.status] !== undefined ? INBOX_RANK[a.status] : 3
+      var rb = INBOX_RANK[b.status] !== undefined ? INBOX_RANK[b.status] : 3
+      if (ra !== rb) return ra - rb
+      if (a.entry.file !== b.entry.file) return a.entry.file < b.entry.file ? -1 : 1
+      return String(a.run.id) < String(b.run.id) ? -1 : String(a.run.id) > String(b.run.id) ? 1 : 0
+    })
+    return items
+  }
+
   function mount(container, payload, viewCtx) {
     if (!container || typeof container.querySelector !== 'function') {
       return { ok: false, reason: 'no-container' }
     }
     // `document` is shadowed with the container's own document, so every element below
     // stays inside this view's DOM tree.
-    var document = container.ownerDocument || (typeof globalThis !== 'undefined' ? globalThis.document : null)
+    var document =
+      container.ownerDocument || (typeof globalThis !== 'undefined' ? globalThis.document : null)
+    var host = (document && document.defaultView) || GLOBAL
     var schema = (payload && payload.schema) || {}
     var model = (payload && payload.model) || {}
     var elements = Array.isArray(model.elements) ? model.elements : []
@@ -61,11 +317,14 @@
 
     // The console hands an editable view a `store` facade when a human may propose. A
     // console without it is read-only: the view renders, and offers no write.
-    var store = viewCtx && viewCtx.store && typeof viewCtx.store.propose === 'function' ? viewCtx.store : null
-    var draftNote = null
+    var store =
+      viewCtx && viewCtx.store && typeof viewCtx.store.propose === 'function' ? viewCtx.store : null
+    var changeset = viewCtx && viewCtx.changeset ? viewCtx.changeset : null
 
-    if (!GLOBAL.nnConsole) {
-      container.innerHTML = '<div class="nn-empty-state"><p>Procedure runtime is not available.</p></div>'
+    var runtime = host.nnConsole || GLOBAL.nnConsole
+    if (!runtime) {
+      container.innerHTML =
+        '<div class="nn-empty-state"><p>Procedure runtime is not available.</p></div>'
       return {
         ok: false,
         unmount: function () {
@@ -83,6 +342,35 @@
       return n
     }
 
+    function button(className, text, onClick, attrs) {
+      var b = make('button', className, text)
+      b.setAttribute('type', 'button')
+      Object.keys(attrs || {}).forEach(function (k) {
+        b.setAttribute(k, attrs[k])
+      })
+      if (onClick) b.addEventListener('click', onClick)
+      return b
+    }
+
+    function core() {
+      var c = host.nnProcedureCore || GLOBAL.nnProcedureCore
+      if (
+        c &&
+        typeof c.useFromDocument === 'function' &&
+        typeof c.available === 'function' &&
+        !c.available()
+      ) {
+        c.useFromDocument(document)
+      }
+      return c && typeof c.project === 'function' ? c : null
+    }
+
+    function allDrafts() {
+      if (!store || typeof store.drafts !== 'function') return []
+      var list = store.drafts()
+      return Array.isArray(list) ? list : []
+    }
+
     container.innerHTML = ''
     var root = make('div', 'nn-procedure-view')
     container.appendChild(root)
@@ -91,7 +379,9 @@
       return n + (Array.isArray(e.runs) ? e.runs.length : 0)
     }, 0)
     var strip = make('div', 'proc-structure-strip')
-    strip.appendChild(make('div', 'proc-structure-summary', entries.length + ' procedures · ' + runCount + ' runs'))
+    strip.appendChild(
+      make('div', 'proc-structure-summary', entries.length + ' procedures · ' + runCount + ' runs'),
+    )
     root.appendChild(strip)
     var defectsEl = make('div', 'proc-structure-defects')
     strip.appendChild(defectsEl)
@@ -111,76 +401,81 @@
       }
     }
 
+    var responseHost = make('div', 'proc-response-host')
+    root.appendChild(responseHost)
+    var inboxHost = make('div', 'proc-inbox-host')
+    root.appendChild(inboxHost)
     var tabsHost = make('div', 'proc-tabs')
-    root.appendChild(tabsHost)
     var body = make('div', 'proc-body')
     root.appendChild(body)
 
     var active = entries[0]
     var activeRun = null
     var selectedStep = null
+    var activeTab = 'flow'
+    var runFilter = 'all'
+    var startFormOpen = false
+    var savedNote = null
+    var actionError = ''
 
-    function selectEntry(entry) {
+    function selectEntry(entry, run) {
       active = entry
       var runs = Array.isArray(entry.runs) ? entry.runs : []
-      activeRun = runs.length ? runs[0] : null
+      activeRun = run || (runs.length ? runs[0] : null)
       selectedStep = null
+      startFormOpen = false
     }
 
     function stepsOf(entry) {
       return entry && entry.graph && entry.graph.steps ? entry.graph.steps : {}
     }
 
-    // ---- Pending drafts of a run, as events the fold can consume ----
-    //
-    // A draft the console holds is not applied, but it is a fact the person recorded. The
-    // projection answers "what would this run look like" by folding the recorded events plus
-    // these pending ones. It never decides what a draft means: the draft already says it, and
-    // the fold reads it exactly as it reads a recorded event.
-    var PENDING_EVENT_CONCEPT = 'Execution Event'
-
-    function pendingEventsOf(run) {
-      if (!store || !run) return []
-      var list = store.drafts()
-      var out = []
-      ;(Array.isArray(list) ? list : []).forEach(function (d) {
-        if (!d || d.concept !== PENDING_EVENT_CONCEPT) return
-        if (String(d.knowledge_id) !== String(run.id)) return
-        var fields = d.proposed
-        if (typeof fields === 'string') {
-          try {
-            fields = JSON.parse(fields)
-          } catch {
-            return
-          }
-        }
-        if (!fields || typeof fields !== 'object' || !fields.kind) return
-        out.push(fields)
-      })
-      return out
+    // ---- Requests: what a person asked the runner to record ----
+    // A request is intent, never state (executions spec, "Requests, not writes"). The view
+    // reads the `Step Request` rows the run model holds and the drafts this console holds, and
+    // shows what happened to each one. Only procedure_record consumes a request.
+    function requestsOf(run) {
+      return recordedRequestsOf(run)
     }
 
-    /** The state this run would reach with its pending drafts applied, or null. */
-    function projectedStateOf(run) {
-      var core = GLOBAL.nnProcedureCore
-      if (!core || typeof core.stateOf !== 'function' || !core.available()) return null
-      if (!run || !active || !active.graph) return null
-      var pending = pendingEventsOf(run)
-      if (!pending.length) return null
-      var recorded = Array.isArray(run.events) ? run.events : []
-      try {
-        return core.stateOf(active.graph, recorded.concat(pending), {
-          defRev: run.defRev,
-          lockFree: true,
-        })
-      } catch {
-        return null
-      }
+    function draftRequestsOf(run) {
+      if (!store || !run) return []
+      return draftRequestsFor(allDrafts(), run.id)
+    }
+
+    /** The pending request for one step, if a person already asked for something there. */
+    function pendingRequestFor(run, step) {
+      var inRun = requestsOf(run).filter(function (r) {
+        return r.status === 'pending' && r.step === step
+      })[0]
+      if (inRun) return inRun
+      var inDrafts = draftRequestsOf(run).filter(function (r) {
+        return r.status === 'pending' && r.step === step
+      })[0]
+      return inDrafts || null
+    }
+
+    /** The run as the person's unsent answers would leave it, or null when nothing is unsent. */
+    function projectedStateOf(entry, run) {
+      if (!run || !entry || !entry.graph) return null
+      var drafts = draftRequestsOf(run)
+      if (!drafts.length) return null
+      return projectRun(core(), entry.graph, run, drafts)
+    }
+
+    /** The state every part of the view reads: the projection when there is one. */
+    function viewState() {
+      if (!activeRun) return null
+      return projectedStateOf(active, activeRun) || activeRun.state || null
     }
 
     function stepName(slug) {
       var s = stepsOf(active)[slug]
       return s ? s.name || slug : slug
+    }
+
+    function values() {
+      return slotValuesOf(activeRun)
     }
 
     function elementOf(slug) {
@@ -192,7 +487,23 @@
     }
 
     // ---- Blueprint procedure catalog (parent + includes): `usage` first, shadowed ones hidden ----
-    function renderBlueprintList(host) {
+    /** The exported definition document a catalog procedure points at, when this export has it. */
+    function entryForProcedure(p) {
+      var key = String((p && p.id) || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()
+      if (!key) return null
+      for (var i = 0; i < entries.length; i++) {
+        var hay = (String(entries[i].file || '') + ' ' + String(entries[i].title || ''))
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, ' ')
+        if (hay.indexOf(key) !== -1) return entries[i]
+      }
+      return null
+    }
+
+    function renderBlueprintList(hostEl) {
       var list = Array.isArray(schema.procedures)
         ? schema.procedures.filter(function (p) {
             return p && p.status !== 'shadowed'
@@ -208,20 +519,46 @@
       listEl.setAttribute('data-nn-procedures', 'blueprint')
       listEl.appendChild(make('span', 'proc-blueprint-label', 'Procedures'))
       list.forEach(function (p) {
+        // A pill that looks selectable must select something: when this export carries the
+        // definition document, clicking opens it; when it does not, the pill is a plain label
+        // instead of a dead control.
+        var target = entryForProcedure(p)
         var item = make(
           'span',
-          'proc-blueprint-item' + (p.id === 'usage' ? ' proc-blueprint-usage' : ''),
+          'proc-blueprint-item' +
+            (p.id === 'usage' ? ' proc-blueprint-usage' : '') +
+            (target ? ' is-link' : ' is-orphan'),
           p.id === 'usage' ? 'Getting started' : p.name || p.id,
         )
         item.setAttribute('data-procedure-id', p.id)
+        if (target) {
+          var open = function () {
+            selectEntry(target)
+            render()
+          }
+          item.setAttribute('role', 'button')
+          item.setAttribute('tabindex', '0')
+          item.addEventListener('click', open)
+          item.addEventListener('keydown', function (ev) {
+            if (ev && (ev.key === 'Enter' || ev.key === ' ')) {
+              if (ev.preventDefault) ev.preventDefault()
+              open()
+            }
+          })
+        } else {
+          item.setAttribute(
+            'title',
+            'Listed by the bluepriNNt; this export carries no definition document for it.',
+          )
+        }
         listEl.appendChild(item)
       })
-      host.appendChild(listEl)
+      hostEl.appendChild(listEl)
     }
 
     // ---- Reference pills ----
     function openRef(element) {
-      var rt = GLOBAL.nnConsole
+      var rt = host.nnConsole || GLOBAL.nnConsole
       if (rt && typeof rt.renderRefDialog === 'function') rt.renderRefDialog(document, element)
     }
 
@@ -234,7 +571,13 @@
         })
         var pill = UI.Ku(
           'element',
-          { model: meta.modelId || '', id: target.id, label: target.name || label, concept: target.concept, color: cMeta && cMeta.color },
+          {
+            model: meta.modelId || '',
+            id: target.id,
+            label: target.name || label,
+            concept: target.concept,
+            color: cMeta && cMeta.color,
+          },
           { doc: document },
         )
         var badge = pill.querySelector('[data-nn-component="ku-unit"]')
@@ -248,12 +591,9 @@
         }
         return pill
       }
-      var b = make('button', 'chip-ref', label)
-      b.setAttribute('type', 'button')
-      b.addEventListener('click', function () {
+      return button('chip-ref', label, function () {
         openRef(target)
       })
-      return b
     }
 
     function appendWithKuPills(hostEl, rawText) {
@@ -282,14 +622,15 @@
       var last = 0
       var match
       while ((match = re.exec(text)) !== null) {
-        if (match.index > last) hostEl.appendChild(document.createTextNode(text.slice(last, match.index)))
+        if (match.index > last)
+          hostEl.appendChild(document.createTextNode(text.slice(last, match.index)))
         hostEl.appendChild(refPill(byName[match[0]], match[0]))
         last = re.lastIndex
       }
       if (last < text.length) hostEl.appendChild(document.createTextNode(text.slice(last)))
     }
 
-    function appendMarkdown(hostEl, rawText) {
+    function appendMarkdown(hostEl, rawText, plainOnly) {
       var UI = GLOBAL.nnUI
       if (!UI || typeof UI.Markdown !== 'function') {
         appendWithKuPills(hostEl, rawText)
@@ -306,27 +647,185 @@
         if (/^(CODE|PRE|A|BUTTON)$/.test(node.tagName || '')) return
         Array.prototype.slice.call(node.childNodes || []).forEach(decorate)
       }
-      decorate(markdown)
+      if (!plainOnly) decorate(markdown)
       hostEl.appendChild(markdown)
     }
 
-    // ---- Tabs: one per procedure document ----
-    function renderTabs() {
-      tabsHost.innerHTML = ''
-      entries.forEach(function (entry) {
-        var b = make('button', 'proc-tab' + (entry === active ? ' active' : ''), entry.title || entry.file)
-        b.setAttribute('type', 'button')
-        b.addEventListener('click', function () {
-          selectEntry(entry)
+    // ---- "Save your response": the one way back (S1) ----
+    function reviewerName() {
+      var name =
+        runtime && typeof runtime.getReviewerName === 'function' ? runtime.getReviewerName() : ''
+      return name && name !== 'reviewer' ? name : ''
+    }
+
+    function renderResponseBar() {
+      responseHost.innerHTML = ''
+      if (!store) return
+      var count = allDrafts().length
+      if (!count && !savedNote) return
+      var bar = make('section', 'proc-response')
+      bar.setAttribute('data-proc-response', '')
+      responseHost.appendChild(bar)
+      if (!count && savedNote) {
+        bar.appendChild(make('div', 'proc-response-saved', savedNote))
+        return
+      }
+      var text = make('div', 'proc-response-text')
+      text.appendChild(
+        make(
+          'strong',
+          null,
+          count === 1 ? '1 answer not sent yet' : count + ' answers not sent yet',
+        ),
+      )
+      text.appendChild(
+        make(
+          'span',
+          'proc-response-hint',
+          'Save your response, then attach the saved file to your reply.',
+        ),
+      )
+      bar.appendChild(text)
+
+      var nameRow = make('div', 'proc-response-name')
+      var current = reviewerName()
+      var nameField = make('input', 'proc-response-name-input')
+      nameField.setAttribute('type', 'text')
+      nameField.setAttribute('data-proc-reviewer', '')
+      nameField.setAttribute('aria-label', 'Your name')
+      nameField.setAttribute('placeholder', 'Your name')
+      nameField.value = current
+      nameField.addEventListener('change', function () {
+        if (runtime && typeof runtime.setReviewerName === 'function')
+          runtime.setReviewerName(nameField.value)
+      })
+      nameRow.appendChild(make('label', 'proc-response-name-label', 'Answering as'))
+      nameRow.appendChild(nameField)
+      bar.appendChild(nameRow)
+
+      var actions = make('div', 'proc-response-actions')
+      var err = make('div', 'proc-response-error')
+      var save = button(
+        'proc-response-save',
+        'Save your response',
+        function () {
+          var name = String(nameField.value || '').trim()
+          if (!name) {
+            err.textContent = 'Type your name first: the domain owner sees who answered.'
+            nameField.focus()
+            return
+          }
+          if (runtime && typeof runtime.setReviewerName === 'function')
+            runtime.setReviewerName(name)
+          if (!runtime || typeof runtime.saveSnapshot !== 'function') {
+            err.textContent = 'This console cannot save itself in this browser.'
+            return
+          }
+          save.disabled = true
+          Promise.resolve(runtime.saveSnapshot(document))
+            .then(function (res) {
+              save.disabled = false
+              if (res && res.ok) {
+                savedNote =
+                  'Saved' +
+                  (res.filename ? ' as ' + res.filename : '') +
+                  '. Attach this file to your reply.'
+                renderResponseBar()
+              } else if (!(res && res.aborted)) {
+                err.textContent =
+                  'The response could not be saved' + (res && res.error ? ': ' + res.error : '.')
+              }
+            })
+            .catch(function (e) {
+              save.disabled = false
+              err.textContent = 'The response could not be saved: ' + String((e && e.message) || e)
+            })
+        },
+        { 'data-proc-save-response': '' },
+      )
+      actions.appendChild(save)
+      if (changeset && typeof changeset.openExport === 'function') {
+        actions.appendChild(
+          button(
+            'proc-response-secondary',
+            'Download changes',
+            function () {
+              changeset.openExport()
+            },
+            { 'data-proc-download-changes': '' },
+          ),
+        )
+      }
+      bar.appendChild(actions)
+      bar.appendChild(err)
+      if (savedNote) {
+        var note = make('div', 'proc-response-saved', savedNote)
+        note.setAttribute('data-proc-saved-note', '')
+        bar.appendChild(note)
+      }
+    }
+
+    // ---- "Your turn": runs waiting on a person (S9) ----
+    function renderInbox() {
+      inboxHost.innerHTML = ''
+      if (!store) return
+      var items = inboxOf(entries, allDrafts())
+      if (!items.length) return
+      var box = make('section', 'proc-inbox')
+      box.setAttribute('data-proc-inbox', '')
+      var head = make('div', 'proc-inbox-head')
+      head.appendChild(make('span', 'proc-inbox-title', 'Your turn'))
+      head.appendChild(make('span', 'proc-inbox-count', String(items.length)))
+      box.appendChild(head)
+      var list = make('ul', 'proc-inbox-list')
+      items.forEach(function (item) {
+        var li = make('li', 'proc-inbox-item' + (item.run === activeRun ? ' active' : ''))
+        li.setAttribute('data-proc-inbox-item', '')
+        li.setAttribute('data-run-id', item.run.id)
+        li.setAttribute('data-step', item.step)
+        var open = button('proc-inbox-open', null, function () {
+          selectEntry(item.entry, item.run)
           render()
         })
-        tabsHost.appendChild(b)
+        open.appendChild(make('span', 'proc-inbox-step', item.stepName))
+        open.appendChild(
+          make(
+            'span',
+            'proc-inbox-run',
+            (item.entry.title || item.entry.file) + ' · ' + item.run.id,
+          ),
+        )
+        if (item.question) open.appendChild(make('span', 'proc-inbox-question', item.question))
+        li.appendChild(open)
+        list.appendChild(li)
+      })
+      box.appendChild(list)
+      inboxHost.appendChild(box)
+    }
+
+    // ---- Tabs: one per procedure document ----
+    function renderTabs(hostEl) {
+      var target = hostEl || tabsHost
+      target.innerHTML = ''
+      if (entries.length <= 1) return
+      entries.forEach(function (entry) {
+        target.appendChild(
+          button(
+            'proc-tab' + (entry === active ? ' active' : ''),
+            entry.title || entry.file,
+            function () {
+              selectEntry(entry)
+              render()
+            },
+          ),
+        )
       })
     }
 
     function renderDiagnostics() {
       defectsEl.innerHTML = ''
-      var list = active.graph && Array.isArray(active.graph.diagnostics) ? active.graph.diagnostics : []
+      var list =
+        active.graph && Array.isArray(active.graph.diagnostics) ? active.graph.diagnostics : []
       list.forEach(function (d) {
         var item = make('div', 'proc-defect-item', d.code + ': ' + d.detail)
         item.setAttribute('data-defect-kind', d.code)
@@ -336,15 +835,21 @@
     }
 
     // ---- Ficha: the Procedure element that links this document ----
-    function renderFicha(host) {
+    function renderFicha(hostEl) {
       var linked = null
       elements.forEach(function (el) {
-        if (el && el.concept === 'Procedure' && el.fields && el.fields.procedure_model === active.file) linked = linked || el
+        if (
+          el &&
+          el.concept === 'Procedure' &&
+          el.fields &&
+          el.fields.procedure_model === active.file
+        )
+          linked = linked || el
       })
       var ficha = make('div', 'proc-ficha')
       if (!linked) {
         ficha.appendChild(make('div', 'proc-no-catalog-note', 'No catalog entry linked.'))
-        host.appendChild(ficha)
+        hostEl.appendChild(ficha)
         return
       }
       var f = linked.fields
@@ -355,42 +860,411 @@
         ['inputs_required', 'Inputs required'],
         ['outputs_expected', 'Outputs expected'],
       ].forEach(function (pair) {
-        if (f[pair[0]]) ficha.appendChild(make('div', 'proc-ficha-' + pair[0], pair[1] + ': ' + f[pair[0]]))
+        if (f[pair[0]])
+          ficha.appendChild(make('div', 'proc-ficha-' + pair[0], pair[1] + ': ' + f[pair[0]]))
       })
-      host.appendChild(ficha)
+      hostEl.appendChild(ficha)
     }
 
-    // ---- Runs of the active procedure ----
+    // ---- Runs of the active procedure: filters, list, "Start a run" ----
     function runStatus(run) {
       return run.state ? run.state.status : 'unknown'
     }
 
-    function renderRunList(host) {
+    function waitsOnMe(run) {
+      return inboxOf([active], allDrafts()).some(function (i) {
+        return i.run === run
+      })
+    }
+
+    var FILTERS = [
+      ['all', 'All'],
+      ['mine', 'Waiting for me'],
+      ['open', 'In progress'],
+      ['closed', 'Closed'],
+    ]
+
+    function passesFilter(run) {
+      var closed = run.closed || TERMINAL_RUN[runStatus(run)]
+      if (runFilter === 'closed') return !!closed
+      if (runFilter === 'open') return !closed
+      if (runFilter === 'mine') return waitsOnMe(run)
+      return true
+    }
+
+    function runStartDrafts() {
+      return allDrafts().filter(function (d) {
+        return d && d.kind === 'run_start' && d.procedure === active.file
+      })
+    }
+
+    function removeDraft(id) {
+      if (store && typeof store.remove === 'function' && id !== undefined) store.remove(id)
+      savedNote = null
+      render()
+    }
+
+    function renderRunList(hostEl) {
       var runs = Array.isArray(active.runs) ? active.runs : []
       var bar = make('div', 'proc-runs')
       bar.appendChild(make('span', 'proc-runs-label', 'Runs'))
-      var def = make('button', 'proc-run proc-run-definition' + (activeRun ? '' : ' active'), 'Definition')
-      def.setAttribute('type', 'button')
-      def.addEventListener('click', function () {
-        activeRun = null
-        selectedStep = null
-        render()
-      })
-      bar.appendChild(def)
+      if (runs.length) {
+        var filters = make('div', 'proc-run-filters')
+        FILTERS.forEach(function (f) {
+          filters.appendChild(
+            button(
+              'proc-run-filter' + (runFilter === f[0] ? ' active' : ''),
+              f[1],
+              function () {
+                runFilter = f[0]
+                render()
+              },
+              { 'data-proc-filter': f[0] },
+            ),
+          )
+        })
+        bar.appendChild(filters)
+      }
+      var list = make('div', 'proc-run-list')
+      list.appendChild(
+        button(
+          'proc-run proc-run-definition' + (activeRun ? '' : ' active'),
+          'Definition',
+          function () {
+            activeRun = null
+            selectedStep = null
+            render()
+          },
+        ),
+      )
+      var shown = 0
       runs.forEach(function (run) {
-        var b = make('button', 'proc-run' + (run === activeRun ? ' active' : ''), run.id + ' · ' + runStatus(run))
-        b.setAttribute('type', 'button')
-        b.setAttribute('data-run-id', run.id)
-        b.setAttribute('data-status', runStatus(run))
-        b.addEventListener('click', function () {
+        if (!passesFilter(run) && run !== activeRun) return
+        shown++
+        var label = run.id + ' · ' + runStatus(run)
+        var b = button('proc-run' + (run === activeRun ? ' active' : ''), label, function () {
           activeRun = run
           selectedStep = null
           render()
         })
-        bar.appendChild(b)
+        b.setAttribute('data-run-id', run.id)
+        b.setAttribute('data-status', runStatus(run))
+        if (draftRequestsOf(run).length) {
+          b.classList.add('proc-run-unsent')
+          b.setAttribute('title', 'You answered this run; the answer is not sent yet')
+        }
+        list.appendChild(b)
       })
-      if (!runs.length) bar.appendChild(make('span', 'proc-runs-empty', 'No run recorded yet.'))
-      host.appendChild(bar)
+      runStartDrafts().forEach(function (d) {
+        var chip = make('span', 'proc-run proc-run-requested')
+        chip.setAttribute('data-proc-run-request', d.id || '')
+        chip.appendChild(
+          make('span', null, 'New run · Requested · starts when you send your response'),
+        )
+        chip.appendChild(
+          button(
+            'proc-undo',
+            'Undo',
+            function () {
+              removeDraft(d.id)
+            },
+            { 'data-proc-undo': d.id || '' },
+          ),
+        )
+        list.appendChild(chip)
+      })
+      if (!runs.length) list.appendChild(make('span', 'proc-runs-empty', 'No run recorded yet.'))
+      else if (!shown) list.appendChild(make('span', 'proc-runs-empty', 'No run matches.'))
+      bar.appendChild(list)
+      if (store && active.graph && !/^bluepriNNt:/.test(active.file)) {
+        bar.appendChild(
+          button(
+            'proc-start-run' + (startFormOpen ? ' active' : ''),
+            'Start a run',
+            function () {
+              startFormOpen = !startFormOpen
+              render()
+            },
+            { 'data-proc-start-run': '' },
+          ),
+        )
+      }
+      hostEl.appendChild(bar)
+      if (startFormOpen && store) renderStartForm(hostEl)
+    }
+
+    /** The slots a run of the active procedure needs, from its frontmatter declaration. */
+    function slotsOfActive() {
+      var declared = Array.isArray(active.slots) ? active.slots : []
+      var names = {}
+      declared.forEach(function (s) {
+        if (s && s.name) names[s.name] = true
+      })
+      // A placeholder the frontmatter never declared still needs a value.
+      var extra = (active.graph && Array.isArray(active.graph.slots) ? active.graph.slots : [])
+        .filter(function (n) {
+          return n !== 'run' && !names[n]
+        })
+        .map(function (n) {
+          return { name: n, kind: 'value', required: true }
+        })
+      return declared.concat(extra)
+    }
+
+    function startUI() {
+      return host.nnUI || GLOBAL.nnUI
+    }
+
+    /** The input widget for a slot: the editor's own widget for a typed one, plain text otherwise. */
+    function startWidget(slot, options) {
+      var ui = startUI()
+      var value = slot.default
+      if (!slot.type || !ui) {
+        var plain = make('input', 'proc-start-input')
+        plain.setAttribute('type', 'text')
+        plain.setAttribute('name', slot.name)
+        if (value !== undefined) plain.value = value
+        return plain
+      }
+      var opts = { doc: document }
+      if (slot.type === 'number') {
+        var number = ui.FieldNumberWidget(value, opts)
+        number.step = 'any'
+        return number
+      }
+      if (slot.type === 'boolean') return ui.FieldBooleanWidget(value, opts)
+      if (slot.type === 'select') return ui.FieldSelectWidget(value, options, opts)
+      if (slot.type === 'multiselect') return ui.FieldMultiSelectWidget(value, options, opts)
+      if (slot.type === 'reference') {
+        var index = ui.buildReferenceIndex({
+          models: meta.models,
+          collections: model.collections,
+          elements: elements,
+        })
+        return ui.FieldReferenceWidget(value, index.list, opts)
+      }
+      if (slot.type === 'markdown' || slot.type === 'markdown_inline')
+        return ui.FieldMarkdownWidget(value, opts)
+      return ui.FieldStringWidget(value, opts)
+    }
+
+    /** What a slot's widget holds, as the typed JSON value the run records; undefined when empty. */
+    function startValue(widget, slot) {
+      if (slot.type === 'boolean') {
+        var checkbox = widget.querySelector('input')
+        return checkbox ? checkbox.checked : undefined
+      }
+      if (slot.type === 'multiselect') {
+        var selected = Array.from(widget.querySelectorAll('input:checked'), function (input) {
+          return input.value
+        })
+        return selected.length ? selected : undefined
+      }
+      var control = slot.type === 'reference' ? widget.querySelector('input') : widget
+      var raw = control && String(control.value == null ? '' : control.value).trim()
+      if (!raw) return undefined
+      if (slot.type === 'number') return Number.isFinite(Number(raw)) ? Number(raw) : undefined
+      if (slot.output) {
+        var slug = raw
+          .normalize('NFKD')
+          .toLowerCase()
+          .replace(/[̀-ͯ]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+        return slug ? slot.output.directory + '/' + slug + slot.output.suffix : undefined
+      }
+      return raw
+    }
+
+    /** True when a file or procedure of this export already sits at the path (case-insensitive). */
+    function pathExistsInExport(path) {
+      var lower = path.toLowerCase()
+      var files = model.files && Array.isArray(model.files.inventory) ? model.files.inventory : []
+      return (
+        files.some(function (f) {
+          return f && typeof f.path === 'string' && f.path.toLowerCase() === lower
+        }) ||
+        entries.some(function (entry) {
+          return entry.file.toLowerCase() === lower
+        })
+      )
+    }
+
+    function renderStartForm(hostEl) {
+      var form = make('form', 'proc-start-form')
+      form.setAttribute('data-proc-start-form', '')
+      form.appendChild(
+        make('div', 'proc-start-title', 'Request a new run of ' + (active.title || active.file)),
+      )
+      var slots = slotsOfActive()
+      var blocked = slots.filter(function (s) {
+        return s.kind !== 'value' && s.required && s.default === undefined
+      })
+      var fields = Object.create(null)
+      var inventory =
+        model.files && Array.isArray(model.files.inventory) ? model.files.inventory : []
+      var missingSources = false
+      slots.forEach(function (s) {
+        if (s.kind !== 'value') return
+        if (s.type && (START_TYPES.indexOf(s.type) === -1 || !startUI())) {
+          // A type this console cannot draw: the person cannot supply it here.
+          if (s.required) blocked.push(s)
+          return
+        }
+        var row = make('div', 'proc-start-field')
+        var label = make(
+          'span',
+          'proc-start-label',
+          (s.label || labelOfToken(s.name)) + (s.required ? '' : ' (optional)'),
+        )
+        row.appendChild(label)
+        if (s.description) row.appendChild(make('small', 'proc-start-note', s.description))
+        var files =
+          s.source === 'markdown-files'
+            ? inventory.filter(function (f) {
+                return (
+                  f &&
+                  typeof f.path === 'string' &&
+                  /\.md$/i.test(f.path) &&
+                  !/_NN\.md$/i.test(f.path)
+                )
+              })
+            : null
+        var options = files
+          ? files.map(function (f) {
+              return f.path
+            })
+          : s.options
+        var input = startWidget(s, options)
+        input.setAttribute('data-proc-slot', s.name)
+        input.setAttribute('aria-label', label.textContent)
+        if (s.type !== 'multiselect')
+          Array.from(input.querySelectorAll('input')).forEach(function (control) {
+            control.setAttribute('aria-label', label.textContent)
+          })
+        fields[s.name] = { input: input, slot: s, options: options }
+        row.appendChild(input)
+        if (files) {
+          var preview = make('details', 'proc-start-preview')
+          preview.appendChild(make('summary', null, 'View excerpt'))
+          var excerpt = make('pre', null)
+          preview.appendChild(excerpt)
+          row.appendChild(preview)
+          var showExcerpt = function () {
+            var file = files.find(function (f) {
+              return f.path === input.value
+            })
+            preview.hidden = !file
+            excerpt.textContent =
+              file && file.snippet
+                ? file.snippet + (file.snippetTruncated ? '…' : '')
+                : 'No excerpt was included in this export.'
+          }
+          input.addEventListener('change', showExcerpt)
+          showExcerpt()
+          if (!files.length) {
+            if (s.required) missingSources = true
+            input.disabled = true
+            row.appendChild(
+              make(
+                'p',
+                'proc-start-note',
+                'No compatible files were exported. Add a Markdown brief under sources/ and export again with files included.',
+              ),
+            )
+          }
+        }
+        if (s.output) {
+          var destination = make('p', 'proc-start-note')
+          destination.setAttribute('aria-live', 'polite')
+          var showDestination = function () {
+            var path = startValue(input, s)
+            destination.textContent = path
+              ? 'Destination once the procedure runs: ' + path
+              : 'Enter a name to see the destination.'
+          }
+          input.addEventListener('input', showDestination)
+          showDestination()
+          row.appendChild(destination)
+        }
+        form.appendChild(row)
+      })
+      if (!slots.length)
+        form.appendChild(make('div', 'proc-start-note', 'This procedure needs no values to start.'))
+      if (blocked.length) {
+        form.appendChild(
+          make(
+            'div',
+            'proc-start-note',
+            'Only the domain owner can start this procedure: it needs ' +
+              blocked
+                .map(function (s) {
+                  return s.name
+                })
+                .join(', ') +
+              ', which this form cannot provide.',
+          ),
+        )
+      }
+      var err = make('div', 'proc-action-error')
+      var submit = button('proc-start-submit', 'Request the run', null, {
+        'data-proc-start-submit': '',
+      })
+      submit.setAttribute('type', 'submit')
+      if (blocked.length || missingSources) submit.disabled = true
+      form.addEventListener('submit', function (ev) {
+        if (ev && ev.preventDefault) ev.preventDefault()
+        err.textContent = ''
+        if (blocked.length || missingSources) return
+        var params = Object.create(null)
+        var missing = []
+        var conflicts = []
+        Object.keys(fields).forEach(function (name) {
+          var field = fields[name]
+          var v = startValue(field.input, field.slot)
+          if (
+            field.slot.type === 'select' &&
+            v !== undefined &&
+            Array.isArray(field.options) &&
+            field.options.indexOf(v) === -1
+          )
+            v = undefined
+          // The export cannot see files created since, so this only catches what it knows;
+          // the procedure itself must still check before it writes.
+          if (field.slot.output && v && pathExistsInExport(v)) conflicts.push(v)
+          if (v !== undefined) params[name] = v
+          else if (field.slot.required) missing.push(field.slot.label || name)
+        })
+        if (conflicts.length) {
+          err.textContent = 'Choose a different name: ' + conflicts.join(', ') + ' already exists.'
+          return
+        }
+        if (missing.length) {
+          err.textContent = 'Fill in ' + missing.join(', ') + ' to request the run.'
+          return
+        }
+        try {
+          store.propose({ kind: 'run_start', procedure: active.file, params: { ...params } })
+        } catch (e) {
+          err.textContent =
+            'The console refused this request: ' + String(e && e.message ? e.message : e)
+          return
+        }
+        startFormOpen = false
+        savedNote = null
+        render()
+      })
+      form.appendChild(err)
+      var actions = make('div', 'proc-start-actions')
+      actions.appendChild(submit)
+      actions.appendChild(
+        button('proc-start-cancel', 'Cancel', function () {
+          startFormOpen = false
+          render()
+        }),
+      )
+      form.appendChild(actions)
+      hostEl.appendChild(form)
     }
 
     // ---- Graph layout: a step's layer is its longest distance from the start ----
@@ -426,34 +1300,608 @@
       return { layer: layer, rows: rows.filter(Boolean) }
     }
 
-    function stepStatus(slug) {
-      if (!activeRun || !activeRun.state) return 'definition'
-      var st = activeRun.state.steps[slug]
+    function stepStatusIn(state, slug) {
+      if (!activeRun || !state) return 'definition'
+      var st = state.steps[slug]
       return st ? st.status : 'pending'
     }
 
-    // The same step under the pending drafts. A step whose status differs is the one the
-    // hold moves, and the graph marks it apart from everything that is already applied.
-    function projectedStatus(slug, projection) {
-      if (!projection || !projection.steps || !projection.steps[slug]) return null
-      var next = projection.steps[slug].status
-      return next === stepStatus(slug) ? null : next
+    function stepStatus(slug) {
+      return stepStatusIn(viewState(), slug)
     }
 
-    function renderGraph(host, projection) {
+    /** True when the projection moved this step away from what the run recorded. */
+    function isProjected(slug) {
+      var projected = activeRun ? projectedStateOf(active, activeRun) : null
+      if (!projected || !activeRun.state) return false
+      if (stepStatusIn(projected, slug) !== stepStatusIn(activeRun.state, slug)) return true
+      return slug === projected.currentStep && slug !== activeRun.state.currentStep
+    }
+
+    /** The outcome token of the guard that enters a step, or '' when it has none. */
+    function outcomeTokenOf(slug) {
+      var c = stepsOf(active)[slug] && stepsOf(active)[slug].condition
+      var m = c ? /outcome\s*==\s*([\w-]+)/.exec(c) : null
+      return m ? m[1] : ''
+    }
+
+    /**
+     * Picks a step for the card. The active step is followed (no pin), so the card moves on
+     * when the Runner does; any other step is a manual inspection that stays put.
+     */
+    function selectStep(slug) {
+      var state = viewState()
+      selectedStep =
+        state && !TERMINAL_RUN[state.status] && state.currentStep === slug ? null : slug
+      render()
+    }
+
+    /** What the edge `slug -> t` looks like, shared by the chart and the native fallback. */
+    function edgeFacts(state, current, slug, t) {
       var graph = active.graph
+      var tStatus = stepStatus(t)
+      var stepState = state && state.steps && state.steps[slug]
+      var isTaken =
+        (stepState && stepState.next === t) ||
+        (isProjected(slug) &&
+          stepStatus(slug) === 'done' &&
+          ((stepState && stepState.next === t) || t === current))
+      var token = ''
+      if (graph.steps[slug].next.length > 1) {
+        // The token alone: every branch target has its own column, so two never share a spot.
+        token = outcomeTokenOf(t) || graph.steps[t].condition || ''
+      }
+      return {
+        status: tStatus,
+        taken: !!isTaken,
+        off: tStatus === 'off_path',
+        projected: isProjected(t) || (isProjected(slug) && !!isTaken),
+        token: token,
+      }
+    }
+
+    /** The sentence a screen reader gets for the whole graph (the chart itself is hidden). */
+    function graphSummary(state, current) {
+      var graph = active.graph
+      var slugs = Object.keys(graph.steps)
+      var branches = slugs.filter(function (s) {
+        return graph.steps[s].next.length > 1
+      }).length
+      var text =
+        'Procedure flow graph: ' +
+        slugs.length +
+        ' steps' +
+        (branches ? ', ' + branches + (branches === 1 ? ' branch point' : ' branch points') : '') +
+        '.'
+      if (state && current && graph.steps[current]) {
+        text += ' Current step: ' + stepName(current) + ' (' + stepStatus(current) + ').'
+      } else if (!activeRun) {
+        text += ' The definition, no run selected.'
+      }
+      return (
+        text +
+        ' Use the arrow keys to move between connected steps and Enter or Space to open the' +
+        ' focused step. The same steps are listed below as a list.'
+      )
+    }
+
+    /** One step said in words: the live-region text for the focused node. */
+    function announceStep(slug) {
+      var step = active.graph.steps[slug]
+      var status = stepStatus(slug)
+      var out = step.next.filter(function (t) {
+        return !!active.graph.steps[t]
+      })
+      return (
+        stepName(slug) +
+        ', ' +
+        (step.stepType || 'task') +
+        ' step' +
+        (step.executor ? ', ' + step.executor : '') +
+        (status !== 'definition' ? ', ' + status : '') +
+        (out.length ? '. Leads to ' + out.map(stepName).join(', ') : '. Last step') +
+        '.'
+      )
+    }
+
+    // ---- Flow graph: the shared ECharts API, with the native svg as the fallback ----
+    var graphView = null
+    var graphFocusSlug = null
+    var refocusGraph = false
+
+    function disposeGraph() {
+      var g = graphView
+      graphView = null
+      if (!g) return
+      g.disposed = true
+      if (g.observer) g.observer.disconnect()
+      if (g.host && g.host.__nnChartObserver) {
+        g.host.__nnChartObserver.disconnect()
+        g.host.__nnChartObserver = null
+      }
+      try {
+        if (g.chart && typeof g.chart.dispose === 'function') g.chart.dispose()
+      } catch (e) {
+        /* already gone with its DOM */
+      }
+    }
+
+    function parseColor(text) {
+      var s = String(text || '').trim()
+      var hex = /^#([0-9a-f]{6})$/i.exec(s)
+      if (hex) {
+        return [
+          parseInt(hex[1].slice(0, 2), 16),
+          parseInt(hex[1].slice(2, 4), 16),
+          parseInt(hex[1].slice(4, 6), 16),
+        ]
+      }
+      var rgb = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i.exec(s)
+      return rgb ? [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])] : null
+    }
+
+    /** `a` over `b` at `t`: ECharts cannot read `color-mix()`, so tints are blended here. */
+    function blend(a, b, t) {
+      var ca = parseColor(a)
+      var cb = parseColor(b)
+      if (!ca || !cb) return b
+      var mix = [0, 1, 2].map(function (i) {
+        return Math.round(ca[i] * t + cb[i] * (1 - t))
+      })
+      return 'rgb(' + mix.join(',') + ')'
+    }
+
+    /** The console's own theme colours, resolved to something ECharts can draw. */
+    function chartPalette(parent) {
+      function resolve(token, fallback) {
+        try {
+          var probe = make('span')
+          probe.style.color = 'var(' + token + ')'
+          parent.appendChild(probe)
+          var c = host.getComputedStyle(probe).color
+          parent.removeChild(probe)
+          return parseColor(c) ? c : fallback
+        } catch (e) {
+          return fallback
+        }
+      }
+      return {
+        surface: resolve('--surface', '#ffffff'),
+        text: resolve('--text', '#111827'),
+        muted: resolve('--muted', '#6b7280'),
+        border: resolve('--border-strong', '#9ca3af'),
+        primary: resolve('--primary', '#2563eb'),
+        success: resolve('--success', '#16a34a'),
+        warning: resolve('--warning', '#d97706'),
+        danger: resolve('--danger', '#dc2626'),
+      }
+    }
+
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+      })
+    }
+
+    /** Nodes get as wide as the host allows, up to the native 200, down to a readable 84. */
+    function flowGeometry(lay, widthPx) {
+      var widest = lay.rows.reduce(function (n, r) {
+        return Math.max(n, r.length)
+      }, 1)
+      var nodeW = Math.max(84, Math.min(200, Math.floor(widthPx / widest) - 10))
+      var compact = nodeW < 140
+      var nodeH = compact ? 50 : 52
+      var rowH = nodeH + 40
+      var pos = {}
+      lay.rows.forEach(function (row, r) {
+        row.forEach(function (slug, i) {
+          pos[slug] = { x: 0.5 + (i - (row.length - 1) / 2) / widest, y: r }
+        })
+      })
+      return {
+        nodeW: nodeW,
+        nodeH: nodeH,
+        compact: compact,
+        pos: pos,
+        rows: lay.rows.length,
+        rowH: rowH,
+        height: lay.rows.length * rowH,
+      }
+    }
+
+    function flowOption(lay, current, geo, pal, focusSlug, pulse) {
+      var graph = active.graph
+      var state = viewState()
+      var w = geo.nodeW
+      var h = geo.nodeH
+      var tint = function (c) {
+        return blend(c, pal.surface, 0.14)
+      }
+      var data = Object.keys(graph.steps).map(function (slug) {
+        var step = graph.steps[slug]
+        var status = stepStatus(slug)
+        var isCurrent = slug === current
+        var isSelected = slug === selectedStep
+        var projected = isProjected(slug)
+        var border = step.stepType === 'decision' ? pal.warning : pal.border
+        var fill = pal.surface
+        var width = 1.5
+        var type = 'solid'
+        var opacity = 1
+        if (status === 'done') {
+          border = pal.success
+          fill = tint(pal.success)
+        } else if (status === 'failed') {
+          border = pal.danger
+          width = 2
+          fill = tint(pal.danger)
+        } else if (status === 'waiting') {
+          border = pal.warning
+          width = 2
+          fill = tint(pal.warning)
+        } else if (status === 'active') {
+          border = pal.primary
+          fill = tint(pal.primary)
+        } else if (status === 'pending') {
+          type = 'dashed'
+        } else if (status === 'off_path') {
+          type = 'dashed'
+          opacity = 0.55
+        }
+        if (isCurrent) {
+          border = pal.primary
+          width = 3.5
+          type = 'solid'
+        }
+        if (projected) type = 'dotted'
+        var sub = [
+          status !== 'definition' ? status : null,
+          step.stepType || 'task',
+          step.executor || null,
+          projected ? 'projected' : null,
+          isSelected ? 'open' : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+        // Rich text reads braces as markup: a step name must not carry any.
+        var clean = function (s) {
+          return String(s).replace(/[{}]/g, ' ')
+        }
+        var inner = w - 16
+        // Rich-text truncation does not hold in every renderer: cut by what fits instead.
+        var subSize = geo.compact ? 9 : 10
+        var titleSize = geo.compact ? 11 : 13
+        // Upper-case bold text is wider per character than the title's mixed case.
+        var cut = function (text, size, em) {
+          var fit = Math.max(6, Math.floor(inner / (size * (em || 0.54))))
+          return text.length > fit ? text.slice(0, fit - 1) + '…' : text
+        }
+        return {
+          id: slug,
+          name: step.name || slug,
+          value: [geo.pos[slug].x, geo.pos[slug].y],
+          symbol: 'roundRect',
+          symbolSize: [w, h],
+          status: status,
+          current: isCurrent,
+          selected: isSelected,
+          focused: slug === focusSlug,
+          tooltipText:
+            escapeHtml(step.name || slug) +
+            '<br/>' +
+            escapeHtml(sub) +
+            (step.decision ? '<br/>' + escapeHtml(fillSlots(step.decision, values())) : ''),
+          label: {
+            show: true,
+            position: 'inside',
+            formatter:
+              '{sub|' +
+              cut(clean(sub.toUpperCase()), subSize, 0.68) +
+              '}\n{title|' +
+              cut(clean(step.name || slug), titleSize) +
+              '}',
+            rich: {
+              sub: {
+                width: inner,
+                align: 'left',
+                overflow: 'truncate',
+                ellipsis: '…',
+                fontSize: subSize,
+                lineHeight: 15,
+                color: isCurrent ? pal.primary : pal.muted,
+                fontWeight: 600,
+              },
+              title: {
+                width: inner,
+                align: 'left',
+                overflow: 'truncate',
+                ellipsis: '…',
+                fontSize: titleSize,
+                lineHeight: 18,
+                color: isCurrent ? pal.primary : pal.text,
+                fontWeight: isCurrent ? 700 : 600,
+              },
+            },
+          },
+          itemStyle: {
+            color: fill,
+            borderColor: border,
+            borderWidth: width,
+            borderType: type,
+            opacity: opacity,
+            shadowBlur: isSelected ? 8 : 0,
+            shadowColor: pal.primary,
+          },
+        }
+      })
+      var links = []
+      var strokes = []
+      var half = h / 2 / geo.rowH
+      Object.keys(graph.steps).forEach(function (slug) {
+        graph.steps[slug].next.forEach(function (t) {
+          if (!geo.pos[t]) return
+          var f = edgeFacts(state, current, slug, t)
+          var color = pal.border
+          if (f.status === 'done') color = pal.success
+          else if (f.status === 'failed') color = pal.danger
+          else if (f.status === 'waiting') color = pal.warning
+          else if (f.status === 'active') color = pal.primary
+          if (f.taken) color = f.projected ? pal.warning : pal.success
+          var dashed = f.off || f.projected || f.status === 'waiting' || f.status === 'pending'
+          var stroke = {
+            color: color,
+            width: f.taken ? 3 : 1.5,
+            type: dashed ? 'dashed' : 'solid',
+            opacity: f.off ? 0.5 : 1,
+          }
+          // The visible line runs from the foot of one box to the head of the next.
+          // ECharts trims a graph edge by the node's average half-size, which swallows it
+          // when the boxes are wider than the rows are apart; so the graph's own links
+          // carry the data and the labels, and an overlay series draws the strokes.
+          strokes.push({
+            coords: [
+              [geo.pos[slug].x, geo.pos[slug].y + half],
+              [geo.pos[t].x, geo.pos[t].y - half],
+            ],
+            lineStyle: stroke,
+          })
+          links.push({
+            source: slug,
+            target: t,
+            lineStyle: { opacity: 0, curveness: 0 },
+            label: f.token
+              ? {
+                  show: true,
+                  formatter: f.token.length > 24 ? f.token.substring(0, 22) + '…' : f.token,
+                  color: f.taken ? pal.success : pal.muted,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  backgroundColor: pal.surface,
+                  padding: [1, 4],
+                  position: 'middle',
+                }
+              : { show: false },
+          })
+        })
+      })
+      var at = function (slug) {
+        return [geo.pos[slug].x, geo.pos[slug].y]
+      }
+      var series = [
+        {
+          type: 'lines',
+          coordinateSystem: 'cartesian2d',
+          silent: true,
+          z: 2,
+          symbol: ['none', 'arrow'],
+          symbolSize: 8,
+          data: strokes,
+        },
+        {
+          type: 'graph',
+          coordinateSystem: 'cartesian2d',
+          layout: 'none',
+          roam: false,
+          z: 3,
+          cursor: 'pointer',
+          data: data,
+          links: links,
+          emphasis: { focus: 'none', scale: false },
+        },
+      ]
+      if (pulse && current && geo.pos[current]) {
+        series.push({
+          type: 'effectScatter',
+          coordinateSystem: 'cartesian2d',
+          silent: true,
+          z: 1,
+          symbol: 'roundRect',
+          symbolSize: [w, h],
+          showEffectOn: 'render',
+          rippleEffect: { period: 3, scale: 1.2, brushType: 'stroke', color: pal.primary },
+          itemStyle: { color: 'rgba(0,0,0,0)', borderColor: pal.primary, borderWidth: 0 },
+          data: [{ id: current, value: at(current) }],
+        })
+      }
+      if (focusSlug && geo.pos[focusSlug]) {
+        series.push({
+          type: 'scatter',
+          coordinateSystem: 'cartesian2d',
+          silent: true,
+          z: 4,
+          symbol: 'roundRect',
+          symbolSize: [w + 12, h + 12],
+          itemStyle: { color: 'rgba(0,0,0,0)', borderColor: pal.text, borderWidth: 3 },
+          data: [{ id: focusSlug, value: at(focusSlug) }],
+        })
+      }
+      return {
+        animation: false,
+        backgroundColor: pal.surface,
+        grid: { left: 0, right: 0, top: 0, bottom: 0 },
+        xAxis: { type: 'value', min: 0, max: 1, show: false },
+        yAxis: { type: 'value', min: -0.5, max: geo.rows - 0.5, inverse: true, show: false },
+        tooltip: {
+          trigger: 'item',
+          confine: true,
+          formatter: function (p) {
+            return p && p.data && p.data.tooltipText ? p.data.tooltipText : ''
+          },
+        },
+        series: series,
+      }
+    }
+
+    /**
+     * Draws the flow through the console's shared chart API (`renderChart`). Returns false
+     * when there is none (no ECharts in this page), so the caller draws the native svg.
+     */
+    function drawChartGraph(view, lay, current) {
+      var rt = runtime
+      if (!rt || typeof rt.renderChart !== 'function') return false
+      var graph = active.graph
+      var wrap = make('div', 'dag-graph')
+      wrap.setAttribute('data-proc-graph', '')
+      wrap.setAttribute('tabindex', '0')
+      wrap.setAttribute('role', 'group')
+      wrap.setAttribute('aria-label', graphSummary(viewState(), current))
+      var chartHost = make('div', 'dag-chart')
+      chartHost.setAttribute('aria-hidden', 'true')
+      var live = make('div', 'dag-live')
+      live.setAttribute('aria-live', 'polite')
+      live.setAttribute('aria-atomic', 'true')
+      wrap.appendChild(chartHost)
+      wrap.appendChild(live)
+      view.appendChild(wrap)
+
+      var reduced = !!(
+        host.matchMedia && host.matchMedia('(prefers-reduced-motion: reduce)').matches
+      )
+      wrap.setAttribute('data-pulse', reduced || !current ? 'off' : 'on')
+      var pal = chartPalette(view)
+      var widthOf = function () {
+        return chartHost.clientWidth || view.clientWidth || 320
+      }
+      var geo = flowGeometry(lay, widthOf())
+      var hasFocus = false
+      var firstStep = function () {
+        return selectedStep || current || graph.start || Object.keys(graph.steps)[0]
+      }
+      var focusSlug = function () {
+        return graph.steps[graphFocusSlug] ? graphFocusSlug : firstStep()
+      }
+      var option = function () {
+        return flowOption(lay, current, geo, pal, hasFocus ? focusSlug() : null, !reduced)
+      }
+      chartHost.style.height = geo.height + 'px'
+      var chart = rt.renderChart(chartHost, option())
+      if (!chart) {
+        view.removeChild(wrap)
+        return false
+      }
+      var g = { chart: chart, host: chartHost, observer: null, disposed: false }
+      graphView = g
+      var redraw = function () {
+        if (g.disposed || (chart.isDisposed && chart.isDisposed())) return
+        chart.setOption(option(), true)
+      }
+      if (typeof chart.on === 'function') {
+        chart.on('click', function (params) {
+          if (params && params.dataType === 'node' && params.data && params.data.id) {
+            graphFocusSlug = params.data.id
+            selectStep(params.data.id)
+          }
+        })
+      }
+
+      var moveTo = function (slug) {
+        if (!slug || !graph.steps[slug]) return
+        graphFocusSlug = slug
+        hasFocus = true
+        redraw()
+        live.textContent = announceStep(slug)
+      }
+      wrap.addEventListener('focus', function () {
+        hasFocus = true
+        redraw()
+        live.textContent = announceStep(focusSlug())
+      })
+      wrap.addEventListener('blur', function () {
+        hasFocus = false
+        redraw()
+      })
+      wrap.addEventListener('keydown', function (ev) {
+        var k = ev.key
+        var slug = focusSlug()
+        var target = null
+        if (k === 'ArrowDown') {
+          target = graph.steps[slug].next.filter(function (t) {
+            return !!graph.steps[t]
+          })[0]
+        } else if (k === 'ArrowUp') {
+          target = Object.keys(graph.steps).filter(function (s) {
+            return graph.steps[s].next.indexOf(slug) !== -1
+          })[0]
+        } else if (k === 'ArrowRight' || k === 'ArrowLeft') {
+          var row =
+            lay.rows.filter(function (r) {
+              return r.indexOf(slug) !== -1
+            })[0] || []
+          target = row[row.indexOf(slug) + (k === 'ArrowRight' ? 1 : -1)]
+        } else if (k === 'Enter' || k === ' ' || k === 'Spacebar') {
+          if (ev.preventDefault) ev.preventDefault()
+          graphFocusSlug = slug
+          refocusGraph = true
+          selectStep(slug)
+          return
+        } else {
+          return
+        }
+        if (ev.preventDefault) ev.preventDefault()
+        moveTo(target)
+      })
+
+      // The host is not as wide as it will be when this runs (a hidden tab, a layout still
+      // settling): lay the nodes out again for the width it ends up with.
+      var RO =
+        host.ResizeObserver || (typeof ResizeObserver !== 'undefined' ? ResizeObserver : null)
+      if (RO) {
+        var lastWidth = Math.round(widthOf())
+        g.observer = new RO(function () {
+          var now = Math.round(widthOf())
+          if (g.disposed || !now || now === lastWidth) return
+          lastWidth = now
+          geo = flowGeometry(lay, now)
+          chartHost.style.height = geo.height + 'px'
+          redraw()
+          if (chart.resize) chart.resize({ width: 'auto', height: 'auto' })
+        })
+        g.observer.observe(chartHost)
+      }
+      if (refocusGraph) {
+        refocusGraph = false
+        if (wrap.focus) wrap.focus()
+      }
+      return true
+    }
+
+    /** The hand-drawn svg: what draws the flow when the page has no ECharts. */
+    function buildNativeGraph(lay, current) {
+      var graph = active.graph
+      var state = viewState()
       var svgNS = 'http://www.w3.org/2000/svg'
       var nodeW = 200
       var nodeH = 52
       var gapX = 24
-      var gapY = 76
-      var lay = layersOf(graph)
+      var gapY = 84
       var widest = lay.rows.reduce(function (n, r) {
         return Math.max(n, r.length)
       }, 1)
       var width = widest * (nodeW + gapX) + gapX
       var svg = document.createElementNS(svgNS, 'svg')
       svg.setAttribute('class', 'dag-canvas')
+      svg.setAttribute('role', 'group')
+      svg.setAttribute('aria-label', graphSummary(state, current))
       svg.setAttribute('viewBox', '0 0 ' + width + ' ' + (lay.rows.length * gapY + 20))
       var pos = {}
       lay.rows.forEach(function (row, r) {
@@ -462,7 +1910,6 @@
           pos[slug] = { x: offset + i * (nodeW + gapX), y: 16 + r * gapY, layer: r }
         })
       })
-      var current = activeRun && activeRun.state ? activeRun.state.currentStep : null
       Object.keys(graph.steps).forEach(function (slug) {
         graph.steps[slug].next.forEach(function (t) {
           if (!pos[t]) return
@@ -471,18 +1918,28 @@
           var y1 = pos[slug].y + nodeH
           var x2 = pos[t].x + nodeW / 2
           var y2 = pos[t].y
+          var f = edgeFacts(state, current, slug, t)
+
+          var edgeClasses = ['dag-edge', f.status]
+          if (f.taken) edgeClasses.push('taken')
+          if (f.off) edgeClasses.push('off_path')
+          if (f.projected) edgeClasses.push('projected')
           edge.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2)
-          edge.setAttribute('class', 'dag-edge ' + stepStatus(t))
+          edge.setAttribute('class', edgeClasses.join(' '))
           edge.setAttribute('data-from', slug)
           edge.setAttribute('data-to', t)
           svg.appendChild(edge)
-          var guard = graph.steps[t].condition
-          if (guard && graph.steps[slug].next.length > 1) {
+          if (f.token) {
             var label = document.createElementNS(svgNS, 'text')
-            label.setAttribute('class', 'dag-edge-label')
-            label.setAttribute('x', (x1 + x2) / 2)
-            label.setAttribute('y', (y1 + y2) / 2)
-            label.textContent = guard
+            var labelClasses = ['dag-edge-label', f.status]
+            if (f.taken) labelClasses.push('taken')
+            if (f.off) labelClasses.push('off_path')
+            if (f.projected) labelClasses.push('projected')
+            label.setAttribute('class', labelClasses.join(' '))
+            label.setAttribute('x', x2)
+            label.setAttribute('y', y2 - 6)
+            label.setAttribute('text-anchor', 'middle')
+            label.textContent = f.token.length > 24 ? f.token.substring(0, 22) + '…' : f.token
             svg.appendChild(label)
           }
         })
@@ -491,7 +1948,6 @@
         var step = graph.steps[slug]
         var p = pos[slug]
         var status = stepStatus(slug)
-        var ahead = projectedStatus(slug, projection)
         var g = document.createElementNS(svgNS, 'g')
         g.setAttribute(
           'class',
@@ -499,16 +1955,23 @@
             status +
             (step.stepType === 'decision' ? ' decision' : '') +
             (slug === current ? ' current' : '') +
-            (slug === selectedStep ? ' selected' : '') +
-            (ahead ? ' projected' : ''),
+            (isProjected(slug) ? ' projected' : '') +
+            (slug === selectedStep ? ' selected' : ''),
         )
         g.setAttribute('data-step', slug)
         g.setAttribute('data-status', status)
-        if (ahead) g.setAttribute('data-projected-status', ahead)
         g.setAttribute('data-layer', String(p.layer))
+        g.setAttribute('tabindex', '0')
+        g.setAttribute('role', 'button')
+        g.setAttribute('aria-label', announceStep(slug))
         g.addEventListener('click', function () {
-          selectedStep = slug
-          render()
+          selectStep(slug)
+        })
+        g.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+            if (ev.preventDefault) ev.preventDefault()
+            selectStep(slug)
+          }
         })
         var rect = document.createElementNS(svgNS, 'rect')
         rect.setAttribute('x', p.x)
@@ -530,8 +1993,7 @@
         sub.textContent =
           (step.stepType || 'task').toUpperCase() +
           (step.executor ? ' · ' + step.executor : '') +
-          (status !== 'definition' ? ' · ' + status : '') +
-          (ahead ? ' → ' + ahead : '')
+          (status !== 'definition' ? ' · ' + status : '')
         g.appendChild(sub)
         var title = document.createElementNS(svgNS, 'text')
         title.setAttribute('x', p.x + 30)
@@ -542,68 +2004,163 @@
         g.appendChild(title)
         svg.appendChild(g)
       })
-      var col = make('div', 'exec-dag-col')
-      var head = make('div', 'exec-col-header')
-      head.innerHTML = '<span>' + vIcon('workflow', 14) + ' Workflow</span>'
-      head.appendChild(make('span', 'count-badge', Object.keys(graph.steps).length + ' steps'))
+      return svg
+    }
+
+    function renderGraph(hostEl) {
+      disposeGraph()
+      var graph = active.graph
+      var state = viewState()
+      var lay = layersOf(graph)
+      var current = state ? state.currentStep : null
+      var col = make('div', 'exec-dag-col flowcard card')
+      var head = make('div', 'col-head exec-col-header')
+      head.innerHTML = '<span>' + vIcon('workflow', 14) + ' Flow</span>'
+      head.appendChild(
+        make('span', 'count-badge count', Object.keys(graph.steps).length + ' steps'),
+      )
       col.appendChild(head)
-      var view = make('div', 'exec-dag-view')
-      view.appendChild(svg)
+      var view = make('div', 'exec-dag-view graphbox')
       col.appendChild(view)
-      host.appendChild(col)
+      col.appendChild(stepList(lay, current))
+      var hint = make(
+        'div',
+        'rail-hint hint',
+        !activeRun
+          ? 'La forma del procedimiento. Se mantiene visible en todos los tabs.'
+          : 'El nodo seleccionado es el que se abre abajo. Se mantiene visible en todos los tabs.',
+      )
+      col.appendChild(hint)
+      // Attached before the chart is drawn, so the chart measures the width it really has.
+      hostEl.appendChild(col)
+      if (!drawChartGraph(view, lay, current)) {
+        view.className += ' exec-dag-view-native'
+        view.appendChild(buildNativeGraph(lay, current))
+      }
+    }
+
+    /** The same walk as a vertical list: the graph's text alternative, with each status in words. */
+    var stepListOpen = null
+
+    function stepList(lay, current) {
+      var ol = make('ol', 'proc-step-list')
+      ol.setAttribute('data-proc-step-list', '')
+      lay.rows.forEach(function (row) {
+        row.forEach(function (slug) {
+          var step = active.graph.steps[slug]
+          var status = stepStatus(slug)
+          var li = make(
+            'li',
+            'proc-step-item ' +
+              status +
+              (slug === current ? ' current' : '') +
+              (slug === selectedStep ? ' selected' : ''),
+          )
+          li.setAttribute('data-step', slug)
+          var b = button('proc-step-item-btn', null, function () {
+            selectStep(slug)
+          })
+          b.appendChild(make('span', 'proc-step-item-name', step.name || slug))
+          var token = outcomeTokenOf(slug)
+          b.appendChild(
+            make(
+              'span',
+              'proc-step-item-meta',
+              (token ? 'if ' + token + ' · ' : '') +
+                (status === 'definition' ? step.executor || 'task' : status),
+            ),
+          )
+          li.appendChild(b)
+          ol.appendChild(li)
+        })
+      })
+      // A disclosure: in the tab order at every width, open by default only on a phone.
+      var box = make('details', 'proc-step-list-box')
+      var open =
+        stepListOpen === null
+          ? !!(host.matchMedia && host.matchMedia('(max-width: 640px)').matches)
+          : stepListOpen
+      if (open) box.setAttribute('open', '')
+      box.appendChild(make('summary', 'proc-step-list-summary', 'Steps as a list'))
+      box.addEventListener('toggle', function () {
+        stepListOpen = box.open
+      })
+      box.appendChild(ol)
+      return box
     }
 
     // ---- Step card ----
     function guardText(guard) {
       if (!guard || guard.kind === 'none') return 'always'
       if (guard.kind === 'outcome') return 'outcome == ' + guard.token
-      if (guard.kind === 'artifact') return guard.artifact + ' validated (' + (guard.holds ? 'holds' : 'not yet') + ')'
+      if (guard.kind === 'artifact')
+        return guard.artifact + ' validated (' + (guard.holds ? 'holds' : 'not yet') + ')'
       return guard.text
     }
 
+    function embedOf(slug) {
+      return activeRun && activeRun.embeds && activeRun.embeds[slug] ? activeRun.embeds[slug] : null
+    }
+
     /**
-     * One artifact as a chip: its name, the state the fold gave it, and the file it lives in.
-     * The chip is what a person can act on — the artifact is a file, not a model element, so
-     * the useful affordances are "which step produced it" and "open the file".
+     * One artifact as a chip: its name, the state the fold gave it, the step that produced it,
+     * and a way to read it. The file travels inside the console when it fit; otherwise it is
+     * on the domain owner's machine and the chip says so.
      */
     function artifactChip(slug) {
       var def = active.graph.artifacts[slug] || {}
-      var st = activeRun && activeRun.state ? activeRun.state.artifacts[slug] : null
+      var state = viewState()
+      var st = state ? state.artifacts[slug] : null
       var chip = make('div', 'proc-artifact')
       chip.setAttribute('data-proc-artifact', slug)
       if (st) chip.setAttribute('data-status', st.status)
-      chip.appendChild(make('span', 'proc-artifact-name', def.name || slug))
+      var top = make('div', 'proc-artifact-top')
+      top.appendChild(make('span', 'proc-artifact-name', def.name || slug))
+      if (st) {
+        var stateEl = make(
+          'span',
+          'proc-artifact-state',
+          st.status + (st.rev ? ' · rev ' + shortHash(st.rev) : ''),
+        )
+        if (st.rev) stateEl.setAttribute('title', 'rev ' + st.rev)
+        top.appendChild(stateEl)
+      }
+      chip.appendChild(top)
 
+      var links = make('div', 'proc-artifact-links')
       var producer = (def.producers || [])[0] || (st && st.step) || null
       if (producer && stepsOf(active)[producer]) {
-        var jump = make('button', 'proc-artifact-producer', 'produced by ' + stepName(producer))
-        jump.setAttribute('type', 'button')
-        jump.addEventListener('click', function () {
-          selectedStep = producer
-          render()
-        })
-        chip.appendChild(jump)
-      }
-      if (st) {
-        chip.appendChild(
-          make('span', 'proc-artifact-state', st.status + (st.rev ? ' · rev ' + st.rev : '')),
+        links.appendChild(
+          button('proc-artifact-producer', 'produced by ' + stepName(producer), function () {
+            selectedStep = producer
+            render()
+          }),
         )
       }
-      var path = verifyPathOf(def)
+      var path = filePathOf(slug, def)
+      var embed = embedOf(slug)
       // An artifact the run has not produced yet has no file to open: offering one invites a
       // click that can only fail. The name and the state already say it is still expected.
       var exists = st && st.status !== 'expected' && st.status !== 'not_required'
       if (path && exists) {
-        var open = make('button', 'proc-artifact-open', 'Open ' + path)
-        open.setAttribute('type', 'button')
-        open.setAttribute('title', 'Open ' + path + ' from the domain folder')
-        open.addEventListener('click', function () {
-          openArtifactFile(path, open)
+        var hasContent = embed && (embed.text !== undefined || embed.data !== undefined)
+        var open = button('proc-artifact-open', 'Open ' + path, function () {
+          if (hasContent) showArtifact(def, path, embed)
+          else openArtifactFile(path, open)
         })
-        chip.appendChild(open)
+        open.setAttribute(
+          'title',
+          hasContent ? 'Open ' + path : 'Open ' + path + ' from the domain folder',
+        )
+        links.appendChild(open)
+        if (embed && embed.omitted)
+          links.appendChild(
+            make('span', 'proc-artifact-remote', "Available on the domain owner's machine"),
+          )
       } else if (path) {
-        chip.appendChild(make('span', 'proc-artifact-pending', 'not produced yet'))
+        links.appendChild(make('span', 'proc-artifact-pending', 'not produced yet'))
       }
+      if (links.children.length) chip.appendChild(links)
       return chip
     }
 
@@ -614,16 +2171,29 @@
       return m ? m[1].trim() : ''
     }
 
+    /** The artifact's file for this run: the path the run recorded, else its resolved verify. */
+    function filePathOf(slug, def) {
+      var embed = embedOf(slug)
+      if (embed && embed.path) return embed.path
+      var row =
+        activeRun && activeRun.model && activeRun.model.artifacts
+          ? activeRun.model.artifacts[slug]
+          : null
+      if (row && typeof row.value === 'string' && row.value && (!row.kind || row.kind === 'file'))
+        return row.value
+      var path = verifyPathOf(def)
+      return path ? fillSlots(path, values()) : ''
+    }
+
     /**
-     * Opens the artifact's file. The console is static HTML, so it cannot read a local path on
-     * its own: it opens the domain folder once through the same picker the changeset writer
-     * uses, then reads and shows that one file. Nothing is written, and a refused permission
-     * leaves the chip saying so.
+     * Opens the artifact's file from the domain folder. The console is static HTML, so it
+     * cannot read a local path on its own: it opens the domain folder once through the same
+     * picker the changeset writer uses, then reads and shows that one file. This is the domain
+     * owner's path; a recipient reads the copy embedded at export time.
      */
-    function openArtifactFile(path, button) {
+    function openArtifactFile(path, btn) {
       // The page this view is mounted in owns the picker, not whatever global the module was
       // first loaded under: a view can be mounted into a different document.
-      var host = (document && document.defaultView) || GLOBAL
       var fsa = host.nnFsa
       var rt = host.nnConsole
       var writer = null
@@ -633,39 +2203,40 @@
         writer = rt.fsaWriter()
       }
       if (!writer || typeof writer.connect !== 'function') {
-        button.textContent = 'Open ' + path + ' — folder access is not available in this browser'
-        button.disabled = true
+        btn.textContent = 'Open ' + path + ' — folder access is not available in this browser'
+        btn.disabled = true
         return
       }
-      button.disabled = true
-      button.textContent = 'Opening ' + path + '…'
+      btn.disabled = true
+      btn.textContent = 'Opening ' + path + '…'
       writer
         .connect(meta.domainId)
         .then(function (res) {
           if (!res || !res.ok) {
-            button.textContent = 'Open ' + path + ' — ' + ((res && res.reason) || 'failed')
-            button.disabled = false
+            btn.textContent = 'Open ' + path + ' — ' + ((res && res.reason) || 'failed')
+            btn.disabled = false
             return
           }
           return readDomainFile(res.handle, path).then(function (text) {
             // The chip already knows which artifact this is; deriving it from the file name
             // would guess (a file `draft.md` can back an artifact named `draft-doc`).
-            showArtifact(defOfArtifact(button) || null, path, text)
-            button.textContent = 'Open ' + path
-            button.disabled = false
+            showArtifact(defOfArtifact(btn) || null, path, { kind: 'text', text: text })
+            btn.textContent = 'Open ' + path
+            btn.disabled = false
           })
         })
         .catch(function () {
-          button.textContent = 'Open ' + path + ' — could not read it'
-          button.disabled = false
+          btn.textContent = 'Open ' + path + ' — could not read it'
+          btn.disabled = false
         })
     }
 
     /** The artifact definition the chip that owns this button was built for. */
-    function defOfArtifact(button) {
-      var chip = button.parentNode
-      while (chip && chip.getAttribute && !chip.getAttribute('data-proc-artifact')) chip = chip.parentNode
-      var slug = chip && chip.getAttribute('data-proc-artifact')
+    function defOfArtifact(btn) {
+      var chip = btn.parentNode
+      while (chip && chip.getAttribute && !chip.getAttribute('data-proc-artifact'))
+        chip = chip.parentNode
+      var slug = chip && chip.getAttribute && chip.getAttribute('data-proc-artifact')
       return slug && active.graph.artifacts ? active.graph.artifacts[slug] : null
     }
 
@@ -697,33 +2268,87 @@
         })
     }
 
-    /** Shows the file's content in a panel inside the view: it reads, it never writes. */
-    function showArtifact(def, path, text) {
-      var host = container.querySelector('.proc-artifact-view')
-      if (!host) {
-        host = make('div', 'proc-artifact-view')
-        root.appendChild(host)
+    /** A blob URL for embedded media: the console's CSP allows `blob:` media, not `data:`. */
+    function blobUrlOf(embed) {
+      try {
+        var bin = host.atob(embed.data)
+        var bytes = new Uint8Array(bin.length)
+        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+        var blob = new host.Blob([bytes], { type: embed.mime || 'application/octet-stream' })
+        return host.URL.createObjectURL(blob)
+      } catch {
+        return ''
       }
-      host.innerHTML = ''
+    }
+
+    /** The embedded content itself: text, Markdown, an image or a player. */
+    function embedBody(embed, path) {
+      if (embed.text !== undefined) {
+        if (/\.md$/i.test(path)) {
+          var md = make('div', 'proc-artifact-view-body proc-embed-markdown')
+          appendMarkdown(md, embed.text, true)
+          return md
+        }
+        return make(
+          'pre',
+          'proc-artifact-view-body',
+          embed.text === '' ? '(empty file)' : embed.text,
+        )
+      }
+      if (embed.data !== undefined && embed.kind === 'image') {
+        var img = make('img', 'proc-embed-image')
+        img.setAttribute('alt', path)
+        img.setAttribute('src', 'data:' + embed.mime + ';base64,' + embed.data)
+        return img
+      }
+      if (embed.data !== undefined && (embed.kind === 'audio' || embed.kind === 'video')) {
+        var player = make(embed.kind, 'proc-embed-media')
+        player.setAttribute('controls', '')
+        var url = blobUrlOf(embed)
+        if (url) player.setAttribute('src', url)
+        return player
+      }
+      return make(
+        'div',
+        'proc-artifact-remote',
+        embed.omitted === 'too-large' || embed.omitted === 'budget'
+          ? "Too large to travel in this console: available on the domain owner's machine."
+          : "Available on the domain owner's machine.",
+      )
+    }
+
+    /** Shows the file's content in a panel inside the view: it reads, it never writes. */
+    function showArtifact(def, path, embed) {
+      var panel = container.querySelector('.proc-artifact-view')
+      if (!panel) {
+        panel = make('div', 'proc-artifact-view')
+        root.appendChild(panel)
+      }
+      panel.innerHTML = ''
       var head = make('div', 'proc-artifact-view-head')
       head.appendChild(make('span', 'proc-artifact-view-title', (def && def.name) || path))
-      var close = make('button', 'proc-artifact-view-close', 'Close')
-      close.setAttribute('type', 'button')
-      close.addEventListener('click', function () {
-        host.remove()
-      })
-      head.appendChild(close)
-      host.appendChild(head)
-      host.appendChild(make('div', 'proc-artifact-view-path', path))
-      var body = make('pre', 'proc-artifact-view-body', text === '' ? '(empty file)' : text)
-      host.appendChild(body)
+      head.appendChild(
+        button('proc-artifact-view-close', 'Close', function () {
+          panel.remove()
+        }),
+      )
+      panel.appendChild(head)
+      panel.appendChild(make('div', 'proc-artifact-view-path', path))
+      panel.appendChild(embedBody(embed || { kind: 'text', text: '' }, path))
+      if (panel.scrollIntoView) {
+        try {
+          panel.scrollIntoView({ block: 'nearest' })
+        } catch {
+          /* jsdom */
+        }
+      }
     }
 
     /**
      * A labeled row of artifact chips. A step with no artifacts prints nothing, so the card
      * never shows an empty "Inputs:" line that reads like a missing value.
      */
-    function renderArtifactRow(host, label, slugs) {
+    function renderArtifactRow(hostEl, label, slugs) {
       if (!Array.isArray(slugs) || !slugs.length) return
       var row = make('div', 'proc-artifact-row')
       row.setAttribute('data-proc-artifact-row', label.toLowerCase())
@@ -733,21 +2358,51 @@
         list.appendChild(artifactChip(slug))
       })
       row.appendChild(list)
-      host.appendChild(row)
+      hostEl.appendChild(row)
     }
 
-    function renderStepCard(host, projection) {
+    /** What the person reviews, shown in the card: the step's inputs that travel inline. */
+    function renderReviewMaterial(card, step) {
+      var slugs = Array.isArray(step.inputs) ? step.inputs : []
+      slugs.forEach(function (slug) {
+        var embed = embedOf(slug)
+        if (!embed) return
+        var def = active.graph.artifacts[slug] || {}
+        var box = make('details', 'proc-embed')
+        box.setAttribute('data-proc-embed', slug)
+        if (embed.text !== undefined || embed.data !== undefined) box.setAttribute('open', '')
+        box.appendChild(
+          make('summary', 'proc-embed-title', (def.name || slug) + ' · ' + embed.path),
+        )
+        box.appendChild(embedBody(embed, embed.path))
+        card.appendChild(box)
+      })
+    }
+
+    /** Command and similar technical facts: collapsed, for whoever needs them. */
+    function detailsBox(cls) {
+      var d = make('details', 'proc-details' + (cls ? ' ' + cls : ''))
+      d.appendChild(make('summary', 'proc-details-summary', 'Details'))
+      return d
+    }
+
+    function renderStepCard(hostEl) {
       var graph = active.graph
-      var slug = selectedStep || (activeRun && activeRun.state && activeRun.state.currentStep) || graph.start || Object.keys(graph.steps)[0]
-      var col = make('div', 'exec-active-col')
-      host.appendChild(col)
+      var state = viewState()
+      if (activeRun && !selectedStep && state && TERMINAL_RUN[state.status]) {
+        renderRunSummary(hostEl, state)
+        return
+      }
+      var slug =
+        selectedStep || (state && state.currentStep) || graph.start || Object.keys(graph.steps)[0]
       if (!slug || !graph.steps[slug]) {
-        col.appendChild(make('div', 'empty-state', 'No steps in this procedure.'))
+        hostEl.appendChild(make('div', 'empty-state', 'No steps in this procedure.'))
         return
       }
       var step = graph.steps[slug]
       var status = stepStatus(slug)
-      var st = activeRun && activeRun.state ? activeRun.state.steps[slug] : null
+      var st = state ? state.steps[slug] : null
+      var vals = values()
       var card = make('article', 'exec-step-card nn-card')
       card.setAttribute('data-nn-component', 'element-card')
       card.setAttribute('data-step', slug)
@@ -756,40 +2411,100 @@
       type.innerHTML = vIcon(step.stepType || 'task', 14) + ' '
       type.appendChild(document.createTextNode((step.stepType || 'task').toUpperCase()))
       head.appendChild(type)
-      if (step.executor) head.appendChild(make('span', 'step-executor-pill', 'Executor: ' + step.executor))
-      if (step.condition) head.appendChild(make('span', 'step-cond-pill', 'IF: ' + step.condition))
-      head.appendChild(make('span', 'step-state-badge state-' + status, status === 'definition' ? 'Definition' : status))
+      if (isSystemStep(step)) {
+        var sys = make('span', 'step-system-pill', 'Runs on the system')
+        sys.setAttribute('data-proc-system', step.executor)
+        head.appendChild(sys)
+      } else if (step.executor) {
+        head.appendChild(
+          make(
+            'span',
+            'step-executor-pill',
+            step.executor === 'human' ? 'Your step' : 'Executor: ' + step.executor,
+          ),
+        )
+      }
+      var token = outcomeTokenOf(slug)
+      if (step.condition)
+        head.appendChild(
+          make('span', 'step-cond-pill', token ? 'If ' + token : 'If: ' + step.condition),
+        )
+      head.appendChild(
+        make(
+          'span',
+          'step-state-badge state-' + status,
+          status === 'definition' ? 'Definition' : status,
+        ),
+      )
       card.appendChild(head)
       card.appendChild(make('h2', 'exec-step-title', step.name || slug))
+      if (step.decision) {
+        card.appendChild(make('p', 'exec-step-question', fillSlots(step.decision, vals)))
+      }
       var el = elementOf(slug)
       if (el && el.description) {
         var desc = make('div', 'exec-step-desc')
-        appendMarkdown(desc, el.description)
+        appendMarkdown(desc, fillSlots(el.description, vals))
         card.appendChild(desc)
       }
-      var facts = make('div', 'exec-step-facts')
-      function fact(label, value) {
-        if (value === undefined || value === null || value === '') return
-        facts.appendChild(make('div', 'exec-step-fact', label + ': ' + value))
+      var running = activeRun && state && !TERMINAL_RUN[state.status]
+      // The step the person's unsent answer led to: the export itself is still at the previous one.
+      var previewOnly =
+        running &&
+        !!activeRun.state &&
+        slug === state.currentStep &&
+        slug !== activeRun.state.currentStep
+      if (
+        !previewOnly &&
+        isSystemStep(step) &&
+        running &&
+        status !== 'done' &&
+        status !== 'off_path'
+      ) {
+        var note = make('div', 'proc-system-note', SYSTEM_STEP_NOTE)
+        note.setAttribute('data-proc-system-note', '')
+        card.appendChild(note)
       }
-      fact('Decision', step.decision)
-      fact('Command', step.command)
+      if (activeRun) renderReviewMaterial(card, step)
+
+      var facts = make('div', 'exec-step-facts')
+      function fact(label, value, hostFacts) {
+        if (value === undefined || value === null || value === '') return
+        ;(hostFacts || facts).appendChild(make('div', 'exec-step-fact', label + ': ' + value))
+      }
       fact('Produces', step.produces)
       renderArtifactRow(facts, 'Inputs', step.inputs)
       renderArtifactRow(facts, 'Outputs', step.outputs)
       if (st) {
-        fact('Attempt', st.attempt ? String(st.attempt) : '')
         fact('Waiting on', st.waitingOn)
         fact('Failure', st.failure)
-        if (st.outcome || st.next) fact('Outcome', (st.outcome || '—') + (st.next ? ' → ' + stepName(st.next) : ''))
+        if (st.outcome || st.next)
+          fact('Outcome', (st.outcome || '—') + (st.next ? ' → ' + stepName(st.next) : ''))
       }
       if (facts.children.length) card.appendChild(facts)
-      renderProjection(card, slug, projection)
+
+      if (activeRun) renderDecided(card, slug)
+      if (activeRun && slug === (activeRun.state && activeRun.state.currentStep)) {
+        renderActions(card, activeRun.state)
+      } else if (previewOnly) {
+        renderPreviewHandoff(card)
+      }
+      renderRequestBox(card, slug)
+
       if (step.next.length > 1) {
         var branches = make('div', 'branch-outcomes')
         step.next.forEach(function (t) {
           var target = graph.steps[t]
-          branches.appendChild(make('div', 'branch-outcome', stepName(t) + ' — ' + ((target && target.condition) || 'no guard')))
+          var tok = outcomeTokenOf(t)
+          branches.appendChild(
+            make(
+              'div',
+              'branch-outcome',
+              (tok ? labelOfToken(tok) : (target && target.condition) || 'Otherwise') +
+                ' → ' +
+                stepName(t),
+            ),
+          )
         })
         card.appendChild(branches)
       }
@@ -802,56 +2517,108 @@
         })
         card.appendChild(raciBox)
       }
-      col.appendChild(card)
+      var details = detailsBox()
+      fact('Command', step.command ? fillSlots(step.command, vals) : '', details)
+      if (st) fact('Attempt', st.attempt ? String(st.attempt) : '', details)
+      if (details.children.length > 1) card.appendChild(details)
+      hostEl.appendChild(card)
     }
 
     /**
-     * The pending change on this step, shown the way every other console view shows one:
-     * the value it has now, then the value it would have. A step with nothing pending on it
-     * prints nothing, so the card never claims a change that is not queued.
+     * What a step reached only through the person's unsent answers shows instead of actions:
+     * nothing here can be completed until the Runner has recorded the answer before it. The
+     * button is the response bar's own save control; this view writes nothing itself.
      */
-    function renderProjection(card, slug, projection) {
-      if (!projection) return
-      var now = activeRun && activeRun.state ? activeRun.state.steps[slug] : null
-      var next = projection.steps ? projection.steps[slug] : null
-      if (!next) return
-      var from = now ? now.status : 'pending'
-      var to = next.status
-      if (from === to) return
-
-      var box = make('div', 'proc-projection')
-      box.setAttribute('data-proc-projection', slug)
-      var head = make('div', 'proc-projection-title', 'Pending change')
-      box.appendChild(head)
-      var row = make('div', 'proc-projection-row')
-      row.appendChild(make('span', 'proc-projection-from', from))
-      row.appendChild(make('span', 'proc-projection-arrow', '→'))
-      row.appendChild(make('span', 'proc-projection-to', to))
-      box.appendChild(row)
-      // Every fact the pending events assert, listed exactly as the event carries it.
-      var facts = []
-      pendingEventsOf(activeRun).forEach(function (e) {
-        if (e.step !== slug) return
-        var bits = [e.kind]
-        ;['outcome', 'next', 'value', 'field'].forEach(function (k) {
-          if (e[k] !== undefined && e[k] !== '') bits.push(k + ': ' + e[k])
-        })
-        facts.push(bits.join(' · '))
-      })
-      if (facts.length) {
-        var list = make('div', 'proc-projection-facts')
-        facts.forEach(function (f) {
-          list.appendChild(make('div', 'proc-projection-fact', f))
-        })
-        box.appendChild(list)
-      }
-      box.appendChild(
+    function renderPreviewHandoff(card) {
+      var handoff = make('div', 'proc-actions proc-preview-handoff')
+      handoff.setAttribute('data-proc-preview-handoff', '')
+      handoff.appendChild(make('strong', null, 'Next action: save your previous response'))
+      handoff.appendChild(
         make(
-          'div',
-          'proc-projection-note',
-          'Not applied yet: this view shows the run with your pending drafts. The changeset applies them.',
+          'p',
+          null,
+          'Preview only: the Runner has not confirmed the previous response. Save it and send the saved file to the domain owner, who imports it; then open the updated export. There is nothing to complete on this step yet.',
         ),
       )
+      if (responseHost.querySelector('[data-proc-save-response]')) {
+        handoff.appendChild(
+          button(
+            'proc-action',
+            'Save your response',
+            function () {
+              var save = responseHost.querySelector('[data-proc-save-response]')
+              if (save) save.click()
+            },
+            { 'data-proc-preview-save': '' },
+          ),
+        )
+      }
+      card.appendChild(handoff)
+    }
+
+    /** "Decided: approve · not sent yet", with Undo, on a step the person answered. */
+    function renderDecided(card, slug) {
+      var mine = draftRequestsOf(activeRun).filter(function (r) {
+        return r.step === slug
+      })
+      mine.forEach(function (r) {
+        var box = make('div', 'proc-decided')
+        box.setAttribute('data-proc-decided', r.action)
+        var what =
+          r.action === 'complete'
+            ? r.outcome
+              ? 'Decided: ' + r.outcome
+              : 'Marked as done'
+            : r.action === 'fail'
+              ? 'Failed: ' + (r.value || '')
+              : r.action === 'wait'
+                ? 'Waiting on: ' + (r.value || '')
+                : 'Asked to start'
+        box.appendChild(make('span', 'proc-decided-what', what))
+        box.appendChild(make('span', 'proc-decided-state', 'not sent yet'))
+        if (r.action === 'complete' && r.value)
+          box.appendChild(make('span', 'proc-decided-reason', r.value))
+        box.appendChild(
+          button(
+            'proc-undo',
+            'Undo',
+            function () {
+              removeDraft(r.draftId)
+            },
+            { 'data-proc-undo': r.draftId || '' },
+          ),
+        )
+        card.appendChild(box)
+      })
+    }
+
+    /**
+     * The request a person made on this step, and what became of it. A step with no request
+     * prints nothing. The badge is the answer the runner gave: pending means nobody consumed
+     * it, done means the action landed, stale and rejected carry the reason.
+     */
+    function renderRequestBox(card, slug) {
+      var mine = requestsOf(activeRun).filter(function (r) {
+        return r.step === slug
+      })
+      if (!mine.length) return
+      var box = make('div', 'proc-request-box')
+      box.setAttribute('data-proc-request', slug)
+      mine.forEach(function (r) {
+        var row = make('div', 'proc-request')
+        row.setAttribute('data-proc-request-status', r.status)
+        var head = make('div', 'proc-request-head')
+        head.appendChild(make('span', 'proc-request-action', r.action))
+        head.appendChild(make('span', 'proc-request-status status-' + r.status, r.status))
+        row.appendChild(head)
+        var bits = []
+        if (r.value) bits.push(r.value)
+        if (r.outcome) bits.push('outcome ' + r.outcome)
+        if (r.baseSeq !== undefined) bits.push('seq ' + r.baseSeq)
+        if (r.reason) bits.push(r.reason)
+        if (bits.length) row.appendChild(make('div', 'proc-request-detail', bits.join(' · ')))
+        box.appendChild(row)
+      })
       card.appendChild(box)
     }
 
@@ -872,15 +2639,395 @@
         })
     }
 
+    // ---- Closed run: what came out of it ----
+    function runDates(run) {
+      var stamps = []
+      var steps = (run.model && run.model.steps) || {}
+      Object.keys(steps).forEach(function (s) {
+        if (steps[s] && steps[s].claimedAt) stamps.push(String(steps[s].claimedAt))
+      })
+      stamps.sort()
+      return stamps.length ? { first: stamps[0], last: stamps[stamps.length - 1] } : null
+    }
+
+    function dateText(iso) {
+      var d = new Date(iso)
+      if (isNaN(d.getTime())) return String(iso)
+      return d
+        .toISOString()
+        .replace('T', ' ')
+        .replace(/:\d\d\.\d+Z$|:\d\dZ$/, ' UTC')
+    }
+
+    function renderRunSummary(hostEl, state) {
+      var card = make('article', 'exec-step-card nn-card proc-run-summary')
+      card.setAttribute('data-proc-run-summary', state.status)
+      var head = make('div', 'exec-step-head')
+      head.appendChild(
+        make('span', 'step-state-badge state-' + state.status, labelOfToken(state.status)),
+      )
+      card.appendChild(head)
+      card.appendChild(make('h2', 'exec-step-title', 'Run ' + activeRun.id + ' · ' + state.status))
+      var facts = make('div', 'exec-step-facts')
+      var decisions = state.path
+        .map(function (slug) {
+          var row = state.steps[slug]
+          return row && row.outcome ? stepName(slug) + ': ' + row.outcome : ''
+        })
+        .filter(Boolean)
+      if (decisions.length)
+        facts.appendChild(
+          make(
+            'div',
+            'exec-step-fact proc-summary-decisions',
+            'Decisions: ' + decisions.join(' · '),
+          ),
+        )
+      facts.appendChild(
+        make('div', 'exec-step-fact', 'Path: ' + state.path.map(stepName).join(' → ')),
+      )
+      var params = slotValuesOf(activeRun)
+      var keys = Object.keys(params).filter(function (k) {
+        return k !== 'run'
+      })
+      if (keys.length)
+        facts.appendChild(
+          make(
+            'div',
+            'exec-step-fact',
+            'Values: ' +
+              keys
+                .map(function (k) {
+                  return k + ' = ' + params[k]
+                })
+                .join(', '),
+          ),
+        )
+      var dates = runDates(activeRun)
+      if (dates) {
+        facts.appendChild(make('div', 'exec-step-fact', 'Started: ' + dateText(dates.first)))
+        facts.appendChild(make('div', 'exec-step-fact', 'Last step: ' + dateText(dates.last)))
+      }
+      card.appendChild(facts)
+      var produced = Object.keys(state.artifacts).filter(function (slug) {
+        var a = state.artifacts[slug]
+        return a && a.status !== 'expected' && a.status !== 'not_required'
+      })
+      renderArtifactRow(card, 'Artifacts', produced)
+      hostEl.appendChild(card)
+      if (state.status === 'completed' && store) renderHandoff(hostEl)
+    }
+
+    // ---- Final handoff of a completed run (a DRAFT, like every answer) ----
+    var HANDOFF_CHOICES = [
+      ['administrator', 'Send to the administrator'],
+      ['agent', 'Register with the agent'],
+    ]
+
+    function handoffDraftOf(run) {
+      return (
+        allDrafts().filter(function (d) {
+          return d && d.kind === 'run_handoff' && d.run === run.id
+        })[0] || null
+      )
+    }
+
+    /** The ready-to-paste prompt for the person's AI agent. It says only what import_console does. */
+    function handoffAgentPrompt(runId) {
+      return [
+        'Import the cogNNitive console I saved, with the import_console MCP tool and apply set to true, so the final handoff of run "' +
+          runId +
+          '" is registered.',
+        'The saved console HTML file is at: (write the path of the saved file here)',
+        'It carries one draft: { "kind": "run_handoff", "run": "' +
+          runId +
+          '", "choice": "agent" } (Register with the agent).',
+        'import_console with apply records that choice once beside the run (executions/' +
+          runId +
+          '/handoff.json, which procedure_state shows as handoff). It adds nothing to the models of the domaiNN and does nothing else with the run.',
+        'Then tell me what import_console returned for the handoff, including any refusal (for example RUN_NOT_COMPLETED or HANDOFF_CONFLICT). If it asks who signs the changes, ask me for my name.',
+      ].join('\n\n')
+    }
+
+    var handoffDialog = null
+
+    /**
+     * Guidance for a handoff choice, in the console's own modal (a <dialog> with the kit's
+     * nn-edit-modal classes). It explains what the person does next and writes nothing: the
+     * choice itself is the `run_handoff` draft. Escape and Close dismiss it, and focus returns
+     * to the handoff card the modal was opened from.
+     */
+    function openHandoffDialog(choice) {
+      var entry = HANDOFF_CHOICES.filter(function (c) {
+        return c[0] === choice
+      })[0]
+      if (!entry || !activeRun) return
+      if (handoffDialog && handoffDialog.parentNode)
+        handoffDialog.parentNode.removeChild(handoffDialog)
+      var dialog = make('dialog', 'nn-edit-modal proc-handoff-dialog')
+      handoffDialog = dialog
+      dialog.setAttribute('data-proc-handoff-dialog', choice)
+      dialog.setAttribute('role', 'dialog')
+      dialog.setAttribute('aria-modal', 'true')
+      dialog.setAttribute('aria-labelledby', 'proc-handoff-dialog-title')
+
+      function restoreFocus() {
+        var target =
+          container.querySelector('[data-proc-handoff-open]') ||
+          container.querySelector('[data-proc-handoff]')
+        if (!target) return
+        if (!/^(button|a|input)$/i.test(target.tagName)) target.setAttribute('tabindex', '-1')
+        if (typeof target.focus === 'function') target.focus()
+      }
+      function dismiss() {
+        if (!dialog.hasAttribute('open')) return
+        if (typeof dialog.close === 'function') dialog.close()
+        dialog.removeAttribute('open')
+        restoreFocus()
+      }
+      dialog.addEventListener('keydown', function (ev) {
+        if (ev.key !== 'Escape') return
+        ev.preventDefault()
+        dismiss()
+      })
+      dialog.addEventListener('click', function (ev) {
+        if (ev.target === dialog) dismiss()
+      })
+      // A native close (for example the browser's own Escape) still returns the focus.
+      dialog.addEventListener('close', function () {
+        if (dialog.hasAttribute('open')) return
+        restoreFocus()
+      })
+
+      var head = make('div', 'nn-edit-modal-head')
+      var title = make('h2', null, entry[1])
+      title.id = 'proc-handoff-dialog-title'
+      head.appendChild(title)
+      var x = button('nn-edit-modal-close', '×', dismiss, { 'aria-label': 'Close dialog' })
+      head.appendChild(x)
+      dialog.appendChild(head)
+
+      var bodyEl = make('div', 'nn-edit-modal-body proc-handoff-dialog-body')
+      var copyBtn = null
+      if (choice === 'administrator') {
+        bodyEl.appendChild(
+          make(
+            'p',
+            null,
+            'Your choice is recorded as an answer in this console. Nothing has been sent yet. To hand this run to the administrator:',
+          ),
+        )
+        var steps = make('ol', 'proc-handoff-steps')
+        steps.appendChild(
+          make(
+            'li',
+            null,
+            'Use "Save your response" at the top of this view to save your response and your choice in the console file.',
+          ),
+        )
+        steps.appendChild(
+          make(
+            'li',
+            null,
+            'Send or share the saved HTML file with the cogNNitive administrator, by whatever means you use.',
+          ),
+        )
+        bodyEl.appendChild(steps)
+        bodyEl.appendChild(
+          make(
+            'p',
+            'proc-hint',
+            'When the administrator imports the saved file, your choice is recorded with the run. Nothing else is added to the domaiNN.',
+          ),
+        )
+      } else {
+        bodyEl.appendChild(
+          make(
+            'p',
+            null,
+            'Your choice is recorded as an answer in this console. Nothing has been sent yet. To register this run with your AI agent:',
+          ),
+        )
+        var agentSteps = make('ol', 'proc-handoff-steps')
+        agentSteps.appendChild(
+          make(
+            'li',
+            null,
+            'Use "Save your response" at the top of this view to save your response and your choice in the console file.',
+          ),
+        )
+        agentSteps.appendChild(
+          make(
+            'li',
+            null,
+            'Copy the prompt below and paste it to your AI agent, filling in where you saved the file.',
+          ),
+        )
+        bodyEl.appendChild(agentSteps)
+        var area = make('textarea', 'proc-handoff-prompt')
+        area.value = handoffAgentPrompt(activeRun.id)
+        area.readOnly = true
+        area.setAttribute('rows', '10')
+        area.setAttribute('aria-label', 'Prompt for the AI agent')
+        area.setAttribute('data-proc-handoff-prompt', '')
+        bodyEl.appendChild(area)
+        var status = make('div', 'proc-hint')
+        status.setAttribute('role', 'status')
+        status.setAttribute('aria-live', 'polite')
+        status.setAttribute('data-proc-handoff-status', '')
+        bodyEl.appendChild(status)
+        var selectToCopy = function () {
+          area.focus()
+          area.select()
+          if (typeof area.setSelectionRange === 'function')
+            area.setSelectionRange(0, area.value.length)
+          var ok = false
+          try {
+            ok = typeof document.execCommand === 'function' && document.execCommand('copy') === true
+          } catch (e) {
+            ok = false
+          }
+          status.textContent = ok
+            ? 'Copied to the clipboard.'
+            : 'Select and copy: the prompt is selected, press Ctrl+C (Cmd+C on a Mac).'
+        }
+        copyBtn = button(
+          'nn-edit-btn nn-edit-btn-save',
+          'Copy prompt',
+          function () {
+            var win = document.defaultView || GLOBAL
+            var clip = win.navigator && win.navigator.clipboard
+            if (clip && typeof clip.writeText === 'function') {
+              var pending
+              try {
+                pending = Promise.resolve(clip.writeText(area.value))
+              } catch (e) {
+                pending = Promise.reject(e)
+              }
+              pending.then(function () {
+                status.textContent = 'Copied to the clipboard.'
+              }, selectToCopy)
+            } else {
+              selectToCopy()
+            }
+          },
+          { 'data-proc-handoff-copy': '' },
+        )
+      }
+      dialog.appendChild(bodyEl)
+
+      var actions = make('div', 'nn-edit-modal-actions')
+      if (copyBtn) actions.appendChild(copyBtn)
+      actions.appendChild(
+        button('nn-edit-btn nn-edit-btn-cancel', 'Close', dismiss, {
+          'data-proc-handoff-close': '',
+        }),
+      )
+      dialog.appendChild(actions)
+
+      ;(document.body || container).appendChild(dialog)
+      try {
+        if (typeof dialog.showModal === 'function') dialog.showModal()
+        else dialog.setAttribute('open', 'open')
+      } catch (e) {
+        dialog.setAttribute('open', 'open')
+      }
+      var first = copyBtn || actions.lastChild
+      if (first && typeof first.focus === 'function') first.focus()
+    }
+
+    /**
+     * The run is complete: the person chooses what happens to its result. The choice is one
+     * draft; nothing is written until the saved response is imported, and what is recorded is
+     * the choice itself. Each choice also opens a modal that says what to do next (guidance
+     * only: it writes nothing).
+     */
+    function renderHandoff(hostEl) {
+      var box = make('section', 'exec-step-card nn-card proc-handoff')
+      box.setAttribute('data-proc-handoff', activeRun.id)
+      box.appendChild(make('h3', 'exec-step-title', 'Hand off this run'))
+      var draft = handoffDraftOf(activeRun)
+      if (draft) {
+        var label = HANDOFF_CHOICES.filter(function (c) {
+          return c[0] === draft.choice
+        })[0]
+        var chosen = make('div', 'exec-step-fact')
+        chosen.appendChild(
+          make(
+            'span',
+            null,
+            'Your choice: ' + (label ? label[1] : draft.choice) + ' (not sent yet). ',
+          ),
+        )
+        chosen.appendChild(
+          button(
+            'proc-undo',
+            'Undo',
+            function () {
+              removeDraft(draft.id)
+            },
+            { 'data-proc-undo': draft.id || '' },
+          ),
+        )
+        chosen.appendChild(
+          button(
+            'proc-response-secondary',
+            'Show instructions',
+            function () {
+              openHandoffDialog(draft.choice)
+            },
+            {
+              'data-proc-handoff-open': draft.choice,
+              'aria-label': 'Show instructions for: ' + (label ? label[1] : draft.choice),
+            },
+          ),
+        )
+        box.appendChild(chosen)
+        box.appendChild(
+          make('div', 'proc-hint', 'Save your response to send your choice with the rest of it.'),
+        )
+      } else {
+        box.appendChild(
+          make(
+            'div',
+            'proc-hint',
+            'This run is complete. Choose what happens with its result. Nothing is added to the domaiNN until you save your response and the owner of the domaiNN imports it.',
+          ),
+        )
+        var actions = make('div', 'proc-actions')
+        HANDOFF_CHOICES.forEach(function (c) {
+          actions.appendChild(
+            button(
+              'proc-action',
+              c[1],
+              function () {
+                try {
+                  store.propose({ kind: 'run_handoff', run: activeRun.id, choice: c[0] })
+                } catch (e) {
+                  savedNote =
+                    'The console refused this choice: ' + String(e && e.message ? e.message : e)
+                }
+                render()
+                if (handoffDraftOf(activeRun)) openHandoffDialog(c[0])
+              },
+              { 'data-proc-handoff-choice': c[0] },
+            ),
+          )
+        })
+        box.appendChild(actions)
+      }
+      hostEl.appendChild(box)
+    }
+
     // ---- Actions a human may record (a DRAFT, never an apply) ----
     // This mirrors what `procedure_record` would accept for the step the fold points at.
-    // It is a client-side guard only: it stops a draft that `apply_change` would reject,
-    // and it never re-folds the run. `finish` and `cancel` are absent on purpose — closing
-    // a run needs `close_model`, which a console draft cannot emit.
+    // It is a client-side guard only: it stops a draft that `apply_change` would reject.
+    // `finish` and `cancel` are absent on purpose — closing a run needs `close_model`,
+    // which a console draft cannot emit.
     var ACTION_LABEL = {
-      start: 'Start step',
+      start: 'Start this step',
       wait: 'Mark waiting',
-      complete: 'Complete step',
+      complete: 'Mark as done',
       fail: 'Fail step',
       pause: 'Pause run',
       resume: 'Resume run',
@@ -905,27 +3052,29 @@
       return out
     }
 
-    /** The event fields for one action, matching the facts `procedure_record` records. */
-    function eventFor(action, state) {
-      var step = state.currentStep
-      var st = step && state.steps ? state.steps[step] : null
-      // Run-level facts: `procedure_record` records these with no `step` (`plan()`).
-      if (action === 'pause') return { kind: 'interrupted' }
-      if (action === 'resume') return { kind: 'resumed' }
-      if (action === 'rebase') return { kind: 'rebased', value: state.drift ? state.drift.current : '' }
-      if (action === 'start') return { kind: 'step_started', step: step, attempt: String((st ? st.attempt : 0) + 1) }
-      if (action === 'wait') return { kind: 'step_waiting', step: step }
-      if (action === 'fail') return { kind: 'step_failed', step: step }
-      return { kind: 'step_completed', step: step }
+    /** The next free request id on a run: never reuses one a draft or the run holds. */
+    function nextRequestId(run) {
+      var max = 0
+      requestsOf(run)
+        .concat(draftRequestsOf(run))
+        .forEach(function (r) {
+          var m = /^q-(\d+)$/.exec(String(r.id))
+          if (m) max = Math.max(max, Number(m[1]))
+        })
+      return 'q-' + String(max + 1).padStart(3, '0')
     }
 
-    function runDraft(run, fields) {
-      var n = (Array.isArray(run.events) ? run.events.length : 0) + 1
-      var name = 'e-' + String(n).padStart(3, '0')
+    /**
+     * Records a `Step Request` for the runner to consume. This is a proposal, not a write to
+     * the run: the row is intent, and only `procedure_record` acts on it. The `base_seq` pins
+     * the state the person saw, so a request that arrives late is marked stale, not applied.
+     */
+    function runRequest(run, fields) {
+      var name = nextRequestId(run)
       return store.propose({
         kind: 'new',
         knowledge_id: run.id,
-        concept: 'Execution Event',
+        concept: 'Step Request',
         element: name,
         proposed: JSON.stringify(fields),
         element_slug: name,
@@ -938,146 +3087,382 @@
       var choices = []
       targets.forEach(function (t) {
         if (!t.guard || t.guard.kind !== 'outcome') return
-        var token = guardText(t.guard).replace(/^outcome == /, '')
-        choices.push({ outcome: token, next: t.to, label: stepName(t.to) + ' (' + token + ')' })
+        choices.push({ outcome: t.guard.token, next: t.to, label: labelOfToken(t.guard.token) })
       })
       return choices
     }
 
-    function recordAction(action, state, errorEl, pickedOutcome) {
+    /** The run's write counter: the seq a request pins, 0 when the export carried none. */
+    function runSeq() {
+      if (activeRun && typeof activeRun.seq === 'number') return activeRun.seq
+      if (activeRun && activeRun.model && typeof activeRun.model.seq === 'number')
+        return activeRun.model.seq
+      return 0
+    }
+
+    /**
+     * Records the person's request. `startFirst` is for a manual step the Runner has not started
+     * yet: the answer is then two requests saved together, the start and the completion, so
+     * one response is enough. A refused completion takes its start back; nothing is left unsent.
+     */
+    function recordAction(action, state, errorEl, pickedOutcome, hostEl, startFirst) {
+      actionError = ''
       if (errorEl) errorEl.textContent = ''
-      var fields = eventFor(action, state)
+      var step = state.currentStep
+      var fields = {
+        request_status: 'pending',
+        action: action,
+        step: step,
+        base_seq: runSeq(),
+      }
+      var field =
+        hostEl && hostEl.querySelector ? hostEl.querySelector('[data-proc-request-value]') : null
+      var given = field && field.value ? String(field.value).trim() : ''
+      if (action === 'fail' || action === 'wait') {
+        // The value the runner needs (who it waits on, why it failed) comes from the note
+        // field. A missing one refuses the request instead of sending a blank one.
+        if (!given) {
+          if (errorEl)
+            errorEl.textContent =
+              action === 'wait'
+                ? 'A waiting step names who or what it waits on: write it in the note.'
+                : 'A failed step names why it failed: write it in the note.'
+          if (field && field.focus) field.focus()
+          return
+        }
+        fields.requested_value = given
+      }
       if (action === 'complete') {
         var targets = Array.isArray(state.allowedNext) ? state.allowedNext : []
-        if (targets.length === 1) {
-          fields.next = targets[0].to
-        } else if (pickedOutcome) {
+        if (targets.length > 1) {
+          if (!pickedOutcome) {
+            if (errorEl)
+              errorEl.textContent =
+                'This step branches: choose which branch the outcome takes before completing it.'
+            return
+          }
           var chosen = outcomeChoices(state).filter(function (c) {
             return c.outcome === pickedOutcome
           })[0]
           if (!chosen) {
-            if (errorEl) errorEl.textContent = '"' + pickedOutcome + '" does not select a known branch of this step.'
+            if (errorEl)
+              errorEl.textContent =
+                '"' + pickedOutcome + '" does not select a known branch of this step.'
             return
           }
-          fields.outcome = chosen.outcome
-          fields.next = chosen.next
-        } else {
-          if (errorEl) errorEl.textContent = 'This step branches: choose which branch the outcome takes before completing it.'
-          return
+          fields.requested_outcome = chosen.outcome
         }
+        // The note travels with the decision: it stays on the request row as its reason.
+        if (given) fields.requested_value = given
       }
-      var saved
+      var saved, startDraft
       try {
-        saved = runDraft(activeRun, fields)
+        if (startFirst) {
+          startDraft = runRequest(activeRun, {
+            request_status: 'pending',
+            action: 'start',
+            step: step,
+            base_seq: fields.base_seq,
+          })
+        }
+        saved = runRequest(activeRun, fields)
+        if (!saved && startDraft) store.remove(startDraft.id)
       } catch (err) {
+        if (startDraft) store.remove(startDraft.id)
         // The console refuses the proposal (a read-only export, a malformed draft). Say
         // so here: an exception thrown under a click is invisible otherwise, and the
         // person is left wondering why nothing happened.
-        if (errorEl) errorEl.textContent = 'The console refused this draft: ' + String(err && err.message ? err.message : err)
+        actionError =
+          'The console refused this request: ' + String(err && err.message ? err.message : err)
+        if (errorEl) errorEl.textContent = actionError
         return
       }
       if (!saved) {
-        if (errorEl) errorEl.textContent = 'The console did not accept this draft.'
+        actionError = 'The console did not accept this request.'
+        if (errorEl) errorEl.textContent = actionError
         return
       }
-      draftNote = { run: activeRun.id, kind: fields.kind, name: 'e-' + String((activeRun.events || []).length + 1).padStart(3, '0') }
+      selectedStep = null
+      savedNote = null
       render()
     }
 
-    function renderActions(host, state) {
+    function renderActions(hostEl, state) {
       if (!store) return
       var list = allowedActionsOf(state, activeRun)
       if (!list.length) return
       var box = make('div', 'proc-actions')
-      box.appendChild(make('div', 'proc-actions-title', 'Record an event'))
-      var err = make('div', 'proc-action-error')
-      box.appendChild(err)
+      var err = make('div', 'proc-action-error', actionError)
 
-      // A branching step needs the human to name the branch: completing it without one
-      // would be the AMBIGUOUS_TRANSITION the runner refuses.
-      var choices = outcomeChoices(state)
-      var select = null
-      if (choices.length > 1 && list.indexOf('complete') !== -1) {
-        select = make('select', 'proc-action-outcome')
-        select.setAttribute('data-proc-outcome', '')
-        var blank = make('option', null, 'Choose the branch…')
-        blank.setAttribute('value', '')
-        select.appendChild(blank)
-        choices.forEach(function (c) {
-          var o = make('option', null, c.label)
-          o.setAttribute('value', c.outcome)
-          select.appendChild(o)
-        })
-        box.appendChild(select)
+      // A step a person already asked about shows the ask: a second request on the same step
+      // would be a second intent for one decision. An unsent answer is shown (and undone) by
+      // the "Decided" line above; a recorded one waits for the agent.
+      var waiting = state.currentStep ? pendingRequestFor(activeRun, state.currentStep) : null
+      if (waiting) {
+        var msg = waiting.isDraft
+          ? 'Your answer on this step is not sent yet. Save your response to send it.'
+          : 'Waiting for the agent: a "' +
+            waiting.action +
+            '" request on this step is pending. It acts on procedure_record.'
+        var note = make('div', 'proc-action-waiting', msg)
+        note.setAttribute('data-proc-waiting', waiting.action)
+        box.appendChild(note)
+        hostEl.appendChild(box)
+        return
       }
 
-      list.forEach(function (action) {
-        var b = make('button', 'proc-action', ACTION_LABEL[action] || action)
-        b.setAttribute('type', 'button')
-        b.setAttribute('data-proc-action', action)
-        b.addEventListener('click', function () {
-          recordAction(action, state, err, select ? select.value : '')
-        })
-        box.appendChild(b)
+      // Only the actions a request can carry: the queue never closes a run.
+      // A manual step (`executor: human`) allows a person to ask for `start`.
+      var stepDef = state.currentStep ? stepsOf(active)[state.currentStep] : null
+      var isManual = isHumanStep(stepDef)
+      var askable = list.filter(function (a) {
+        if (a === 'start') return isManual
+        return a === 'wait' || a === 'complete' || a === 'fail'
       })
-      host.appendChild(box)
+      if (!askable.length || isSystemStep(stepDef)) {
+        var hint = make('details', 'proc-agent-hint')
+        hint.setAttribute('data-proc-agent-hint', '')
+        hint.appendChild(make('summary', null, 'Copy instruction for the agent'))
+        var instruction = agentInstruction(state)
+        var pre = make('pre', 'proc-agent-hint-text', instruction)
+        hint.appendChild(pre)
+        hint.appendChild(
+          button('proc-copy', 'Copy', function () {
+            copyText(instruction)
+          }),
+        )
+        box.appendChild(hint)
+        hostEl.appendChild(box)
+        return
+      }
+      box.appendChild(make('div', 'proc-actions-title', 'Your answer'))
+
+      var targets = Array.isArray(state.allowedNext) ? state.allowedNext : []
+      // A manual step not started yet is answered in one go: the start travels with the answer.
+      var startFirst =
+        askable.indexOf('start') !== -1 &&
+        (outcomeChoices(state).length > 1 || (stepDef.stepType === 'task' && targets.length <= 1))
+      var choices = startFirst || askable.indexOf('complete') !== -1 ? outcomeChoices(state) : []
+      var primary = make('div', 'proc-branches')
+      if (choices.length > 1) {
+        // One primary button per branch: the person answers the question in one click.
+        choices.forEach(function (c) {
+          var b = button(
+            'proc-action proc-branch-choice',
+            c.label,
+            function () {
+              recordAction('complete', state, err, c.outcome, box, startFirst)
+            },
+            { 'data-proc-action': 'complete', 'data-proc-outcome': c.outcome },
+          )
+          b.setAttribute('title', c.label + ' → ' + stepName(c.next))
+          primary.appendChild(b)
+        })
+      } else if ((startFirst || askable.indexOf('complete') !== -1) && targets.length <= 1) {
+        primary.appendChild(
+          button(
+            'proc-action proc-branch-choice',
+            ACTION_LABEL.complete,
+            function () {
+              recordAction('complete', state, err, '', box, startFirst)
+            },
+            { 'data-proc-action': 'complete' },
+          ),
+        )
+      }
+      if (!startFirst && askable.indexOf('start') !== -1) {
+        primary.appendChild(
+          button(
+            'proc-action proc-branch-choice',
+            ACTION_LABEL.start,
+            function () {
+              recordAction('start', state, err, '', box)
+            },
+            { 'data-proc-action': 'start' },
+          ),
+        )
+      }
+      if (primary.children.length) box.appendChild(primary)
+
+      if (askable.indexOf('wait') !== -1 || askable.indexOf('fail') !== -1 || choices.length) {
+        var valueField = make('textarea', 'proc-action-value')
+        valueField.setAttribute('rows', '2')
+        valueField.setAttribute('data-proc-request-value', '')
+        valueField.setAttribute('data-proc-reason', '')
+        valueField.setAttribute('aria-label', 'Note')
+        valueField.setAttribute(
+          'placeholder',
+          'Add a note (optional; required to fail or to mark waiting)',
+        )
+        box.appendChild(valueField)
+      }
+
+      var secondary = make('div', 'proc-actions-secondary')
+      ;['wait', 'fail'].forEach(function (action) {
+        if (askable.indexOf(action) === -1) return
+        secondary.appendChild(
+          button(
+            'proc-action proc-action-secondary',
+            ACTION_LABEL[action],
+            function () {
+              recordAction(action, state, err, '', box)
+            },
+            { 'data-proc-action': action },
+          ),
+        )
+      })
+      if (secondary.children.length) box.appendChild(secondary)
+      box.appendChild(err)
+      hostEl.appendChild(box)
     }
 
-    function renderDraftNote(host) {
-      if (!draftNote || !activeRun || draftNote.run !== activeRun.id) return
-      host.appendChild(
-        make(
-          'div',
-          'proc-draft-pending',
-          'Draft created: ' + draftNote.name + ' (' + draftNote.kind + '). It is pending until apply_change runs; ' +
-            'this view keeps showing the exported state until then.',
-        ),
+    function copyText(text) {
+      try {
+        var nav = host.navigator
+        if (nav && nav.clipboard && typeof nav.clipboard.writeText === 'function') {
+          var p = nav.clipboard.writeText(text)
+          if (p && typeof p.catch === 'function') p.catch(function () {})
+        }
+      } catch {
+        /* the instruction stays visible to copy by hand */
+      }
+    }
+
+    /** The runner call that records the next fact of this run, for the domain owner's agent. */
+    function agentInstruction(state) {
+      var ref = JSON.stringify({ run: activeRun.id })
+      return (
+        'Next action (agent): procedure_state ' +
+        ref +
+        ' lists the allowed actions; procedure_record ' +
+        ref.slice(0, -1) +
+        ', "action": …} records ' +
+        (state.drift
+          ? 'the rebase onto the new definition.'
+          : state.currentStep
+            ? 'the next fact of step ' + stepName(state.currentStep) + '.'
+            : 'the terminal event.')
       )
     }
 
     // ---- Run panel ----
-    function renderRunPanel(host, projection) {
+    function renderRunPanel(hostEl) {
       var col = make('div', 'exec-log-col')
-      host.appendChild(col)
+      hostEl.appendChild(col)
       var panel = make('div', 'proc-run-state')
       col.appendChild(panel)
       if (!activeRun) {
-        panel.appendChild(make('p', null, 'No run selected: the procedure definition. An agent starts a run with procedure_start.'))
+        panel.appendChild(
+          make(
+            'p',
+            null,
+            'No run selected: this is the procedure definition.' +
+              (store ? ' Use "Start a run" to request one.' : ''),
+          ),
+        )
         return
       }
-      var state = activeRun.state
-      panel.appendChild(make('div', 'proc-run-title', 'Run ' + activeRun.id + (activeRun.closed ? ' (closed)' : '')))
-      if (!state) {
-        panel.appendChild(make('p', null, 'The definition of this procedure is not in this export; its state cannot be folded here.'))
-        renderEvents(col)
+      var recorded = activeRun.state
+      panel.appendChild(
+        make(
+          'div',
+          'proc-run-title',
+          'Run ' + activeRun.id + (activeRun.closed ? ' (closed)' : ''),
+        ),
+      )
+      if (!recorded) {
+        panel.appendChild(
+          make(
+            'p',
+            null,
+            'The definition of this procedure is not in this export; its state cannot be folded here.',
+          ),
+        )
+        renderRequestQueue(col)
         return
+      }
+      var state = viewState()
+      var projected = state !== recorded
+      if (projected) {
+        var pending = make(
+          'div',
+          'proc-run-projected',
+          'Showing the run with your answers applied. They are not sent yet.',
+        )
+        pending.setAttribute('data-proc-projected', '')
+        panel.appendChild(pending)
       }
       panel.appendChild(make('div', 'proc-run-status', 'Status: ' + state.status))
-      if (projection && projection.status !== state.status) {
-        var moved = make('div', 'proc-run-projected', 'With pending drafts: ' + projection.status)
-        moved.setAttribute('data-proc-projected-status', projection.status)
-        panel.appendChild(moved)
-      }
-      panel.appendChild(make('div', 'proc-run-current', 'Current step: ' + (state.currentStep ? stepName(state.currentStep) : 'none')))
-      panel.appendChild(make('div', 'proc-run-path', 'Path: ' + state.path.map(stepName).join(' → ')))
-      if (state.blockedBy) panel.appendChild(make('div', 'proc-run-blocked', 'Blocked: ' + state.blockedBy))
-      if (state.crashed) panel.appendChild(make('div', 'proc-run-crashed', 'An engine step started and never reported: the run crashed.'))
+      panel.appendChild(
+        make(
+          'div',
+          'proc-run-current',
+          'Current step: ' + (state.currentStep ? stepName(state.currentStep) : 'none'),
+        ),
+      )
+      panel.appendChild(
+        make('div', 'proc-run-path', 'Path: ' + state.path.map(stepName).join(' → ')),
+      )
+      if (state.blockedBy)
+        panel.appendChild(make('div', 'proc-run-blocked', 'Blocked: ' + state.blockedBy))
+      if (state.crashed)
+        panel.appendChild(
+          make(
+            'div',
+            'proc-run-crashed',
+            'An engine step started and never reported: the run crashed.',
+          ),
+        )
       if (state.paused) panel.appendChild(make('div', 'proc-run-paused', 'Paused.'))
       if (state.drift) {
         panel.appendChild(
           make(
             'div',
             'proc-run-drift',
-            'Definition changed: the run is pinned to ' + state.drift.pinned + ', the procedure is now ' + state.drift.current + '.',
+            'Definition changed: the run is pinned to ' +
+              state.drift.pinned +
+              ', the procedure is now ' +
+              state.drift.current +
+              '.',
           ),
         )
       }
-      if (state.stale.length) panel.appendChild(make('div', 'proc-run-stale', 'Stale artifacts: ' + state.stale.join(', ')))
-      if (state.reopened.length) panel.appendChild(make('div', 'proc-run-reopened', 'Reopened steps: ' + state.reopened.map(stepName).join(', ')))
+      if (state.stale.length)
+        panel.appendChild(
+          make('div', 'proc-run-stale', 'Stale artifacts: ' + state.stale.join(', ')),
+        )
+      if (state.reopened.length)
+        panel.appendChild(
+          make(
+            'div',
+            'proc-run-reopened',
+            'Reopened steps: ' + state.reopened.map(stepName).join(', '),
+          ),
+        )
+      var artifactSlugs = Object.keys(state.artifacts).filter(function (slug) {
+        // Only the artifacts this procedure declares: a stray row is not part of the run.
+        return !active.graph || !active.graph.artifacts || active.graph.artifacts[slug]
+      })
+      if (artifactSlugs.length) {
+        var artBox = make('div', 'proc-run-artifacts')
+        artBox.appendChild(make('div', 'proc-run-artifacts-label', 'Artifacts'))
+        var artList = make('div', 'proc-artifact-list')
+        artifactSlugs.forEach(function (slug) {
+          artList.appendChild(artifactChip(slug))
+        })
+        artBox.appendChild(artList)
+        panel.appendChild(artBox)
+      }
+      var details = detailsBox('proc-run-details')
       // "Allowed next" is what the step's guards permit, which is meaningless when the fold
       // says the run cannot advance. A blocked step would read as if its branches were open.
-      if (state.allowedNext.length && !state.blockedBy && !state.drift && !TERMINAL_RUN[state.status]) {
-        panel.appendChild(
+      if (
+        state.allowedNext.length &&
+        !state.blockedBy &&
+        !state.drift &&
+        !TERMINAL_RUN[state.status]
+      ) {
+        details.appendChild(
           make(
             'div',
             'proc-run-allowed',
@@ -1090,80 +3475,540 @@
           ),
         )
       }
-      var artifactSlugs = Object.keys(state.artifacts)
-      if (artifactSlugs.length) {
+      details.appendChild(make('div', 'proc-run-seq', 'Run seq: ' + runSeq()))
+      if (!activeRun.closed && !TERMINAL_RUN[recorded.status]) {
+        details.appendChild(make('div', 'proc-run-next', agentInstruction(recorded)))
+      }
+      panel.appendChild(details)
+      renderRequestQueue(col)
+    }
+
+    /**
+     * The queue of requests on this run, oldest first, with the status the runner gave each
+     * one. It is the same list `procedure_pending` returns: an agent drains it, a person reads
+     * what happened to what they asked for.
+     */
+    function renderRequestQueue(hostEl) {
+      var all = requestsOf(activeRun)
+      if (!all.length) return
+      var box = make('div', 'proc-run-requests')
+      hostEl.appendChild(make('div', 'exec-col-header', 'Requests'))
+      all.forEach(function (r) {
+        var item = make('div', 'request-item status-' + r.status)
+        item.setAttribute('data-proc-request-id', r.id)
+        item.setAttribute('data-proc-request-status', r.status)
+        var text = make('div', 'request-text')
+        text.appendChild(make('span', 'request-kind', r.action))
+        item.appendChild(text)
+        item.appendChild(make('span', 'request-status status-' + r.status, r.status))
+        var bits = []
+        if (r.step) bits.push(stepName(r.step))
+        if (r.value) bits.push(r.value)
+        if (r.outcome) bits.push('outcome ' + r.outcome)
+        if (r.baseSeq !== undefined) bits.push('seq ' + r.baseSeq)
+        if (bits.length) item.appendChild(make('div', 'request-detail', bits.join(' · ')))
+        if (r.reason) item.appendChild(make('div', 'request-reason', r.reason))
+        box.appendChild(item)
+      })
+      hostEl.appendChild(box)
+    }
+
+    // ---- Artifacts panel (Tab 'artifacts') ----
+    function renderArtifactPanel(hostEl) {
+      var pad = make('div', 'pad')
+      var artMap = (active.graph && active.graph.artifacts) || {}
+      var slugs = Object.keys(artMap)
+      var state = viewState()
+      var table = make('table', 'proc-artifacts-table')
+      var thead = make('thead')
+      var htr = make('tr')
+      ;['Artifact', 'Produced by', 'State', 'File'].forEach(function (h) {
+        htr.appendChild(make('th', null, h))
+      })
+      thead.appendChild(htr)
+      table.appendChild(thead)
+      var tbody = make('tbody')
+      slugs.forEach(function (slug) {
+        var def = artMap[slug] || {}
+        var st = state && state.artifacts ? state.artifacts[slug] : null
+        var tr = make('tr')
+        tr.setAttribute('data-proc-artifact-item', slug)
+        var td1 = make('td')
+        td1.appendChild(artifactChip(slug))
+        tr.appendChild(td1)
+        var td2 = make('td', 'dim')
+        var producer = (def.producers || [])[0] || (st && st.step) || '—'
+        td2.textContent =
+          producer !== '—' && stepsOf(active)[producer] ? stepName(producer) : producer
+        tr.appendChild(td2)
+        var td3 = make('td')
+        var status = st ? st.status : 'expected'
+        td3.appendChild(
+          make(
+            'span',
+            'badge ' + (status === 'validated' || status === 'produced' ? 'done' : status),
+            status,
+          ),
+        )
+        tr.appendChild(td3)
+        var td4 = make('td', 'mono dim')
+        td4.textContent =
+          filePathOf(slug, def) || fillSlots(def.path || def.verify || '—', values())
+        tr.appendChild(td4)
+        tbody.appendChild(tr)
+      })
+      table.appendChild(tbody)
+      pad.appendChild(table)
+      if (slugs.length) {
         var artBox = make('div', 'proc-run-artifacts')
         artBox.appendChild(make('div', 'proc-run-artifacts-label', 'Artifacts'))
         var artList = make('div', 'proc-artifact-list')
-        artifactSlugs.forEach(function (slug) {
+        slugs.forEach(function (slug) {
           artList.appendChild(artifactChip(slug))
         })
         artBox.appendChild(artList)
-        panel.appendChild(artBox)
+        pad.appendChild(artBox)
       }
-      if (!activeRun.closed && !TERMINAL_RUN[state.status]) {
-        var ref = JSON.stringify({ run: activeRun.id })
-        panel.appendChild(
+      hostEl.appendChild(pad)
+    }
+
+    // ---- BDE Run Bar ----
+    function renderBdeRunBar(hostEl) {
+      var bar = make('div', 'proc-runbar proc-run-state-bar')
+      var stepsCount = Object.keys(stepsOf(active)).length
+      var artCount = Object.keys((active.graph && active.graph.artifacts) || {}).length
+      var defRev = (active.graph && active.graph.defRev) || 'v1'
+      if (!activeRun) {
+        bar.appendChild(make('span', 'mono id proc-run-title', active.file))
+        bar.appendChild(make('span', 'badge pending proc-run-status', 'definition'))
+        bar.appendChild(make('span', 'sep'))
+        bar.appendChild(
           make(
-            'div',
-            'proc-run-next',
-            'Next action (agent): procedure_state ' + ref + ' lists the allowed actions; procedure_record ' + ref.slice(0, -1) + ', "action": …} records ' +
-              (state.drift ? 'the rebase onto the new definition.' : state.currentStep ? 'the next fact of step ' + stepName(state.currentStep) + '.' : 'the terminal event.'),
+            'span',
+            'path proc-run-path',
+            stepsCount + ' steps · ' + artCount + ' artifacts · pinned ' + defRev,
+          ),
+        )
+        bar.appendChild(make('span', 'spacer'))
+        bar.appendChild(
+          make(
+            'span',
+            'mono faint',
+            'No run selected: this is the procedure definition.' +
+              (store ? ' Use "Start a run" to request one.' : ''),
+          ),
+        )
+        if (store && active.graph && !/^bluepriNNt:/.test(active.file)) {
+          bar.appendChild(
+            button(
+              'btn btn-sm proc-start-run' + (startFormOpen ? ' active' : ''),
+              'Start a run',
+              function () {
+                startFormOpen = !startFormOpen
+                render()
+              },
+              { 'data-proc-start-run': '' },
+            ),
+          )
+        }
+        hostEl.appendChild(bar)
+        return
+      }
+      var recorded = activeRun.state
+      bar.appendChild(
+        make(
+          'span',
+          'mono id proc-run-title',
+          'Run ' + activeRun.id + (activeRun.closed ? ' (closed)' : ''),
+        ),
+      )
+      if (!recorded) {
+        bar.appendChild(make('span', 'badge pending proc-run-status', 'pending'))
+        bar.appendChild(make('span', 'spacer'))
+        bar.appendChild(make('span', 'mono faint', 'The definition is not in this export.'))
+        hostEl.appendChild(bar)
+        return
+      }
+      var state = viewState()
+      var projected = state !== recorded
+      bar.appendChild(
+        make('span', 'badge ' + state.status + ' proc-run-status', 'Status: ' + state.status),
+      )
+      bar.appendChild(make('span', 'sep'))
+      bar.appendChild(
+        make(
+          'span',
+          'proc-run-current',
+          'Current step: ' + (state.currentStep ? stepName(state.currentStep) : 'none'),
+        ),
+      )
+      bar.appendChild(make('span', 'sep'))
+      bar.appendChild(
+        make('span', 'path proc-run-path', 'Path: ' + state.path.map(stepName).join(' → ')),
+      )
+      if (projected) {
+        var pending = make(
+          'span',
+          'badge warning proc-run-projected',
+          'Showing the run with your answers applied. They are not sent yet.',
+        )
+        pending.setAttribute('data-proc-projected', '')
+        bar.appendChild(pending)
+      }
+      if (state.drift) {
+        bar.appendChild(
+          make(
+            'span',
+            'proc-run-drift note warn',
+            'Definition changed: the run is pinned to ' +
+              state.drift.pinned +
+              ', the procedure is now ' +
+              state.drift.current +
+              '.',
           ),
         )
       }
-      renderActions(col, state)
-      renderDraftNote(col)
-      renderEvents(col)
+      bar.appendChild(make('span', 'spacer'))
+      bar.appendChild(make('span', 'mono faint proc-run-seq', 'Run seq: ' + runSeq()))
+      hostEl.appendChild(bar)
     }
 
-    function renderEvents(host) {
-      var box = make('div', 'proc-run-events exec-log-view')
-      host.appendChild(make('div', 'exec-col-header', 'Events'))
-      ;(activeRun.events || []).forEach(function (e) {
-        var item = make('div', 'audit-item status-' + e.kind)
-        var top = make('div', 'audit-time', (e.at || '') + (e.actor ? ' • ' + e.actor : ''))
-        item.appendChild(top)
-        var text = make('div', 'audit-text')
-        text.appendChild(make('span', 'audit-kind', e.kind))
-        var bits = []
-        if (e.step) bits.push(stepName(e.step))
-        if (e.outcome) bits.push('outcome ' + e.outcome)
-        if (e.next) bits.push('→ ' + stepName(e.next))
-        if (e.field) bits.push(e.field)
-        if (e.value) bits.push(e.value)
-        if (bits.length) text.appendChild(document.createTextNode(' ' + bits.join(' · ')))
-        item.appendChild(text)
-        box.appendChild(item)
+    // ---- BDE Tab Bar ----
+    function renderBdeTabBar(hostEl) {
+      var bar = make('div', 'proc-tabbar tabbar')
+      var tabs = [
+        { id: 'flow', label: 'Flow' },
+        { id: 'steps', label: 'Steps' },
+        { id: 'requests', label: 'Requests', count: requestsOf(activeRun).length },
+        {
+          id: 'artifacts',
+          label: 'Artifacts',
+          count: Object.keys((active.graph && active.graph.artifacts) || {}).length,
+        },
+      ]
+      tabs.forEach(function (t) {
+        var btn = button(
+          'proc-tab-btn' + (activeTab === t.id ? ' on' : ''),
+          t.label,
+          function () {
+            activeTab = t.id
+            render()
+          },
+          { 'data-tab': t.id },
+        )
+        if (t.count !== undefined && t.count > 0) {
+          btn.appendChild(make('span', 'faint count', ' ' + t.count))
+        }
+        if (t.id === 'requests' && !activeRun) {
+          btn.hidden = true
+        }
+        bar.appendChild(btn)
       })
-      host.appendChild(box)
+      hostEl.appendChild(bar)
+    }
+
+    // ---- BDE Panels (Flow, Steps, Requests, Artifacts) ----
+    function renderBdePanels(hostEl) {
+      if (!activeRun && activeTab === 'requests') activeTab = 'flow'
+      var graph = active.graph
+      var state = viewState()
+      var steps = graph && graph.steps ? graph.steps : {}
+      var stepKeys = Object.keys(steps)
+      var current = state ? state.currentStep : null
+      var def = !activeRun
+
+      // Panel 1: Flow
+      var pFlow = make(
+        'section',
+        'proc-panel panel panel-flow' + (activeTab === 'flow' ? ' on' : ''),
+      )
+      pFlow.setAttribute('data-tab-panel', 'flow')
+      var padFlow = make('div', 'pad')
+      var branches = stepKeys.some(function (slug) {
+        return Array.isArray(steps[slug].next) && steps[slug].next.length > 1
+      })
+      var noteFlow = make(
+        'div',
+        'proc-flow-note path',
+        def
+          ? 'The document as defined: each step with its instructions. No run state, no executed sequence.'
+          : branches
+            ? 'Steps in the order of progress. The branches and where each one leads are drawn in the flow graph.'
+            : 'A straight chain with no branches, in the order of progress. The flow graph shows the same steps.',
+      )
+      padFlow.appendChild(noteFlow)
+
+      var stepperBox = make('div', 'proc-stepper')
+      if (def) {
+        stepKeys.forEach(function (slug, i) {
+          var s = steps[slug]
+          var row = make(
+            'div',
+            'doc-step' + (slug === (selectedStep || graph.start || stepKeys[0]) ? ' on' : ''),
+          )
+          row.setAttribute('data-step', slug)
+          var h3 = make('h3')
+          h3.appendChild(make('span', 'idx', String(i + 1).padStart(2, '0')))
+          h3.appendChild(document.createTextNode(' ' + (s.name || slug) + ' '))
+          h3.appendChild(
+            make(
+              'span',
+              'pill' + (s.stepType === 'decision' ? ' decision' : ''),
+              s.stepType || 'task',
+            ),
+          )
+          if (s.executor) h3.appendChild(make('span', 'pill', s.executor))
+          if (s.outputs && s.outputs.length) {
+            h3.appendChild(make('span', 'spacer'))
+            h3.appendChild(make('span', 'sub', s.outputs.length + ' out'))
+          }
+          row.appendChild(h3)
+          var el = elementOf(slug)
+          if (el && el.description) {
+            var inst = make('div', 'instructions')
+            appendMarkdown(inst, fillSlots(el.description, values()))
+            row.appendChild(inst)
+          }
+          row.addEventListener('click', function () {
+            selectedStep = slug
+            render()
+          })
+          stepperBox.appendChild(row)
+        })
+      } else {
+        stepKeys.forEach(function (slug, i) {
+          var s = steps[slug]
+          var st = stepStatus(slug)
+          var last = i === stepKeys.length - 1
+          var lineCls = st === 'done' ? 'done' : st === 'failed' ? 'failed' : ''
+          var row = make(
+            'div',
+            'step-row' +
+              (slug === (selectedStep || current || graph.start || stepKeys[0]) ? ' on' : ''),
+          )
+          row.setAttribute('data-step', slug)
+          var railCol = make('div', 'rail-col')
+          var dot = make('div', 'dot ' + (st === 'pending' ? '' : st), MARK_SYMBOLS[st] || '○')
+          railCol.appendChild(dot)
+          if (!last) {
+            var line = make('div', 'line ' + lineCls)
+            railCol.appendChild(line)
+          }
+          row.appendChild(railCol)
+          var bodyCol = make('div', 'body')
+          var compact = make('div', 'compact')
+          compact.appendChild(make('span', 't', s.name || slug))
+          compact.appendChild(
+            make(
+              'span',
+              'pill' + (s.stepType === 'decision' ? ' decision' : ''),
+              s.stepType || 'task',
+            ),
+          )
+          if (s.executor) compact.appendChild(make('span', 'pill', s.executor))
+          compact.appendChild(make('span', 'spacer'))
+          compact.appendChild(make('span', 'badge ' + st, st))
+          bodyCol.appendChild(compact)
+          row.appendChild(bodyCol)
+          row.addEventListener('click', function () {
+            selectedStep = slug
+            render()
+          })
+          stepperBox.appendChild(row)
+        })
+      }
+      padFlow.appendChild(stepperBox)
+      pFlow.appendChild(padFlow)
+      hostEl.appendChild(pFlow)
+
+      // Panel 2: Steps (Master table)
+      var pSteps = make(
+        'section',
+        'proc-panel panel panel-steps' + (activeTab === 'steps' ? ' on' : ''),
+      )
+      pSteps.setAttribute('data-tab-panel', 'steps')
+      var padSteps = make('div', 'pad')
+      var cardSteps = make('div', 'card')
+      var headSteps = make('div', 'col-head')
+      headSteps.appendChild(make('span', null, 'Steps'))
+      headSteps.appendChild(
+        make(
+          'span',
+          'count',
+          def
+            ? 'definición del documento · ' + stepKeys.length
+            : 'orden de ejecución · ' + stepKeys.length,
+        ),
+      )
+      cardSteps.appendChild(headSteps)
+      var table = make('table', 'proc-steps-table')
+      var thead = make('thead')
+      var htr = make('tr')
+      htr.appendChild(make('th', null))
+      htr.appendChild(make('th', null, 'Step'))
+      htr.appendChild(make('th', null, 'Type'))
+      htr.appendChild(make('th', null, 'Executor'))
+      if (def) {
+        htr.appendChild(make('th', null, 'Inputs'))
+        htr.appendChild(make('th', null, 'Outputs'))
+      } else {
+        var thDur = make('th', 'num', 'Attempt')
+        thDur.style.textAlign = 'right'
+        htr.appendChild(thDur)
+        htr.appendChild(make('th', null, 'Artifacts'))
+      }
+      thead.appendChild(htr)
+      table.appendChild(thead)
+      var tbody = make('tbody')
+      stepKeys.forEach(function (slug) {
+        var s = steps[slug]
+        var st = def ? 'definition' : stepStatus(slug)
+        var tr = make('tr', slug === selectedStep ? 'on' : '')
+        tr.setAttribute('data-step', slug)
+        var td1 = make('td')
+        var mark = make('span', 'dotmark ' + st, MARK_SYMBOLS[st] || '·')
+        td1.appendChild(mark)
+        tr.appendChild(td1)
+        var td2 = make('td')
+        if (slug === selectedStep) {
+          td2.appendChild(make('b', null, s.name || slug))
+        } else {
+          td2.textContent = s.name || slug
+        }
+        tr.appendChild(td2)
+        var td3 = make('td')
+        td3.appendChild(
+          make(
+            'span',
+            'pill' + (s.stepType === 'decision' ? ' decision' : ''),
+            s.stepType || 'task',
+          ),
+        )
+        tr.appendChild(td3)
+        tr.appendChild(make('td', 'dim', s.executor || '—'))
+        if (def) {
+          var inText = s.inputs && s.inputs.length ? s.inputs.join(', ') : '—'
+          var outText = s.outputs && s.outputs.length ? s.outputs.join(', ') : '—'
+          tr.appendChild(make('td', s.inputs && s.inputs.length ? 'faint' : 'dim', inText))
+          tr.appendChild(make('td', s.outputs && s.outputs.length ? 'faint' : 'dim', outText))
+        } else {
+          var stepState = state && state.steps ? state.steps[slug] : null
+          var attText = stepState && stepState.attempt ? String(stepState.attempt) : '—'
+          var artText = s.outputs && s.outputs.length ? s.outputs.length + ' out' : '—'
+          var tdAtt = make('td', 'num', attText)
+          tdAtt.style.textAlign = 'right'
+          tr.appendChild(tdAtt)
+          tr.appendChild(make('td', s.outputs && s.outputs.length ? 'faint' : 'dim', artText))
+        }
+        tr.addEventListener('click', function () {
+          selectedStep = slug
+          render()
+        })
+        tbody.appendChild(tr)
+      })
+      table.appendChild(tbody)
+      cardSteps.appendChild(table)
+      padSteps.appendChild(cardSteps)
+      pSteps.appendChild(padSteps)
+      hostEl.appendChild(pSteps)
+
+      // Panel 3: Requests
+      var pReqs = make(
+        'section',
+        'proc-panel panel panel-requests' + (activeTab === 'requests' ? ' on' : ''),
+      )
+      pReqs.setAttribute('data-tab-panel', 'requests')
+      var padReqs = make('div', 'pad')
+      renderRequestQueue(padReqs)
+      pReqs.appendChild(padReqs)
+      hostEl.appendChild(pReqs)
+
+      // Panel 4: Artifacts
+      var pArts = make(
+        'section',
+        'proc-panel panel panel-artifacts' + (activeTab === 'artifacts' ? ' on' : ''),
+      )
+      pArts.setAttribute('data-tab-panel', 'artifacts')
+      renderArtifactPanel(pArts)
+      hostEl.appendChild(pArts)
+    }
+
+    // ---- Persistent Rail (Flow DAG + Step Detail + Run Panel) ----
+    function renderBdeRail(hostEl) {
+      renderGraph(hostEl)
+      var detail = make('div', 'proc-detail-card detail')
+      renderStepCard(detail)
+      renderRunPanel(detail)
+      hostEl.appendChild(detail)
     }
 
     // ---- Render ----
     function render() {
+      // A rebuilt graph must hand the keyboard back to whoever was on it.
+      var focusedNow = document.activeElement
+      if (focusedNow && focusedNow.hasAttribute && focusedNow.hasAttribute('data-proc-graph'))
+        refocusGraph = true
+      disposeGraph()
+      renderResponseBar()
+      renderInbox()
       renderTabs()
       renderDiagnostics()
       body.innerHTML = ''
       renderFicha(body)
-      renderRunList(body)
       if (!active.graph) {
-        body.appendChild(make('div', 'empty-state', 'The definition of ' + active.file + ' is not in this export.'))
+        renderRunList(body)
+        body.appendChild(
+          make(
+            'div',
+            'empty-state',
+            'The definition of ' + active.file + ' is not in this export.',
+          ),
+        )
         var ws0 = make('div', 'exec-workspace')
         body.appendChild(ws0)
         if (activeRun) renderRunPanel(ws0)
         return
       }
-      var ws = make('div', 'exec-workspace')
+      var ws = make('div', 'exec-workspace proc-bde-layout')
       body.appendChild(ws)
-      // One projection per render: the graph, the step card and the panel must agree.
-      var projection = projectedStateOf(activeRun)
-      renderGraph(ws, projection)
-      renderStepCard(ws, projection)
-      renderRunPanel(ws, projection)
+
+      // Column 1: Nav (Procedures + Runs)
+      var nav = make('nav', 'proc-nav nav')
+      renderBlueprintList(nav)
+      renderTabs(nav)
+      renderRunList(nav)
+      ws.appendChild(nav)
+
+      // Column 2: Main (Runbar + Tabbar + Panels)
+      var main = make('div', 'proc-main main')
+      renderBdeRunBar(main)
+      renderBdeTabBar(main)
+      renderBdePanels(main)
+      ws.appendChild(main)
+
+      // Column 3: Persistent Rail (Flow DAG + Step Detail + Run Panel)
+      var rail = make('aside', 'proc-rail rail')
+      ws.appendChild(rail)
+      renderBdeRail(rail)
     }
 
-    selectEntry(active)
+    // The inbox is the front door: open on the first run that waits on this person.
+    var firstTurn = store ? inboxOf(entries, allDrafts())[0] : null
+    if (firstTurn) selectEntry(firstTurn.entry, firstTurn.run)
+    else selectEntry(active)
     render()
+
+    // Drafts change outside this view too (the Changes modal removes one): follow them.
+    var unsubscribe = null
+    if (store && typeof store.onChange === 'function') {
+      try {
+        unsubscribe = store.onChange(function () {
+          render()
+        })
+      } catch {
+        unsubscribe = null
+      }
+    }
 
     return {
       ok: true,
@@ -1171,6 +4016,8 @@
       steps: Object.keys(stepsOf(active)).length,
       matrices: matrices.length,
       unmount: function () {
+        if (typeof unsubscribe === 'function') unsubscribe()
+        disposeGraph()
         container.innerHTML = ''
       },
     }
@@ -1179,6 +4026,13 @@
   return {
     version: RENDERER_VERSION,
     RENDERER_VERSION: RENDERER_VERSION,
+    SYSTEM_STEP_NOTE: SYSTEM_STEP_NOTE,
     mount: mount,
+    fillSlots: fillSlots,
+    slotValuesOf: slotValuesOf,
+    shortHash: shortHash,
+    inboxOf: inboxOf,
+    eventsOfRequests: eventsOfRequests,
+    projectRun: projectRun,
   }
 })

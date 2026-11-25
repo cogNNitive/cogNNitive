@@ -58,7 +58,9 @@ import { initDomain } from './tools/init-domain.js'
 import { readLineageTool } from './tools/read-lineage.js'
 import { explainEffective, resolveEffective } from './tools/resolve-effective.js'
 import { procedureState } from './tools/procedure-state.js'
+import { procedurePending } from './tools/procedure-pending.js'
 import { procedureRecord, procedureStart } from './tools/procedure-record.js'
+import { importConsole } from './tools/import-console.js'
 import { envelope, envelopeList, findDomainRoot } from '@cognnitive/nn-core'
 
 /**
@@ -939,7 +941,8 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         properties: {
           procedure: {
             type: 'string',
-            description: 'Procedure id (e.g. review) or domain-relative procedure document path',
+            description:
+              'Procedure id (e.g. review) or domain-relative procedure document path; append @<container-slug> to run one sub-procedure of a document that holds several',
           },
           params: { type: 'object', description: 'Run parameters: slot name -> value' },
           run: {
@@ -965,7 +968,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'procedure_state',
       annotations: { readOnlyHint: true },
       description:
-        'Read-only: the state of a procedure run, folded from its recorded events (nothing is stored). Returns the run header, the RunState (status, current step, path, steps, artifacts, stale, drift, crashed, canComplete), the graph diagnostics, what the current step needs (executor, decision question and command with slots substituted, input and output artifacts), the allowed next transitions with their guards, and the procedure_record actions allowed now. ' +
+        'Read-only: the state of a procedure run, folded from its recorded events (nothing is stored). Returns the run header, the RunState (status, current step, path, steps, artifacts, stale, drift, crashed, canComplete), the graph diagnostics, what the current step needs (executor, decision question and command with slots substituted, input and output artifacts), the allowed next transitions with their guards, and the procedure_record actions allowed now. When a person chose what to do with a completed run (import_console records it), "handoff" carries the choice, who recorded it and when. ' +
         'The actions are exactly the ones procedure_record accepts: a drifted run advertises only rebase, input, pause or resume, cancel and finish, because drift refuses step and artifact facts until rebase. ' +
         'An engine step started with no later event is reported as crashed while the apply lock is free; action=run writes the start and its terminal in one changeset, so a command that dies leaves no event and the step stays pending. Never writes files. Codes: RUN_NOT_FOUND, PROCEDURE_NOT_FOUND, INVALID_ARGUMENT.',
       inputSchema: {
@@ -987,13 +990,20 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       description:
         'Record one fact of a procedure run as ONE changeset applied through apply_change (author_kind agent; engine for action run). Actions: start (step_started, attempt and frozen input revs computed), wait (value), complete (outcome; next is taken when one transition holds, else AMBIGUOUS_TRANSITION with the allowed transitions), fail (value), artifact (fact produced|validated|rejected, field = artifact slug, value, rev; only from a step that already started), input (field, value, rev), pause, resume, rebase (accept the current definition revision), cancel, finish (outcome completed, only when the walk can complete, or failed), and run (execute the engine step command with slots substituted, verify its file: artifacts by sha256, record the exit code). ' +
         'The call holds the run write lock across the fold and the apply, so two callers cannot both fold the same state and append the same fact: a second caller is refused with RUN_BUSY and writes nothing. ' +
-        'A terminal event and close_model go in the same changeset. Refusals write nothing: INVALID_ACTION, INVALID_ARGUMENT, RUN_NOT_FOUND, RUN_BUSY, RUN_CLOSED, RUN_DRIFTED, RUN_PAUSED, NOT_PAUSED, NOT_DRIFTED, UNKNOWN_STEP, STEP_NOT_CURRENT, STEP_NOT_STARTED, STEP_ALREADY_STARTED, UNKNOWN_ARTIFACT, INVALID_TRANSITION, AMBIGUOUS_TRANSITION, CANNOT_COMPLETE, NOT_ENGINE_STEP; APPLY_FAILED reports an apply refusal. Returns what was recorded and the new state.',
+        'A Step Request a person recorded in the console (see procedure_pending) is consumed by giving its id as request instead of an action: the request names the action, step, outcome or value, and the same changeset that records the action marks it done. A request made at an older base_seq whose step moved since is marked stale, and one the planner refuses is marked rejected with the reason; both marks are their own changeset and record nothing else. ' +
+        'A terminal event and close_model go in the same changeset. Refusals write nothing: INVALID_ACTION, INVALID_ARGUMENT, RUN_NOT_FOUND, REQUEST_NOT_FOUND, REQUEST_NOT_PENDING, REQUEST_STALE, RUN_BUSY, RUN_CLOSED, RUN_DRIFTED, RUN_PAUSED, NOT_PAUSED, NOT_DRIFTED, UNKNOWN_STEP, STEP_NOT_CURRENT, STEP_NOT_STARTED, STEP_ALREADY_STARTED, UNKNOWN_ARTIFACT, INVALID_TRANSITION, AMBIGUOUS_TRANSITION, CANNOT_COMPLETE, MISSING_OUTPUT, NOT_ENGINE_STEP; APPLY_FAILED reports an apply refusal. Returns what was recorded and the new state.',
       inputSchema: {
         type: 'object',
         properties: {
           run: { type: 'string', description: 'Run id' },
+          request: {
+            type: 'string',
+            description:
+              'Id of a pending Step Request to consume (from procedure_pending); give it instead of action, never both',
+          },
           action: {
             type: 'string',
+            description: 'The fact to record; required unless request is given',
             enum: [
               'start',
               'run',
@@ -1041,10 +1051,67 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           domain: { type: 'string', description: 'Optional domain root override' },
           root: { type: 'string', description: 'Optional domain root override (alias for domain)' },
         },
-        required: ['run', 'action'],
+        required: ['run'],
       },
     },
     handler: handleProcedureRecord,
+  },
+  {
+    definition: {
+      name: 'procedure_pending',
+      annotations: { readOnlyHint: true },
+      description:
+        'Read-only: the queue of Step Request rows a person recorded in the console (executions spec, "Requests, not writes"). A request is intent, never state: it names an action (start, wait, complete or fail), the step, the run seq it was asked at (base_seq) and an optional outcome or value. Only procedure_record consumes one, and it marks it done, stale or rejected. Without a run id it lists every run of the domaiNN. Returns each request with its id, run, step, action, base_seq, status and reason, plus how many are still pending. Never writes files. Codes: INVALID_ARGUMENT, RUN_NOT_FOUND.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          run: {
+            type: 'string',
+            description: 'Optional run id; omitted lists every run in the domaiNN',
+          },
+          domain: { type: 'string', description: 'Optional domain root override' },
+          root: { type: 'string', description: 'Optional domain root override (alias for domain)' },
+        },
+      },
+    },
+    handler: handleProcedurePending,
+  },
+  {
+    definition: {
+      name: 'import_console',
+      annotations: { readOnlyHint: false, destructiveHint: false },
+      description:
+        'Import a console HTML a person saved with "Save Snapshot" into this domaiNN. Saving writes the console file the person opened, in place, so the path the conversation already knows stays valid; without a path this reads the domaiNN\'s own domaiNN_console.html, and a console saved anywhere else (for example an e-mail attachment) still passes its path. ' +
+        'Importing is repeatable: a Step Request the run already holds with the same content is reported as duplicate and not written again (a pending one that nobody consumed yet is consumed now), a name that exists with other content refuses the whole import with REQUEST_CONFLICT, and a run_start draft without a run id derives one from the draft, so the same saved file starts its run once (reported as already_started). Drafts of kind run_handoff ({ kind: "run_handoff", run, choice: "administrator" | "agent" }) are the final choice of the person for a COMPLETED run: with apply the choice is recorded once beside the run (executions/<run>/handoff.json, read back by procedure_state as handoff) and nothing is added to the models of the domaiNN; a run that is not completed or does not exist is refused alone (RUN_NOT_COMPLETED, RUN_NOT_FOUND), and a run already handed off differently refuses the whole import with HANDOFF_CONFLICT. ' +
+        'Reads its nn-drafts slot and turns the drafts into the changeset the console "Download changes" button would have produced (the console runtime composes it, so the bytes match a download) and writes it to changes/. ' +
+        'Without apply it writes only that changeset and reports the runs the person asked for (drafts of kind run_start: { kind: "run_start", procedure, params, run?, path? }). With apply it applies the changeset through apply_change, starts each requested run through procedure_start with the reviewer as actor, and with consume it also consumes every Step Request the changeset added through procedure_record request=, reporting each as done, stale, rejected or failed. The domain console is regenerated once at the end. ' +
+        'The file must be a console of THIS domaiNN (its meta.domainId). Refusals write nothing: INVALID_ARGUMENT, CONSOLE_NOT_FOUND, NOT_A_CONSOLE, DOMAIN_MISMATCH, REVIEWER_REQUIRED (the file names no reviewer and no author was given), INVALID_DRAFT, REQUEST_CONFLICT, HANDOFF_CONFLICT, EXPORT_REFUSED, CHANGESET_EXISTS, CONSOLE_ASSETS_NOT_FOUND; APPLY_FAILED reports an apply refusal of the written changeset. Returns the changeset path, applied count, duplicates, requests consumed, runs started, handoffs and next_steps.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description:
+              "The saved console HTML, absolute (anywhere on disk) or relative to the domain root. Omitted reads the domaiNN's own domaiNN_console.html, where a console saved in place writes.",
+          },
+          author: {
+            type: 'string',
+            description: 'Who signs the changes (default the reviewer the saved console names)',
+          },
+          apply: {
+            type: 'boolean',
+            description: 'Apply the changeset and start the requested runs (default false)',
+          },
+          consume: {
+            type: 'boolean',
+            description: 'With apply: consume the Step Requests it added (default false)',
+          },
+          domain: { type: 'string', description: 'Optional domain root override' },
+          root: { type: 'string', description: 'Optional domain root override (alias for domain)' },
+        },
+      },
+    },
+    handler: handleImportConsole,
   },
 ]
 
@@ -1453,6 +1520,14 @@ function handleProcedureState(args: Record<string, unknown>): Promise<CallToolRe
 
 function handleProcedureRecord(args: Record<string, unknown>): Promise<CallToolResult> {
   return runnerResult('innfo-procedure-record', procedureRecord, args)
+}
+
+function handleProcedurePending(args: Record<string, unknown>): Promise<CallToolResult> {
+  return runnerResult('innfo-procedure-pending', procedurePending, args)
+}
+
+function handleImportConsole(args: Record<string, unknown>): Promise<CallToolResult> {
+  return runnerResult('innfo-import-console', (root, a) => importConsole(root, a), args)
 }
 
 /* ── Response helpers ────────────────────────────────────────── */

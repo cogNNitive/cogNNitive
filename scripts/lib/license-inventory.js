@@ -167,6 +167,26 @@ function validatePolicy(policy) {
       if (!r || blank(r.reason)) errors.push(`${label}: "reason" is required`)
     })
   }
+  // A vendored file reaches users inside the console bundle, so its attribution must be
+  // in the policy: the copyright lines and a committed copy of the upstream license text.
+  ;(policy.vendored || []).forEach((v, i) => {
+    const label = `vendored[${i}] (${v && v.name})`
+    const copyright = v && v.copyright
+    if (!Array.isArray(copyright) || copyright.length === 0 || copyright.some(blank))
+      errors.push(`${label}: "copyright" is required (a non-empty array of copyright lines)`)
+    if (!v || blank(v.licenseFile))
+      errors.push(
+        `${label}: "licenseFile" is required (a committed copy of the upstream license text)`,
+      )
+    if (v && v.notice !== undefined && blank(v.notice))
+      errors.push(`${label}: "notice", when present, is the verbatim upstream NOTICE text`)
+    ;((v && v.includes) || []).forEach((inc, j) => {
+      if (!inc || blank(inc.name) || blank(inc.license) || blank(inc.copyright))
+        errors.push(
+          `${label}: includes[${j}] (${inc && inc.name}): "license" and "copyright" are required`,
+        )
+    })
+  })
   return errors
 }
 
@@ -285,6 +305,8 @@ function checkVendored(repoRoot, policy) {
       problems.push(
         `license needs review: vendored asset ${v.name}@${v.version} is ${v.license}; list it under "reviewed" in scripts/license-policy.json`,
       )
+    if (v.licenseFile && !fs.existsSync(path.join(repoRoot, v.licenseFile)))
+      problems.push(`vendored asset ${v.name}: license file ${v.licenseFile} does not exist`)
     const file = path.join(repoRoot, v.path)
     if (!fs.existsSync(file)) {
       problems.push(`vendored asset ${v.name}: ${v.path} does not exist`)
@@ -305,9 +327,9 @@ const escapeCell = (value) => String(value).replace(/\|/g, '&#124;')
 
 /**
  * Renders THIRD_PARTY.md. Deterministic: same installed tree and policy give the same bytes.
- * @param {{ classified: ReturnType<typeof classifyPackages>, policy: any, projectLicense: string }} input
+ * @param {{ classified: ReturnType<typeof classifyPackages>, policy: any, projectLicense: string, repoRoot?: string }} input
  */
-function renderThirdParty({ classified, policy, projectLicense }) {
+function renderThirdParty({ classified, policy, projectLicense, repoRoot }) {
   /** @type {string[]} */
   const lines = []
   lines.push('# Third-Party Notices')
@@ -333,23 +355,27 @@ function renderThirdParty({ classified, policy, projectLicense }) {
     '`scripts/license-policy.json`; the check fails when a listed file changes or disappears.',
   )
   lines.push('')
-  lines.push('| Component | Version | License | File | Source |')
-  lines.push('|---|---|---|---|---|')
+  lines.push('| Component | Version | License | Copyright | File | Source |')
+  lines.push('|---|---|---|---|---|---|')
   for (const v of policy.vendored || []) {
     lines.push(
-      `| ${escapeCell(v.name)} | ${escapeCell(v.version)} | ${escapeCell(v.license)} | \`${v.path}\` | ${v.source} |`,
+      `| ${escapeCell(v.name)} | ${escapeCell(v.version)} | ${escapeCell(v.license)} | ${escapeCell((v.copyright || []).join('; '))} | \`${v.path}\` | ${v.source} |`,
     )
   }
   lines.push('')
   lines.push(
-    'The console bundle (`nn-console.bundle.js`, served from a SHA-pinned jsDelivr tag and vendored next to',
+    'The console bundle (`nn-console.bundle.js`, also served from a SHA-pinned jsDelivr tag) concatenates the',
   )
   lines.push(
-    'each exported console) concatenates the vendored assets above with first-party code. The generated',
+    'vendored assets above with first-party code, and every exported `domaiNN_console.html` inlines that whole',
   )
   lines.push(
-    '`*.generated.cjs` skill mirrors are esbuild bundles that inline `yaml`, listed in the npm table below.',
+    'bundle. Their notices and license texts are reproduced in full at the end of this file. The nn-mcp CDN',
   )
+  lines.push(
+    'bundle (`nn-mcp.bundle.js`) inlines the `nn-mcp` production dependencies, and the generated `*.generated.cjs`',
+  )
+  lines.push('skill mirrors inline `yaml`; all of them are listed in the npm table below.')
   lines.push('')
   lines.push('## npm production dependencies')
   lines.push('')
@@ -412,7 +438,64 @@ function renderThirdParty({ classified, policy, projectLicense }) {
     lines.push('```')
     lines.push('')
   }
+  lines.push(...renderVendoredTexts(policy, repoRoot))
   return `${lines.join('\n').replace(/\n+$/, '')}\n`
+}
+
+/**
+ * The per-asset attribution of the vendored files: copyright, the upstream NOTICE text
+ * verbatim (Apache-2.0 §4(d)), the third-party code each one embeds, and its license text
+ * with the copyright lines kept. Reads only the repository, never node_modules.
+ * @param {any} policy
+ * @param {string | undefined} repoRoot
+ * @returns {string[]}
+ */
+function renderVendoredTexts(policy, repoRoot) {
+  const vendored = policy.vendored || []
+  if (vendored.length === 0) return []
+  const lines = ['## Vendored asset notices and license texts', '']
+  lines.push(
+    'Reproduced in full for each vendored asset, because each one is redistributed inside the',
+  )
+  lines.push('console bundle and every exported console.')
+  lines.push('')
+  for (const v of vendored) {
+    lines.push(`### ${v.name} ${v.version} (${v.license})`)
+    lines.push('')
+    for (const c of v.copyright || []) lines.push(`${c}  `)
+    lines.push(`Source: ${v.source}`)
+    lines.push('')
+    if (v.notice) {
+      lines.push('NOTICE:')
+      lines.push('')
+      lines.push('```text')
+      lines.push(lf(v.notice).trim())
+      lines.push('```')
+      lines.push('')
+    }
+    if (v.includes && v.includes.length > 0) {
+      lines.push('Includes third-party code:')
+      lines.push('')
+      for (const inc of v.includes) lines.push(`- ${inc.name} (${inc.license}), ${inc.copyright}`)
+      lines.push('')
+    }
+    if (v.licenseFile && repoRoot) {
+      const file = path.join(repoRoot, v.licenseFile)
+      if (fs.existsSync(file)) {
+        lines.push(`License text (\`${v.licenseFile}\`):`)
+        lines.push('')
+        lines.push('```text')
+        lines.push(
+          lf(fs.readFileSync(file, 'utf8'))
+            .replace(/\n{3,}/g, '\n\n')
+            .trim(),
+        )
+        lines.push('```')
+        lines.push('')
+      }
+    }
+  }
+  return lines
 }
 
 module.exports = {

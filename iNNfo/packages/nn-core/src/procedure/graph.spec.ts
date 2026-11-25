@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { procedureGraph } from './index.js'
-import { REVIEW_MD, parse } from './fixtures.js'
+import { LOOP_MD, REVIEW_MD, parse } from './fixtures.js'
 
 const model = (body: string) =>
   parse(`---
@@ -67,6 +67,99 @@ describe('procedureGraph', () => {
     expect(g.start).toBeNull()
   })
 
+  it('accepts a loop guarded by a decision branch, and reads its declared max_attempts', () => {
+    const g = procedureGraph(parse(LOOP_MD))
+    expect(g.diagnostics).toEqual([])
+    expect(g.start).toBe('draft')
+    expect(g.steps.redraft.next).toEqual(['review'])
+    expect(g.steps.review.maxAttempts).toBe(2)
+    expect(g.steps.draft.maxAttempts).toBeUndefined()
+  })
+
+  it('accepts a guarded loop back to the start step without losing the start', () => {
+    const g = procedureGraph(
+      model(
+        `## NN Work: A
+slug:: a
+condition:: outcome == again
+next:: [[b]]
+
+` +
+          `## NN Work: B
+slug:: b
+next:: [[a]], [[c]]
+
+` +
+          `## NN Work: C
+slug:: c
+condition:: outcome == done
+`,
+      ),
+    )
+    expect(g.diagnostics).toEqual([])
+    expect(g.start).toBe('a')
+  })
+
+  it('reads a guarded loop of a sub-procedure from its start, whatever its steps declare first', () => {
+    const g = procedureGraph(
+      model(
+        `## NN Work: Proc
+slug:: proc
+
+` +
+          `## NN Work: A
+slug:: a
+parent:: [[proc]]
+next:: [[b]]
+
+` +
+          `## NN Work: B
+slug:: b
+parent:: [[proc]]
+next:: [[c]], [[d]]
+
+` +
+          `## NN Work: C
+slug:: c
+parent:: [[proc]]
+condition:: outcome == ok
+
+` +
+          `## NN Work: D
+slug:: d
+parent:: [[proc]]
+condition:: outcome == redo
+next:: [[b]]
+`,
+      ),
+      'proc',
+    )
+    expect(g.diagnostics).toEqual([])
+    expect(g.start).toBe('a')
+    expect(Object.keys(g.steps)).toEqual(['a', 'b', 'c', 'd'])
+  })
+
+  it('still reports an unguarded cycle: a loop with no decision branch into it', () => {
+    const g = procedureGraph(
+      model(
+        `## NN Work: A
+slug:: a
+next:: [[b]]
+
+## NN Work: B
+slug:: b
+next:: [[c]]
+
+` +
+          `## NN Work: C
+slug:: c
+next:: [[b]]
+`,
+      ),
+    )
+    expect(g.diagnostics).toContainEqual(expect.objectContaining({ code: 'CYCLE' }))
+  })
+
   it('reports several starts and a missing slug', () => {
     const g = procedureGraph(model(`## NN Work: A\nslug:: a\n\n## NN Work: Loose Step\n`))
     expect(g.diagnostics).toContainEqual(expect.objectContaining({ code: 'MULTIPLE_STARTS' }))
@@ -74,6 +167,39 @@ describe('procedureGraph', () => {
       expect.objectContaining({ code: 'MISSING_SLUG', step: 'loose-step' }),
     )
     expect(g.start).toBeNull()
+  })
+
+  it('asks a container only for the slots its own steps carry', () => {
+    const doc = parse(`---
+level: 3
+knowledge_version: "V_0-1-0"
+title: "g"
+slots:
+  - { name: episode, kind: value, required: false }
+  - { name: voice, kind: value, required: true }
+---
+
+# NN Work
+
+## NN Work: One
+slug:: one
+
+## NN Work: A
+slug:: a
+parent:: [[one]]
+command:: run {episode}
+
+## NN Work: Two
+slug:: two
+
+## NN Work: B
+slug:: b
+parent:: [[two]]
+command:: run {voice}
+`)
+    expect(procedureGraph(doc).slots).toEqual(['episode', 'voice'])
+    expect(procedureGraph(doc, 'one').slots).toEqual(['episode'])
+    expect(procedureGraph(doc, 'two').slots).toEqual(['voice'])
   })
 
   it('treats a Work that is the parent of other Work as a container, not a step', () => {

@@ -1,5 +1,5 @@
 /* global module: writable */
-/* global uPlot */
+/* global echarts */
 ;(function (root, factory) {
   if (typeof module === 'object' && module.exports) {
     module.exports = factory(require('./ui-kit.js'))
@@ -122,6 +122,62 @@
     return labels
   }
 
+  // ---- Charts (ECharts) ----------------------------------------------------
+  // The one chart entry point for built-in tabs and custom views: it takes a plain
+  // ECharts option and applies the console defaults (white background, palette).
+  var CHART_PALETTE = ['#2563eb', '#dc2626', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2', '#db2777', '#65a30d']
+
+  function chartLibrary() {
+    if (typeof echarts !== 'undefined') return echarts
+    return (typeof self !== 'undefined' && self.echarts) || null
+  }
+
+  function warnChartLibraryMissing() {
+    if (typeof console !== 'undefined' && console.warn)
+      console.warn('nn-console: ECharts unavailable — charts need the vendored console bundle')
+  }
+
+  function renderChart(host, option, opts) {
+    if (!host) return null
+    var lib = chartLibrary()
+    if (!lib) {
+      warnChartLibraryMissing()
+      return null
+    }
+    var o = opts || {}
+    var previous = lib.getInstanceByDom(host)
+    if (previous) previous.dispose()
+    if (host.__nnChartObserver) {
+      host.__nnChartObserver.disconnect()
+      host.__nnChartObserver = null
+    }
+    // A host in a hidden tab has no size yet: start from a fallback size and let the
+    // resize observer measure the real one ('auto') once the tab is shown.
+    var autoWidth = o.width === undefined
+    var autoHeight = o.height === undefined
+    var chart = lib.init(host, null, {
+      renderer: o.renderer || 'svg',
+      width: autoWidth ? (host.clientWidth ? undefined : 960) : o.width,
+      height: autoHeight ? (host.clientHeight ? undefined : 400) : o.height,
+    })
+    var merged = {}
+    Object.keys(option || {}).forEach(function (key) {
+      merged[key] = option[key]
+    })
+    if (merged.backgroundColor === undefined) merged.backgroundColor = '#ffffff'
+    if (merged.color === undefined) merged.color = CHART_PALETTE
+    chart.setOption(merged)
+    if (typeof ResizeObserver !== 'undefined' && (autoWidth || autoHeight)) {
+      host.__nnChartObserver = new ResizeObserver(function () {
+        if (!chart.isDisposed() && host.clientWidth) {
+          chart.resize({ width: autoWidth ? 'auto' : o.width, height: autoHeight ? 'auto' : o.height })
+        }
+      })
+      host.__nnChartObserver.observe(host)
+    }
+    return chart
+  }
+
   function renderCharts(host, model, meta) {
     if (!host) return
     var compiled = compileChartSeries(isObject(model) ? model.series : {}, meta)
@@ -133,15 +189,8 @@
       if (typeof console !== 'undefined' && console.warn)
         console.warn('nn-console: chart skipped — ' + c.label + ' (' + c.detail + ')')
     })
-    var U =
-      typeof uPlot !== 'undefined'
-        ? uPlot
-        : typeof self !== 'undefined' && self.uPlot
-          ? self.uPlot
-          : null
-    if (!U) {
-      if (typeof console !== 'undefined' && console.warn)
-        console.warn('nn-console: uPlot unavailable — charts need the vendored console bundle')
+    if (!chartLibrary()) {
+      warnChartLibraryMissing()
       return
     }
     var windowCount =
@@ -155,40 +204,32 @@
       if (canvas) section.appendChild(canvas)
       host.appendChild(section)
       var labels = monthAxis(meta, windowCount || chart.count)
-      var palette = ['#2563eb', '#dc2626', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2']
-      var seriesDefs = [{ label: 'Month' }]
-      var dataSeries = []
-      for (var v = 0; v < chart.variants.length; v++) {
-        var variant = chart.variants[v]
-        seriesDefs.push({
-          label: variant.label,
-          stroke: palette[v % palette.length],
-          width: 2,
-          nullGaps: true,
-        })
-        dataSeries.push(variant.values)
-      }
       try {
-        new U(
-          {
-            width: Math.max(320, host.clientWidth || 640),
-            height: 240,
-            legend: { show: true },
-            scales: { x: { time: false } },
-            series: seriesDefs,
-            axes: [
-              {
-                values: function (_self, ticks) {
-                  return ticks.map(function (t) {
-                    return labels[Number(t)] != null ? labels[Number(t)] : String(t)
-                  })
-                },
-              },
-              {},
-            ],
-          },
-          [chart.xs].concat(dataSeries),
+        renderChart(
           canvas,
+          {
+            tooltip: { trigger: 'axis' },
+            legend: { show: true, top: 0 },
+            grid: { left: 48, right: 16, top: 32, bottom: 32 },
+            xAxis: {
+              type: 'category',
+              data: chart.xs.map(function (x) {
+                return labels[x] != null ? labels[x] : String(x)
+              }),
+            },
+            yAxis: { type: 'value' },
+            series: chart.variants.map(function (variant) {
+              return {
+                type: 'line',
+                name: variant.label,
+                data: variant.values,
+                connectNulls: false,
+                showSymbol: false,
+                lineStyle: { width: 2 },
+              }
+            }),
+          },
+          { height: 240 },
         )
       } catch (err) {
         if (typeof console !== 'undefined' && console.warn)
@@ -1063,6 +1104,7 @@
   return {
     compileChartSeries: compileChartSeries,
     monthAxis: monthAxis,
+    renderChart: renderChart,
     renderCharts: renderCharts,
     renderTimelineGrid: renderTimelineGrid,
     formatGridNumber: formatGridNumber,

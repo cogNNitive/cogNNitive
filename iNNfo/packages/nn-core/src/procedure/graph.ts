@@ -9,6 +9,9 @@ import type {
 
 const EXECUTORS: readonly string[] = ['human', 'agent', 'engine']
 
+/** How many attempts a loop target may take when it declares no `max_attempts`. */
+export const DEFAULT_MAX_ATTEMPTS = 3
+
 /**
  * `tool` aliases (design §4.6): when a Work has no `executor`, one of these literals read
  * from `tool` is taken as its executor. `console` maps to `human`, because the console is
@@ -70,7 +73,8 @@ const str = (v: unknown): string | undefined =>
 /**
  * Parses a procedures-bluepriNNt model into its runnable steps (design §2, §3). A Work that is
  * the parent of another Work is a container, not a step. Structural problems are reported,
- * never thrown; loops are out of slice 1 and reported as CYCLE.
+ * never thrown. A loop is runnable only when it is guarded (see `findCycles`); any other loop
+ * is reported as CYCLE.
  *
  * `container` restricts the graph to one container's descendants (design §4.6): a file that
  * holds several sub-procedures is addressed as `<doc>@<container-slug>`, and starts, `next`
@@ -126,6 +130,9 @@ export function procedureGraph(model: ParsedKnowledge, container?: string): Proc
         : {}),
       inputs: artifactRefs(n.fields['input']),
       outputs: artifactRefs(n.fields['output']),
+      ...(maxAttemptsOf(n.fields['max_attempts']) !== undefined
+        ? { maxAttempts: maxAttemptsOf(n.fields['max_attempts'])! }
+        : {}),
     }
   }
 
@@ -165,7 +172,13 @@ export function procedureGraph(model: ParsedKnowledge, container?: string): Proc
     }
   }
 
-  const incoming = new Set(Object.values(steps).flatMap((s) => s.next))
+  // A guarded loop's back-edge is not an entry: the step it returns to may be the start.
+  const cycles = findCycles(steps)
+  const incoming = new Set(
+    Object.values(steps).flatMap((s) =>
+      s.next.filter((t) => !cycles.backEdges.has(`${s.slug}>${t}`)),
+    ),
+  )
   const starts = Object.keys(steps).filter((s) => !incoming.has(s))
   if (starts.length === 0 && Object.keys(steps).length > 0)
     diagnostics.push({
@@ -179,7 +192,7 @@ export function procedureGraph(model: ParsedKnowledge, container?: string): Proc
       severity: 'error',
       detail: `Several steps have no incoming next: ${starts.join(', ')}.`,
     })
-  diagnostics.push(...findCycles(steps))
+  diagnostics.push(...cycles.diagnostics)
 
   // Slots (design §4.6): the `{name}` placeholders the procedure declares, from the
   // frontmatter `slots` list and from every step command and every artifact `at`.
@@ -197,9 +210,11 @@ export function procedureGraph(model: ParsedKnowledge, container?: string): Proc
           .split(',')
           .map((s) => s.trim().replace(/^\{|\}$/g, ''))
       : []
+  // A container is one sub-procedure: the document's declared slots belong to its siblings too,
+  // so only the placeholders its own steps and artifacts carry are asked for.
   const slots = [
     ...new Set([
-      ...declaredSlots.filter((s) => s !== ''),
+      ...(containerSlug ? [] : declaredSlots.filter((s) => s !== '')),
       ...slotNames(
         ...Object.values(steps).map((s) => s.command),
         ...Object.values(artifacts).map((a) => a.at),
@@ -234,13 +249,14 @@ function descendantsOf(
     if (list) list.push(n)
     else childrenOf.set(parent, [n])
   }
-  const out: ElementNode[] = []
+  const out = new Set<ElementNode>()
   const todo = [...(childrenOf.get(container) ?? [])]
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
-    out.push(n)
+    out.add(n)
     todo.push(...(childrenOf.get(n.slug ?? '') ?? []))
   }
-  return out
+  // In declaration order: loops are read from the start (see `findCycles`).
+  return work.filter((n) => out.has(n))
 }
 
 /**
@@ -279,25 +295,56 @@ function verifyOf(
   return kind === 'changeset' ? 'applied' : undefined
 }
 
-function findCycles(steps: Record<string, ProcedureStep>): GraphDiagnostic[] {
-  const found: GraphDiagnostic[] = []
+/** A positive integer `max_attempts`, or undefined. */
+function maxAttemptsOf(v: unknown): number | undefined {
+  const n = Number(str(v))
+  return Number.isInteger(n) && n > 0 ? n : undefined
+}
+
+/**
+ * Loops (design §10.2). A loop is runnable when it is guarded: one of its edges leaves a step
+ * with several targets for a target that carries a `condition`, so the run only goes round
+ * when an actor chooses that branch, and the other targets are the way out. Taking the loop's
+ * back-edge reopens its span (the runner's `complete`), bounded by the target's attempts.
+ * Every other loop is a CYCLE error. Back-edges are `from>to` keys. A loop back to the start
+ * step has no step without an incoming edge, so its start is the first one declared.
+ */
+function findCycles(steps: Record<string, ProcedureStep>): {
+  diagnostics: GraphDiagnostic[]
+  backEdges: Set<string>
+} {
+  const diagnostics: GraphDiagnostic[] = []
+  const backEdges = new Set<string>()
   const state = new Map<string, 'visiting' | 'done'>()
+  const guarded = (loop: string[]): boolean =>
+    loop
+      .slice(0, -1)
+      .some((from, i) => steps[from].next.length > 1 && steps[loop[i + 1]].condition !== undefined)
   const visit = (slug: string, trail: string[]): void => {
     state.set(slug, 'visiting')
     for (const t of steps[slug].next) {
       if (state.get(t) === 'visiting') {
         const walked = [...trail, slug]
         const loop = [...walked.slice(walked.indexOf(t)), t]
-        found.push({
-          code: 'CYCLE',
-          severity: 'error',
-          step: slug,
-          detail: `Loop ${loop.join(' -> ')}; loops are not runnable yet.`,
-        })
+        if (guarded(loop)) backEdges.add(`${slug}>${t}`)
+        else
+          diagnostics.push({
+            code: 'CYCLE',
+            severity: 'error',
+            step: slug,
+            detail: `Loop ${loop.join(' -> ')} has no guarded branch: a loop needs a decision step whose target carries a condition, so the run can leave it.`,
+          })
       } else if (!state.has(t)) visit(t, [...trail, slug])
     }
     state.set(slug, 'done')
   }
-  for (const slug of Object.keys(steps)) if (!state.has(slug)) visit(slug, [])
-  return found
+  // Walk from the steps nothing points at first, then in declaration order, so the edge that
+  // closes a loop is the one that returns to a step walked earlier, as a run meets it.
+  const incoming = new Set(Object.values(steps).flatMap((s) => s.next))
+  const roots = [
+    ...Object.keys(steps).filter((slug) => !incoming.has(slug)),
+    ...Object.keys(steps).filter((slug) => incoming.has(slug)),
+  ]
+  for (const slug of roots) if (!state.has(slug)) visit(slug, [])
+  return { diagnostics, backEdges }
 }

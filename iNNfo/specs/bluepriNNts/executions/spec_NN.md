@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-9-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-9-0_NN.md"
-blueprint_version: "V_0-3-1"
+blueprint_version: "V_0-6-0"
 title: "Executions App"
 description: "Level-2 blueprint recording runs of procedures as models with state: one instance model per run, holding its header, one row per step and one row per artifact; the history of the run is the change log of that model."
 relationship_types:
@@ -26,6 +26,7 @@ relationship_types:
   * [[Step Run]]
   * [[Run Artifact]]
   * [[Input]]
+  * [[Step Request]]
 
 # NN Concept Definition
 
@@ -57,6 +58,13 @@ type:: list
 color:: grey
 weight:: 70
 description:: A computed or entered input the run recorded, with its revision. One row per input name.
+
+## NN Concept Definition: Step Request
+icon:: inbox
+type:: list
+color:: yellow
+weight:: 60
+description:: One row per human request that an action be recorded on a step. Intent, never state: only the runner consumes it, and it never moves a Step Run row by itself.
 
 # NN Field Definition
 
@@ -91,8 +99,8 @@ description:: The stored lifecycle of the run. The status the tools return is th
 concept:: [Step Run, Run Artifact]
 type:: select
 options:: [pending, active, waiting, done, failed, expected, produced, validated, rejected]
-transitions:: {"": ["pending", "expected"], "pending": ["active", "failed", "done"], "active": ["waiting", "done", "failed"], "waiting": ["active", "done", "failed"], "failed": ["active"], "done": ["active"], "expected": ["produced", "validated", "rejected"], "produced": ["validated", "rejected"], "validated": ["produced"], "rejected": ["produced"]}
-description:: The stored lifecycle of a step row (pending, active, waiting, done, failed) or an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle; the rows never cross.
+transitions:: {"": ["pending", "expected"], "pending": ["active", "failed", "done"], "active": ["waiting", "done", "failed", "pending"], "waiting": ["active", "done", "failed", "pending"], "failed": ["active"], "done": ["active", "pending"], "expected": ["produced", "validated", "rejected"], "produced": ["validated", "rejected"], "validated": ["produced"], "rejected": ["produced"]}
+description:: The stored lifecycle of a step row (pending, active, waiting, done, failed) or an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle; the rows never cross. A step row goes back to pending only when a loop's back-edge reopens it.
 
 ## NN Field Definition: attempt
 concept:: Step Run
@@ -144,6 +152,44 @@ concept:: Step Run
 type:: string
 description:: The applied change ids a human step observed, such as the verdicts it waited on.
 
+## NN Field Definition: action
+concept:: Step Request
+type:: select
+options:: [start, wait, complete, fail]
+description:: The action the person asked the runner to record on the step.
+
+## NN Field Definition: step
+concept:: Step Request
+type:: string
+description:: The slug of the step the request names.
+
+## NN Field Definition: base_seq
+concept:: Step Request
+type:: number
+description:: The run's header seq when the request was made. A consumer refuses the request when the run has advanced past it.
+
+## NN Field Definition: reason
+concept:: Step Request
+type:: string
+description:: Why the request was rejected or found stale, as the runner reported it.
+
+## NN Field Definition: request_status
+concept:: Step Request
+type:: select
+options:: [pending, done, stale, rejected]
+transitions:: {"": ["pending"], "pending": ["done", "stale", "rejected"], "done": [], "stale": [], "rejected": []}
+description:: The life of a request: pending while nobody consumed it, then done, stale or rejected. A resolved request never returns to pending.
+
+## NN Field Definition: requested_outcome
+concept:: Step Request
+type:: string
+description:: The outcome the person asked for when the request names a branching step.
+
+## NN Field Definition: requested_value
+concept:: Step Request
+type:: string
+description:: The value the person attached to the request, such as who a step waits on or why it failed.
+
 ## NN Field Definition: kind
 concept:: Run Artifact
 type:: select
@@ -180,6 +226,7 @@ A run stores state, not a second ledger. Its history is the change log of its ow
 | **Step Run** | `list` | One row per step, slug = step slug. Mutable |
 | **Run Artifact** | `list` | One row per artifact, slug = artifact slug. Mutable |
 | **Input** | `list` | One row per recorded input, with its value and revision |
+| **Step Request** | `list` | One row per human request that an action be recorded on a step. Append-only in practice: a resolved request is marked, never removed |
 
 ### Run Header
 
@@ -191,9 +238,25 @@ A step's status, attempt, outcome, chosen `next` and frozen `inputs` live on its
 
 `procedure_start` writes one atomic changeset: `add_model`, the header, and one `add_element` per step and per artifact. Either the whole run exists or none of it does.
 
+### Requests, not writes
+
+A person driving a run from the console cannot write the run: only the runner does. What a person records is a `Step Request` — one row named with a slug, carrying the `action` it asks for, the `base_seq` it asked at, and the outcome or value the action needs. A request moves nothing by itself; a run's derived status is identical with or without one.
+
+`procedure_record` consumes a request by id: it plans exactly the action it names, then records the action and marks the request `done` in the same atomic changeset. A request whose `base_seq` no longer matches the run's `seq` is `stale`, one the planner refuses is `rejected` with the planner's reason, and neither is ever deleted. The queue is therefore both the human's intent and the record of what happened to it.
+
+`procedure_pending` lists that queue. Closing a run stays out of reach of a request on purpose: `finish` and `cancel` need `close_model`, which is a runner decision and not a requested action.
+
 ### Concurrency
 
-Every runner changeset holds the header's `seq: n -> n+1` with `from: {seq: n}`, so any concurrent write to the same run conflicts the whole changeset. A step claim and completion also guard the step's `status` and `attempt`, so a late completion from an older attempt conflicts (the fence). `action=run` writes its claim before the command executes, with the pid of the child that runs it as the holder, so a second caller finds the step claimed instead of running the same command twice. A process that dies between claim and completion leaves `active`; the step is derived as crashed from its `holder`, and the next caller records `active -> failed` and may retry. A command parameter carrying shell syntax is refused (`UNSAFE_COMMAND`) before anything runs.
+Every runner changeset holds the header's `seq: n -> n+1` with `from: {seq: n}`, so any concurrent write to the same run conflicts the whole changeset. A step claim and completion also guard the step's `status` and `attempt`, so a late completion from an older attempt conflicts (the fence). `action=run` writes its claim before the command executes, with the pid of the child that runs it as the holder, so a second caller finds the step claimed instead of running the same command twice. A process that dies between claim and completion leaves `active`; the step is derived as crashed from its `holder`, and the next caller records `active -> failed` and may retry. A command parameter carrying shell syntax is refused (`UNSAFE_COMMAND`) before anything runs. A conflict whose guarded change is this run's header `seq` is reported as `RUN_BUSY`, the signal to re-read and retry.
+
+### Accepting a grown definition
+
+`action=rebase` is the one call that accepts a definition revision the run was not pinned to. A definition that grew while the run was open names steps and artifacts the run has no row for, so the rebase writes their `Step Run` and `Run Artifact` rows in the same changeset as the new `def_rev`: without one, every later action on them addresses nothing. A row the run already has is never touched.
+
+### Loops
+
+A procedure may loop back to an earlier step when the loop is guarded: a decision step chooses the branch into it (its target carries a `condition`), and its other branches leave it. Completing the step whose `next` is a step the run already walked takes the loop's back-edge: one changeset puts that step and every step walked from it up to the completing one back to `pending`, keeping each row's `attempt`, so the next start counts on from it, and puts every output of those steps that was `validated` back to `produced`; the fold reports those outputs stale until their producer runs again. The loop is bounded: when the step it returns to already took its `max_attempts` (3 when the procedure declares none), the back-edge is refused with `LOOP_LIMIT` and nothing is written, so the actor fails the step or takes another branch.
 
 ### Artifacts
 
@@ -218,7 +281,7 @@ level: 3
 parent_spec:
   name: executions
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/executions/spec_NN.md"
-blueprint_version: "V_0-3-1"
+blueprint_version: "V_0-6-0"
 status: active
 ---
 
