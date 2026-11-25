@@ -19,6 +19,7 @@
  */
 
 import { pathToFileURL } from 'node:url'
+import { resolve } from 'node:path'
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js'
@@ -61,7 +62,7 @@ import { procedureState } from './tools/procedure-state.js'
 import { procedurePending } from './tools/procedure-pending.js'
 import { procedureRecord, procedureStart } from './tools/procedure-record.js'
 import { importConsole } from './tools/import-console.js'
-import { envelope, envelopeList, findDomainRoot } from '@cognnitive/nn-core'
+import { envelope, envelopeList, findDomainRoot, isDomainRoot } from '@cognnitive/nn-core'
 
 /**
  * Resolves the domaiNN root: `INNFO_DOMAIN_DIR` wins, else the nearest
@@ -111,7 +112,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'list_knowledge',
       annotations: { readOnlyHint: true },
       description:
-        "Scan the knowledge directory and list every iNNfo knowledge document with its id, path, version, blueprint and storage. Pass `collection` to list one concept's members instead (it spans distributed instances and compact copies; each item then carries its placement finding, if any)",
+        "Scan the knowledge directory and list every iNNfo knowledge document with its id, path, version, blueprint and storage. Pass `collection` to list one concept's members instead (it spans distributed instances and compact copies; each item then carries its placement finding, if any). The result always states the resolved `root`; when that root holds no domaiNN_NN.md or no model document the call returns ok=false with code NO_DOMAIN_ROOT or NO_MODELS instead of a bare empty list, so an empty answer never silently reads as 'the model does not exist'",
       inputSchema: {
         type: 'object',
         properties: {
@@ -1169,16 +1170,61 @@ export async function dispatchTool(
 
 /* ── Handlers ────────────────────────────────────────────────── */
 
+/**
+ * `list_knowledge` answers with the root it read, and refuses to answer with a
+ * bare empty list when that root cannot prove absence. A root without a
+ * `domaiNN_NN.md` (or a domaiNN holding no model document) yields `[]` from the
+ * scan, which reads as "this model does not exist" while the truth is "the
+ * server is not looking at a domaiNN". Both cases are reported in the same
+ * `{ ok: false, code, detail }` shape every other tool uses for a structured
+ * failure, with `root` naming where the scan looked.
+ */
 async function handleListKnowledge(args: Record<string, unknown>): Promise<CallToolResult> {
-  const root = (args.domain as string) || (args.root as string) || ROOT_DIR
+  const root = resolve((args.domain as string) || (args.root as string) || ROOT_DIR)
   const collection =
     typeof args.collection === 'string' && args.collection.trim()
       ? args.collection.trim()
       : undefined
   const knowledge = await listKnowledge(root, collection ? { collection } : {})
-  return textResult(
-    JSON.stringify(envelopeList('innfo-list-knowledge', 'knowledge', knowledge), null, 2),
-  )
+  const list = envelopeList('innfo-list-knowledge', 'knowledge', knowledge)
+
+  if (!isDomainRoot(root)) {
+    return errorResult(
+      JSON.stringify(
+        {
+          ...list,
+          ok: false,
+          code: 'NO_DOMAIN_ROOT',
+          root,
+          detail: `${root} holds no domaiNN_NN.md, so it is not a domaiNN and this empty listing proves nothing about any model; point the server at a domaiNN (or pass domain) before concluding a model is absent.`,
+        },
+        null,
+        2,
+      ),
+    )
+  }
+
+  // An empty collection is a true answer when the domaiNN holds models; only an
+  // empty domaiNN makes "no model documents" the finding.
+  const unfiltered =
+    collection !== undefined && knowledge.length === 0 ? await listKnowledge(root) : knowledge
+  if (unfiltered.length === 0) {
+    return errorResult(
+      JSON.stringify(
+        {
+          ...list,
+          ok: false,
+          code: 'NO_MODELS',
+          root,
+          detail: `${root} holds a domaiNN_NN.md but no model document (level 3, resolvable parent_spec) was found under it, so this empty listing proves nothing about any model.`,
+        },
+        null,
+        2,
+      ),
+    )
+  }
+
+  return textResult(JSON.stringify({ ...list, ok: true, root }, null, 2))
 }
 
 async function handleReadKnowledge(args: Record<string, unknown>): Promise<CallToolResult> {

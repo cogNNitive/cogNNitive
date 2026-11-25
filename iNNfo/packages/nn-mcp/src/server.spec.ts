@@ -440,7 +440,16 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
       '',
     ].join('\n')
 
+    /** The marker `isDomainRoot` reads: without it the root is not a domaiNN. */
+    const writeEntrypoint = (dir: string) =>
+      writeFile(
+        join(dir, 'domaiNN_NN.md'),
+        ['---', 'title: "test domaiNN"', '---', ''].join('\n'),
+        'utf-8',
+      )
+
     it('scans the configured domain and returns knowledge info enveloped under "knowledge"', async () => {
+      await writeEntrypoint(rootDir)
       const kDir = join(rootDir, 'kNNowledge')
       await mkdir(kDir, { recursive: true })
       await writeFile(join(kDir, 'Alpha_V_1-0-0_business_NN.md'), docFrontmatter, 'utf-8')
@@ -450,6 +459,8 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
       expect(result.isError).toBeFalsy()
       const parsed = JSON.parse(textOf(result as CallToolResult))
       expect(parsed.version).toBe('innfo-list-knowledge@1')
+      expect(parsed.ok).toBe(true)
+      expect(parsed.root).toBe(rootDir)
       expect(parsed.knowledge.map((m: { id: string }) => m.id)).toEqual([
         'Alpha_V_1-0-0_business',
         'Beta_V_1-0-0_business',
@@ -459,6 +470,7 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
     it('honors an explicit domain root override', async () => {
       const otherRoot = join(rootDir, 'other-domain')
       await mkdir(otherRoot, { recursive: true })
+      await writeEntrypoint(otherRoot)
       await writeFile(join(otherRoot, 'Only_V_1-0-0_NN.md'), docFrontmatter, 'utf-8')
 
       const result = await client.callTool({
@@ -467,7 +479,45 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
       })
       const parsed = JSON.parse(textOf(result as CallToolResult))
       expect(parsed.version).toBe('innfo-list-knowledge@1')
+      expect(parsed.root).toBe(otherRoot)
       expect(parsed.knowledge.map((m: { id: string }) => m.id)).toEqual(['Only_V_1-0-0'])
+    })
+
+    it('reports NO_DOMAIN_ROOT with the resolved root instead of a bare empty list', async () => {
+      // beforeEach leaves rootDir without a domaiNN_NN.md: a scan there finds no
+      // model, and `knowledge: []` alone would read as "no such model exists".
+      const result = await client.callTool({ name: 'list_knowledge', arguments: {} })
+      expect(result.isError).toBe(true)
+      const parsed = JSON.parse(textOf(result as CallToolResult))
+      expect(parsed).toMatchObject({ ok: false, code: 'NO_DOMAIN_ROOT', root: rootDir })
+      expect(parsed.knowledge).toEqual([])
+      expect(parsed.detail).toContain(rootDir)
+    })
+
+    it('reports NO_MODELS when the domaiNN holds no model document', async () => {
+      await writeEntrypoint(rootDir)
+
+      const result = await client.callTool({ name: 'list_knowledge', arguments: {} })
+      expect(result.isError).toBe(true)
+      const parsed = JSON.parse(textOf(result as CallToolResult))
+      expect(parsed).toMatchObject({ ok: false, code: 'NO_MODELS', root: rootDir })
+      expect(parsed.knowledge).toEqual([])
+    })
+
+    it('keeps a plain empty list for an empty collection of a real domaiNN', async () => {
+      await writeEntrypoint(rootDir)
+      const kDir = join(rootDir, 'kNNowledge')
+      await mkdir(kDir, { recursive: true })
+      await writeFile(join(kDir, 'Alpha_V_1-0-0_business_NN.md'), docFrontmatter, 'utf-8')
+
+      const result = await client.callTool({
+        name: 'list_knowledge',
+        arguments: { collection: 'Nothing' },
+      })
+      expect(result.isError).toBeFalsy()
+      const parsed = JSON.parse(textOf(result as CallToolResult))
+      expect(parsed).toMatchObject({ ok: true, root: rootDir })
+      expect(parsed.knowledge).toEqual([])
     })
   })
 
@@ -719,6 +769,20 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
       await writeFile(
         join(rootDir, 'domaiNN_NN.md'),
         ['---', 'level: 2', 'model_version: "V_0-1-0"', '---'].join('\n'),
+        'utf-8',
+      )
+      await writeFile(
+        join(rootDir, 'Sample_V_1-0-0_business_NN.md'),
+        [
+          '---',
+          'spec_version: "V_0-3-0"',
+          'level: 3',
+          'parent_spec:',
+          '  name: business_V_0-2-0',
+          '  url: https://example.com/business_V_0-2-0_NN.md',
+          '---',
+          '',
+        ].join('\n'),
         'utf-8',
       )
 

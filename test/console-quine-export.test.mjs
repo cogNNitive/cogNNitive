@@ -468,10 +468,7 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
       )
       assert.ok(prompt.includes('Class VII'), 'Includes proposed value')
       assert.ok(prompt.includes('apply_change'), 'Includes actionable apply_change instruction')
-      assert.ok(
-        prompt.includes('npm run build:console'),
-        'Includes build verification instructions',
-      )
+      assert.ok(prompt.includes('regenerate_console'), 'Names the tool that rebuilds the console')
     })
 
     it('copies agent prompt to clipboard and displays feedback toast', async () => {
@@ -496,6 +493,249 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
       const toast = document.querySelector('[data-nn="toast"]')
       assert.ok(toast, 'Feedback toast was mounted')
       assert.match(toast.textContent, /Copied!/)
+    })
+  })
+
+  describe('2b. Exported instructions state only facts the console resolved', () => {
+    // A domain console's payload: several models, a declared workspace id, a draft-store
+    // key derived from the export path, and elements that carry their own model.
+    const domainMeta = {
+      title: 'iNNtake Domain',
+      model: 'iNNtake_NN',
+      modelId: 'iNNtake_NN',
+      domainId: 'iNNtake_NN-6cebb32d',
+      workspaceId: 'inntake-nn',
+      changesBlueprintVersion: 'V_0-15-0',
+      models: [
+        {
+          id: 'Transcripciones_transcripcion',
+          title: 'Transcripciones',
+          version: 'V_0-1-15',
+          filePath: 'kNNowledge/Transcripciones_transcripcion_NN.md',
+        },
+        {
+          id: 'Notas_nota',
+          title: 'Notas',
+          version: 'V_0-3-2',
+          filePath: 'kNNowledge/Notas_nota_NN.md',
+        },
+      ],
+    }
+    const domainModel = {
+      meta: domainMeta,
+      elements: [
+        {
+          id: 'Transcripciones_transcripcion@clase-01',
+          modelId: 'Transcripciones_transcripcion',
+          modelFile: 'kNNowledge/Transcripciones_transcripcion_NN.md',
+          concept: 'Transcripción',
+          name: 'Clase 01',
+          slug: 'clase-01',
+          hash: 'aaaabbbbccccdddd',
+          fields: { title: 'Clase 01', note: 'old' },
+        },
+      ],
+      matrices: [],
+      changes: [],
+    }
+    // The console UI records `element_id` (model@slug) and never `element_slug`.
+    const draftOnNote = {
+      id: 'c-01',
+      element_id: 'Transcripciones_transcripcion@clase-01',
+      concept: 'Transcripción',
+      element: 'Clase 01',
+      kind: 'correction',
+      field: 'note',
+      original: 'old',
+      proposed: 'new note',
+      base_hash: 'aaaabbbbccccdddd',
+    }
+    const draftOnTitle = {
+      id: 'c-02',
+      element_id: 'Transcripciones_transcripcion@clase-01',
+      concept: 'Transcripción',
+      element: 'Clase 01',
+      kind: 'correction',
+      field: 'title',
+      original: 'Clase 01',
+      proposed: 'Clase 01 revisada',
+      base_hash: 'aaaabbbbccccdddd',
+    }
+
+    beforeEach(() => nnConsole.setReviewerName('Egon Spengler'))
+
+    const bootDomain = (modelData) => {
+      const local = new JSDOM(createConsoleHtml(modelData), { url: 'http://localhost/domain.html' })
+      const booted = nnConsole.boot(local.window.document, {
+        modelText: decodedModelTextOf(local.window.document),
+      })
+      assert.ok(booted.ok, 'domain console booted')
+      return booted.state
+    }
+    const promptFor = (modelData, drafts) =>
+      nnConsole.composeAgentPrompt({
+        ...bootDomain(modelData),
+        store: { drafts: () => drafts },
+      })
+    const docTargetsOf = (prompt) =>
+      [...prompt.matchAll(/^target:: (.+)$/gm)].map((m) => m[1].trim())
+    const summaryTargetsOf = (prompt) =>
+      prompt
+        .split('\n')
+        .filter((line) => line.startsWith('| `'))
+        .map((line) => line.split('|')[2].trim().replace(/^`|`$/g, ''))
+
+    it('names the declared workspace_id, never the console draft-store key', () => {
+      const prompt = promptFor(domainModel, [])
+      assert.ok(prompt.includes('- **Workspace ID**: `inntake-nn`'), 'the declared identity')
+      assert.equal(
+        prompt.includes('6cebb32d'),
+        false,
+        'the path-derived draft-store key is not a domain identifier',
+      )
+      assert.equal(prompt.includes('Domain Identifier'), false, 'and is not labelled as one')
+    })
+
+    it('never presents a fallback version as the domain version', () => {
+      const prompt = promptFor(domainModel, [])
+      assert.equal(prompt.includes('V_1-0-0'), false, 'no fabricated version')
+      assert.match(
+        prompt,
+        /- \*\*Version\*\*: not available — this console covers 2 models/,
+        'an unavailable version is stated as unavailable',
+      )
+    })
+
+    it('states the resolved version of a single-model console', () => {
+      const single = { ...domainModel, meta: { ...domainMeta, models: [domainMeta.models[1]] } }
+      const prompt = promptFor(single, [])
+      assert.ok(prompt.includes('- **Version**: V_0-3-2'), 'the real knowledge_version')
+      assert.equal(prompt.includes('not available'), false)
+    })
+
+    it('names each target model with the document the payload lists, never a models/ folder', () => {
+      const prompt = promptFor(domainModel, [draftOnNote])
+      assert.ok(
+        prompt.includes(
+          '`Transcripciones_transcripcion` — `kNNowledge/Transcripciones_transcripcion_NN.md` (V_0-1-15)',
+        ),
+        'the model document and its version, both from meta.models',
+      )
+      assert.equal(prompt.includes('under `models/`'), false, 'no invented storage layout')
+    })
+
+    it('never names npm or exporter scripts a domain workspace does not have', () => {
+      const prompt = promptFor(domainModel, [draftOnNote])
+      for (const absent of [
+        'npm run',
+        'build:console',
+        'check:console-bundle',
+        'scripts/export-console',
+      ]) {
+        assert.equal(prompt.includes(absent), false, `must not name ${absent}`)
+      }
+      assert.ok(prompt.includes('`apply_change`'), 'names the tool that applies a changeset')
+      assert.ok(prompt.includes('`regenerate_console`'), 'names the tool that rebuilds the console')
+    })
+
+    it('gives the summary rows and the normative document the identical targets', () => {
+      const prompt = promptFor(domainModel, [draftOnNote, draftOnTitle])
+      const targets = docTargetsOf(prompt)
+      assert.deepEqual(targets, [
+        'Transcripciones_transcripcion@clase-01&note',
+        'Transcripciones_transcripcion@clase-01&title',
+      ])
+      assert.deepEqual(
+        summaryTargetsOf(prompt),
+        targets,
+        'one derivation, so the table cannot contradict the document it carries',
+      )
+    })
+
+    it('flags a draft nothing resolves instead of inventing an element', () => {
+      const orphan = { id: 'c-09', kind: 'correction', field: 'note', proposed: 'x' }
+      const prompt = promptFor(domainModel, [orphan])
+      assert.equal(prompt.includes('@elem'), false, 'no placeholder element')
+      assert.equal(prompt.includes('@unit'), false, 'no placeholder element')
+      assert.ok(prompt.includes('## Blocking Problems'), 'the export says it cannot be applied')
+      assert.ok(prompt.includes('no element slug resolves'))
+      assert.deepEqual(docTargetsOf(prompt), ['iNNtake_NN&note'], 'incomplete, never plausible')
+    })
+
+    it('flags a target whose model this console does not cover', () => {
+      const foreign = {
+        id: 'c-10',
+        knowledge_id: 'inntake-nn',
+        element_slug: 'ghost-element',
+        kind: 'correction',
+        field: 'note',
+        proposed: 'x',
+      }
+      const prompt = promptFor(domainModel, [foreign])
+      assert.ok(prompt.includes('## Blocking Problems'))
+      assert.ok(
+        prompt.includes('model `inntake-nn` is not one of the models this console covers'),
+        'the reported shape: a domain name used as a model',
+      )
+      assert.deepEqual(docTargetsOf(prompt), ['inntake-nn@ghost-element&note'])
+    })
+
+    it('flags an element this console holds no record of, on a model it covers', () => {
+      const bogus = {
+        id: 'c-11',
+        element_id: 'Transcripciones_transcripcion@clase-99',
+        kind: 'correction',
+        field: 'note',
+        proposed: 'x',
+      }
+      const prompt = promptFor(domainModel, [bogus])
+      assert.ok(prompt.includes('## Blocking Problems'), 'the export says it cannot be applied')
+      assert.ok(
+        prompt.includes(
+          'element `clase-99` is not one of the elements this console holds for `Transcripciones_transcripcion`',
+        ),
+        'the reported shape names the element and its model',
+      )
+      assert.deepEqual(
+        docTargetsOf(prompt),
+        ['Transcripciones_transcripcion@clase-99&note'],
+        'the target still states what the draft names, never a plausible substitute',
+      )
+    })
+
+    it('reports nothing for an element the payload holds', () => {
+      const prompt = promptFor(domainModel, [draftOnNote])
+      assert.equal(prompt.includes('## Blocking Problems'), false)
+      assert.ok(prompt.includes('`Transcripciones_transcripcion@clase-01&note`'))
+    })
+
+    it('does not report the element a `new` draft is creating', () => {
+      const created = {
+        id: 'c-12',
+        knowledge_id: 'Transcripciones_transcripcion',
+        concept: 'Transcripción',
+        element: 'Clase 02',
+        kind: 'new',
+        proposed: { title: 'Clase 02' },
+      }
+      const prompt = promptFor(domainModel, [created])
+      assert.equal(prompt.includes('## Blocking Problems'), false)
+      assert.ok(
+        docTargetsOf(prompt).includes('Transcripciones_transcripcion@Transcripción'),
+        'addressed by concept',
+      )
+    })
+
+    it('leaves the downloadable changeset free of an invented source version', () => {
+      const state = { ...bootDomain(domainModel), store: { drafts: () => [draftOnNote] } }
+      const composed = nnConsole.composeExport(state, 'Egon Spengler')
+      assert.ok(composed.ok, String(composed.errors))
+      assert.equal(
+        /^source_knowledge_version:/m.test(composed.changesetText),
+        false,
+        'the changeset frontmatter carries no version the console did not resolve',
+      )
+      assert.equal(composed.changesetText.includes('V_1-0-0'), false)
     })
   })
 
