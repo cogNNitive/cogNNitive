@@ -837,15 +837,13 @@ describe('bounded loops', SLOW, () => {
 
     const restarted = ok(await rec({ action: 'start' }))
     expect(restarted.state.steps.review).toMatchObject({ status: 'active', attempt: 2 })
-    // Each pass of the loop is its own attempt, with the input revisions its claim recorded.
-    // Reopening a step is not an attempt: only a start is. The second pass records what its
-    // row holds: the claim records only validated inputs, and the fold reports the redraft's
-    // output stale while the loop is open.
+    // Each pass of the loop is its own attempt, with the input revision that pass read: the
+    // second review reads the redraft's d2, even while the fold calls it stale because the
+    // loop is still open. Reopening a step is not an attempt: only a start is.
     const { attempts } = ok(await procedureState(root, { run: 'l1' })).state
-    expect(await stepField('l1', 'review', 'inputs')).toBe('"{}"')
     expect(attempts.review).toEqual([
       { attempt: 1, inputs: { 'draft-doc': 'd1' }, actor: 'agent' },
-      { attempt: 2, inputs: {}, actor: 'agent' },
+      { attempt: 2, inputs: { 'draft-doc': 'd2' }, actor: 'agent' },
     ])
     expect(attempts.redraft).toEqual([{ attempt: 1, inputs: {}, actor: 'agent' }])
   })
