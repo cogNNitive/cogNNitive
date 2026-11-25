@@ -657,6 +657,7 @@ function buildSteps(repoRoot, options = {}) {
 
   // 12-15. Repository guards.
   steps.push(ro('template-immutability', 'Template Immutability Guard', 'scripts/guard-template-immutability.js'));
+  steps.push(ro('skill-package-paths', 'Skill Package Path Guard', 'scripts/guard-skill-package-paths.js'));
   steps.push(ro('text-encoding', 'Guard Tracked Text Encoding', 'scripts/guard-text-encoding.js'));
   steps.push(ro('nn-name-regex', 'NN Name Regex Guard', 'scripts/lib/nn-name-regex-guard.js'));
   steps.push(ro('nn-name-invariant', 'NN Name Invariant Guard', 'scripts/lib/nn-name-invariant-guard.js'));
