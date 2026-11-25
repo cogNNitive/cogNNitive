@@ -4,8 +4,10 @@ import {
   crashProbe,
   fillSlots,
   foldRun,
+  loadChangeLog,
   parseKnowledge,
   procedureGraph,
+  runAttemptsOf,
   runModelOf,
 } from '@cognnitive/nn-core'
 import type {
@@ -328,13 +330,22 @@ export function describeRun(folded: FoldedRun): ProcedureStateResult {
   }
 }
 
-/** `procedure_state`: read-only. */
+/**
+ * `procedure_state`: read-only. It is the one reader that rebuilds `state.attempts` from the
+ * run model's change log: that reads every changeset of the domaiNN, a cost the writers do
+ * not pay, since no runner decision depends on an earlier attempt.
+ */
 export async function procedureState(
   root: string,
   args: Record<string, unknown>,
 ): Promise<ProcedureStateResult | ToolError> {
   const read = await readRun(root, args['run'])
   if (!read.ok) return read
+  read.run.attempts = runAttemptsOf(
+    loadChangeLog(root).all,
+    read.run.id,
+    Object.keys(read.run.steps),
+  )
   const folded = await foldStoredRun(root, read.run)
   if (!folded.ok) return folded
   const handoff = await readHandoff(root, read.run.id)

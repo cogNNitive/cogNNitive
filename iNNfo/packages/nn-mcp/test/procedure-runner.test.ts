@@ -442,6 +442,21 @@ describe('procedure_record', SLOW, () => {
     expect(await runText('r1')).toMatch(/^closed: true$/m)
   })
 
+  it('procedure_state lists every attempt of a step from the change log, oldest first', async () => {
+    ok(await startReview())
+    expect(ok(await procedureState(root, { run: 'r1' })).state.attempts).toEqual({})
+    ok(await procedureRecord(root, { run: 'r1', action: 'start', actor: 'ana' }))
+    ok(await procedureRecord(root, { run: 'r1', action: 'fail', value: 'no data' }))
+    ok(await procedureRecord(root, { run: 'r1', action: 'start', actor: 'bo' }))
+    const state = ok(await procedureState(root, { run: 'r1' })).state
+    expect(state.attempts).toEqual({
+      draft: [
+        { attempt: 1, inputs: {}, failure: 'no data', actor: 'ana' },
+        { attempt: 2, inputs: {}, actor: 'bo' },
+      ],
+    })
+  })
+
   it('a waited step completes, and the run reports waiting while it waits', async () => {
     ok(await startReview())
     ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
@@ -822,6 +837,17 @@ describe('bounded loops', SLOW, () => {
 
     const restarted = ok(await rec({ action: 'start' }))
     expect(restarted.state.steps.review).toMatchObject({ status: 'active', attempt: 2 })
+    // Each pass of the loop is its own attempt, with the input revisions its claim recorded.
+    // Reopening a step is not an attempt: only a start is. The second pass records what its
+    // row holds: the claim records only validated inputs, and the fold reports the redraft's
+    // output stale while the loop is open.
+    const { attempts } = ok(await procedureState(root, { run: 'l1' })).state
+    expect(await stepField('l1', 'review', 'inputs')).toBe('"{}"')
+    expect(attempts.review).toEqual([
+      { attempt: 1, inputs: { 'draft-doc': 'd1' }, actor: 'agent' },
+      { attempt: 2, inputs: {}, actor: 'agent' },
+    ])
+    expect(attempts.redraft).toEqual([{ attempt: 1, inputs: {}, actor: 'agent' }])
   })
 
   it('LOOP_LIMIT: the decision on its last attempt cannot choose the branch that only loops back', async () => {
@@ -925,6 +951,13 @@ describe('bounded loops on engine steps', SLOW, () => {
     expect(limited.state.steps.check).toMatchObject({ status: 'failed', attempt: 2 })
     expect(limited.state.steps.check.failure).toMatch(/^LOOP_LIMIT: /)
     expect(limited.state.status).toBe('blocked')
+    // An engine claim and its settlement are one change: the attempt carries its failure.
+    const { attempts } = ok(await procedureState(root, { run: 'e1' })).state
+    expect(attempts.fetch!.map((a) => a.attempt)).toEqual([1, 2])
+    expect(attempts.check).toHaveLength(2)
+    expect(attempts.check![0]!.failure).toBeUndefined()
+    expect(attempts.check![1]).toMatchObject({ attempt: 2, actor: 'engine' })
+    expect(attempts.check![1]!.failure).toMatch(/^LOOP_LIMIT: /)
   })
 })
 
