@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { spawn } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
 import { readFile, readdir, writeFile } from 'node:fs/promises'
 import { tmpdir, hostname } from 'node:os'
@@ -978,5 +979,248 @@ describe('the {run} slot', SLOW, () => {
       value: 'stamp-rs1.txt',
     })
     expect(ran.step).toMatchObject({ decision: 'is stamp-rs1.txt right?' })
+  })
+})
+
+describe('private run outputs', SLOW, () => {
+  const sha256 = (bytes: Buffer | string): string =>
+    createHash('sha256').update(bytes).digest('hex')
+
+  /** Every file outside `executions/` and `changes/`: what a private output must never touch. */
+  const canonical = async (): Promise<Record<string, string>> =>
+    Object.fromEntries(
+      Object.entries(await snapshot()).filter(
+        ([f]) => !f.startsWith('executions/') && !f.startsWith('changes/'),
+      ),
+    )
+
+  /** Run d1 of `deliver`, its human step `write` started. */
+  async function startDeliver(): Promise<void> {
+    ok(await procedureStart(root, { procedure: 'deliver', run: 'd1' }))
+    ok(await procedureRecord(root, { run: 'd1', action: 'start' }))
+  }
+
+  /** A Step Request row written the way the console's draft lands: one add_element, no runner write. */
+  async function requestRow(id: string, fields: Record<string, string | number>): Promise<void> {
+    const { applyChange } = await import('../src/tools/apply-change.js')
+    const { writeProposedChangeset } = await import('../src/tools/propose-changeset.js')
+    const written = await writeProposedChangeset(root, {
+      changes: [
+        {
+          op: 'add_element',
+          target: 'd1',
+          concept: 'Step Request',
+          name: id,
+          slug: id,
+          to: JSON.stringify({ request_status: 'pending', ...fields }),
+          evidence: 'decision',
+        },
+      ],
+      title: `request ${id}`,
+      author: 'ana',
+      authorKind: 'agent',
+      atomic: true,
+    })
+    const applied = await applyChange(root, written.path)
+    if (!applied.success) throw new Error(`request ${id}: ${JSON.stringify(applied.errors)}`)
+  }
+
+  const requestOf = async (id: string) =>
+    ok(await procedurePending(root, { run: 'd1' })).requests.find((r) => r.id === id)
+
+  it('completing without the output still refuses with MISSING_OUTPUT', async () => {
+    await startDeliver()
+    const before = await snapshot()
+    expect(await procedureRecord(root, { run: 'd1', action: 'complete' })).toMatchObject({
+      ok: false,
+      code: 'MISSING_OUTPUT',
+      missing: [{ slug: 'sop' }],
+    })
+    expect(await snapshot()).toEqual(before)
+  })
+
+  it('a direct outputs argument writes the file under the run and records it in the completion', async () => {
+    await startDeliver()
+    const canonicalBefore = await canonical()
+    const before = await changesets()
+    const text = '# SOP\n\nStep "one".\n'
+    const done = ok(
+      await procedureRecord(root, {
+        run: 'd1',
+        action: 'complete',
+        outputs: { sop: { name: '../My SOP!.md', text } },
+      }),
+    )
+    const rel = 'executions/d1/outputs/sop/My-SOP-.md'
+    const bytes = await readFile(join(root, rel))
+    expect(bytes.toString('utf-8')).toBe(text)
+    expect(done.state.steps['write']).toMatchObject({ status: 'done' })
+    expect(done.state.currentStep).toBe('publish')
+    const state = ok(await procedureState(root, { run: 'd1' }))
+    expect(state.state.artifacts['sop']).toEqual({
+      status: 'validated',
+      value: rel,
+      rev: sha256(bytes),
+      step: 'write',
+    })
+    // The output and the completion are one changeset.
+    expect(await changesets()).toHaveLength(before.length + 1)
+    expect(await canonical()).toEqual(canonicalBefore)
+  })
+
+  it('a consumed request carrying requested_outputs records the output and marks the request done', async () => {
+    await startDeliver()
+    const seq = ok(await procedureState(root, { run: 'd1' })).seq
+    const outputs = { sop: { text: 'line one\nline "two"\n' } }
+    await requestRow('q1', {
+      action: 'complete',
+      step: 'write',
+      base_seq: seq,
+      requested_outputs: JSON.stringify(outputs),
+    })
+    const canonicalBefore = await canonical()
+    const done = ok(await procedureRecord(root, { run: 'd1', request: 'q1' }))
+    const rel = 'executions/d1/outputs/sop/sop.md'
+    const bytes = await readFile(join(root, rel))
+    expect(bytes.toString('utf-8')).toBe(outputs.sop.text)
+    expect(done.state.artifacts['sop']).toMatchObject({
+      status: 'validated',
+      value: rel,
+      rev: sha256(bytes),
+      step: 'write',
+    })
+    expect(done.state.steps['write']!.status).toBe('done')
+    expect(await requestOf('q1')).toMatchObject({ status: 'done' })
+    expect(await canonical()).toEqual(canonicalBefore)
+  })
+
+  it('never lets a caller attach outputs to a request a person made', async () => {
+    await startDeliver()
+    const seq = ok(await procedureState(root, { run: 'd1' })).seq
+    await requestRow('q2', { action: 'complete', step: 'write', base_seq: seq })
+    const before = await snapshot()
+    expect(
+      await procedureRecord(root, {
+        run: 'd1',
+        request: 'q2',
+        outputs: { sop: { text: 'not from the person' } },
+      }),
+    ).toMatchObject({ ok: false, code: 'INVALID_ARGUMENT' })
+    expect(await snapshot()).toEqual(before)
+    expect(await requestOf('q2')).toMatchObject({ status: 'pending' })
+  })
+
+  it('refuses an unknown slug, a non-file artifact and an invalid text, writing nothing', async () => {
+    await startDeliver()
+    const before = await snapshot()
+    const refusals: unknown[] = [
+      { publish: { text: 'not an output of write' } },
+      { nope: { text: 'x' } },
+      { 'linked-note': { text: 'an element output' } },
+      { sop: { text: 'x'.repeat(256 * 1024 + 1) } },
+      { sop: { text: 42 } },
+      { sop: { name: 7, text: 'x' } },
+      'not json',
+      ['sop'],
+    ]
+    for (const outputs of refusals) {
+      const res = await procedureRecord(root, { run: 'd1', action: 'complete', outputs })
+      expect(res, JSON.stringify(outputs).slice(0, 80)).toMatchObject({
+        ok: false,
+        code: 'INVALID_OUTPUT',
+      })
+    }
+    // Outputs belong to a completion only.
+    expect(
+      await procedureRecord(root, {
+        run: 'd1',
+        action: 'wait',
+        value: 'ana',
+        outputs: { sop: { text: 'x' } },
+      }),
+    ).toMatchObject({ ok: false, code: 'INVALID_OUTPUT' })
+    expect(await snapshot()).toEqual(before)
+    expect(existsSync(join(root, 'executions', 'd1', 'outputs'))).toBe(false)
+  })
+
+  it('accepts a text of exactly 256 KiB of UTF-8 and refuses one byte more', async () => {
+    await startDeliver()
+    // 'é' is two bytes in UTF-8: 131072 of them are exactly 256 KiB.
+    const limit = 'é'.repeat(128 * 1024)
+    expect(
+      await procedureRecord(root, {
+        run: 'd1',
+        action: 'complete',
+        outputs: { sop: { text: `${limit}a` } },
+      }),
+    ).toMatchObject({ ok: false, code: 'INVALID_OUTPUT' })
+    ok(
+      await procedureRecord(root, {
+        run: 'd1',
+        action: 'complete',
+        outputs: JSON.stringify({ sop: { text: limit } }),
+      }),
+    )
+    expect(await readFile(join(root, 'executions/d1/outputs/sop/sop.md'), 'utf-8')).toBe(limit)
+  })
+
+  it('a refused request is marked rejected with INVALID_OUTPUT and writes no output', async () => {
+    await startDeliver()
+    const seq = ok(await procedureState(root, { run: 'd1' })).seq
+    await requestRow('q1', {
+      action: 'complete',
+      step: 'write',
+      base_seq: seq,
+      requested_outputs: JSON.stringify({ nope: { text: 'x' } }),
+    })
+    await requestRow('q2', {
+      action: 'wait',
+      step: 'write',
+      base_seq: seq,
+      requested_value: 'ana',
+      requested_outputs: JSON.stringify({ sop: { text: 'x' } }),
+    })
+    expect(await procedureRecord(root, { run: 'd1', request: 'q1' })).toMatchObject({
+      ok: false,
+      code: 'INVALID_OUTPUT',
+    })
+    expect(await requestOf('q1')).toMatchObject({
+      status: 'rejected',
+      reason: expect.stringMatching(/^INVALID_OUTPUT: /),
+    })
+    expect(await procedureRecord(root, { run: 'd1', request: 'q2' })).toMatchObject({
+      ok: false,
+      code: 'INVALID_OUTPUT',
+    })
+    expect(await requestOf('q2')).toMatchObject({ status: 'rejected' })
+    expect(existsSync(join(root, 'executions', 'd1', 'outputs'))).toBe(false)
+    const state = ok(await procedureState(root, { run: 'd1' }))
+    expect(state.state.steps['write']!.status).toBe('active')
+    expect(state.state.artifacts['sop']!.status).toBe('expected')
+  })
+
+  it('removes the file it wrote when the completion changeset is not applied', async () => {
+    await startDeliver()
+    // A rejected row only goes back to produced, so the completion's validated row conflicts.
+    ok(
+      await procedureRecord(root, {
+        run: 'd1',
+        action: 'artifact',
+        fact: 'rejected',
+        field: 'sop',
+      }),
+    )
+    const before = await canonical()
+    const res = await procedureRecord(root, {
+      run: 'd1',
+      action: 'complete',
+      outputs: { sop: { text: 'draft' } },
+    })
+    expect(res).toMatchObject({ ok: false, code: 'APPLY_FAILED' })
+    expect(existsSync(join(root, 'executions/d1/outputs/sop/sop.md'))).toBe(false)
+    expect(ok(await procedureState(root, { run: 'd1' })).state.steps['write']!.status).toBe(
+      'active',
+    )
+    expect(await canonical()).toEqual(before)
   })
 })

@@ -1,5 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  realpathSync,
+  rmSync,
+  statSync,
+} from 'node:fs'
 import { readFile, readdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -567,5 +577,123 @@ describe('the final handoff of a completed run', SLOW, () => {
     const res = await apply(file)
     expect(res).toMatchObject({ ok: false, code: 'INVALID_DRAFT' })
     expect(await snapshot(root)).toEqual(before)
+  })
+})
+
+describe('a private run output written in the console', SLOW, () => {
+  /** Run d1 of `deliver`, its human step `write` started: the person owes the SOP. */
+  async function startDeliver(): Promise<number> {
+    await ok('procedure_start', { procedure: 'deliver', run: 'd1' })
+    await ok('procedure_record', { run: 'd1', action: 'start', step: 'write' })
+    return seqOf('d1')
+  }
+
+  /** The domaiNN outside the run folder, the changesets and the regenerated console. */
+  const canonical = async (): Promise<Record<string, string>> =>
+    Object.fromEntries(
+      Object.entries(await snapshot(root)).filter(
+        ([f]) =>
+          !f.startsWith('executions/') && !f.startsWith('changes/') && f !== 'domaiNN_console.html',
+      ),
+    )
+
+  /** About 100 KiB of text with newlines, quotes and backslashes, on one JSON line once stored. */
+  const longText = Array.from(
+    { length: 2100 },
+    (_, i) => `${i}. Say "hello" to C:\\path\\${i} and 'bye'.\tdone\n`,
+  ).join('')
+
+  const completeDraft = (seq: number, text: string, id = 'fb-001') =>
+    requestDraft(
+      id,
+      'q-001',
+      {
+        action: 'complete',
+        step: 'write',
+        base_seq: seq,
+        requested_outputs: JSON.stringify({ sop: { name: 'Our SOP.md', text } }),
+      },
+      'd1',
+    )
+
+  it('the import writes the deliverable under the run, records it with the completion, once', async () => {
+    expect(Buffer.byteLength(longText)).toBeGreaterThan(90 * 1024)
+    const seq = await startDeliver()
+    const canonicalBefore = await canonical()
+    const file = await saved('deliver.html', [completeDraft(seq, longText)])
+
+    const imported = await apply(file)
+    expect(imported['requests']).toEqual([
+      expect.objectContaining({ run: 'd1', request: 'q-001', status: 'done' }),
+    ])
+    const rel = 'executions/d1/outputs/sop/Our-SOP.md'
+    const bytes = await readFile(join(root, rel))
+    // The long one-line JSON field survived the save, the changeset and the run model intact.
+    expect(bytes.toString('utf-8')).toBe(longText)
+    const state = (await ok('procedure_state', { run: 'd1' }))['state'] as Json
+    expect(state.artifacts.sop).toEqual({
+      status: 'validated',
+      value: rel,
+      rev: createHash('sha256').update(bytes).digest('hex'),
+      step: 'write',
+    })
+    expect(state.steps.write.status).toBe('done')
+    expect(state.currentStep).toBe('publish')
+    const pending = await ok('procedure_pending', { run: 'd1' })
+    expect(pending['requests']).toEqual([expect.objectContaining({ id: 'q-001', status: 'done' })])
+    expect(await canonical()).toEqual(canonicalBefore)
+
+    // Importing the same save again is a duplicate: the file is not written a second time.
+    const written = statSync(join(root, rel)).mtimeMs
+    const runBefore = await snapshot(join(root, 'executions'))
+    const again = await apply(file)
+    expect(again['duplicates']).toBe(1)
+    expect(again['requests']).toEqual([
+      { run: 'd1', request: 'q-001', status: 'duplicate', row_status: 'done' },
+    ])
+    expect(statSync(join(root, rel)).mtimeMs).toBe(written)
+    expect(await snapshot(join(root, 'executions'))).toEqual(runBefore)
+  })
+
+  it('the same request name with another deliverable is a conflict, writing nothing', async () => {
+    const seq = await startDeliver()
+    await apply(await saved('a.html', [completeDraft(seq, 'first text\n')]))
+    const other = await saved('b.html', [completeDraft(seq, 'second text\n', 'fb-009')])
+    const before = await snapshot(root)
+    const res = await apply(other)
+    expect(res).toMatchObject({ ok: false, code: 'REQUEST_CONFLICT' })
+    expect(res['conflicts']).toEqual([{ run: 'd1', request: 'q-001' }])
+    expect(await snapshot(root)).toEqual(before)
+  })
+
+  it('a deliverable for a slug the step does not produce is rejected and writes no output', async () => {
+    const seq = await startDeliver()
+    const file = await saved('bad.html', [
+      requestDraft(
+        'fb-001',
+        'q-001',
+        {
+          action: 'complete',
+          step: 'write',
+          base_seq: seq,
+          requested_outputs: JSON.stringify({ publish: { text: 'x' } }),
+        },
+        'd1',
+      ),
+    ])
+    const canonicalBefore = await canonical()
+    const res = await apply(file)
+    expect(res['requests']).toEqual([
+      expect.objectContaining({
+        run: 'd1',
+        request: 'q-001',
+        status: 'rejected',
+        code: 'INVALID_OUTPUT',
+      }),
+    ])
+    expect(existsSync(join(root, 'executions', 'd1', 'outputs'))).toBe(false)
+    const state = (await ok('procedure_state', { run: 'd1' }))['state'] as Json
+    expect(state.steps.write.status).toBe('active')
+    expect(await canonical()).toEqual(canonicalBefore)
   })
 })

@@ -19,6 +19,7 @@ import type { ChangeItem, RunState, StepRow } from '@cognnitive/nn-core'
 import { applyChange } from './apply-change.js'
 import { writeProposedChangeset } from './propose-changeset.js'
 import { findKnowledgeFile } from './spec.js'
+import { artifactRowChange, stageOutputs, writeOutputs } from './run-outputs.js'
 import { loadDeclarations } from './domain-index.js'
 import {
   describeRun,
@@ -736,18 +737,13 @@ function plan(
       return {
         step,
         changes: [
-          {
-            op: 'set_fields',
-            target: `${run.id}@${field}`,
-            to: JSON.stringify({
-              status,
-              ...(value !== undefined ? { value } : {}),
-              ...(kind === 'element' && elementRev !== undefined ? { rev: elementRev } : {}),
-              ...(kind !== 'element' && rev !== undefined ? { rev } : {}),
-              step,
-            }),
-            evidence: 'decision',
-          },
+          artifactRowChange(run.id, field, {
+            status,
+            ...(value !== undefined ? { value } : {}),
+            ...(kind === 'element' && elementRev !== undefined ? { rev: elementRev } : {}),
+            ...(kind !== 'element' && rev !== undefined ? { rev } : {}),
+            step,
+          }),
         ],
       }
     }
@@ -1356,6 +1352,12 @@ export async function procedureRecord(
         'INVALID_ARGUMENT',
         'give a request or an action, never both: the request already names the action.',
       )
+    // A deliverable consumed with a request is the person's own; the caller never adds one.
+    if (args['outputs'] !== undefined)
+      return fail(
+        'INVALID_ARGUMENT',
+        'give a request or outputs, never both: the outputs of a request are the ones the person attached to it.',
+      )
     const request = read.run.requests[requestId]
     if (!request) return fail('REQUEST_NOT_FOUND', `Run "${runId}" has no request "${requestId}".`)
     if (request.status !== 'pending')
@@ -1419,6 +1421,7 @@ export async function procedureRecord(
       ...(request.step !== undefined ? { step: request.step } : {}),
       ...(request.outcome !== undefined ? { outcome: request.outcome } : {}),
       ...(request.value !== undefined ? { value: request.value } : {}),
+      ...(request.outputs !== undefined ? { outputs: request.outputs } : {}),
     }
     requestMark = {
       op: 'set_fields',
@@ -1429,7 +1432,33 @@ export async function procedureRecord(
     }
   }
 
-  const planned = await plan(folded.folded, resolvedAction!, effectiveArgs, root)
+  // Private outputs (executions spec, "Artifacts") travel only with a completion, from a
+  // request's requested_outputs or the outputs argument alike. They are validated before
+  // anything is written, and the completion is planned against the run with their artifact
+  // rows applied, so the MISSING_OUTPUT gate sees them as recorded by this step. A step the
+  // planner will refuse anyway (not current, run closed) is left to its refusal.
+  let target = folded.folded
+  let staged: Exclude<ReturnType<typeof stageOutputs>, ToolError> | undefined
+  if (effectiveArgs['outputs'] !== undefined) {
+    if (resolvedAction !== 'complete')
+      return rejectRequest(
+        root,
+        read,
+        requestId,
+        fail('INVALID_OUTPUT', `outputs travel only with action complete, not ${resolvedAction}.`),
+      )
+    const located = stepFor(target, effectiveArgs)
+    if (located.ok) {
+      const outputs = stageOutputs(target, located.step, effectiveArgs['outputs'])
+      if ('ok' in outputs) return rejectRequest(root, read, requestId, outputs)
+      const overlaid = await foldStoredRun(root, outputs.run)
+      if (!overlaid.ok) return overlaid
+      target = overlaid.folded
+      staged = outputs
+    }
+  }
+
+  const planned = await plan(target, resolvedAction!, effectiveArgs, root)
   if ('ok' in planned) return rejectRequest(root, read, requestId, planned)
 
   const kind = planned.kind ?? 'agent'
@@ -1441,9 +1470,19 @@ export async function procedureRecord(
     const fresh = await readRun(root, run)
     if (fresh.ok) seq = fresh.run.seq
   }
-  const changes: Change[] = [seqGuard(run, seq), ...planned.changes]
+  const changes: Change[] = [seqGuard(run, seq), ...(staged?.changes ?? []), ...planned.changes]
   if (requestMark) changes.push(requestMark)
   if (planned.close) changes.push({ op: 'close_model', target: run, evidence: 'decision' })
+  // The output files land right before the commit that records them, and go away again when
+  // that commit does not apply: the run folder never holds an output its model does not pin.
+  let rollback: (() => Promise<void>) | undefined
+  if (staged && staged.outputs.length > 0) {
+    try {
+      rollback = await writeOutputs(root, staged.outputs)
+    } catch (err) {
+      return fail('APPLY_FAILED', `The run outputs could not be written: ${(err as Error).message}`)
+    }
+  }
   let committed = await commit(root, changes, {
     title: `${resolvedAction} ${run}`,
     actor,
@@ -1469,7 +1508,10 @@ export async function procedureRecord(
       })
     }
   }
-  if (!committed.ok) return committed
+  if (!committed.ok) {
+    await rollback?.()
+    return committed
+  }
   const after = await reload(root, run)
   if (!after.ok) return after
   return {
