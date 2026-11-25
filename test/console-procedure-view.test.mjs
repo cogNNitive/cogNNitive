@@ -266,6 +266,34 @@ describe('procedure view (bluepriNNt)', () => {
     assert.match(container.querySelector('.exec-step-card').textContent, /Approve the draft\?/)
   })
 
+  it('puts the flow graph in the first column and opens one step card inside the timeline', (context) => {
+    mount(payload(), context)
+    const ws = container.querySelector('.exec-workspace')
+    // The graph is the left column; the runs, the run state and the timeline are the right one.
+    assert.match(ws.children[0].className, /proc-rail/)
+    assert.match(ws.children[1].className, /proc-main/)
+    assert.ok(ws.children[1].querySelector('.proc-nav'), 'the runs list lives in the run column')
+    // One toggle per step, the one the view points at open, and its card inside its own row.
+    const toggles = () => [...container.querySelectorAll('[data-proc-step-toggle]')]
+    assert.equal(toggles().length, 4)
+    const open = () => toggles().filter((t) => t.getAttribute('aria-expanded') === 'true')
+    assert.equal(open().length, 1, 'a single step is open')
+    assert.equal(open()[0].getAttribute('data-proc-step-toggle'), 'draft')
+    assert.ok(
+      open()[0].closest('.doc-step').querySelector('.exec-step-card'),
+      'the card opens in place',
+    )
+    // Opening another step moves the card with it.
+    container
+      .querySelector('[data-proc-step-toggle="review"]')
+      .dispatchEvent(new doc.defaultView.Event('click'))
+    assert.equal(open()[0].getAttribute('data-proc-step-toggle'), 'review')
+    assert.ok(
+      open()[0].closest('.doc-step').querySelector('.exec-step-card'),
+      'the card follows the open step',
+    )
+  })
+
   it('shows the graph diagnostics instead of hiding them', (context) => {
     const broken = REVIEW.replace('next:: [@publish, @rework]', 'next:: [@publish, @ghost]')
     mount(payload({ text: broken }), context)
