@@ -244,7 +244,7 @@ describe('foldRun', () => {
     expect(again.stale).toEqual([])
   })
 
-  it('loop: once the walk leaves the loop, the reopened producer\'s last output stands', () => {
+  it("loop: once the walk leaves the loop, the reopened producer's last output stands", () => {
     // review approved on its second attempt: redraft is pending from the loop but off the
     // path now, so it never runs again and the draft it recorded is not stale.
     const s = foldRun(

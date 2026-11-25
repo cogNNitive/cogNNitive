@@ -1283,11 +1283,10 @@ describe('procedure flow graph through the shared chart API', () => {
     const loop = payload([])
     loop.model.procedureGraphs[0].graph = payloadCore.procedureGraph(
       payloadCore.parseKnowledge(
-        INGEST.replace('next:: [@normalize, @discard]', 'max_attempts:: 2\nnext:: [@normalize, @discard]')
-          .replace(
-            'condition:: outcome == reject',
-            'condition:: outcome == reject\nnext:: @review',
-          ),
+        INGEST.replace(
+          'next:: [@normalize, @discard]',
+          'max_attempts:: 2\nnext:: [@normalize, @discard]',
+        ).replace('condition:: outcome == reject', 'condition:: outcome == reject\nnext:: @review'),
       ),
     )
     assert.deepEqual(loop.model.procedureGraphs[0].graph.steps.discard.next, ['review'])

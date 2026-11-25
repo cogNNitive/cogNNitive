@@ -597,8 +597,7 @@ function planStepStart(
       ...(row.status === 'pending' && (row.attempt ?? 0) > 0
         ? f.graph.steps[step]!.outputs.filter(
             (slug) =>
-              f.run.artifacts[slug]?.status === 'validated' &&
-              f.run.artifacts[slug]?.step === step,
+              f.run.artifacts[slug]?.status === 'validated' && f.run.artifacts[slug]?.step === step,
           ).map((slug) => ({
             op: 'set_fields' as const,
             target: `${f.run.id}@${slug}`,

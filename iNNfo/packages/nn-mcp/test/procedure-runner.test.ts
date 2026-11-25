@@ -841,7 +841,9 @@ describe('bounded loops', SLOW, () => {
       maxAttempts: 2,
       next: 'redraft',
     })
-    expect(String((refused as { detail: string }).detail)).toMatch(/another outcome or fail "review"/)
+    expect(String((refused as { detail: string }).detail)).toMatch(
+      /another outcome or fail "review"/,
+    )
     expect(await snapshot()).toEqual(before)
     // Both ways out stay open: the forward branch, or failing the decision.
     const approved = ok(await rec({ action: 'complete', outcome: 'approve' }))
