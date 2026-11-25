@@ -1,6 +1,8 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { bootConsole, addCommentDraft, MODEL } from './helpers/console-boot.mjs'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { bootConsole, addCommentDraft, MODEL, nnConsole, consoleDir } from './helpers/console-boot.mjs'
 
 function openChanges(document) {
   document.getElementById('nn-feedback-open').click()
@@ -89,4 +91,119 @@ describe('one Changes entry for review and export', () => {
       dom.window.close()
     })
   }
+})
+
+describe('unsent changes are a durable signal, not a toast', () => {
+  // `beforeunload` is the only signal a browser gives before it discards the tab.
+  function fireUnload(dom) {
+    const ev = new dom.window.Event('beforeunload', { cancelable: true })
+    dom.window.dispatchEvent(ev)
+    return ev.defaultPrevented
+  }
+
+  it('marks the Changes button while the store is non-empty and clears it at zero', () => {
+    const { document, res, dom } = bootConsole()
+    const button = () => document.getElementById('nn-feedback-open')
+    assert.equal(
+      button().hasAttribute('data-nn-unsent'),
+      false,
+      'a fresh console claims nothing unsent',
+    )
+
+    res.controller.enable()
+    addCommentDraft(document)
+
+    assert.equal(res.state.store.drafts().length, 1)
+    assert.equal(button().getAttribute('data-nn-unsent'), 'true')
+    assert.match(button().textContent, /Changes · 1/)
+    assert.match(button().getAttribute('title'), /1 unsent change lives only in this console/)
+
+    res.state.store.clearDrafts(res.state.store.drafts().map((d) => d.id))
+    res.state.refreshUi()
+    assert.equal(
+      button().hasAttribute('data-nn-unsent'),
+      false,
+      'zero unsent changes clears the state',
+    )
+    assert.equal(button().hasAttribute('title'), false)
+    dom.window.close()
+  })
+
+  it('guards beforeunload only while drafts are unsent, and releases at zero', () => {
+    const { document, res, dom } = bootConsole()
+    assert.equal(fireUnload(dom), false, 'nothing to lose: no warning')
+
+    res.controller.enable()
+    addCommentDraft(document)
+    assert.equal(fireUnload(dom), true, 'the tab warns while a draft lives only here')
+
+    res.state.store.clearDrafts(res.state.store.drafts().map((d) => d.id))
+    res.state.refreshUi()
+    assert.equal(fireUnload(dom), false, 'the guard releases when the store empties')
+    dom.window.close()
+  })
+
+  it('keeps the red state but no pulse under prefers-reduced-motion', () => {
+    const css = readFileSync(join(consoleDir, 'nn-ui.css'), 'utf8')
+    assert.match(css, /#nn-feedback-open\[data-nn-unsent='true'\]\s*\{[^}]*background:\s*#b91c1c/)
+    // The pulse is inside a no-preference block, so a reduced-motion client keeps
+    // the red and never receives the animation at all.
+    const animationAt = css.indexOf('animation: nn-unsent-attention')
+    assert.ok(animationAt > -1, 'the pulse animation is declared')
+    const mediaOpen = css.lastIndexOf('@media', animationAt)
+    assert.match(
+      css.slice(mediaOpen, animationAt),
+      /prefers-reduced-motion: no-preference/,
+      'the pulse only applies when the reader allows motion',
+    )
+  })
+})
+
+describe('the two copy actions emit different artifacts and say so', () => {
+  it('keeps the changeset document and the agent prompt distinct', () => {
+    const { document, res, dom } = bootConsole({
+      before(doc) {
+        const navbar = doc.createElement('nav')
+        navbar.className = 'nn-navbar'
+        doc.body.prepend(navbar)
+      },
+    })
+    // After boot: the helper installs the jsdom store that `getReviewerName` reads.
+    nnConsole.setReviewerName('Egon Spengler')
+    res.controller.enable()
+    addCommentDraft(document)
+
+    // The navbar action composes the agent prompt: instructions plus the embedded
+    // changeset document.
+    const prompt = nnConsole.composeAgentPrompt(res.state)
+    assert.match(prompt, /# AI Agent Instructions: Apply Domain Console Changeset/)
+    assert.match(prompt, /## NN Change:/)
+
+    // The modal action copies the changeset document alone, byte-identical to the
+    // download, with no instruction wrapper.
+    const openButton = document.getElementById('nn-feedback-open')
+    openButton.click()
+    const modal = document.getElementById('nn-feedback-modal')
+    const author = modal.querySelector('[data-nn="identifier"]')
+    author.value = 'Egon Spengler'
+    author.dispatchEvent(new dom.window.Event('input'))
+    document.execCommand = () => true
+    modal.querySelector('[data-nn="copy-changeset-prompt"]').click()
+    const copied = modal.querySelector('[data-nn="changeset-preview"]').value
+    assert.match(copied, /## NN Change:/)
+    assert.doesNotMatch(copied, /# AI Agent Instructions/)
+    // The prompt embeds that same changeset body; only its frontmatter `title:` differs
+    // (the prompt labels it a review), which is why they are two artifacts, not one.
+    const body = (text) => text.slice(text.indexOf('# NN index')).trim()
+    assert.ok(prompt.includes(body(copied)), 'the prompt embeds the changeset the download writes')
+
+    // Each label names its artifact, so the two are not read as duplicates.
+    const navbarCopy = document.querySelector('#nn-navbar-actions [data-nn="copy-agent-prompt"]')
+    assert.match(navbarCopy.textContent, /Copy AI Prompt/)
+    assert.match(navbarCopy.getAttribute('title'), /embedded changeset document/)
+    const modalCopy = modal.querySelector('[data-nn="copy-changeset-prompt"]')
+    assert.match(modalCopy.textContent, /Copy changeset doc/)
+    assert.match(modalCopy.getAttribute('title'), /same bytes Download changes writes/)
+    dom.window.close()
+  })
 })
