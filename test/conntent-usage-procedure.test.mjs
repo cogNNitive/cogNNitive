@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import { openSession } from './helpers/nn-mcp-session.mjs'
 
@@ -35,3 +36,10 @@ test(
     }
   },
 )
+
+test('coNNtent usage guidance is readable UTF-8', async () => {
+  const text = await readFile(new URL(`../iNNfo/specs/${usage}`, import.meta.url), 'utf8')
+  // A double-encoded em dash (`â€”`) is what a cp1252 round trip leaves behind.
+  assert.ok(!text.includes('â€'), 'mojibake in the usage guidance')
+  assert.match(text, /^Six procedures carry a person from an empty folder/m)
+})

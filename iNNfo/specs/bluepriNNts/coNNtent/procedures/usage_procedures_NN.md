@@ -3,7 +3,7 @@ level: 3
 parent_spec:
   name: "procedures_V_0-6-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/procedures/spec_NN.md"
-knowledge_version: "V_0-2-0"
+knowledge_version: "V_0-2-1"
 title: "Using the coNNtent Blueprint"
 slots:
   - { name: episode, kind: value, required: false, type: string, label: Episode, description: "The episode the dry run and the produce engine command address, for example series/<s>/episodes/<slug>." }
@@ -101,7 +101,7 @@ parent:: @set-up-the-domain
 next:: @clone-the-chosen-voices
 step_type:: decision
 tool:: human
-decision:: the voice for each language the domaiNN will produce in â€” clone a sample, or pick an existing Voice whose `language` matches
+decision:: the voice for each language the domaiNN will produce in — clone a sample, or pick an existing Voice whose `language` matches
 scope:: internal
 At least one voice per chosen language. A Voice whose `language` differs from the slot it is offered for is refused and another is asked for. The wizard does not move to the proposal until every chosen language has a voice, or the person records the choice to defer.
 
@@ -179,7 +179,7 @@ parent:: @define-a-frame
 next:: @build-the-frame
 step_type:: decision
 tool:: human
-decision:: the level (domaiNN or series) and the starting point â€” one of the thirteen HyperFrames frame presets, `hyperframes capture <url>`, or scratch
+decision:: the level (domaiNN or series) and the starting point — one of the thirteen HyperFrames frame presets, `hyperframes capture <url>`, or scratch
 scope:: internal
 A series-level frame lives in `series/<s>/library/frames/`; a domaiNN-level frame serves every series.
 
@@ -335,7 +335,7 @@ parent:: @create-a-series
 next:: @write-the-chrome-for-each-language
 step_type:: decision
 tool:: human
-decision:: one Scene Kind at a time â€” its role, maximum duration, narration on or off, Chrome slots, presets and direct fields
+decision:: one Scene Kind at a time — its role, maximum duration, narration on or off, Chrome slots, presets and direct fields
 scope:: internal
 Every episode declares a Kind per scene, or the reserved `Libre`.
 
@@ -455,7 +455,7 @@ step_type:: task
 tool:: agent
 produces:: the speaking and narrative rules the narration must follow
 scope:: internal
-Read `CHARACTER.md` for the active character â€” the host set by the series, plus any guest the scene brings. Its prose (speaking and narrative style, things never said, examples) is binding: the narration never uses a phrase the prose forbids.
+Read `CHARACTER.md` for the active character — the host set by the series, plus any guest the scene brings. Its prose (speaking and narrative style, things never said, examples) is binding: the narration never uses a phrase the prose forbids.
 
 ## NN Work: Draft the scenes
 slug:: draft-the-scenes
