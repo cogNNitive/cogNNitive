@@ -585,15 +585,28 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
         .filter((line) => line.startsWith('| `'))
         .map((line) => line.split('|')[2].trim().replace(/^`|`$/g, ''))
 
-    it('names the declared workspace_id, never the console draft-store key', () => {
+    it('labels the console scope and the declared workspace_id as what they are', () => {
       const prompt = promptFor(domainModel, [])
-      assert.ok(prompt.includes('- **Workspace ID**: `inntake-nn`'), 'the declared identity')
-      assert.equal(
-        prompt.includes('6cebb32d'),
-        false,
-        'the path-derived draft-store key is not a domain identifier',
+      assert.ok(prompt.includes('- **Workspace ID**: `inntake-nn`'), 'the declared domain identity')
+      const scopeLine = prompt.split('\n').find((line) => line.includes('6cebb32d'))
+      assert.ok(scopeLine, 'the console scope id is still emitted: it is real, not fabricated')
+      assert.ok(
+        scopeLine.startsWith('- **Console Scope**: `iNNtake_NN-6cebb32d`'),
+        'and it is labelled as the console scope',
       )
-      assert.equal(prompt.includes('Domain Identifier'), false, 'and is not labelled as one')
+      assert.equal(prompt.includes('Domain Identifier'), false, 'never as the domain identity')
+    })
+
+    it('keys the console scope by its view, the same id the draft store uses', () => {
+      const scoped = {
+        ...domainModel,
+        meta: { ...domainMeta, consoleScope: { view: 'overview' } },
+      }
+      const prompt = promptFor(scoped, [])
+      assert.ok(
+        prompt.includes('- **Console Scope**: `iNNtake_NN-6cebb32d::view:overview`'),
+        'the scope suffix the draft store key carries',
+      )
     })
 
     it('never presents a fallback version as the domain version', () => {
