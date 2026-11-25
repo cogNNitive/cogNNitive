@@ -169,6 +169,39 @@ next:: [[b]]
     expect(g.start).toBeNull()
   })
 
+  it('asks a container only for the slots its own steps carry', () => {
+    const doc = parse(`---
+level: 3
+knowledge_version: "V_0-1-0"
+title: "g"
+slots:
+  - { name: episode, kind: value, required: false }
+  - { name: voice, kind: value, required: true }
+---
+
+# NN Work
+
+## NN Work: One
+slug:: one
+
+## NN Work: A
+slug:: a
+parent:: [[one]]
+command:: run {episode}
+
+## NN Work: Two
+slug:: two
+
+## NN Work: B
+slug:: b
+parent:: [[two]]
+command:: run {voice}
+`)
+    expect(procedureGraph(doc).slots).toEqual(['episode', 'voice'])
+    expect(procedureGraph(doc, 'one').slots).toEqual(['episode'])
+    expect(procedureGraph(doc, 'two').slots).toEqual(['voice'])
+  })
+
   it('treats a Work that is the parent of other Work as a container, not a step', () => {
     const g = procedureGraph(
       model(`## NN Work: Proc\nslug:: proc\n\n## NN Work: A\nslug:: a\nparent:: [[proc]]\n`),

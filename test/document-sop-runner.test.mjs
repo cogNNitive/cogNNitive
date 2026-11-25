@@ -189,13 +189,6 @@ test(
       ])
         await complete('inventory-sop', step, outcome, field)
       await record('inventory-sop', 'start', { step: 'integrity-syntax-verification' })
-      const missing = await call('procedure_record', {
-        run: 'inventory-sop',
-        action: 'complete',
-        next: 'confirm-validated-sop',
-      })
-      assert.equal(missing.code, 'MISSING_OUTPUT')
-      assert.equal(missing.missing[0].slug, 'validated-innfo-level-3-model')
       await writeFile(join(domain, output), sample)
       const validation = await call('validate_knowledge', {
         id: 'review-monthly-inventory_procedures',
@@ -206,19 +199,54 @@ test(
       const rev = createHash('sha256')
         .update(await readFile(join(domain, output)))
         .digest('hex')
+      // The decision records no output: it only routes, so it never blocks its own `invalid`.
+      await record('inventory-sop', 'complete', { outcome: 'valid' })
+      // The validated model is the output of the confirm step, which cannot complete without it.
+      await record('inventory-sop', 'start', { step: 'confirm-validated-sop' })
+      const missing = await call('procedure_record', {
+        run: 'inventory-sop',
+        action: 'complete',
+        step: 'confirm-validated-sop',
+      })
+      assert.equal(missing.code, 'MISSING_OUTPUT')
+      assert.equal(missing.missing[0].slug, 'validated-innfo-level-3-model')
       await record('inventory-sop', 'artifact', {
         field: 'validated-innfo-level-3-model',
         fact: 'validated',
         value: output,
         rev,
       })
-      await record('inventory-sop', 'complete')
-      await complete('inventory-sop', 'confirm-validated-sop')
+      await record('inventory-sop', 'complete', { step: 'confirm-validated-sop' })
       await record('inventory-sop', 'finish', { outcome: 'completed' })
       const { state } = await ok('procedure_state', { run: 'inventory-sop' })
       assert.equal(state.status, 'completed')
       assert.equal(state.artifacts['validated-innfo-level-3-model'].status, 'validated')
       assert.equal(state.artifacts['validated-innfo-level-3-model'].rev, rev)
+
+      // The failure branch is reachable: an invalid model routes to the stop step with nothing
+      // recorded as validated, and the run finishes `failed`.
+      await start('invalid-sop')
+      for (const [step, outcome, field] of [
+        ['scope-trigger-identification', undefined, 'procedure-scope-definition'],
+        ['scope-approval', 'approve'],
+        ['workflow-step-decomposition', undefined, 'decomposed-step-hierarchy'],
+        ['artifact-tool-attachment', undefined, 'toolchain-dependency-map'],
+        ['raci-governance-assignment', undefined, 'raci-accountability-matrix'],
+      ])
+        await complete('invalid-sop', step, outcome, field)
+      await record('invalid-sop', 'start', { step: 'integrity-syntax-verification' })
+      const invalid = await record('invalid-sop', 'complete', { outcome: 'invalid' })
+      assert.equal(invalid.state.currentStep, 'stop-invalid-model')
+      assert.equal(
+        (await record('invalid-sop', 'finish', { outcome: 'failed' })).state.status,
+        'failed',
+      )
+      assert.notEqual(
+        (await ok('procedure_state', { run: 'invalid-sop' })).state.artifacts[
+          'validated-innfo-level-3-model'
+        ].status,
+        'validated',
+      )
       assert.equal(await readFile(join(domain, definition), 'utf8'), source)
       const generated = await ok('procedure_start', { procedure: output, run: 'try-inventory-sop' })
       assert.equal(generated.state.currentStep, 'compare-counts')
