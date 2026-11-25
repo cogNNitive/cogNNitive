@@ -4,8 +4,10 @@ import {
   crashProbe,
   fillSlots,
   foldRun,
+  loadChangeLog,
   parseKnowledge,
   procedureGraph,
+  runAttemptsOf,
   runModelOf,
 } from '@cognnitive/nn-core'
 import type {
@@ -218,6 +220,14 @@ export type RecordAction =
   | 'cancel'
   | 'finish'
 
+/** The step statuses from which an artifact fact may be reported. */
+export const ARTIFACT_REPORTING: ReadonlySet<string> = new Set([
+  'active',
+  'waiting',
+  'done',
+  'reopened',
+])
+
 /** The `procedure_record` actions the fold allows now, in a stable order. */
 export function allowedActions({ run, graph, state }: FoldedRun): RecordAction[] {
   if (run.closed || ['completed', 'failed', 'cancelled'].includes(state.status)) return []
@@ -227,7 +237,10 @@ export function allowedActions({ run, graph, state }: FoldedRun): RecordAction[]
   // Drift blocks every step action and every artifact fact until `rebase` is recorded
   // (`procedure-record.ts` `plan`), so the advertisement must not offer them.
   if (state.drift) return ['rebase', 'input', ...rest]
-  const open: RecordAction[] = ['input', 'artifact', ...rest]
+  // An artifact fact is reported by a step that started (`procedure-record.ts` refuses it
+  // otherwise with STEP_NOT_STARTED), so it is offered only once some step can report it.
+  const reporting = Object.values(state.steps).some((s) => ARTIFACT_REPORTING.has(s.status))
+  const open: RecordAction[] = ['input', ...(reporting ? (['artifact'] as const) : []), ...rest]
   if (state.paused) return open
   const actions: RecordAction[] = []
   const current = state.currentStep
@@ -317,13 +330,22 @@ export function describeRun(folded: FoldedRun): ProcedureStateResult {
   }
 }
 
-/** `procedure_state`: read-only. */
+/**
+ * `procedure_state`: read-only. It is the one reader that rebuilds `state.attempts` from the
+ * run model's change log: that reads every changeset of the domaiNN, a cost the writers do
+ * not pay, since no runner decision depends on an earlier attempt.
+ */
 export async function procedureState(
   root: string,
   args: Record<string, unknown>,
 ): Promise<ProcedureStateResult | ToolError> {
   const read = await readRun(root, args['run'])
   if (!read.ok) return read
+  read.run.attempts = runAttemptsOf(
+    loadChangeLog(root).all,
+    read.run.id,
+    Object.keys(read.run.steps),
+  )
   const folded = await foldStoredRun(root, read.run)
   if (!folded.ok) return folded
   const handoff = await readHandoff(root, read.run.id)

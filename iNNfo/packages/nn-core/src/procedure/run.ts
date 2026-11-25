@@ -145,6 +145,8 @@ function artifactRowOf(fields: Record<string, unknown>): ArtifactRow {
  * `Run Artifact` element, by slug. Null when the model holds no run header.
  *
  * The model is the state; its history is the change log of that model, never a second ledger.
+ * `attempts` is that history, so it is empty here: a reader with the change log fills it with
+ * `runAttemptsOf`.
  */
 export function runModelOf(model: ParsedKnowledge): RunModel | null {
   const header = model.elements.get('Procedure Execution')?.[0]

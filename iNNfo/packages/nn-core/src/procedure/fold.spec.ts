@@ -244,6 +244,29 @@ describe('foldRun', () => {
     expect(again.stale).toEqual([])
   })
 
+  it("loop: once the walk leaves the loop, the reopened producer's last output stands", () => {
+    // review approved on its second attempt: redraft is pending from the loop but off the
+    // path now, so it never runs again and the draft it recorded is not stale.
+    const s = foldRun(
+      loop,
+      run({
+        steps: {
+          draft: step({ status: 'done', attempt: 1 }),
+          review: step({ status: 'done', attempt: 2, outcome: 'approve', next: 'publish' }),
+          redraft: step({ status: 'pending', attempt: 1 }),
+        },
+        artifacts: {
+          'draft-doc': { kind: 'file', status: 'validated', rev: 'd2', step: 'redraft' },
+        },
+      }),
+      { defRev: 'V_1-0-0' },
+    )
+    expect(s.currentStep).toBe('publish')
+    expect(s.steps.redraft.status).toBe('off_path')
+    expect(s.artifacts['draft-doc'].status).toBe('validated')
+    expect(s.stale).toEqual([])
+  })
+
   it('loop: a back-edge recorded without reopening its span blocks the walk', () => {
     const s = foldRun(
       loop,

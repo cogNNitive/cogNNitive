@@ -91,6 +91,13 @@ const DONE_TRANSCRIBE = [
 ]
 const AT_REVIEW = [...DONE_TRANSCRIBE, { kind: 'step_started', step: 'review', attempt: 1 }]
 const WAITING_REVIEW = [...AT_REVIEW, { kind: 'step_waiting', step: 'review', value: 'a person' }]
+/** A run a person decided in: approved at the review, normalized, and finished by the agent. */
+const COMPLETED_BY_A_PERSON = [
+  ...AT_REVIEW,
+  { kind: 'step_completed', step: 'review', outcome: 'approve', next: 'normalize' },
+  { kind: 'step_started', step: 'normalize', attempt: 1 },
+  { kind: 'step_completed', step: 'normalize' },
+]
 
 const graph = () => payloadCore.procedureGraph(payloadCore.parseKnowledge(INGEST))
 
@@ -113,6 +120,7 @@ function runOf(id, events, opts = {}) {
     model,
     embeds: opts.embeds ?? {},
     state: payloadCore.foldRun(g, model, { defRev }),
+    ...(opts.handoff ? { handoff: opts.handoff } : {}),
   }
 }
 
@@ -775,6 +783,53 @@ describe('procedure runner UX (standalone console)', () => {
     })
   })
 
+  it('opens on a completed run a person decided in until they choose its handoff', () => {
+    const spy = storeSpy()
+    stepper.mount(
+      container,
+      payload([
+        runOf('r-sys', DONE_TRANSCRIBE, { state: 'completed', closed: true }),
+        runOf('r-done', COMPLETED_BY_A_PERSON, { state: 'completed', closed: true }),
+      ]),
+      spy.ctx,
+    )
+    const items = () =>
+      [...container.querySelectorAll('[data-proc-inbox-item]')].map((i) =>
+        i.getAttribute('data-run-id'),
+      )
+    // A run only the system walked asks nobody; the one a person decided in is their turn.
+    assert.deepEqual(items(), ['r-done'])
+    assert.match(container.querySelector('[data-proc-inbox-item]').textContent, /Hand off this run/)
+    const card = container.querySelector('[data-proc-handoff]')
+    assert.equal(card.getAttribute('data-proc-handoff'), 'r-done', 'the console opens on it')
+    click(card.querySelector('[data-proc-handoff-choice="agent"]'))
+    assert.deepEqual(items(), [], 'a chosen handoff is no longer waiting on the person')
+  })
+
+  it('shows a recorded handoff as done: no choice is offered again, and nothing waits', () => {
+    const spy = storeSpy()
+    stepper.mount(
+      container,
+      payload([
+        runOf('r-done', COMPLETED_BY_A_PERSON, {
+          state: 'completed',
+          closed: true,
+          handoff: { run: 'r-done', choice: 'agent', by: 'ana', at: '2026-11-25T10:00:00.000Z' },
+        }),
+      ]),
+      spy.ctx,
+    )
+    assert.equal(container.querySelector('[data-proc-inbox-item]'), null)
+    container.querySelector('.proc-run[data-run-id="r-done"]') &&
+      click(container.querySelector('.proc-run[data-run-id="r-done"]'))
+    const card = container.querySelector('[data-proc-handoff]')
+    assert.ok(card, 'the run still says what became of its result')
+    assert.equal(card.querySelector('[data-proc-handoff-choice]'), null)
+    assert.match(card.textContent, /Register with the agent/)
+    assert.match(card.textContent, /recorded by ana, 2026-11-25 10:00 UTC/)
+    assert.deepEqual(spy.drafts, [])
+  })
+
   it('offers no handoff before the run completes, or when it failed', () => {
     for (const [events, state] of [
       [WAITING_REVIEW, undefined],
@@ -949,6 +1004,25 @@ reason:: moved
       bytes: 14,
       text: '## a.wav\nhello',
     })
+  })
+
+  it('the handoff an import recorded beside the run, and nothing for a broken record', async (context) => {
+    const handoff = {
+      run: 'r1',
+      choice: 'administrator',
+      by: 'ana',
+      at: '2026-11-25T10:00:00.000Z',
+    }
+    const [entry] = await exportOf(context, 'staging/b1-transcript.md', {
+      'executions/r1/handoff.json': JSON.stringify(handoff),
+    })
+    assert.deepEqual(entry.runs[0].handoff, handoff)
+    for (const broken of ['{', JSON.stringify({ ...handoff, choice: 'publish' })]) {
+      const [again] = await exportOf(context, 'staging/b1-transcript.md', {
+        'executions/r1/handoff.json': broken,
+      })
+      assert.equal(again.runs[0].handoff, undefined, broken)
+    }
   })
 
   it('never embeds a file outside the domain, whatever path the run recorded', async (context) => {
@@ -1277,6 +1351,32 @@ describe('procedure flow graph through the shared chart API', () => {
     assert.equal(btn.getAttribute('tabindex'), null, 'in the tab order')
     click(items.find((li) => li.getAttribute('data-step') === 'transcribe').querySelector('button'))
     assert.equal(cardStep(), 'transcribe')
+  })
+
+  it('lays a loop out top-down: the decision sits above both of its branches', () => {
+    const loop = payload([])
+    loop.model.procedureGraphs[0].graph = payloadCore.procedureGraph(
+      payloadCore.parseKnowledge(
+        INGEST.replace(
+          'next:: [@normalize, @discard]',
+          'max_attempts:: 2\nnext:: [@normalize, @discard]',
+        ).replace('condition:: outcome == reject', 'condition:: outcome == reject\nnext:: @review'),
+      ),
+    )
+    assert.deepEqual(loop.model.procedureGraphs[0].graph.steps.discard.next, ['review'])
+    stepper.mount(container, loop, storeSpy().ctx)
+    const order = [...container.querySelectorAll('[data-proc-step-list] .proc-step-item')].map(
+      (li) => li.getAttribute('data-step'),
+    )
+    assert.equal(order.length, 4)
+    assert.ok(order.indexOf('review') < order.indexOf('normalize'), order.join(' > '))
+    assert.ok(order.indexOf('review') < order.indexOf('discard'), order.join(' > '))
+    assert.equal(order[0], 'transcribe')
+  })
+
+  it('writes the flow hint in English', () => {
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    assert.match(container.querySelector('.rail-hint').textContent, /^The selected node/)
   })
 
   it('falls back to the native svg when ECharts is not there', () => {
