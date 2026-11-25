@@ -17,7 +17,8 @@ const path = require('node:path');
 const { execFileSync, spawnSync } = require('node:child_process');
 
 const SCRIPT = path.join(__dirname, 'pre-push-check.js');
-const { parseRefLines, isSessionBranchPush, isNoCodePush, collectGuardFailures } = require('./pre-push-check.js');
+const { parseRefLines, isSessionBranchPush, isNoCodePush, collectGuardFailures, classifyFailure, lintOutcome } =
+  require('./pre-push-check.js');
 
 let REPO;
 let SHA0;
@@ -192,4 +193,101 @@ test('CLI runs the full pipeline for a dev push', () => {
   });
   assert.ok(!/fast-path/.test(res.stdout), 'a dev push must run the full pipeline');
   assert.match(res.stdout, /freshness guards/);
+});
+
+test('classifyFailure separates "could not run" from "ran and said no"', () => {
+  assert.equal(
+    classifyFailure("Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@eslint/js' imported from eslint.config.mjs"),
+    'unverified',
+  );
+  assert.equal(classifyFailure("Error: Cannot find module './lib/freshness-guards.js'"), 'unverified');
+  assert.equal(classifyFailure("'tsc' is not recognized as an internal or external command"), 'unverified');
+  assert.equal(
+    classifyFailure('esbuild not found. Run `npm ci` in iNNfo/ so the hoisted esbuild/tsup dependency is available.', 2),
+    'unverified',
+    "a guard's exit-2 'cannot run' contract is not a verdict",
+  );
+  assert.equal(classifyFailure('blueprint-catalog: DRIFT - catalog.json is stale.', 1), 'failed');
+  assert.equal(classifyFailure(' 3:1  error  no-unused-vars  foo is assigned a value but never used'), 'failed');
+  assert.equal(classifyFailure(''), 'failed', 'a silent non-zero exit is still a failure');
+  assert.equal(classifyFailure(undefined), 'failed');
+});
+
+test('lintOutcome reports a missing eslint as unverified, never as lint errors', () => {
+  const missing = lintOutcome(path.join(REPO, 'node_modules', 'eslint', 'bin', 'eslint.js'), ['scripts/x.js']);
+  assert.equal(missing.ok, false);
+  assert.match(missing.unverified, /not installed/);
+  assert.equal(missing.output, undefined, 'nothing is reported as a lint error');
+});
+
+test('lintOutcome reports lint errors when eslint actually ran', () => {
+  const eslintPath = path.join(REPO, 'eslint-stub.js');
+  fs.writeFileSync(eslintPath, '');
+  const fakeSpawn = () => ({ status: 1, stdout: '', stderr: '1:1  error  no-undef\n' });
+  const outcome = lintOutcome(eslintPath, ['scripts/x.js'], fakeSpawn);
+  assert.equal(outcome.ok, false);
+  assert.equal(outcome.unverified, undefined);
+  assert.match(outcome.output, /no-undef/);
+});
+
+test('lintOutcome reports a broken eslint config as unverified, naming the module it could not load', () => {
+  const eslintPath = path.join(REPO, 'eslint-stub.js');
+  fs.writeFileSync(eslintPath, '');
+  const fakeSpawn = () => ({ status: 1, stdout: '', stderr: "Cannot find package '@eslint/js'\n  at file:///x/eslint.config.mjs" });
+  const outcome = lintOutcome(eslintPath, ['scripts/x.js'], fakeSpawn);
+  assert.equal(outcome.ok, false);
+  assert.match(outcome.unverified, /could not/);
+  assert.match(outcome.unverified, /@eslint\/js/, 'the reason names the module, not a stack frame');
+  assert.equal(outcome.output, undefined);
+});
+
+test('lintOutcome picks the missing-module line over the throw that reported it', () => {
+  const eslintPath = path.join(REPO, 'eslint-stub.js');
+  fs.writeFileSync(eslintPath, '');
+  const fakeSpawn = () => ({
+    status: 1,
+    stdout: '',
+    stderr:
+      'node:internal/modules/esm/utils:363\n    throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);\n' +
+      "Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'tsup' imported from /x/eslint.config.mjs",
+  });
+  const outcome = lintOutcome(eslintPath, ['scripts/x.js'], fakeSpawn);
+  assert.match(outcome.unverified, /Cannot find package 'tsup'/);
+  assert.doesNotMatch(outcome.unverified, /throw new ERR_MODULE_NOT_FOUND/);
+});
+
+test('CLI warns instead of failing when its tooling is absent from the checkout', () => {
+  // A bare checkout: no node_modules, no installed eslint, no guard scripts. Every check here
+  // is unverifiable, and none of them may claim a verdict.
+  const bare = fs.mkdtempSync(path.join(os.tmpdir(), 'pre-push-bare-'));
+  try {
+    const g = (args) => execFileSync('git', args, { cwd: bare, encoding: 'utf8' });
+    g(['init', '-b', 'dev']);
+    g(['config', 'user.email', 't@test']);
+    g(['config', 'user.name', 't']);
+    fs.mkdirSync(path.join(bare, 'scripts'), { recursive: true });
+    fs.writeFileSync(path.join(bare, 'scripts', 'x.js'), '// x\n');
+    g(['add', '-A']);
+    g(['commit', '-m', 'init']);
+    const base = g(['rev-parse', 'HEAD']).trim();
+    fs.writeFileSync(path.join(bare, 'scripts', 'x.js'), '// x2\n');
+    g(['add', '-A']);
+    g(['commit', '-m', 'fix: x']);
+    const head = g(['rev-parse', 'HEAD']).trim();
+
+    const res = spawnSync(process.execPath, [SCRIPT, 'origin', 'file:///x'], {
+      cwd: bare,
+      input: `${line('refs/heads/dev', head, base)}\n`,
+      encoding: 'utf8',
+      env: { ...process.env, NN_PRE_PUSH_ROOT: bare, NN_PRE_PUSH_SKIP_HEAVY: '' },
+    });
+    assert.equal(res.status, 0, `a bare checkout must not block on unverifiable checks: ${res.stderr}`);
+    assert.match(res.stderr, /could not run/, 'it says the checks did not run');
+    assert.match(res.stderr, /NOT verified/, 'it does not claim they passed');
+    assert.match(res.stderr, /eslint/, 'it names the check that produced no verdict');
+    assert.ok(!/eslint reported errors/.test(res.stderr), 'it never invents a lint verdict');
+    assert.ok(!/is stale/.test(res.stderr), 'it never invents a staleness verdict');
+  } finally {
+    fs.rmSync(bare, { recursive: true, force: true });
+  }
 });
