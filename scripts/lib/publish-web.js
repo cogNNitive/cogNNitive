@@ -13,6 +13,7 @@ const { assertNoSource } = require('./publish-web-guard.js');
 const { buildGitAuthEnv, runGit, PublishError } = require('./publish-web-git.js');
 const { replaceSiteTree, copyDistributionPath, assertNoReleaseOwnedInArtifact } = require('./publish-web-tree.js');
 const { DISTRIBUTION_PATHS } = require('../release/release-keys.js');
+const { versionFilePaths } = require('../release/blueprint-versions.js');
 
 /**
  * Runs the public-web publishing workflow.
@@ -104,9 +105,13 @@ async function runPublish(config, options = {}) {
 
     // 3. Distribution surface: copy verbatim
     if (!skipDistribution) {
+      // The blueprint `versions.json` accumulators live inside `iNNfo/specs`, which this copy
+      // replaces wholesale. Without carrying them across, every push to main would erase the
+      // provenance the release pipeline writes, and every channel would answer `no-versions`.
+      const preserved = versionFilePaths(work);
       let copiedCount = 0;
       for (const rel of distributionPaths) {
-        if (copyDistributionPath(repoRoot, rel, work)) copiedCount++;
+        if (copyDistributionPath(repoRoot, rel, work, { preserve: preserved })) copiedCount++;
       }
       logger.log(`publish-web: staged ${copiedCount} distribution path(s).`);
     }
