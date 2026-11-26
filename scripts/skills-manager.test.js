@@ -1140,12 +1140,41 @@ agent-bootstrap:
       'the lock must hold a digest of every installed file',
     );
 
-    // Unknown blueprint name is rejected before any download.
+    // Unknown blueprint name is rejected before any download. Channels are injected
+    // explicitly and unreachable so the check stays offline and independent of the
+    // machine's own ~/.agents/channels.json: what is pinned is that a catalog miss falls
+    // through to the channels and names every one it asked.
+    const emptyChannelsPath = path.join(tmpDir, 'channels-offline.json');
+    fs.writeFileSync(
+      emptyChannelsPath,
+      JSON.stringify({
+        channels: [
+          {
+            name: 'official',
+            distribution_url: 'https://example.test/o/r/main/iNNfo/specs/bluepriNNts',
+          },
+        ],
+      }),
+      'utf-8',
+    );
     let caught = null;
     try {
-      await cmdInstallBlueprint({ blueprint: 'nope', catalogPath, blueprintsDir, skillsDir, stateFile, yes: true });
+      await cmdInstallBlueprint({
+        blueprint: 'nope',
+        catalogPath,
+        channelsPath: emptyChannelsPath,
+        blueprintsDir,
+        skillsDir,
+        stateFile,
+        yes: true,
+        fetchString: async () => {
+          throw new Error('offline test: no channel is reachable')
+        },
+      });
     } catch (err) { caught = err; }
     assert.ok(caught && /not in the catalog/.test(caught.message), 'unknown blueprint must be rejected');
+    assert.match(caught.message, /no channel carries it/, 'a catalog miss must fall through to the channels');
+    assert.match(caught.message, /official:/, 'the failure must name the channel it asked');
 
     // Unreleased entry (release_tag: null) is refused before any download.
     const unreleasedPath = path.join(tmpDir, 'catalog-unreleased.json');
@@ -1433,6 +1462,124 @@ agent-bootstrap:
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
   console.log('ok status separates retired bluepriNNts from an unreadable catalog (#793)');
+}
+
+// 20. Channels (plan P2). `install --blueprint <name>` resolves a unit no catalog
+//     lists, from the SECOND channel in the list, at the commit the publisher's own
+//     versions.json names — and records that verified commit, never a branch.
+{
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-channel-'));
+  const githubClientPath = require.resolve('./lib/github-client.js');
+  const commandsPath = require.resolve('./lib/skills-commands.js');
+  const atomicFsPath = require.resolve('./lib/atomic-fs.js');
+  const realExtract = require(atomicFsPath).extractTarball;
+  const realDownload = require(githubClientPath).downloadFile;
+
+  const COMMIT = '6666666666666666666666666666666666666666';
+  const OFFICIAL = 'https://channels.test/official/b/main/iNNfo/specs/bluepriNNts';
+  const CURATED = 'https://channels.test/curated/b/main/iNNfo/specs/bluepriNNts';
+  const NAME = 'only-in-curated';
+
+  const fixtureRoot = path.join(tmpDir, 'repo-chan');
+  const pkg = path.join(fixtureRoot, 'repo', 'iNNfo', 'specs', 'bluepriNNts', NAME);
+  fs.mkdirSync(path.join(pkg, 'skills'), { recursive: true });
+  fs.writeFileSync(path.join(pkg, 'spec_NN.md'), '---\nblueprint_version: "V_0-6-0"\nlevel: 2\n---\n# x', 'utf-8');
+  fs.writeFileSync(
+    path.join(pkg, 'blueprint.json'),
+    JSON.stringify({
+      name: NAME,
+      version: 'V_0-6-0',
+      format_version: 'V_0-5-0',
+      distribution_url: `${CURATED}/${NAME}`,
+    }),
+    'utf-8',
+  );
+
+  // The catalog lists nothing: this unit exists only in the second channel.
+  const catalogPath = path.join(tmpDir, 'catalog.json');
+  fs.writeFileSync(catalogPath, JSON.stringify({ blueprints: {} }), 'utf-8');
+  const channelsPath = path.join(tmpDir, 'channels.json');
+  fs.writeFileSync(
+    channelsPath,
+    JSON.stringify({
+      channels: [
+        { name: 'official', distribution_url: OFFICIAL },
+        { name: 'curated', distribution_url: CURATED },
+      ],
+    }),
+    'utf-8',
+  );
+
+  const asked = [];
+  const fakeFetch = async (url) => {
+    asked.push(url);
+    if (url === `${OFFICIAL}/${NAME}/versions.json`) throw new Error('Failed to fetch, status: 404');
+    if (url === `${CURATED}/${NAME}/versions.json`) {
+      return JSON.stringify({ versions: [{ version: 'V_0-6-0', tag: 'bp-v0.6.0', commit: COMMIT }] });
+    }
+    if (url === `https://channels.test/curated/b/${COMMIT}/iNNfo/specs/bluepriNNts/${NAME}/blueprint.json`) {
+      return JSON.stringify({ name: NAME, version: 'V_0-6-0', format_version: 'V_0-5-0' });
+    }
+    throw new Error(`unexpected fetch ${url}`);
+  };
+
+  const downloads = [];
+  require(githubClientPath).downloadFile = async (url, dest) => {
+    downloads.push(url);
+    fs.writeFileSync(dest, 'fake-tarball', 'utf-8');
+  };
+  require(atomicFsPath).extractTarball = (tarFile, destDir) => {
+    // One root directory, as a real tarball has: `findRepoRoot` refuses anything else.
+    fs.cpSync(fixtureRoot, destDir, { recursive: true });
+  };
+  delete require.cache[commandsPath];
+  const { cmdInstallBlueprint } = require('./lib/skills-commands.js');
+
+  try {
+    const blueprintsDir = path.join(tmpDir, 'out', 'bluepriNNts');
+    const skillsDir = path.join(tmpDir, 'out', 'skills');
+    const stateFile = path.join(tmpDir, 'out', 'state.json');
+    fs.mkdirSync(path.join(tmpDir, 'out'), { recursive: true });
+
+    await cmdInstallBlueprint({
+      blueprint: NAME,
+      catalogPath,
+      channelsPath,
+      fetchString: fakeFetch,
+      blueprintsDir,
+      skillsDir,
+      stateFile,
+      yes: true,
+    });
+
+    assert.ok(
+      fs.existsSync(path.join(blueprintsDir, NAME, 'spec_NN.md')),
+      'a unit carried only by the second channel must install by name',
+    );
+    // The channel list is a resolution order: official was asked first and missed.
+    assert.ok(asked[0].startsWith(OFFICIAL), 'the first channel must be asked first');
+    // The install fetches the VERIFIED COMMIT, never the branch it was published under.
+    assert.ok(
+      downloads.some((u) => u.includes(COMMIT)),
+      `the archive must come from the verified commit; got ${downloads.join(', ')}`,
+    );
+    assert.ok(
+      !downloads.some((u) => /\/main\//.test(u)),
+      'the mutable ref must never be fetched',
+    );
+
+    const lock = JSON.parse(fs.readFileSync(path.join(blueprintsDir, '.blueprint-lock.json'), 'utf-8'));
+    assert.strictEqual(lock.blueprints[NAME].commit, COMMIT, 'the verified commit must be recorded');
+    assert.strictEqual(lock.blueprints[NAME].version, 'V_0-6-0', "the version is the unit's own");
+    assert.strictEqual(lock.blueprints[NAME].tag, 'bp-v0.6.0', 'the tag is recorded beside the commit');
+    assert.strictEqual(lock.blueprints[NAME].distribution_url, `${CURATED}/${NAME}`);
+    console.log('ok a blueprint in a second channel installs by name at its verified commit (P2)');
+  } finally {
+    require(githubClientPath).downloadFile = realDownload;
+    require(atomicFsPath).extractTarball = realExtract;
+    delete require.cache[commandsPath];
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 }
 
 console.log('All skills-manager unit tests passed successfully!');
