@@ -1553,7 +1553,7 @@ async function cmdInstallBlueprint(args) {
 
 /**
  * Executes update command updating outdated skills and templates with consent.
- * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, mcpDir?: string, stateFile: string, positional: string[], yes: boolean, agent?: string, scope?: string, catalogPath?: string, repo?: string }} args
+ * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, mcpDir?: string, stateFile: string, positional: string[], yes: boolean, agent?: string, scope?: string, catalogPath?: string, repo?: string, blueprint?: string | null }} args
  * @returns {Promise<void>}
  */
 async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString();
