@@ -14,9 +14,11 @@ export const DOMAIN_CONSOLE_FILENAME = 'domaiNN_console.html'
  * `model` is the scope key: a single model's stem, or the combined key of a multi-model selection.
  */
 export type ConsoleDeliveryScope = {
-  series: string
-  episode: string
-  version: number | string
+  series?: string
+  episode?: string
+  version?: number | string
+  targetPath?: string
+  outputPath?: string
 }
 
 export type ConsoleScope =
@@ -24,6 +26,8 @@ export type ConsoleScope =
   | { model: string; view?: string }
   | { delivery: ConsoleDeliveryScope }
   | { series: string; episode: string; version: number | string; view?: string }
+  | { targetPath: string }
+  | { outputPath: string }
   | {
       view?: string
       model?: string
@@ -31,6 +35,8 @@ export type ConsoleScope =
       episode?: string
       version?: number | string
       delivery?: ConsoleDeliveryScope
+      targetPath?: string
+      outputPath?: string
     }
 
 /** Workspace-relative path of the stable console file for a scope. */
@@ -41,8 +47,19 @@ export function consoleOutputPath(scope: ConsoleScope): string {
     throw new Error('consoleOutputPath: invalid console scope')
   }
 
-  // Delivery console scope: series, episode, version
   const scopeObj = scope as Record<string, unknown>
+
+  // Direct custom target or output path provided by a custom/blueprint scope
+  const directPath = (scopeObj.targetPath || scopeObj.outputPath) as string | undefined
+  if (typeof directPath === 'string' && directPath.trim()) {
+    const clean = directPath.trim().replace(/\\/g, '/')
+    if (clean.startsWith('/') || clean.startsWith('../') || clean.includes('/../')) {
+      throw new Error('consoleOutputPath: custom target path cannot escape root')
+    }
+    return clean
+  }
+
+  // Delivery console scope: series, episode, version
   let delivery: ConsoleDeliveryScope | null = null
 
   if (
@@ -51,10 +68,19 @@ export function consoleOutputPath(scope: ConsoleScope): string {
     typeof scopeObj.delivery === 'object'
   ) {
     delivery = scopeObj.delivery as ConsoleDeliveryScope
+    const deliveryPath = delivery.targetPath || delivery.outputPath
+    if (typeof deliveryPath === 'string' && deliveryPath.trim()) {
+      const clean = deliveryPath.trim().replace(/\\/g, '/')
+      if (clean.startsWith('/') || clean.startsWith('../') || clean.includes('/../')) {
+        throw new Error('consoleOutputPath: custom target path cannot escape root')
+      }
+      return clean
+    }
   } else if ('series' in scopeObj && 'episode' in scopeObj && 'version' in scopeObj) {
     delivery = scope as unknown as ConsoleDeliveryScope
   } else if (
-    scopeObj.view === 'conntent-delivery' &&
+    typeof scopeObj.view === 'string' &&
+    (scopeObj.view === 'conntent-delivery' || scopeObj.view.endsWith('-delivery')) &&
     ('series' in scopeObj || 'model' in scopeObj)
   ) {
     let s = scopeObj.series ? String(scopeObj.series).trim() : ''

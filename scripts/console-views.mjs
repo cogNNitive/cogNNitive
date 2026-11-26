@@ -104,7 +104,14 @@ function viewFiles(dir, entries, blueprint) {
       .filter((entry) => !blueprint || entry.name.startsWith(BLUEPRINT_VIEW_PREFIX))
       .map((entry) => entry.name),
   )
+  const cssNames = new Set(
+    entries
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.css'))
+      .filter((entry) => !blueprint || entry.name.startsWith(BLUEPRINT_VIEW_PREFIX))
+      .map((entry) => entry.name),
+  )
   const claimed = new Set()
+  const claimedCss = new Set()
   for (const entry of entries) {
     if (!entry.name.endsWith('.js') || entry.name.endsWith('.data.mjs')) continue
     if (blueprint && !entry.name.startsWith(BLUEPRINT_VIEW_PREFIX)) continue
@@ -112,12 +119,20 @@ function viewFiles(dir, entries, blueprint) {
       throw new Error(`${join(dir, entry.name)} is a symbolic link; symlinked views are not supported, copy the file instead`)
     }
     if (entry.isFile()) {
+      const stem = entry.name.slice(0, -'.js'.length)
       const slug = blueprint
         ? entry.name.slice(BLUEPRINT_VIEW_PREFIX.length, -'.js'.length)
-        : entry.name.slice(0, -'.js'.length)
-      const dataName = `${entry.name.slice(0, -'.js'.length)}.data.mjs`
+        : stem
+      const dataName = `${stem}.data.mjs`
       if (dataNames.has(dataName)) claimed.add(dataName)
-      files.push({ name: entry.name, slug, dataName: dataNames.has(dataName) ? dataName : null })
+      const cssName = `${stem}.css`
+      if (cssNames.has(cssName)) claimedCss.add(cssName)
+      files.push({
+        name: entry.name,
+        slug,
+        dataName: dataNames.has(dataName) ? dataName : null,
+        cssName: cssNames.has(cssName) ? cssName : null,
+      })
     }
   }
   const orphans = [...dataNames].filter((name) => !claimed.has(name)).sort(compareCodeUnits)
@@ -125,6 +140,15 @@ function viewFiles(dir, entries, blueprint) {
     throw new Error(
       `${join(dir, orphans[0])} has no matching view: a view's data module must sit next to ` +
         `console-view-<slug>.js and be named console-view-<slug>.data.mjs`,
+    )
+  }
+  const orphanCss = [...cssNames].filter((name) => !claimedCss.has(name)).sort(compareCodeUnits)
+  if (orphanCss.length > 0) {
+    throw new Error(
+      `${join(dir, orphanCss[0])} has no matching view: a view's stylesheet must sit next to ` +
+        (blueprint
+          ? `console-view-<slug>.js and be named console-view-<slug>.css`
+          : `<slug>.js and be named <slug>.css`),
     )
   }
   return files.sort((a, b) => compareCodeUnits(a.name, b.name))
@@ -148,7 +172,7 @@ function isRegistrableSecondaryId(slug, extraId) {
 
 async function readViews(dir, files, origin, sourcePrefix) {
   const views = []
-  for (const { name, slug, dataName } of files) {
+  for (const { name, slug, dataName, cssName } of files) {
     const id = slug
     const source = `${sourcePrefix}/${name}`
     if (!VIEW_ID_RE.test(id)) {
@@ -157,9 +181,17 @@ async function readViews(dir, files, origin, sourcePrefix) {
     if (RESERVED_VIEW_IDS.includes(id)) throw new Error(`view id "${id}" is reserved (${source})`)
     const code = await readFile(join(dir, name), 'utf8')
     assertClassicScript(code, source)
+    const css = cssName ? await readFile(join(dir, cssName), 'utf8') : null
     // Hashed once: one file is one artifact, however many views it registers.
     const sha256 = createHash('sha256').update(code, 'utf8').digest('hex')
-    const entry = { origin, source, code, sha256, ...(dataName ? { dataPath: join(dir, dataName) } : {}) }
+    const entry = {
+      origin,
+      source,
+      code,
+      sha256,
+      ...(dataName ? { dataPath: join(dir, dataName) } : {}),
+      ...(css !== null ? { css } : {}),
+    }
     views.push({ id, ...entry })
     for (const match of code.matchAll(SECONDARY_VIEW_ID)) {
       if (isRegistrableSecondaryId(id, match[1])) views.push({ id: match[1], ...entry })
@@ -494,6 +526,13 @@ export function wrapView(view) {
   )
 }
 
+export function wrapViewStyle(view) {
+  return (
+    `<style data-nn-view="${escapeAttr(view.id)}" data-nn-view-source="${escapeAttr(view.source)}">\n` +
+    `${escapeStyle(view.css)}\n</style>`
+  )
+}
+
 /** The HTML comment listing what runs in the page: `<id> <origin> <source> sha256:<12 hex>`. */
 export function viewsHeader(views) {
   if (views.length === 0) return ''
@@ -549,12 +588,14 @@ export function prepareAssets({ bundle, css, views }) {
     seenSources.add(v.source)
     return true
   })
+  const viewStyles = uniqueViews.filter((v) => Boolean(v.css)).map(wrapViewStyle)
   return {
     [PREPARED]: true,
     css,
     header: viewsHeader(views),
     bundleScript: `<script>\n${escapeChecked(bundle, 'console bundle')}\n</script>`,
     viewScripts: uniqueViews.map(wrapView),
+    viewStyles,
   }
 }
 
@@ -696,10 +737,11 @@ export function allowInlineScripts(html) {
  */
 export function inlineConsoleAssets(shell, assets) {
   assertShell(shell)
-  const { css, header, bundleScript, viewScripts } = prepared(assets)
+  const { css, header, bundleScript, viewScripts, viewStyles = [] } = prepared(assets)
+  const stylesBlock = [`<style>${escapeStyle(css)}</style>`, ...viewStyles].join('\n')
   return allowInlineScripts(
     shell
-      .replace(CSS_LINK, () => `<style>${escapeStyle(css)}</style>`)
+      .replace(CSS_LINK, () => stylesBlock)
       .replace(VIEWPORT, (meta) => (header ? `${meta}\n${header}` : meta))
       .replace(BUNDLE_TAGS, () => [bundleScript, ...viewScripts].join('\n')),
   )

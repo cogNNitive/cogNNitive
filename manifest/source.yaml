@@ -82,10 +82,6 @@ blueprints:
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/blank/spec_NN.md
     ref_key: blueprints
-  - name: coNNtent
-    repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/coNNtent/spec_NN.md
-    ref_key: blueprints
 
 seam_dirs:
   - name: console

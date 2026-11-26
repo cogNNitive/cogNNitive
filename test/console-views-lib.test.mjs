@@ -16,6 +16,7 @@ import {
   assertClassicScript,
   escapeScript,
   wrapView,
+  wrapViewStyle,
   viewsHeader,
   inlineConsoleAssets,
   allowInlineScripts,
@@ -461,6 +462,42 @@ describe('console-views lib', () => {
     })
   })
 
+  describe('view stylesheets (.css)', () => {
+    it('discovers sibling .css for a bluepriNNt view and includes its css text', async () => {
+      await put(join(pkgs, 'metrics', 'assets', 'console-view-timeline.js'))
+      await put(join(pkgs, 'metrics', 'assets', 'console-view-timeline.css'), '.timeline { color: blue; }')
+      const views = await discover(['metrics_V_0-4-1'])
+      assert.equal(views.length, 1)
+      assert.equal(views[0].id, 'timeline')
+      assert.equal(views[0].css, '.timeline { color: blue; }')
+    })
+
+    it('discovers sibling .css for a domaiNN view and includes its css text', async () => {
+      await put(join(domain, 'consoles', 'views', 'custom.js'))
+      await put(join(domain, 'consoles', 'views', 'custom.css'), '.custom { display: flex; }')
+      const views = await discover([])
+      assert.equal(views.length, 1)
+      assert.equal(views[0].id, 'custom')
+      assert.equal(views[0].css, '.custom { display: flex; }')
+    })
+
+    it('rejects an orphan bluepriNNt view stylesheet with no matching .js', async () => {
+      await put(join(pkgs, 'metrics', 'assets', 'console-view-orphan.css'), '.orphan {}')
+      await assert.rejects(
+        discover(['metrics_V_0-4-1']),
+        /console-view-orphan\.css has no matching view/,
+      )
+    })
+
+    it('rejects an orphan domaiNN view stylesheet with no matching .js', async () => {
+      await put(join(domain, 'consoles', 'views', 'orphan.css'), '.orphan {}')
+      await assert.rejects(
+        discover([]),
+        /orphan\.css has no matching view/,
+      )
+    })
+  })
+
   describe('validation', () => {
     it('rejects a file name that is not a slug, naming the file', async () => {
       await put(join(domain, 'consoles', 'views', 'Bad_Name.js'))
@@ -688,6 +725,44 @@ describe('console-views lib', () => {
       assert.ok(out.includes('conntent-delivery bluepriNNt pkg/console-view-conntent.js'))
       const scriptMatches = out.match(/data-nn-view-source="pkg\/console-view-conntent\.js"/g)
       assert.equal(scriptMatches?.length, 1, 'module script is inlined exactly once')
+    })
+
+    it('inlines view stylesheets after nn-ui.css and escapes closing style tags', () => {
+      const view = {
+        id: 'styled',
+        origin: 'bluepriNNt',
+        source: 'pkg/console-view-styled.js',
+        code: GOOD,
+        sha256: 'a'.repeat(64),
+        css: '.styled { color: red; } /* </style> probe */',
+      }
+      const out = inlineConsoleAssets(shell, { bundle: '/*BUNDLE*/', css: '.base{}', views: [view] })
+      assert.ok(out.includes('<style>.base{}</style>\n<style data-nn-view="styled" data-nn-view-source="pkg/console-view-styled.js">'))
+      assert.ok(out.includes('.styled { color: red; } /* <\\/style> probe */'))
+    })
+
+    it('inlines view stylesheet once when a view file registers multiple views', () => {
+      const view1 = {
+        id: 'v1',
+        origin: 'bluepriNNt',
+        source: 'pkg/console-view-multi.js',
+        code: GOOD,
+        sha256: 'a'.repeat(64),
+        css: '.multi {}',
+      }
+      const view2 = {
+        id: 'v1-extra',
+        origin: 'bluepriNNt',
+        source: 'pkg/console-view-multi.js',
+        code: GOOD,
+        sha256: 'a'.repeat(64),
+        css: '.multi {}',
+      }
+      const out = inlineConsoleAssets(shell, { bundle: '/*BUNDLE*/', css: '.base{}', views: [view1, view2] })
+      const matches = out.match(/data-nn-view-source="pkg\/console-view-multi\.js"/g)
+      assert.equal(matches?.length, 2)
+      const styleMatches = out.match(/<style[^>]*data-nn-view-source="pkg\/console-view-multi\.js"/g)
+      assert.equal(styleMatches?.length, 1)
     })
 
     it('fails when the shell lacks an expected anchor', () => {
