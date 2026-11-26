@@ -169,3 +169,38 @@ the gate is rewritten; relaxing it to advisory now would be work undone in the s
 
 With those five sentences, the eight items become one or two small pull requests and
 nothing here needs to be rediscovered.
+
+---
+
+## Second pass — 2026-11-26, after the decisions
+
+Items 1, 2, 4 and 6 are implemented (`#898`, `#899`, `#901`). The other four are settled
+this way:
+
+**Item 7 — `<name>/<version>/` is withdrawn: C4 wins.** The decision block said
+`<domain>/<blueprints_dir>/<name>/<version>/`, but the distribution plan had already
+reviewed and rejected that layout (C4: *"D14 loses"*), because a versioned directory turns
+`update` from a replacement into an accumulation and leaves every reader to answer which
+directory is active. The maintainer chose the flat layout: `<name>/`, replaced in place,
+with the version recorded inside `blueprint.json`. Rollback is
+`install --blueprint <name> --version <tag>`, which is one command against an immutable
+tag, and the safety net for "an update went wrong" is a **backup of the domain before
+updating**, not a permanent copy of every version on disk. The layout belongs to P2/P3;
+this repository does not implement it twice.
+
+**Item 5 — absorbed by P1.** The drift snapshot cannot carry `{name, version, commit}` as
+originally written: the plan's blocker C3 replaced it with a publisher-owned
+`versions.json`, and the channel entry stays `{name, url}`. Writing the pin shape here
+would be undone by P1.
+
+**Item 8 — absorbed by P4.** The plan already owns it: *"Extend §6's fix to components and
+to the catalog overlay"* (`blueprints-distribution-plan.md:291`), and it names the same six
+`library/components/<index>.html` files and `compile.mjs`.
+
+**Item 3 — implemented here.** Not the cross-repository diff the analysis proposed (that
+needs a clone of the distribution repo and a token), but the same guarantee at the point
+where both trees exist: `copyDistributionPath` now asserts, after every wholesale copy,
+that the destination reproduces the source file list and each file's byte size, and fails
+the release naming what is missing, extra or truncated. A mirror that silently stopped
+carrying files is exactly the failure the item was filed for, and it is now loud at publish
+time instead of invisible until an install.
