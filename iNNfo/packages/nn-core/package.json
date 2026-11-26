@@ -1,6 +1,6 @@
 {
   "name": "@cognnitive/nn-core",
-  "version": "0.59.1",
+  "version": "0.59.2",
   "description": "Core library for iNNfo parser, model, IO drivers, and validator",
   "type": "module",
   "main": "./dist/index.js",
