@@ -15,7 +15,13 @@ const RELEASE_TABLE = Object.freeze({
   }),
   blueprints: Object.freeze({
     repoPaths: Object.freeze(['iNNfo/specs']),
-    changePaths: Object.freeze(['iNNfo/specs']),
+    /**
+     * `manifest/source.yaml` is the blueprint inventory. Declaring a blueprint there is a
+     * distribution change even when no spec file moved: until a blueprints release pins it,
+     * the manifest cannot be assembled for any other key (a new blueprint has no pin to
+     * retain). Counting the inventory here is what makes that release happen first.
+     */
+    changePaths: Object.freeze(['iNNfo/specs', 'manifest/source.yaml']),
     /**
      * `catalog.json` is generated *from the release tags*: a commit that only restamps it
      * is bookkeeping, not a blueprint change. Counting it as one closes a loop —

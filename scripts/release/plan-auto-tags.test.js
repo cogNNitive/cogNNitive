@@ -146,6 +146,9 @@ test('a content key with no tag yet starts at 0.1.0', () => {
 test('pathspecsFor excludes the tag-derived catalog from the blueprints change set', () => {
   assert.deepStrictEqual(pathspecsFor('blueprints'), [
     'iNNfo/specs',
+    // The inventory is a distribution change: a new blueprint cannot be assembled for any
+    // other key until a blueprints release pins it.
+    'manifest/source.yaml',
     ':(exclude)iNNfo/specs/bluepriNNts/catalog.json',
   ]);
   assert.deepStrictEqual(pathspecsFor('skills'), ['skills']);
