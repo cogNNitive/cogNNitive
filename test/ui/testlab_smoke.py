@@ -27,6 +27,11 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
+# The domain content below contains arrows and dashes, and the script prints what it read, so a
+# Windows console (cp1252) would crash on the first PASS line instead of reporting the verdict.
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
 CONSOLE_FILE = 'domaiNN_console.html'
 REGEN_COMMAND = 'node scripts/export-console.mjs test/fixtures/testlab --domain --no-open'
 

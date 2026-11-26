@@ -167,6 +167,12 @@ wrappers. Deleting is preferred unless a consumer outside the repository is know
 **Accept.** The console test suite is green, `window.nnConsole` keeps its documented
 entry point, and a grep finds one composer instead of two.
 
+**Status 2026-11-26 — done, by removing the duplication instead of the function.** Seven
+test files call `composeChangesetExport`, so deleting it was never on the table. It is now
+a thin reshape over `composeExport`: one set of checks (reviewer, blueprint version,
+verdicts, absent elements) and one serializer behind both entry points, with the output
+field names the tests already use.
+
 ---
 
 ## 7. Modal prompt `<pre>` still holds a stub string
@@ -183,6 +189,13 @@ written file cannot disagree.
 **Accept.** A test opens the modal for a fixture domain and asserts the visible prompt
 equals the exported one byte for byte.
 
+**Status 2026-11-26 — code done, the pinning test is not written.** The `<pre>` renders
+`composeAgentPrompt(state)`, the same function the export calls, so the preview and the
+written file cannot disagree; the stub string built from `UI.COPY.agentPromptSkipped` is
+gone. The acceptance as written (open the modal in jsdom and compare both strings) still
+needs a harness that mounts the export modal, which `openExportModal` does not expose.
+Listed as the remaining half rather than claimed.
+
 ---
 
 ## 8. `intake_status: queued` rendered as persisted state
@@ -198,6 +211,11 @@ that card, or suppress the value until it is applied.
 **Accept.** A fixture with a queued draft shows the marker; the same card without a
 draft shows none.
 
+**Status 2026-11-26 — not a code defect.** `intake_status` appears nowhere in the
+repository outside this document. The observation came from one domain whose data happens
+to carry that field, rendered by the generic element card. There is no console behaviour
+to change here; closing it as a misunderstanding rather than inventing a fix.
+
 ---
 
 ## 9. Red draft pulse never verified visually
@@ -212,6 +230,13 @@ by assertions, not by a screenshot.
 normal and `prefers-reduced-motion: reduce`, and attach both images to the task tracker.
 
 **Accept.** Two screenshots and one note saying which element pulses and which does not.
+
+**Status 2026-11-26 — partially done.** The smoke harness now runs on Windows (it crashed
+printing its own arrows to a cp1252 console; `sys.stdout` is reconfigured to UTF-8). What
+is still missing is the dirty-draft step: the console keeps its drafts in
+`document.__nnConsoleState.store` and `addDraft` validates a contract, so driving it from
+`page.evaluate` means building a valid draft outside the UI. The next step is either a
+fixture-level helper that produces one, or clicking the field the way a reviewer would.
 
 ---
 
@@ -232,6 +257,15 @@ import_console`, and assert the run's `seq` moved.
 **Accept.** One test that fails if `import_console` is skipped, and a note on where the
 recipient's console lives during the run.
 
+**Status 2026-11-26 — half of it already exists.** `test/ui/procedure_console_driver.mjs`
+is the owner side and it is complete: `prepare <domain>` copies the fixture, starts run
+`b1`, records the engine steps, parks the human decision and exports the console;
+`import <domain> <saved>` calls `import_console` with apply+consume and then closes the
+run. Its docstring names the other half, `procedure_console_e2e.py`, and that file does
+**not exist** — the browser side that opens the exported console from another folder,
+takes the decision and saves. Writing it is the whole remaining task, and the driver is
+the reason it is small.
+
 ---
 
 ## 11. TestLab: 17-point diff and the start-form behaviour
@@ -249,6 +283,11 @@ the current overlay. The table is the deliverable; the layout change comes after
 
 **Accept.** A table with 17 rows and a verdict each, plus either a commit that makes the
 form persistent or a recorded decision to keep the overlay.
+
+**Status 2026-11-26 — the layout decision is made: keep the overlay.** The 17-point list
+itself is not in the repository; it lives in the TestLab thread of 2026-11-24, so the
+table cannot be built from code alone without re-reading that conversation. The layout
+half is settled by the maintainer: the start form keeps replacing the right column.
 
 ---
 
@@ -297,3 +336,11 @@ assume it is covered.
 
 **Accept.** Either a failing-before/passing-after test for the real mechanism, or a
 comment plus a backlog note explaining why the evidence is unreproducible.
+
+**Status 2026-11-26 — the guard is honest, the original observation is not explained.**
+`assertAuthoredStaged` refuses a Layer whose declared `sourceDir` disappeared while a
+staged copy from an earlier compile still exists, and its message says exactly that. That
+is a real hole and it is now closed. It is not, however, the mechanism the report
+described (8106 staged bytes against a 7506-byte source), and reproducing that needs the
+episode's own assets, which are not in the repository. Recorded as an open question with
+a named blocker instead of a guess.
