@@ -311,8 +311,10 @@ describe('procedure view (bluepriNNt)', () => {
     const run = container.querySelector('.proc-run[data-run-id="r1"]')
     assert.ok(run, 'the run is listed')
     assert.match(run.textContent, /r1 · open/)
+    // The current step is the run bar's job; the panel keeps the reference facts.
+    const bar = container.querySelector('.proc-runbar').textContent
+    assert.match(bar, /Current step: Publish/)
     const state = container.querySelector('.proc-run-state').textContent
-    assert.match(state, /Current step: Publish/)
     assert.match(state, /Path: Draft → Review → Publish/)
     const statusOf = (s) =>
       container.querySelector(`.dag-node[data-step="${s}"]`).getAttribute('data-status')

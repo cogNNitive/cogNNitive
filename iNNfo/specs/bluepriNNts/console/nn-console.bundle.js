@@ -25046,7 +25046,7 @@ if (typeof window !== 'undefined') {
     }
 
     // ---- Run panel ----
-    function renderRunPanel(hostEl) {
+    function renderRunPanel(hostEl, headShown) {
       var col = make('div', 'exec-log-col')
       hostEl.appendChild(col)
       var panel = make('div', 'proc-run-state')
@@ -25063,13 +25063,18 @@ if (typeof window !== 'undefined') {
         return
       }
       var recorded = activeRun.state
-      panel.appendChild(
-        make(
-          'div',
-          'proc-run-title',
-          'Run ' + activeRun.id + (activeRun.closed ? ' (closed)' : ''),
-        ),
-      )
+      // The run bar above already names the run, its status, its current step and the path
+      // travelled. Only the degenerate path (the export carries no definition) has no bar,
+      // and there this head is the only thing that says which run is on screen.
+      if (!headShown) {
+        panel.appendChild(
+          make(
+            'div',
+            'proc-run-title',
+            'Run ' + activeRun.id + (activeRun.closed ? ' (closed)' : ''),
+          ),
+        )
+      }
       if (!recorded) {
         panel.appendChild(
           make(
@@ -25083,7 +25088,7 @@ if (typeof window !== 'undefined') {
       }
       var state = viewState()
       var projected = state !== recorded
-      if (projected) {
+      if (!headShown && projected) {
         var pending = make(
           'div',
           'proc-run-projected',
@@ -25092,17 +25097,6 @@ if (typeof window !== 'undefined') {
         pending.setAttribute('data-proc-projected', '')
         panel.appendChild(pending)
       }
-      panel.appendChild(make('div', 'proc-run-status', 'Status: ' + state.status))
-      panel.appendChild(
-        make(
-          'div',
-          'proc-run-current',
-          'Current step: ' + (state.currentStep ? stepName(state.currentStep) : 'none'),
-        ),
-      )
-      panel.appendChild(
-        make('div', 'proc-run-path', 'Path: ' + state.path.map(stepName).join(' → ')),
-      )
       if (state.blockedBy)
         panel.appendChild(make('div', 'proc-run-blocked', 'Blocked: ' + state.blockedBy))
       if (state.crashed)
@@ -25176,6 +25170,11 @@ if (typeof window !== 'undefined') {
         )
       }
       details.appendChild(make('div', 'proc-run-seq', 'Run seq: ' + runSeq()))
+      // The path travelled is reference material, not a headline: it grows with the run and
+      // used to push the status badge off the bar.
+      details.appendChild(
+        make('div', 'proc-run-path', 'Path: ' + state.path.map(stepName).join(' → ')),
+      )
       if (!activeRun.closed && !TERMINAL_RUN[recorded.status]) {
         details.appendChild(make('div', 'proc-run-next', agentInstruction(recorded)))
       }
@@ -25344,9 +25343,6 @@ if (typeof window !== 'undefined') {
         ),
       )
       bar.appendChild(make('span', 'sep'))
-      bar.appendChild(
-        make('span', 'path proc-run-path', 'Path: ' + state.path.map(stepName).join(' → ')),
-      )
       if (projected) {
         var pending = make(
           'span',
@@ -25583,7 +25579,7 @@ if (typeof window !== 'undefined') {
         renderBdeRunBar(main)
         renderBdeTabBar(main)
         renderBdePanels(main)
-        renderRunPanel(main)
+        renderRunPanel(main, true)
       }
       ws.appendChild(main)
       ws.appendChild(rail)
