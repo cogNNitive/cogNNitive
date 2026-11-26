@@ -87,6 +87,94 @@ evidence:: The coNNtent blueprint's procedures/ folder now holds configure_casca
 done_when:: The coNNtent blueprint declares and ships a procedures/ folder with two generic procedures promoted from video_NN: draft-scene-visuals (cleaned of series, language, vendor and machine specifics, and carrying the pre-draft gate that clean screenshots and rendered HyperFrames clips must exist under assets/<slug>/media/ before the draft JSON or build-draft-html.mjs) and produce-video (a router that lists series through their scope documents and hands off to the procedure each series declares). select-news is not shipped here: it moves to the iNNbox_NN domain, which specializes in acquiring sources. A test asserts the folder is declared and every shipped procedure resolves, and the blueprint version is bumped and repinned. Open decisions before the change: procedure language, file naming against the video-template requirement, and whether the gate also becomes a hard check in build-draft-html.mjs.
 batch:: b5d-conntent-procedures
 
+## NN Item: conntent-manifest-membership
+value:: H
+effort:: S
+risk:: H
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: ON HOLD — waits for the blueprints-distribution decision. `coNNtent` is the only shipped blueprint absent from `manifest/source.yaml` (which lists domaiNN, changes, sidecar, sources, artifacts, procedures, executions and blank), while `catalog.json` already declares `embedded_skills: ["nn-conntent"]` and `skills-manager.js:1640` already infers the package. So the installer half exists and only the declaration is missing; today `update` and `status` never see coNNtent, which is how the 2026-11-25 episode ran against a stale embedded skill.
+done_when:: coNNtent is declared with an explicit package marker, `status` reports it, and a test asserts the declaration matches `catalog.json`'s `embedded_skills`.
+batch:: b6-on-hold-blueprints
+
+## NN Item: blueprints-release-granularity
+value:: H
+effort:: M
+risk:: H
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: ON HOLD — this is the decision the Grill session owns. One `blueprints-v*` tag ships 22 directories, so a coNNtent typo cuts a release that names the other 21. A per-blueprint key with content-sha pins was analysed as the alternative (openspec/analysis/2026-11-25-conntent-boundaries.md, P4) and carries a real cost: it fragments the one-number version story.
+done_when:: the session records which shape wins, and the release table, the manifest renderer and `scripts/release/release-keys.js` agree with it.
+batch:: b6-on-hold-blueprints
+
+## NN Item: blueprint-mirror-freshness
+value:: M
+effort:: S
+risk:: M
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: ON HOLD. `run-release.js` copies the release paths into a fresh clone of cogNNitive-web and `scripts/lib/publish-web-tree.js` `copyDistributionPath` removes the destination first, so the second tree is a mirror and not an edit surface. Nothing compares the two after a release; a post-release diff of `cogNNitive@tag` against `cogNNitive-web@tag` costs about 30 lines and catches a mirror that silently stopped updating.
+done_when:: a post-release check diffs the mirrored paths and fails naming the first divergent file.
+batch:: b6-on-hold-blueprints
+
+## NN Item: blueprint-status-repair
+value:: M
+effort:: S
+risk:: M
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: ON HOLD. `skills-manager.js:1875-1889` prints `outdated` for a blueprint in `state.blueprints` and no command to fix it, while the skills loop prints one. The line is easy; which command is correct depends on how a blueprint becomes a distributable unit.
+done_when:: every `outdated` line in `status` is followed by the exact command that repairs it, and a test pins that pairing.
+batch:: b6-on-hold-blueprints
+
+## NN Item: workspace-frozen-blueprints-render
+value:: M
+effort:: S
+risk:: M
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: ON HOLD. `manifest/source.yaml:86-90` declares `workspace` under `frozen_blueprints` and it is never rendered into the manifest: `assemble-manifest.js:323` iterates only `blueprints`. Whether a frozen entry belongs in the manifest at all is part of the same packaging decision.
+done_when:: the manifest either carries every frozen blueprint or the concept is removed from `source.yaml` and from the assembler.
+batch:: b6-on-hold-blueprints
+
+## NN Item: blueprint-package-resolver
+value:: M
+effort:: M
+risk:: M
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: ON HOLD. Two orphan path constants: `catalog.mjs:20-28` points at `~/.agents/catalog/` and `compile.mjs:48-52` at `~/.agents/library/`, and no installer code creates either. The analysed fix is one resolver that fails loudly with both candidate paths, which depends on where a unit is installed.
+done_when:: one function answers "the blueprint package directory", both call sites use it, and no `~/.agents/{catalog,library}` path remains outside the installer.
+batch:: b6-on-hold-blueprints
+
+## NN Item: component-html-single-source
+value:: M
+effort:: S
+risk:: L
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: ON HOLD. Six component HTML files under `library/components/` are byte-identical to `slots/*.html` with no equality test, so one edit to either copy forks them silently. The fix (generate one from the other plus a byte-equality test) is mechanical; which side is the source belongs to the packaging decision.
+done_when:: a test asserts byte equality for every component/slot pair, and one side is generated rather than edited.
+batch:: b6-on-hold-blueprints
+
+## NN Item: channel-drift-gate-shape
+value:: M
+effort:: S
+risk:: M
+status:: open
+lane:: heavy
+verdict:: current
+evidence:: ON HOLD. `scripts/release/channel-drift.js`, shipped blocking in #884, asserts that every released manifest entry still resolves to the commit it records. It passes vacuously today because the committed snapshot carries no released pin; if pins become per-unit content shas the gate has to be rewritten, so relaxing it to advisory now would be undone.
+done_when:: the gate fails on a deliberately moved pin in a fixture, or the pin shape it reads is retired together with it.
+batch:: b6-on-hold-blueprints
+
 # NN Batch
 ## NN Batch: b4e-okf-export
 order:: 55
@@ -102,3 +190,10 @@ items:: coNNtent-procedures
 risk:: M
 state:: in-review
 
+
+## NN Batch: b6-on-hold-blueprints
+order:: 53
+lane:: heavy
+items:: conntent-manifest-membership, blueprints-release-granularity, blueprint-mirror-freshness, blueprint-status-repair, workspace-frozen-blueprints-render, blueprint-package-resolver, component-html-single-source, channel-drift-gate-shape
+risk:: H
+state:: planned

@@ -585,15 +585,28 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
         .filter((line) => line.startsWith('| `'))
         .map((line) => line.split('|')[2].trim().replace(/^`|`$/g, ''))
 
-    it('names the declared workspace_id, never the console draft-store key', () => {
+    it('labels the console scope and the declared workspace_id as what they are', () => {
       const prompt = promptFor(domainModel, [])
-      assert.ok(prompt.includes('- **Workspace ID**: `inntake-nn`'), 'the declared identity')
-      assert.equal(
-        prompt.includes('6cebb32d'),
-        false,
-        'the path-derived draft-store key is not a domain identifier',
+      assert.ok(prompt.includes('- **Workspace ID**: `inntake-nn`'), 'the declared domain identity')
+      const scopeLine = prompt.split('\n').find((line) => line.includes('6cebb32d'))
+      assert.ok(scopeLine, 'the console scope id is still emitted: it is real, not fabricated')
+      assert.ok(
+        scopeLine.startsWith('- **Console Scope**: `iNNtake_NN-6cebb32d`'),
+        'and it is labelled as the console scope',
       )
-      assert.equal(prompt.includes('Domain Identifier'), false, 'and is not labelled as one')
+      assert.equal(prompt.includes('Domain Identifier'), false, 'never as the domain identity')
+    })
+
+    it('keys the console scope by its view, the same id the draft store uses', () => {
+      const scoped = {
+        ...domainModel,
+        meta: { ...domainMeta, consoleScope: { view: 'overview' } },
+      }
+      const prompt = promptFor(scoped, [])
+      assert.ok(
+        prompt.includes('- **Console Scope**: `iNNtake_NN-6cebb32d::view:overview`'),
+        'the scope suffix the draft store key carries',
+      )
     })
 
     it('never presents a fallback version as the domain version', () => {
@@ -736,6 +749,78 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
         'the changeset frontmatter carries no version the console did not resolve',
       )
       assert.equal(composed.changesetText.includes('V_1-0-0'), false)
+    })
+
+    // The modal produces a file to apply, so it refuses what `apply_change` would reject
+    // atomically; the prompt beside it warns and still shows the draft, because its reader can
+    // correct the draft before copying.
+    it('refuses the modal export for an element the payload does not hold', () => {
+      const bogus = {
+        id: 'c-13',
+        element_id: 'Transcripciones_transcripcion@clase-99',
+        kind: 'correction',
+        field: 'note',
+        proposed: 'x',
+      }
+      const state = { ...bootDomain(domainModel), store: { drafts: () => [bogus] } }
+      const composed = nnConsole.composeExport(state, 'Egon Spengler')
+      assert.equal(composed.ok, false, 'no file that cannot be applied')
+      assert.match(
+        composed.errors[0],
+        /^change "c-13" cannot be applied: element `clase-99` is not one of the elements this console holds/,
+      )
+    })
+
+    it('still exports the modal changeset when only the prompt has a problem to report', () => {
+      // Only the absence the payload proves refuses. A draft that resolves no element at all is
+      // reported in `## Blocking Problems`; the modal keeps producing its file, as it always did.
+      const orphan = { id: 'c-14', kind: 'correction', field: 'note', proposed: 'x' }
+      const state = { ...bootDomain(domainModel), store: { drafts: () => [orphan] } }
+      const composed = nnConsole.composeExport(state, 'Egon Spengler')
+      assert.ok(composed.ok, String(composed.errors))
+      assert.ok(
+        nnConsole.composeAgentPrompt(state).includes('no element slug resolves'),
+        'the prompt still says the draft cannot be applied',
+      )
+    })
+
+    it('never treats a matrix-cell draft as element-addressed', () => {
+      const cell = {
+        id: 'c-16',
+        matrix: 'Coverage',
+        row: 'r1',
+        col: 'c1',
+        element: 'Coverage',
+        knowledge_id: 'Transcripciones_transcripcion',
+        kind: 'correction',
+        original: 'old',
+        proposed: 'new',
+      }
+      const state = { ...bootDomain(domainModel), store: { drafts: () => [cell] } }
+      const prompt = nnConsole.composeAgentPrompt(state)
+      assert.equal(
+        prompt.includes('## Blocking Problems'),
+        false,
+        'a matrix coordinate names its element: the matrix definition',
+      )
+      assert.deepEqual(docTargetsOf(prompt), ['Transcripciones_transcripcion@Coverage&r1&c1'])
+      const composed = nnConsole.composeExport(state, 'Egon Spengler')
+      assert.ok(composed.ok, String(composed.errors))
+    })
+
+    it('still exports the modal changeset for a `new` draft', () => {
+      const created = {
+        id: 'c-15',
+        knowledge_id: 'Transcripciones_transcripcion',
+        concept: 'Transcripción',
+        element: 'Clase 02',
+        kind: 'new',
+        proposed: { title: 'Clase 02' },
+      }
+      const state = { ...bootDomain(domainModel), store: { drafts: () => [created] } }
+      const composed = nnConsole.composeExport(state, 'Egon Spengler')
+      assert.ok(composed.ok, String(composed.errors))
+      assert.ok(composed.changesetText.includes('op:: add_element'))
     })
   })
 

@@ -1148,6 +1148,55 @@
     return chip
   }
 
+  // A draft lives only in this console until it is exported: the count in the button
+  // label was a quiet number, and the toast is transient by design. While the store
+  // is non-empty the Changes button is the durable signal (red + pulse, the pulse is
+  // decoration) and `beforeunload` asks before the tab takes those drafts with it.
+  // Both read the store count, never a per-model flag, so every view that proposes
+  // through `ctx.store` gets the same treatment.
+  var UNSENT_GUARD_KEY = '__nnUnsentUnloadGuard'
+
+  function applyUnsentSignal(doc, count) {
+    var btn = doc && doc.getElementById ? doc.getElementById('nn-feedback-open') : null
+    if (!btn) return
+    if (count > 0) {
+      btn.setAttribute('data-nn-unsent', 'true')
+      btn.setAttribute(
+        'title',
+        count === 1
+          ? '1 unsent change lives only in this console until you export it. Changes · opens the export.'
+          : count +
+              ' unsent changes live only in this console until you export them. Changes · opens the export.',
+      )
+    } else {
+      btn.removeAttribute('data-nn-unsent')
+      btn.removeAttribute('title')
+    }
+  }
+
+  // Armed while the store is non-empty and released when it empties, so the warning
+  // describes the current state instead of staying latched on a stale count.
+  function setUnloadGuard(win, armed) {
+    if (!win || typeof win.addEventListener !== 'function') return
+    var current = win[UNSENT_GUARD_KEY]
+    if (armed && !current) {
+      current = function (ev) {
+        if (!ev) return ''
+        if (typeof ev.preventDefault === 'function') ev.preventDefault()
+        // Engines read `returnValue`; a programmatic dispatch in a test reads neither.
+        ev.returnValue = ''
+        return ''
+      }
+      win[UNSENT_GUARD_KEY] = current
+      win.addEventListener('beforeunload', current)
+      return
+    }
+    if (!armed && current) {
+      win.removeEventListener('beforeunload', current)
+      win[UNSENT_GUARD_KEY] = null
+    }
+  }
+
   function renderBanner(doc, meta, needs, draftCount, onReviewerChange, state) {
     var banner = doc.getElementById('nn-feedback-banner') || doc.getElementById('nn-banner')
     if (!banner) return
@@ -1204,6 +1253,7 @@
         banner.appendChild(openBtn)
       }
     }
+    applyUnsentSignal(doc, draftCount)
   }
 
   function renderFilterBar(doc, state, onQueryChange, activeQuery, sortState, onSortChange) {
@@ -8093,7 +8143,7 @@
       '<button class="nn-export-btn nn-export-discard" data-nn="discard-all" type="button">Discard all</button>' +
       '<span class="nn-export-spacer"></span>' +
       '<span data-nn="copy-status" role="status" aria-live="polite"></span>' +
-      '<button class="nn-export-btn nn-export-secondary" data-nn="copy-changeset-prompt" type="button">Copy changes</button>' +
+      '<button class="nn-export-btn nn-export-secondary" data-nn="copy-changeset-prompt" type="button" title="Copy the changeset document only: the same bytes Download changes writes, with no wrapper instructions">Copy changeset doc</button>' +
       '<button class="nn-export-btn nn-export-primary" data-nn="download-changeset" type="button">Download changes</button>' +
       '<button class="nn-navbar-action-btn nn-btn-save" data-nn="save-snapshot" type="button" title="Save a self-contained snapshot of this console">' +
       '<span class="nn-btn-icon" data-nn="save-snapshot-icon"></span><span>Save Snapshot</span>' +
@@ -8258,6 +8308,18 @@
     return null
   }
 
+  /**
+   * The ids of the models a payload's `meta.models` lists. Only those models are known to carry
+   * their full element set in the payload, which is what lets an absent element record prove
+   * absence instead of a partial payload.
+   */
+  function coveredModelIdsOf(meta) {
+    var models = Array.isArray(meta && meta.models) ? meta.models : []
+    return models.map(function (m) {
+      return String((m && m.id) || '')
+    })
+  }
+
   // The one plan a draft becomes: its blocks, the canonical target they share, and the
   // reason it cannot be applied as-is ('' when it can). `draftToChanges` is the block list
   // of this same plan, so a caller that also renders a summary reads the identical target.
@@ -8342,8 +8404,27 @@
     } else if (d.kind === 'comment' || !canUpdate) {
       op = 'comment'
     }
-    var problem = draftTargetProblem(identity, op)
-    if (!problem) problem = draftElementProblem(identity, op, coveredModels)
+    var problem = ''
+    var elementProblem = ''
+    if (!matrixName) {
+      // A matrix-cell draft addresses a matrix coordinate (`model@matrix&row&col`), not an
+      // element unit: its element is the matrix definition, which lives in the payload's
+      // `matrices`, never in `elements`. It names a complete target by construction, so
+      // neither the element-slug nor the element-record problem applies to it.
+      problem = draftTargetProblem(identity, op)
+      elementProblem = draftElementProblem(identity, op, coveredModels)
+      if (!problem) problem = elementProblem
+    }
+    // Every branch below returns this same plan. `problem` is everything the prompt reports;
+    // `elementProblem` is only the provable-absence finding, which is what the modal export
+    // refuses on: it is the one class where the payload itself contradicts the draft.
+    var plan = {
+      id: id,
+      model: model,
+      target: target,
+      problem: problem,
+      elementProblem: elementProblem,
+    }
 
     var lines = []
     lines.push('## NN Change: ' + id)
@@ -8385,8 +8466,7 @@
     if (d.comment) {
       lines.push('notes:: ' + formatChangesetValue(d.comment))
     }
-    if (op !== 'add_element')
-      return { id: id, model: model, blocks: [lines.join('\n')], target: target, problem: problem }
+    if (op !== 'add_element') return Object.assign({}, plan, { blocks: [lines.join('\n')] })
     // A caller that already holds the element's fields as one JSON value (the procedure
     // runner builds its `Execution Event` that way) emits them verbatim: `apply_change`
     // writes `to` in the same `add_element` mutation, so element and values are one change.
@@ -8403,18 +8483,12 @@
           asJson = null
         }
         lines.push('to:: ' + (isObject(asJson) ? jsonLine(asJson) : formatChangesetValue(raw)))
-        return {
-          id: id,
-          model: model,
-          blocks: [lines.join('\n')],
-          target: target,
-          problem: problem,
-        }
+        return Object.assign({}, plan, { blocks: [lines.join('\n')] })
       }
-      return { id: id, model: model, blocks: [lines.join('\n')], target: target, problem: problem }
+      return Object.assign({}, plan, { blocks: [lines.join('\n')] })
     }
     if (Object.keys(d.proposed).length === 0)
-      return { id: id, model: model, blocks: [lines.join('\n')], target: target, problem: problem }
+      return Object.assign({}, plan, { blocks: [lines.join('\n')] })
     // A change carries no inline fields. The filled fields share the draft's one
     // evidence, so they are set by ONE `set_fields` (a single field stays an
     // `update_field`), with no `from`: the fields do not exist yet.
@@ -8439,7 +8513,11 @@
           'author:: ' + oneLine(author || 'reviewer'),
         ].join('\n'),
       )
-      return { id: id, model: model, blocks: blocks, target: filledTarget, problem: '' }
+      return Object.assign({}, plan, {
+        blocks: blocks,
+        target: filledTarget,
+        problem: '',
+      })
     }
     filled.forEach(function (field) {
       blocks.push(
@@ -8453,12 +8531,30 @@
         ].join('\n'),
       )
     })
-    return { id: id, model: model, blocks: blocks, target: filledTarget, problem: '' }
+    return Object.assign({}, plan, { blocks: blocks, target: filledTarget, problem: '' })
   }
 
   // The blocks of one draft; the plan's own target is what the summary table shows.
   function draftToChanges(draft, index, fallbackModel, author, elements, coveredModels) {
     return draftPlan(draft, index, fallbackModel, author, elements, coveredModels).blocks
+  }
+
+  /**
+   * The first draft whose target names an element the payload itself says does not exist, as a
+   * sentence, or null. The modal export refuses on it rather than hand over a file
+   * `apply_change` rejects atomically: a rejection that only surfaces after the reviewer pasted
+   * the document is far from the draft that caused it. Only this finding refuses, because it is
+   * the one the payload proves; every other plan problem reaches the prompt's
+   * `## Blocking Problems`, where the reader can still correct the draft before copying.
+   */
+  function absentElementProblem(drafts, fallbackModel, elements, coveredModels) {
+    for (var i = 0; i < drafts.length; i++) {
+      var plan = draftPlan(drafts[i], i, fallbackModel, '', elements, coveredModels)
+      if (!plan.elementProblem) continue
+      var id = plan.id || 'c-' + String(i + 1).padStart(2, '0')
+      return 'change "' + id + '" cannot be applied: ' + plan.elementProblem
+    }
+    return null
   }
 
   /** The first reason a verdict draft cannot be exported, or null. */
@@ -8528,44 +8624,20 @@
     return lines.join('\n')
   }
 
+  /**
+   * Programmatic entry point for the changeset document. It is the same composer the download
+   * uses, with the fields under the names the tests and `window.nnConsole` already call them, so
+   * there is one set of checks (reviewer, blueprint version, verdicts, absent elements) and one
+   * serializer behind both.
+   */
   function composeChangesetExport(state, identifier) {
-    var reviewer =
-      identifier && String(identifier).trim() ? String(identifier).trim() : getReviewerName()
-    var drafts = state && state.store ? state.store.drafts() : []
-    var model = state && state.modelTitle ? state.modelTitle : 'Model'
-    var reviewerSlug = slugify(reviewer) || 'reviewer'
-    var stamp = changesetStampOf(new Date())
-
-    var exportMeta = {
-      source_knowledge: model,
-      title: 'Review Changes: ' + model,
-      author: reviewer,
-      changesBlueprintVersion: state && state.meta ? state.meta.changesBlueprintVersion : undefined,
-    }
-    if (!nonEmptyString(exportMeta.changesBlueprintVersion)) {
-      return { ok: false, errors: [CHANGES_VERSION_MISSING] }
-    }
-
-    if (!reviewer || reviewer === DEFAULT_REVIEWER_NAME) {
-      return { ok: false, errors: ['Reviewer identifier is required.'] }
-    }
-    var verdictProblem = verdictDraftProblem(drafts)
-    if (verdictProblem) {
-      return { ok: false, errors: [verdictProblem] }
-    }
-
-    var text = serializeChangesetMarkdown(
-      exportMeta,
-      drafts,
-      state && state.modelId,
-      state && state.elements,
-    )
-    var filename = modelSlugOf(state) + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
+    var out = composeExport(state, identifier)
+    if (!out.ok) return out
     return {
       ok: true,
-      text: text,
-      filename: filename,
-      items: drafts.length,
+      text: out.changesetText,
+      filename: out.changesetFilename,
+      items: out.items,
     }
   }
 
@@ -8660,6 +8732,15 @@
     var verdictProblem = verdictDraftProblem(drafts)
     if (verdictProblem) {
       return { ok: false, errors: [verdictProblem] }
+    }
+    var blockingProblem = absentElementProblem(
+      drafts,
+      state && state.modelId,
+      state && state.elements,
+      coveredModelIdsOf(state && state.meta),
+    )
+    if (blockingProblem) {
+      return { ok: false, errors: [blockingProblem] }
     }
 
     var stamp = changesetStampOf(
@@ -8837,9 +8918,7 @@
     // One plan per draft: the summary table and the normative changeset below are the same
     // resolution, so they cannot disagree about a target. The covered model ids are what makes
     // an absent element record prove absence instead of a partial payload.
-    var coveredModelIds = models.map(function (m) {
-      return String((m && m.id) || '')
-    })
+    var coveredModelIds = coveredModelIdsOf(meta)
     var plans = drafts.map(function (d, i) {
       return draftPlan(d, i, state && state.modelId, reviewer, elements, coveredModelIds)
     })
@@ -8872,10 +8951,20 @@
     lines.push('## Target Domain & Entity')
     lines.push('- **Domain / Model**: ' + domainOrModel)
     // The declared `workspace_id` is the domain's own identity, readable in its
-    // `domaiNN_NN.md`. The console's draft-store key (`meta.domainId`) is a local storage
-    // name derived from the path, not a domain identifier, so it is never presented as one.
+    // `domaiNN_NN.md`.
     if (nonEmptyString(meta.workspaceId))
       lines.push('- **Workspace ID**: `' + meta.workspaceId + '`')
+    // `meta.domainId` is not fabricated: it is the console's own identity. The exporter
+    // stamps the base and the shell appends the scope to key its draft store
+    // (`draftStoreId`), and by design it is never written into the domain documents. So it
+    // is emitted as what it is — the console scope — and never as the domain's identity.
+    if (nonEmptyString(meta.domainId)) {
+      lines.push(
+        '- **Console Scope**: `' +
+          draftStoreId(meta.domainId, consoleScopeMeta(meta)) +
+          '` — the id this console keys its draft store by; it identifies the console, not the domain',
+      )
+    }
     if (version) {
       lines.push('- **Version**: ' + version)
     } else if (models.length > 1) {
@@ -9002,6 +9091,9 @@
     )
     lines.push(
       '3. If you edited the documents directly, regenerate the console with `regenerate_console`; `apply_change` already regenerates it for the domain it applied to.',
+    )
+    lines.push(
+      '4. Report every skipped change and its reason. If something was skipped, ask for a new export that carries only the skipped changes.',
     )
 
     return lines.join('\n')
@@ -9503,13 +9595,9 @@
       identifierInput.value = storedName === DEFAULT_REVIEWER_NAME ? '' : storedName
     }
     if (agentPrompt) {
-      var promptVersion = state && state.modelVersion ? String(state.modelVersion) : ''
-      agentPrompt.textContent =
-        'Apply the attached changeset to ' +
-        (state ? state.modelTitle : 'Model') +
-        (promptVersion ? ' (' + promptVersion + ')' : '') +
-        '. ' +
-        UI.COPY.agentPromptSkipped
+      // The preview is the prompt the export writes, byte for byte: one composer, so the modal
+      // and the file cannot disagree about what the agent is told.
+      agentPrompt.textContent = composeAgentPrompt(state)
     }
 
     updateExportPreview(doc, state)
@@ -9827,6 +9915,7 @@
     }
     cleanups.push(function () {
       if (state.store && typeof state.store.destroy === 'function') state.store.destroy()
+      setUnloadGuard(activeWindow, false)
     })
     if (state.store && state.store.persistent === false) {
       showToast(
@@ -10000,6 +10089,8 @@
       if (dialog && dialog.hasAttribute('open')) updateExportPreview(active, state)
       updateTabBadges(active, state)
       mountNavbarActions(active, state)
+      applyUnsentSignal(active, n)
+      setUnloadGuard(activeWindow, n > 0)
       renderReviewTab(active, state, config, function () {
         refresh(activeSearchQuery)
       })
@@ -10161,6 +10252,8 @@
         state,
       )
       mountNavbarActions(active, state)
+      applyUnsentSignal(active, currentDrafts.length)
+      setUnloadGuard(activeWindow, currentDrafts.length > 0)
       renderRail(active, concepts, counts, draftCountsByConcept, selectRailToken, state)
       if (!scopedView) {
         renderConceptGuide(

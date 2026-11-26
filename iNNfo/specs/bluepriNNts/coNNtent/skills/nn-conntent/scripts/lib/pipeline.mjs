@@ -403,7 +403,10 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
   }
 
   // 4. Estimate and the spend decision (before any provider call).
-  const estimate = (deps.estimate || estimateScriptCost)(scriptPath)
+  const estimate = (deps.estimate || estimateScriptCost)(
+    scriptPath,
+    options.allowModels?.length ? { allowModels: options.allowModels } : {},
+  )
   const planHash = estimate.planHash
   const total = estimate.summary.grandTotalCost
   const budget = resolveForEpisode(episode.model, scriptPath, 'budget').value
@@ -568,6 +571,7 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
     const sync = deps.synthesizeAvatars || synthesizeAvatars
     await sync({
       scriptPath,
+      ...(options.allowModels?.length ? { allowModels: options.allowModels } : {}),
       ...(cacheDir ? { cacheDir } : {}),
       ...(synthOptions?.env ? { env: synthOptions.env } : {}),
       ...(synthOptions?.fetch ? { fetch: synthOptions.fetch } : {}),
@@ -582,6 +586,7 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
   const render = deps.render || renderVideo
   const rendered = await render({
     scriptPath,
+    ...(options.allowModels?.length ? { allowModels: options.allowModels } : {}),
     facts,
     gsapPath: deps.gsapPath,
     stageDeps: deps.stageDeps,
@@ -594,7 +599,9 @@ async function runStages({ scriptPath, rootDir, options, deps, log }) {
   for (const output of outputs) {
     log(`render: ${output.path} (${output.format})`)
   }
-  log(`render: ${outputs.length} format(s) in ${rendered.renderTimeMs} ms, link_mode=${rendered.linkMode || 'link'}`)
+  log(
+    `render: ${outputs.length} format(s) in ${rendered.renderTimeMs} ms, link_mode=${rendered.linkMode || 'link'}`,
+  )
 
   // 5b. QA per output, before anything else is produced (spec S9): every format project
   // passes `hyperframes check`, every output passes its own QA against its own manifest,
@@ -808,11 +815,12 @@ export function episodeOutputFormats(model, scriptPath) {
  * that did not produce every declared format stops the run before QA.
  */
 function renderedOutputs(rendered, outputFormats) {
-  const reported = Array.isArray(rendered?.outputs) && rendered.outputs.length > 0
-    ? rendered.outputs
-    : rendered?.outputVideoPath
-      ? [{ format: outputFormats[0].size, path: rendered.outputVideoPath }]
-      : []
+  const reported =
+    Array.isArray(rendered?.outputs) && rendered.outputs.length > 0
+      ? rendered.outputs
+      : rendered?.outputVideoPath
+        ? [{ format: outputFormats[0].size, path: rendered.outputVideoPath }]
+        : []
   const byFormat = new Map(reported.map((o) => [String(o.format), o]))
   const missing = outputFormats.filter((f) => !byFormat.has(f.size)).map((f) => f.size)
   if (missing.length > 0) {

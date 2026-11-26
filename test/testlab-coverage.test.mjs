@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { withDecodedModel } from './helpers/console-slots.mjs'
+import { withDecodedModel, modelOf } from './helpers/console-slots.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const lab = join(here, 'fixtures', 'testlab')
@@ -57,17 +57,45 @@ describe('TestLab coverage domain fixtures', () => {
       'Broken reference probe',
       'Sourceless probe',
     ]) {
-      assert.match(model, new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `missing ${name}`)
+      assert.match(
+        model,
+        new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+        `missing ${name}`,
+      )
     }
   })
 
   it('exercises every field type declared by the blueprint', () => {
     const spec = read('specs/TestLab_V_0-1-0_spec_NN.md')
-    for (const t of ['string', 'number', 'boolean', 'select', 'reference', 'image', 'file', 'video', 'audio', 'url', 'markdown_inline', 'markdown_file', 'knowledge', 'address', 'citation']) {
+    for (const t of [
+      'string',
+      'number',
+      'boolean',
+      'select',
+      'reference',
+      'image',
+      'file',
+      'video',
+      'audio',
+      'url',
+      'markdown_inline',
+      'markdown_file',
+      'knowledge',
+      'address',
+      'citation',
+    ]) {
       assert.match(spec, new RegExp(`type:: ${t}`), `blueprint missing type ${t}`)
     }
     const model = read('kNNowledge/TestLab_coverage_TestLab_NN.md')
-    for (const field of ['long_description::', 'manual::', 'photo::', 'attachment::', 'sibling::', 'owner::', 'status::']) {
+    for (const field of [
+      'long_description::',
+      'manual::',
+      'photo::',
+      'attachment::',
+      'sibling::',
+      'owner::',
+      'status::',
+    ]) {
       assert.match(model, new RegExp(field.replace(/:+$/, ':+')), `model never uses field ${field}`)
     }
   })
@@ -96,7 +124,10 @@ describe('TestLab coverage domain fixtures', () => {
 
   it('very-long-description probe exceeds 500 chars and file probe uses the file type', () => {
     const model = read('kNNowledge/TestLab_coverage_TestLab_NN.md')
-    const longDesc = model.match(/Very long description probe[\s\S]*?long_description:: ([\s\S]*?)\nphoto::/)?.[1] ?? ''
+    const longDesc =
+      model.match(
+        /Very long description probe[\s\S]*?long_description:: ([\s\S]*?)\nphoto::/,
+      )?.[1] ?? ''
     assert.ok(longDesc.length > 500, `long description only ${longDesc.length} chars`)
     assert.match(model, /attachment:: test\/fixtures\/testlab\/sources\/import\/manual\.txt/)
   })
@@ -128,9 +159,48 @@ describe('TestLab coverage domain fixtures', () => {
     assert.match(console, /fb-001/)
   })
 
+  it('keeps the procedure fixture runnable: human steps and a run folded at the decision', () => {
+    const model = modelOf(read('domaiNN_console.html'))
+    const [entry] = model.procedureGraphs ?? []
+    assert.ok(entry, 'the console carries the procedure graph')
+    // A step without `executor` is an agent step, so the console offers no answer on it:
+    // only the instruction to copy for the agent. Every TestLab step is a person's step.
+    for (const [slug, step] of Object.entries(entry.graph.steps)) {
+      assert.equal(step.executor, 'human', `${slug} must declare executor:: human`)
+    }
+    // The run is stored in the current `executions` shape (state + seq + Step Run rows),
+    // so the fold resumes it at the decision instead of showing a brand-new run.
+    const [run] = entry.runs
+    assert.ok(run, 'the console carries the run')
+    assert.equal(run.id, 'verify-lineage-1')
+    assert.equal(run.seq, 9)
+    assert.equal(run.state.status, 'waiting')
+    assert.equal(run.state.currentStep, 'read-the-changeset-lineage')
+    const done = Object.entries(run.state.steps)
+      .filter(([, s]) => s.status === 'done')
+      .map(([slug]) => slug)
+    assert.deepEqual(done, ['open-the-domain-console', 'enable-review-mode', 'open-element-1b'])
+  })
+
   it('narrates the admin -> reviewer intake chain with every modification case', () => {
     const model = read('kNNowledge/TestLab_intake_TestLab_NN.md')
-    const FIELDS = ['string_field', 'number_field', 'boolean_field', 'select_field', 'reference_field', 'image_field', 'file_field', 'video_field', 'audio_field', 'url_field', 'markdown_inline_field', 'markdown_file_field', 'knowledge_field', 'address_field', 'citation_field']
+    const FIELDS = [
+      'string_field',
+      'number_field',
+      'boolean_field',
+      'select_field',
+      'reference_field',
+      'image_field',
+      'file_field',
+      'video_field',
+      'audio_field',
+      'url_field',
+      'markdown_inline_field',
+      'markdown_file_field',
+      'knowledge_field',
+      'address_field',
+      'citation_field',
+    ]
     for (const f of FIELDS) assert.match(model, new RegExp(`${f}::`), `intake model missing ${f}`)
     // The reviewer renamed the element.
     assert.match(model, /Modification cases \(reviewed\)/)
@@ -139,7 +209,11 @@ describe('TestLab coverage domain fixtures', () => {
     const reviewer = read('changes/testlab_reviewer_intake_changes_NN.md')
     // The admin created the model from the PDF, CSV and JSON sources.
     assert.match(admin, /op:: add_model/)
-    for (const src of ['report\\.pdf_sidecar_NN\\.md@## Findings', 'dataset\\.csv@m-001', 'dataset\\.json@/items/0/name']) {
+    for (const src of [
+      'report\\.pdf_sidecar_NN\\.md@## Findings',
+      'dataset\\.csv@m-001',
+      'dataset\\.json@/items/0/name',
+    ]) {
       assert.match(admin, new RegExp(src), `admin chain missing evidence ${src}`)
     }
     // The reviewer covers rename, description, one field of each type, and a matrix cell.
