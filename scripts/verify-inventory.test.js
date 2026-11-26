@@ -179,7 +179,7 @@ blueprints:
     console.log('✔ Embedded bluepriNNt skill suites are discovered by verify')
   }
 
-  // 7. Real repo: source.yaml declares exactly the 8 Core bluepriNNts
+  // 7. Real repo: source.yaml declares exactly the 9 Core bluepriNNts
   {
     const { parseFocusedYaml } = require('./lib/yaml-parser.js')
     const repoRoot = path.resolve(__dirname, '..')
@@ -192,17 +192,19 @@ blueprints:
         'artifacts',
         'blank',
         'changes',
+        'coNNtent',
         'domaiNN',
         'executions',
         'procedures',
         'sidecar',
         'sources',
       ].sort(),
-      'manifest/source.yaml must declare exactly the 8 Core bluepriNNts',
+      'manifest/source.yaml must declare exactly the 9 Core bluepriNNts',
     )
-    const frozen = (doc.frozen_blueprints || []).map((b) => b.name).sort()
-    assert.deepStrictEqual(frozen, ['workspace'], 'frozen_blueprints unchanged')
-    console.log('✔ source.yaml declares exactly the 8 Core bluepriNNts')
+    // A blueprint is a unit (2026-11-26): the frozen section promised entries the manifest
+    // never rendered, so it is gone rather than left as an unfulfilled intention.
+    assert.strictEqual(doc.frozen_blueprints, undefined, 'frozen_blueprints is removed')
+    console.log('✔ source.yaml declares exactly the 9 Core bluepriNNts')
   }
 
   // 8. Real repo: catalog.json carries the enriched metadata and Core/free tiers
