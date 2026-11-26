@@ -19546,6 +19546,9 @@ if (typeof window !== 'undefined') {
     lines.push(
       '3. If you edited the documents directly, regenerate the console with `regenerate_console`; `apply_change` already regenerates it for the domain it applied to.',
     )
+    lines.push(
+      '4. Report every skipped change and its reason. If something was skipped, ask for a new export that carries only the skipped changes.',
+    )
 
     return lines.join('\n')
   }
