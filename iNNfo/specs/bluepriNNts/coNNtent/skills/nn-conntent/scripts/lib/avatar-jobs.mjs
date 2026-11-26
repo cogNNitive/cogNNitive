@@ -201,22 +201,36 @@ function declaredResolutions(model) {
  * @param {{ catalog: object, config?: { allowedModels?: string[], blockedModels?: string[] }, allowModels?: string[] }} opts
  * @returns {object} the catalog Model
  */
-export function assertAvatarModelRunnable(modelId, { catalog, config = {}, allowModels = [] } = {}) {
+export function assertAvatarModelRunnable(
+  modelId,
+  { catalog, config = {}, allowModels = [] } = {},
+) {
   const id = normalizeModelId(modelId)
   const models = Object.values(catalog?.models || {})
   const nameOf = (m) => String(m.api_id || m.slug || '').trim()
   if (!id) {
-    throw new Error('avatar-model-missing: no avatar model resolved for this episode; declare avatar_model at the domain, series or video level.')
+    throw new Error(
+      'avatar-model-missing: no avatar model resolved for this episode; declare avatar_model at the domain, series or video level.',
+    )
   }
   const entry = models.find((m) => nameOf(m) === id || String(m.slug) === id) || null
   if (!entry || String(entry.capability) !== 'avatar') {
-    const known = models.filter((m) => String(m.capability) === 'avatar').map(nameOf).filter(Boolean)
+    const known = models
+      .filter((m) => String(m.capability) === 'avatar')
+      .map(nameOf)
+      .filter(Boolean)
     throw new Error(
       `avatar-model-unknown: "${id}" is not an avatar Model in the merged catalog (avatar models: ${known.join(', ') || 'none'}).`,
     )
   }
-  const missing = ['provider', 'api_id', 'price', 'price_unit'].filter((field) => String(entry[field] ?? '').trim() === '')
-  if ((entry.controls || []).map(String).includes('resolution') && resolutionsOf(entry).length === 0) missing.push('resolutions')
+  const missing = ['provider', 'api_id', 'price', 'price_unit'].filter(
+    (field) => String(entry[field] ?? '').trim() === '',
+  )
+  if (
+    (entry.controls || []).map(String).includes('resolution') &&
+    resolutionsOf(entry).length === 0
+  )
+    missing.push('resolutions')
   if (missing.length > 0) {
     throw new Error(
       `avatar-model-incomplete: "${id}" is missing ${missing.join(', ')} in the merged catalog; a Model must be complete before it can be priced and run.`,

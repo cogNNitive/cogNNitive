@@ -219,13 +219,18 @@ function guardListsFromCatalog(root) {
   const idOf = (m) => String(m.api_id || m.slug || '').trim()
   const entries = Object.values(catalog.models || {})
   const denied = (m) => m.allowed === false || m.allowed === 'false'
-  const catalogAllowed = entries.filter((m) => !denied(m)).map(idOf).filter(Boolean)
+  const catalogAllowed = entries
+    .filter((m) => !denied(m))
+    .map(idOf)
+    .filter(Boolean)
   if (catalogAllowed.length === 0) return null
   const catalogDenied = entries.filter(denied).map(idOf).filter(Boolean)
   // The shipped blocklist is a safety default, not a model claim: it survives the catalog
   // taking authorship of the allow list unless the catalog explicitly allows that id.
   const allowedSet = new Set(catalogAllowed)
-  const blockedModels = [...new Set([...DEFAULT_GUARD.blockedModels, ...catalogDenied])].filter((id) => !allowedSet.has(id))
+  const blockedModels = [...new Set([...DEFAULT_GUARD.blockedModels, ...catalogDenied])].filter(
+    (id) => !allowedSet.has(id),
+  )
   return { allowedModels: catalogAllowed, blockedModels }
 }
 
@@ -262,7 +267,10 @@ export function loadGuard(startDir = process.cwd()) {
       allowSource = 'catalog'
     }
   }
-  validateConfig(config, guardFile || (allowSource === 'catalog' ? 'the merged catalog' : 'defaults'))
+  validateConfig(
+    config,
+    guardFile || (allowSource === 'catalog' ? 'the merged catalog' : 'defaults'),
+  )
   return { config, source: guardFile, root, allowSource }
 }
 
@@ -290,21 +298,17 @@ export function assertModelAllowed(rawModel, { config, allowBlocked = [], allowS
       ? `allowedModels of ${GUARD_FILENAME}`
       : allowSource === 'catalog'
         ? 'the Models the merged catalog allows'
-        : 'allowedModels';
+        : 'allowedModels'
   const unlock =
     allowSource === 'catalog'
       ? `Add the Model to the domaiNN catalog (or set allowed:: true on it), or pass --allow-model ${model} for this run.`
-      : `Add it there, or pass --allow-model ${model} for this run.`;
+      : `Add it there, or pass --allow-model ${model} for this run.`
   if ((config.blockedModels || []).map(normalizeModelId).includes(model)) {
-    throw new ModelBlockedError(
-      'Model "' + model + '" is blocked (' + where + '). ' + unlock,
-    );
+    throw new ModelBlockedError('Model "' + model + '" is blocked (' + where + '). ' + unlock)
   }
   const allowed = (config.allowedModels || []).map(normalizeModelId)
   if (!allowed.includes(model)) {
-    throw new ModelBlockedError(
-      'Model "' + model + '" is not in ' + where + '. ' + unlock,
-    )
+    throw new ModelBlockedError('Model "' + model + '" is not in ' + where + '. ' + unlock)
   }
 }
 
