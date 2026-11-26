@@ -33,11 +33,11 @@ export interface ScopedProcedure {
 }
 
 export type ScopedProceduresResult =
-  | { ok: true; procedures: ScopedProcedure[]; diagnostics: ProcedureDiagnostic[] }
-  | ToolFailure
+  { ok: true; procedures: ScopedProcedure[]; diagnostics: ProcedureDiagnostic[] } | ToolFailure
 
 const FLOOR_PREFIX = 'bluepriNNt:'
-const kindOf = (scope: string): ScopedProcedure['source_kind'] => (scope.startsWith(FLOOR_PREFIX) ? 'blueprint' : 'scope')
+const kindOf = (scope: string): ScopedProcedure['source_kind'] =>
+  scope.startsWith(FLOOR_PREFIX) ? 'blueprint' : 'scope'
 
 /** Stable stand-in for a bluepriNNt package folder that lies outside the domain root. */
 const PACKAGE_LABEL = '<bluepriNNt>/'
@@ -58,7 +58,11 @@ const FILL_CODES: ReadonlySet<ProcedureDiagnostic['code']> = new Set([
 ])
 
 /** No absolute machine path leaves the tool: the root becomes domain-relative, a package folder a label. */
-function scrubDiagnostic(d: ProcedureDiagnostic, rootDir: string, packageDir: string | undefined): ProcedureDiagnostic {
+function scrubDiagnostic(
+  d: ProcedureDiagnostic,
+  rootDir: string,
+  packageDir: string | undefined,
+): ProcedureDiagnostic {
   let detail = scrub(d.detail, rootDir)
   if (packageDir) detail = scrub(detail, packageDir, PACKAGE_LABEL)
   if (d.code === 'UNREADABLE_DOCUMENT') {
@@ -70,10 +74,16 @@ function scrubDiagnostic(d: ProcedureDiagnostic, rootDir: string, packageDir: st
   return { ...d, detail }
 }
 
+/**
+ * `floorPackage` names the bluepriNNt package to use as the floor instead of the one the
+ * chain's `parent_spec` names: `procedure_start` uses it once exactly one installed package
+ * declares the id it was asked for.
+ */
 export async function listScopedProcedures(
   rootDir: string,
   path: unknown,
   opts: PackageOptions = {},
+  floorPackage?: string,
 ): Promise<ScopedProceduresResult> {
   if (typeof path !== 'string' || path === '') {
     return { ok: false, code: 'INVALID_ARGUMENT', detail: 'path must be a non-empty string' }
@@ -82,7 +92,7 @@ export async function listScopedProcedures(
   if (!located.ok) return located
   const { chain } = located
 
-  const floor = await locateFloorProcedures(chain, opts)
+  const floor = await locateFloorProcedures(chain, opts, floorPackage)
   if (!floor.ok) return floor
 
   const load = loadChain(chain)
@@ -92,8 +102,8 @@ export async function listScopedProcedures(
   }
   const scoped = loadScopeProcedures(chain, load.loaded)
   const resolution = resolveProcedures({ ...scoped.loaded, floor: floor.floor })
-  const diagnostics = [...floor.diagnostics, ...scoped.diagnostics, ...resolution.diagnostics].map((d) =>
-    scrubDiagnostic(d, rootDir, floor.packageDir),
+  const diagnostics = [...floor.diagnostics, ...scoped.diagnostics, ...resolution.diagnostics].map(
+    (d) => scrubDiagnostic(d, rootDir, floor.packageDir),
   )
 
   const defs = new Map<string, ProcedureDef>()
@@ -112,7 +122,9 @@ export async function listScopedProcedures(
       status: 'selected',
       slots: def.slots,
       ...(def.forkOf ? { fork_of: def.forkOf } : {}),
-      warnings: diagnostics.filter((d) => d.procedure === def.id && (d.scope === def.scope || FILL_CODES.has(d.code))),
+      warnings: diagnostics.filter(
+        (d) => d.procedure === def.id && (d.scope === def.scope || FILL_CODES.has(d.code)),
+      ),
     })
     for (const lost of effective.shadowed) {
       const original = defs.get(`${lost.scope}\0${lost.doc}`)
@@ -125,7 +137,9 @@ export async function listScopedProcedures(
         shadowed_by: lost.by,
         slots: original?.slots ?? [],
         ...(original?.forkOf ? { fork_of: original.forkOf } : {}),
-        warnings: diagnostics.filter((d) => d.procedure === def.id && d.scope === lost.scope && DEFINITION_CODES.has(d.code)),
+        warnings: diagnostics.filter(
+          (d) => d.procedure === def.id && d.scope === lost.scope && DEFINITION_CODES.has(d.code),
+        ),
       })
     }
   }

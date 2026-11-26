@@ -7,6 +7,7 @@ import {
   loadChangeLog,
   parseKnowledge,
   procedureGraph,
+  resolveBlueprintPackage,
   runAttemptsOf,
   runModelOf,
 } from '@cognnitive/nn-core'
@@ -19,8 +20,7 @@ import type {
 } from '@cognnitive/nn-core'
 import { findKnowledgeFile } from './spec.js'
 import { listScopedProcedures } from './scoped-procedures.js'
-import { locateChain } from './resolve-effective.js'
-import { locateFloorProcedures } from './floor-procedures.js'
+import { listInstalledProcedures } from './floor-procedures.js'
 import { readHandoff } from './run-handoff.js'
 import type { RunHandoff } from './run-handoff.js'
 
@@ -58,6 +58,25 @@ export interface ResolvedProcedure {
   graph: ProcedureGraph
 }
 
+/**
+ * The folder of the package a `bluepriNNt:<package>/<doc>` address names. The address records
+ * the package the resolver chose, so the loader reads that package; the floor the domaiNN's own
+ * `parent_spec` names today is only a default, never the authority for a stored address.
+ */
+async function floorPackageDir(root: string, address: string): Promise<string | null> {
+  const rest = address.slice(FLOOR_PREFIX.length)
+  const slash = rest.indexOf('/')
+  if (slash <= 0) return null
+  let pkg: Awaited<ReturnType<typeof resolveBlueprintPackage>>
+  try {
+    pkg = await resolveBlueprintPackage(root, rest.slice(0, slash))
+  } catch {
+    return null
+  }
+  if (!pkg) return null
+  return pkg.isPackageDir ? pkg.packagePath : dirname(pkg.specFilePath)
+}
+
 /** Reads a procedure document by the address a run header records, optionally one container. */
 export async function loadProcedure(
   root: string,
@@ -71,12 +90,10 @@ export async function loadProcedure(
     at > 0 && !address.slice(0, at).includes('://') ? address.slice(at + 1) : undefined
   let abs: string
   if (docAddress.startsWith(FLOOR_PREFIX)) {
-    const located = locateChain(root, '.')
-    if (!located.ok) return fail(located.code, located.detail)
-    const floor = await locateFloorProcedures(located.chain)
-    if (!floor.ok || !floor.packageDir)
+    const packageDir = await floorPackageDir(root, docAddress)
+    if (packageDir === null)
       return fail('PROCEDURE_NOT_FOUND', `No bluepriNNt package holds ${docAddress}.`)
-    abs = join(floor.packageDir, docAddress.slice(docAddress.indexOf('/') + 1))
+    abs = join(packageDir, docAddress.slice(docAddress.indexOf('/') + 1))
   } else {
     abs = resolve(root, docAddress)
     if (relative(root, abs).startsWith('..'))
@@ -94,6 +111,9 @@ export async function loadProcedure(
 /**
  * Resolves a procedure with the existing precedence (`list_blueprint_procedures` with a path):
  * an id is the selected definition visible from `scope`; a `.md` path is that domain document.
+ * An id no scope declares is looked up in the bluepriNNt packages installed in the domaiNN, and
+ * only exactly one declaration resolves it: several are refused naming every candidate, because
+ * the scan order is not a choice the caller made.
  */
 export async function resolveProcedure(
   root: string,
@@ -107,13 +127,35 @@ export async function resolveProcedure(
   const target = container === undefined ? ref : ref.slice(0, at)
   const byPath = target.endsWith('.md')
   const doc = byPath ? posix.normalize(target.replace(/\\/g, '/')) : undefined
-  const listing = await listScopedProcedures(root, doc ? dirname(dirname(doc)) : scope)
+  // A document is read in its own chain, so the floor is the bluepriNNt its own `parent_spec`
+  // names; an id is read from the scope the caller named.
+  const listing = await listScopedProcedures(root, doc ?? scope)
   if (!listing.ok) return fail(listing.code, listing.detail)
-  const entry = listing.procedures.find((p) =>
+  let entry = listing.procedures.find((p) =>
     doc ? p.doc === doc && p.source_kind === 'scope' : p.id === target && p.status === 'selected',
   )
-  if (!entry)
+  // The last step of the precedence: an id that only bluepriNNt packages ship is startable
+  // when exactly one installed package declares it.
+  let declaredBy: string[] = []
+  if (!entry && !byPath) {
+    const installed = await listInstalledProcedures(root)
+    declaredBy = installed
+      .filter((p) => p.procedures.some((d) => d.id === target))
+      .map((p) => p.name)
+    if (declaredBy.length === 1) {
+      const scoped = await listScopedProcedures(root, scope, {}, declaredBy[0])
+      if (!scoped.ok) return fail(scoped.code, scoped.detail)
+      entry = scoped.procedures.find((p) => p.id === target && p.status === 'selected')
+    }
+  }
+  if (!entry) {
+    if (declaredBy.length > 1)
+      return fail(
+        'PROCEDURE_NOT_FOUND',
+        `Procedure "${target}" is declared by ${declaredBy.length} installed bluepriNNts (${declaredBy.join(', ')}), and neither a scope nor the document's parent_spec chooses one.`,
+      )
     return fail('PROCEDURE_NOT_FOUND', `No procedure "${target}" is visible from "${scope}".`)
+  }
   const document = entry.source_kind === 'blueprint' ? `${entry.source}/${entry.doc}` : entry.doc
   const address = container === undefined ? document : `${document}@${container}`
   const loaded = await loadProcedure(root, address)
