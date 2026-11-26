@@ -146,6 +146,21 @@ function testMirrorParity() {
   console.log('PASS: assertMirrored fails loudly when the copy is not the source');
 }
 
+function testMirrorParitySingleFile() {
+  const repo = mkTree({ 'scripts/export-console.mjs': 'export const x = 1\n' });
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), 'tree-work-'));
+
+  assert.strictEqual(copyDistributionPath(repo, 'scripts/export-console.mjs', work), true);
+  assert.doesNotThrow(() =>
+    assertMirrored(
+      path.join(repo, 'scripts/export-console.mjs'),
+      path.join(work, 'scripts/export-console.mjs'),
+      'scripts/export-console.mjs',
+    ),
+  );
+  console.log('PASS: assertMirrored handles a single-file distribution path');
+}
+
 function runAll() {
   try {
     testPreservesNojekyll();
@@ -155,6 +170,7 @@ function runAll() {
     testAssertNoReleaseOwnedInArtifact();
     testCopyDistributionPath();
     testMirrorParity();
+    testMirrorParitySingleFile();
     console.log('\nAll publish-web-tree tests passed! ✨');
   } catch (err) {
     console.error(`\npublish-web-tree tests FAILED: ${err.message}`);

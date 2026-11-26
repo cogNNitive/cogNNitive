@@ -138,6 +138,21 @@ function replaceSiteTree(srcDir, dstDir, options = {}) {
  * @param {string} label repo-relative path, for the message
  */
 function assertMirrored(from, to, label) {
+  // A key may distribute a single file (`scripts/export-console.mjs`), not only a directory.
+  if (fs.statSync(from).isFile()) {
+    if (!fs.existsSync(to)) {
+      throw new Error(`mirror parity failed for ${label}: the file was not copied`);
+    }
+    const sourceSize = fs.statSync(from).size;
+    const destSize = fs.statSync(to).size;
+    if (sourceSize !== destSize) {
+      throw new Error(
+        `mirror parity failed for ${label}: ${sourceSize} vs ${destSize} bytes`,
+      );
+    }
+    return;
+  }
+
   const listOf = (dir) =>
     collectFiles(dir).filter((rel) => !rel.split('/').includes('node_modules'));
 
