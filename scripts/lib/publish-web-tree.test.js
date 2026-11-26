@@ -13,6 +13,7 @@ const path = require('node:path');
 const {
   replaceSiteTree,
   copyDistributionPath,
+  assertMirrored,
   assertNoReleaseOwnedInArtifact,
   isReleaseOwnedPath,
 } = require('./publish-web-tree.js');
@@ -125,6 +126,26 @@ function testCopyDistributionPath() {
   console.log('PASS: copyDistributionPath copies files and handles missing source cleanly');
 }
 
+function testMirrorParity() {
+  const src = mkTree({ 'a.md': 'aaa', 'b/c.md': 'cc' });
+  const dst = mkTree({ 'a.md': 'aaa', 'b/c.md': 'cc' });
+
+  assert.doesNotThrow(() => assertMirrored(src, dst, 'iNNfo/specs'));
+
+  // A file the copy never carried: the failure this guard exists for.
+  fs.rmSync(path.join(dst, 'b/c.md'));
+  assert.throws(
+    () => assertMirrored(src, dst, 'iNNfo/specs'),
+    /mirror parity failed for iNNfo\/specs/,
+  );
+
+  // A file that arrived truncated.
+  fs.writeFileSync(path.join(dst, 'b/c.md'), 'c', 'utf8');
+  fs.writeFileSync(path.join(dst, 'a.md'), 'aa', 'utf8');
+  assert.throws(() => assertMirrored(src, dst, 'iNNfo/specs'), /different size/);
+  console.log('PASS: assertMirrored fails loudly when the copy is not the source');
+}
+
 function runAll() {
   try {
     testPreservesNojekyll();
@@ -133,6 +154,7 @@ function runAll() {
     testPreservesReleaseOwnedPaths();
     testAssertNoReleaseOwnedInArtifact();
     testCopyDistributionPath();
+    testMirrorParity();
     console.log('\nAll publish-web-tree tests passed! ✨');
   } catch (err) {
     console.error(`\npublish-web-tree tests FAILED: ${err.message}`);
