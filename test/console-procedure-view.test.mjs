@@ -250,8 +250,9 @@ describe('procedure view (bluepriNNt)', () => {
     assert.equal(handle.ok, true)
     assert.equal(handle.steps, 4, 'the container-less graph has four steps')
     assert.deepEqual(texts('.dag-node .node-title'), ['Draft', 'Review', 'Publish', 'Rework'])
-    // The decision forks: one edge per target, the two targets side by side in one layer.
-    assert.equal(container.querySelectorAll('.dag-edge').length, 3)
+    // A list has no edges: the fork shows as the two targets sharing a layer, and as the one
+    // decision node's own class. The step card below spells both branches out in words.
+    assert.equal(container.querySelectorAll('.dag-node.decision').length, 1)
     const [publish, rework] = ['publish', 'rework'].map((s) =>
       container.querySelector(`.dag-node[data-step="${s}"]`),
     )

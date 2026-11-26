@@ -2008,127 +2008,76 @@
     }
 
     /** The hand-drawn svg: what draws the flow when the page has no ECharts. */
+    /**
+     * The graph without a chart runtime: the same walk as a list of buttons. It used to be a
+     * hand-drawn svg, which meant a second layout engine, a second truncation rule and a second
+     * place for the node contract to drift. The list carries the same contract the svg did --
+     * `.dag-node`, data-step, data-status, data-layer, current/selected, role=button,
+     * Enter/Space -- so the view behaves the same either way, and the step name is never cut.
+     */
     function buildNativeGraph(lay, current) {
       var graph = active.graph
       var state = viewState()
-      var svgNS = 'http://www.w3.org/2000/svg'
-      var nodeW = 200
-      var nodeH = 52
-      var gapX = 24
-      var gapY = 84
-      var widest = lay.rows.reduce(function (n, r) {
-        return Math.max(n, r.length)
-      }, 1)
-      var width = widest * (nodeW + gapX) + gapX
-      var svg = document.createElementNS(svgNS, 'svg')
-      svg.setAttribute('class', 'dag-canvas')
-      svg.setAttribute('data-proc-graph', '')
-      svg.setAttribute('data-pulse', pulseOf(current))
-      svg.setAttribute('role', 'group')
-      svg.setAttribute('aria-label', graphSummary(state, current))
-      svg.setAttribute('viewBox', '0 0 ' + width + ' ' + (lay.rows.length * gapY + 20))
-      var pos = {}
-      lay.rows.forEach(function (row, r) {
-        var offset = (width - row.length * (nodeW + gapX) + gapX) / 2
-        row.forEach(function (slug, i) {
-          pos[slug] = { x: offset + i * (nodeW + gapX), y: 16 + r * gapY, layer: r }
-        })
-      })
-      Object.keys(graph.steps).forEach(function (slug) {
-        graph.steps[slug].next.forEach(function (t) {
-          if (!pos[t]) return
-          var edge = document.createElementNS(svgNS, 'path')
-          var x1 = pos[slug].x + nodeW / 2
-          var y1 = pos[slug].y + nodeH
-          var x2 = pos[t].x + nodeW / 2
-          var y2 = pos[t].y
-          var f = edgeFacts(state, current, slug, t)
-
-          var edgeClasses = ['dag-edge', f.status]
-          if (f.taken) edgeClasses.push('taken')
-          if (f.off) edgeClasses.push('off_path')
-          if (f.projected) edgeClasses.push('projected')
-          edge.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2)
-          edge.setAttribute('class', edgeClasses.join(' '))
-          edge.setAttribute('data-from', slug)
-          edge.setAttribute('data-to', t)
-          svg.appendChild(edge)
-          if (f.token) {
-            var label = document.createElementNS(svgNS, 'text')
-            var labelClasses = ['dag-edge-label', f.status]
-            if (f.taken) labelClasses.push('taken')
-            if (f.off) labelClasses.push('off_path')
-            if (f.projected) labelClasses.push('projected')
-            label.setAttribute('class', labelClasses.join(' '))
-            label.setAttribute('x', x2)
-            label.setAttribute('y', y2 - 6)
-            label.setAttribute('text-anchor', 'middle')
-            label.textContent = f.token.length > 24 ? f.token.substring(0, 22) + '…' : f.token
-            svg.appendChild(label)
-          }
-        })
-      })
-      Object.keys(graph.steps).forEach(function (slug) {
-        var step = graph.steps[slug]
-        var p = pos[slug]
-        var status = stepStatus(slug)
-        var g = document.createElementNS(svgNS, 'g')
-        g.setAttribute(
-          'class',
-          'dag-node ' +
-            status +
-            (step.stepType === 'decision' ? ' decision' : '') +
-            (slug === current ? ' current' : '') +
-            (isProjected(slug) ? ' projected' : '') +
-            (slug === selectedStep ? ' selected' : ''),
-        )
-        g.setAttribute('data-step', slug)
-        g.setAttribute('data-status', status)
-        g.setAttribute('data-layer', String(p.layer))
-        g.setAttribute('tabindex', '0')
-        g.setAttribute('role', 'button')
-        g.setAttribute('aria-label', announceStep(slug))
-        g.addEventListener('click', function () {
-          selectStep(slug)
-        })
-        g.addEventListener('keydown', function (ev) {
-          if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
-            if (ev.preventDefault) ev.preventDefault()
+      var box = document.createElement('div')
+      box.setAttribute('class', 'dag-canvas dag-list')
+      box.setAttribute('data-proc-graph', '')
+      box.setAttribute('data-pulse', pulseOf(current))
+      box.setAttribute('role', 'group')
+      box.setAttribute('aria-label', graphSummary(state, current))
+      lay.rows.forEach(function (row, layer) {
+        var rowEl = document.createElement('div')
+        rowEl.setAttribute('class', 'dag-layer')
+        row.forEach(function (slug) {
+          var step = graph.steps[slug]
+          var status = stepStatus(slug)
+          var node = document.createElement('button')
+          node.setAttribute('type', 'button')
+          node.setAttribute(
+            'class',
+            'dag-node ' +
+              status +
+              (step.stepType === 'decision' ? ' decision' : '') +
+              (slug === current ? ' current' : '') +
+              (isProjected(slug) ? ' projected' : '') +
+              (slug === selectedStep ? ' selected' : ''),
+          )
+          node.setAttribute('data-step', slug)
+          node.setAttribute('data-status', status)
+          node.setAttribute('data-layer', String(layer))
+          node.setAttribute('aria-label', announceStep(slug))
+          node.addEventListener('click', function () {
             selectStep(slug)
-          }
+          })
+          // jsdom does not turn Enter on a button into a click, so the key is handled here
+          // exactly as it was for the svg.
+          node.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+              if (ev.preventDefault) ev.preventDefault()
+              selectStep(slug)
+            }
+          })
+          var dot = document.createElement('span')
+          dot.setAttribute('class', 'node-dot')
+          node.appendChild(dot)
+          var text = document.createElement('span')
+          text.setAttribute('class', 'node-text')
+          var sub = document.createElement('span')
+          sub.setAttribute('class', 'node-sub')
+          sub.textContent =
+            (step.stepType || 'task').toUpperCase() +
+            (step.executor ? ' · ' + step.executor : '') +
+            (status !== 'definition' ? ' · ' + status : '')
+          var title = document.createElement('span')
+          title.setAttribute('class', 'node-title')
+          title.textContent = step.name || slug
+          text.appendChild(sub)
+          text.appendChild(title)
+          node.appendChild(text)
+          rowEl.appendChild(node)
         })
-        var rect = document.createElementNS(svgNS, 'rect')
-        rect.setAttribute('x', p.x)
-        rect.setAttribute('y', p.y)
-        rect.setAttribute('width', nodeW)
-        rect.setAttribute('height', nodeH)
-        rect.setAttribute('rx', '8')
-        g.appendChild(rect)
-        var dot = document.createElementNS(svgNS, 'circle')
-        dot.setAttribute('cx', p.x + 16)
-        dot.setAttribute('cy', p.y + nodeH / 2)
-        dot.setAttribute('r', '6')
-        dot.setAttribute('class', 'node-dot')
-        g.appendChild(dot)
-        var sub = document.createElementNS(svgNS, 'text')
-        sub.setAttribute('x', p.x + 30)
-        sub.setAttribute('y', p.y + 20)
-        sub.setAttribute('class', 'node-sub')
-        sub.textContent =
-          (step.stepType || 'task').toUpperCase() +
-          (step.executor ? ' · ' + step.executor : '') +
-          (status !== 'definition' ? ' · ' + status : '')
-        g.appendChild(sub)
-        var title = document.createElementNS(svgNS, 'text')
-        title.setAttribute('x', p.x + 30)
-        title.setAttribute('y', p.y + 38)
-        title.setAttribute('class', 'node-title')
-        var name = step.name || slug
-        title.textContent = name.length > 24 ? name.substring(0, 22) + '…' : name
-        g.appendChild(title)
-        svg.appendChild(g)
+        box.appendChild(rowEl)
       })
-      return svg
+      return box
     }
 
     function renderGraph(hostEl) {
