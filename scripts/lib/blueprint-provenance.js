@@ -181,6 +181,7 @@ function digestTree(dir) {
       const abs = path.join(current, entry.name)
       const rel = path.relative(root, abs).split(path.sep).join('/')
       if (rel === LOCK_FILE) continue
+      if (entry.name.includes('.tmp-') || entry.name.includes('.staging-')) continue
       if (entry.isDirectory()) {
         walk(abs)
       } else if (entry.isSymbolicLink()) {
@@ -194,6 +195,51 @@ function digestTree(dir) {
 
   walk(root)
   return out
+}
+
+/**
+ * Compares files in installedDir with the recorded digests from the lock.
+ * Returns whether any files were modified, missing, or added.
+ *
+ * @param {string} installedDir
+ * @param {Record<string, string>|null|undefined} recordedDigests
+ * @returns {{ modified: boolean, differing: string[] }}
+ */
+function diffBlueprintTree(installedDir, recordedDigests) {
+  if (
+    !installedDir ||
+    !fs.existsSync(installedDir) ||
+    !recordedDigests ||
+    typeof recordedDigests !== 'object'
+  ) {
+    return { modified: false, differing: [] }
+  }
+  const recordedKeys = Object.keys(recordedDigests)
+  if (recordedKeys.length === 0) return { modified: false, differing: [] }
+
+  const current = digestTree(installedDir)
+  /** @type {string[]} */
+  const differing = []
+
+  for (const rel of recordedKeys) {
+    if (!(rel in current)) {
+      differing.push(`${rel} (missing)`)
+    } else if (current[rel] !== recordedDigests[rel]) {
+      differing.push(`${rel} (modified)`)
+    }
+  }
+
+  for (const rel of Object.keys(current)) {
+    if (!(rel in recordedDigests)) {
+      differing.push(`${rel} (added)`)
+    }
+  }
+
+  differing.sort()
+  return {
+    modified: differing.length > 0,
+    differing,
+  }
 }
 
 /**
@@ -426,7 +472,7 @@ async function resolvePublished(target, deps) {
  *
  * @param {{ blueprintsDir: string, installedDir: string, name: string }} target
  * @param {{ fetchString?: (url: string) => Promise<string> }} [deps]
- * @returns {Promise<{ status: string, recorded: boolean, installed: string|null, published: string|null, commit: string|null, tag: string|null, detail: string|null }>}
+ * @returns {Promise<{ status: string, recorded: boolean, installed: string|null, published: string|null, commit: string|null, tag: string|null, detail: string|null, differing?: string[] }>}
  */
 async function blueprintVerdict(target, deps = {}) {
   const resolvedDeps = { fetchString: deps.fetchString || fetchString }
@@ -458,6 +504,37 @@ async function blueprintVerdict(target, deps = {}) {
   const entry = provenance.entry
   const installed = typeof entry.version === 'string' ? entry.version : null
   const recordedTag = typeof entry.tag === 'string' ? entry.tag : null
+
+  // P3: Digest verification against local modification (D9)
+  const localDiff = diffBlueprintTree(target.installedDir, entry.digests)
+  if (localDiff.modified) {
+    let publishedVersion = null
+    let publishedCommit = entry.commit || null
+    let publishedTag = recordedTag
+    if (entry.distribution_url) {
+      try {
+        const resolved = await resolvePublished(
+          { distributionUrl: entry.distribution_url, name: target.name },
+          resolvedDeps,
+        )
+        if (resolved.ok && resolved.entry) {
+          publishedVersion = resolved.entry.version
+          publishedCommit = resolved.entry.commit
+          publishedTag = resolved.entry.tag || recordedTag
+        }
+      } catch (_) {}
+    }
+    return {
+      status: 'modified-locally',
+      recorded: true,
+      installed,
+      published: publishedVersion,
+      commit: publishedCommit,
+      tag: publishedTag,
+      detail: `the installed unit has been modified locally: ${localDiff.differing.join(', ')}; update is refused to protect local edits`,
+      differing: localDiff.differing,
+    }
+  }
 
   if (!entry.distribution_url) {
     return {
@@ -559,6 +636,7 @@ module.exports = {
   readProvenance,
   readBlueprintManifest,
   digestTree,
+  diffBlueprintTree,
   parseVersion,
   compareVersions,
   distributionUrlParts,

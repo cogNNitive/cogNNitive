@@ -21,6 +21,7 @@ const {
   readProvenance,
   readBlueprintManifest,
   digestTree,
+  diffBlueprintTree,
   parseVersion,
   compareVersions,
   distributionUrlParts,
@@ -413,4 +414,123 @@ test('resolvePublished picks the highest verifiable version, not the highest lis
   assert.strictEqual(resolved.ok, true)
   assert.strictEqual(resolved.entry.version, 'V_0-2-0')
   assert.strictEqual(resolved.entry.commit, COMMIT)
+})
+
+test('diffBlueprintTree detects modified, missing, and added files in the managed layer (P3, D9)', () => {
+  const t = tmp()
+  try {
+    writeDoc(t.installedDir, 'spec_NN.md', '# initial spec')
+    writeDoc(t.installedDir, 'blueprint.json', manifestBody({ version: 'V_0-2-0' }))
+    const originalDigests = digestTree(t.installedDir)
+
+    // Clean check
+    const clean = diffBlueprintTree(t.installedDir, originalDigests)
+    assert.strictEqual(clean.modified, false)
+    assert.deepStrictEqual(clean.differing, [])
+
+    // Modified file
+    writeDoc(t.installedDir, 'spec_NN.md', '# hand-edited spec')
+    const modified = diffBlueprintTree(t.installedDir, originalDigests)
+    assert.strictEqual(modified.modified, true)
+    assert.deepStrictEqual(modified.differing, ['spec_NN.md (modified)'])
+
+    // Added file
+    writeDoc(t.installedDir, 'notes.md', 'local note')
+    const added = diffBlueprintTree(t.installedDir, originalDigests)
+    assert.strictEqual(added.modified, true)
+    assert.deepStrictEqual(added.differing, ['notes.md (added)', 'spec_NN.md (modified)'])
+
+    // Missing file
+    fs.unlinkSync(path.join(t.installedDir, 'blueprint.json'))
+    const missing = diffBlueprintTree(t.installedDir, originalDigests)
+    assert.strictEqual(missing.modified, true)
+    assert.deepStrictEqual(missing.differing, [
+      'blueprint.json (missing)',
+      'notes.md (added)',
+      'spec_NN.md (modified)',
+    ])
+  } finally {
+    t.cleanup()
+  }
+})
+
+test('blueprintVerdict reports modified-locally when managed files differ from recorded digests (P3, D9)', async () => {
+  const t = tmp()
+  try {
+    writeDoc(t.installedDir, 'spec_NN.md', '# initial spec')
+    writeDoc(t.installedDir, 'blueprint.json', manifestBody({ version: 'V_0-2-0' }))
+    const digests = digestTree(t.installedDir)
+
+    recordProvenance(t.blueprintsDir, 'demo', {
+      version: 'V_0-2-0',
+      commit: COMMIT,
+      distribution_url: URL_BASE,
+      digests,
+    })
+
+    // Modify a file in the managed layer
+    writeDoc(t.installedDir, 'spec_NN.md', '# modified locally')
+
+    const verdict = await blueprintVerdict(
+      { blueprintsDir: t.blueprintsDir, installedDir: t.installedDir, name: 'demo' },
+      {
+        fetchString: serveMap({
+          [`${URL_BASE}/versions.json`]: versionsBody([
+            { version: 'V_0-3-0', tag: 'blueprints-v0.3.0', commit: NEWER },
+          ]),
+          [`${URL_BASE.replace('/main/', `/${NEWER}/`)}/blueprint.json`]: manifestBody({
+            version: 'V_0-3-0',
+          }),
+        }),
+      },
+    )
+
+    assert.strictEqual(verdict.status, 'modified-locally')
+    assert.strictEqual(verdict.installed, 'V_0-2-0')
+    assert.strictEqual(verdict.published, 'V_0-3-0')
+    assert.ok(verdict.detail.includes('spec_NN.md (modified)'), verdict.detail)
+    assert.deepStrictEqual(verdict.differing, ['spec_NN.md (modified)'])
+  } finally {
+    t.cleanup()
+  }
+})
+
+test('blueprintVerdict reports current when user edits only unmanaged files outside the blueprint (P3, D9)', async () => {
+  const t = tmp()
+  try {
+    writeDoc(t.installedDir, 'spec_NN.md', '# initial spec')
+    writeDoc(t.installedDir, 'blueprint.json', manifestBody({ version: 'V_0-2-0' }))
+    const digests = digestTree(t.installedDir)
+
+    recordProvenance(t.blueprintsDir, 'demo', {
+      version: 'V_0-2-0',
+      commit: COMMIT,
+      distribution_url: URL_BASE,
+      digests,
+    })
+
+    // User edits files OUTSIDE the blueprint managed directory
+    writeDoc(t.root, 'domaiNN_NN.md', '# user domain content')
+    writeDoc(path.join(t.root, 'artifacts'), 'custom.md', '# user artifact')
+
+    const verdict = await blueprintVerdict(
+      { blueprintsDir: t.blueprintsDir, installedDir: t.installedDir, name: 'demo' },
+      {
+        fetchString: serveMap({
+          [`${URL_BASE}/versions.json`]: versionsBody([
+            { version: 'V_0-2-0', tag: 'blueprints-v0.2.0', commit: COMMIT },
+          ]),
+          [`${URL_BASE.replace('/main/', `/${COMMIT}/`)}/blueprint.json`]: manifestBody({
+            version: 'V_0-2-0',
+          }),
+        }),
+      },
+    )
+
+    assert.strictEqual(verdict.status, 'current')
+    assert.strictEqual(verdict.installed, 'V_0-2-0')
+    assert.strictEqual(verdict.published, 'V_0-2-0')
+  } finally {
+    t.cleanup()
+  }
 })
