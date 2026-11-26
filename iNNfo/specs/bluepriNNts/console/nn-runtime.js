@@ -7055,6 +7055,14 @@
     return 'Published by cogNNitive'
   }
 
+  // The iNNfo spec files spell a version V_0-6-1; every release number is 0.6.1.
+  // Shown one way in the tab, the stored value is untouched.
+  var VERSION_COLUMNS = { Version: 1, Pinned: 1, Latest: 1 }
+  function versionText(raw) {
+    var m = /^V_(\d+)-(\d+)-(\d+)$/.exec(String(raw))
+    return m ? m[1] + '.' + m[2] + '.' + m[3] : String(raw)
+  }
+
   function versionsTable(cls, headers, rows) {
     var table = el('table', 'nn-versions-table ' + cls)
     // Software versions, not kNNowledge: no cell is an addressable unit.
@@ -7069,13 +7077,15 @@
     var tbody = el('tbody')
     rows.forEach(function (cells) {
       var tr = el('tr')
-      cells.forEach(function (cell) {
+      cells.forEach(function (cell, i) {
         if (cell && cell.nodeType) {
           var td = el('td')
           td.appendChild(cell)
           tr.appendChild(td)
         } else {
-          tr.appendChild(el('td', null, cell == null || cell === '' ? '—' : String(cell)))
+          var text = cell == null || cell === '' ? '—' : String(cell)
+          if (VERSION_COLUMNS[headers[i]]) text = versionText(text)
+          tr.appendChild(el('td', null, text))
         }
       })
       tbody.appendChild(tr)

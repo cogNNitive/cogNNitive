@@ -7242,21 +7242,25 @@ button.btn-primary:hover:not(:disabled) {
   color: var(--nn-accent, #171717) !important;
 }
 #nn-rail details.collapse > summary.collapse-title {
-  padding: 8px 30px 8px 10px !important;
+  padding: 8px 10px 8px 30px !important;
   min-height: 2.25rem !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
   border-radius: 6px;
 }
+/* The toggle sits before the name, the way a tree draws it: a chevron pointing
+   right when closed and down when open. */
 #nn-rail .collapse-arrow > .collapse-title:after {
   top: 50% !important;
-  right: 10px !important;
-  transform: translateY(-50%) rotate(45deg) !important;
+  left: 12px !important;
+  right: auto !important;
+  inset-inline-end: auto !important;
+  transform: translateY(-50%) rotate(-45deg) !important;
   box-shadow: 1.5px 1.5px 0 0 var(--nn-muted, #666666) !important;
 }
 #nn-rail details.collapse[open] > .collapse-title:after {
-  transform: translateY(-50%) rotate(225deg) !important;
+  transform: translateY(-65%) rotate(45deg) !important;
 }
 
 /* P1.5: Document view heading brand color */
@@ -7927,7 +7931,11 @@ button.btn-primary:hover:not(:disabled) {
     background 0.12s ease,
     border-color 0.12s ease;
 }
-#nn-rail .menu li > a[data-concept] .nn-ku {
+/* The concept badge, one look everywhere: the tinted pill the rail always had.
+   The card header and the "What to look at" list used a black outlined box
+   for the same thing. The rail sets --rail-concept-color; elsewhere the badge
+   carries data-concept-slot, which sets --concept-slot-fg. */
+.nn-ku[data-ku-kind='section'][data-ku-nature='container'] {
   color: var(--rail-concept-color, var(--concept-slot-fg, #0a0a0a));
   font-weight: 700;
   font-size: 0.78rem;
@@ -8407,7 +8415,7 @@ button.cite-icon,
   margin-bottom: 14px !important;
 }
 #nn-rail details.collapse > summary.collapse-title {
-  padding: 8px 12px !important;
+  padding: 8px 12px 8px 30px !important;
   border-radius: 8px !important;
   margin-bottom: 6px !important;
 }
@@ -10568,7 +10576,6 @@ select {
 
 .nn-summary-attention {
   border: 1px solid var(--border);
-  border-left: 4px solid #f59e0b;
   border-radius: var(--radius);
   background: var(--surface);
   padding: 12px 16px;
@@ -10963,7 +10970,7 @@ select {
 }
 
 .nn-pipeline-node:hover .nn-ku {
-  background: color-mix(in srgb, var(--primary) 8%, var(--surface-2));
+  background: var(--surface-2);
 }
 
 .nn-pipeline-node:focus-visible {
@@ -10971,15 +10978,17 @@ select {
   outline-offset: 2px;
 }
 
+/* Selected = a crisp 1px outline on a white badge. The old 2px translucent ring
+   over a tinted fill read as a grey smudge, because --primary is near black. */
 .nn-pipeline-node.nn-pipeline-highlight .nn-ku,
 .nn-pipeline-node.nn-pipeline-selected .nn-ku {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 40%, transparent);
-  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  box-shadow: 0 0 0 1px var(--primary);
+  background: var(--surface);
 }
 
 .nn-pipeline-node.nn-pipeline-connected .nn-ku {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 30%, transparent);
-  background: color-mix(in srgb, var(--primary) 6%, var(--surface-2));
+  background: var(--surface-2);
 }
 
 .nn-pipeline-node.dimmed {
