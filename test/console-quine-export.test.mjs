@@ -750,6 +750,78 @@ describe('Console Self-Saving Quine & AI Prompt Export Contract', () => {
       )
       assert.equal(composed.changesetText.includes('V_1-0-0'), false)
     })
+
+    // The modal produces a file to apply, so it refuses what `apply_change` would reject
+    // atomically; the prompt beside it warns and still shows the draft, because its reader can
+    // correct the draft before copying.
+    it('refuses the modal export for an element the payload does not hold', () => {
+      const bogus = {
+        id: 'c-13',
+        element_id: 'Transcripciones_transcripcion@clase-99',
+        kind: 'correction',
+        field: 'note',
+        proposed: 'x',
+      }
+      const state = { ...bootDomain(domainModel), store: { drafts: () => [bogus] } }
+      const composed = nnConsole.composeExport(state, 'Egon Spengler')
+      assert.equal(composed.ok, false, 'no file that cannot be applied')
+      assert.match(
+        composed.errors[0],
+        /^change "c-13" cannot be applied: element `clase-99` is not one of the elements this console holds/,
+      )
+    })
+
+    it('still exports the modal changeset when only the prompt has a problem to report', () => {
+      // Only the absence the payload proves refuses. A draft that resolves no element at all is
+      // reported in `## Blocking Problems`; the modal keeps producing its file, as it always did.
+      const orphan = { id: 'c-14', kind: 'correction', field: 'note', proposed: 'x' }
+      const state = { ...bootDomain(domainModel), store: { drafts: () => [orphan] } }
+      const composed = nnConsole.composeExport(state, 'Egon Spengler')
+      assert.ok(composed.ok, String(composed.errors))
+      assert.ok(
+        nnConsole.composeAgentPrompt(state).includes('no element slug resolves'),
+        'the prompt still says the draft cannot be applied',
+      )
+    })
+
+    it('never treats a matrix-cell draft as element-addressed', () => {
+      const cell = {
+        id: 'c-16',
+        matrix: 'Coverage',
+        row: 'r1',
+        col: 'c1',
+        element: 'Coverage',
+        knowledge_id: 'Transcripciones_transcripcion',
+        kind: 'correction',
+        original: 'old',
+        proposed: 'new',
+      }
+      const state = { ...bootDomain(domainModel), store: { drafts: () => [cell] } }
+      const prompt = nnConsole.composeAgentPrompt(state)
+      assert.equal(
+        prompt.includes('## Blocking Problems'),
+        false,
+        'a matrix coordinate names its element: the matrix definition',
+      )
+      assert.deepEqual(docTargetsOf(prompt), ['Transcripciones_transcripcion@Coverage&r1&c1'])
+      const composed = nnConsole.composeExport(state, 'Egon Spengler')
+      assert.ok(composed.ok, String(composed.errors))
+    })
+
+    it('still exports the modal changeset for a `new` draft', () => {
+      const created = {
+        id: 'c-15',
+        knowledge_id: 'Transcripciones_transcripcion',
+        concept: 'Transcripción',
+        element: 'Clase 02',
+        kind: 'new',
+        proposed: { title: 'Clase 02' },
+      }
+      const state = { ...bootDomain(domainModel), store: { drafts: () => [created] } }
+      const composed = nnConsole.composeExport(state, 'Egon Spengler')
+      assert.ok(composed.ok, String(composed.errors))
+      assert.ok(composed.changesetText.includes('op:: add_element'))
+    })
   })
 
   describe('3. Rehydration Guarantee (End-to-End Quine Roundtrip)', () => {
