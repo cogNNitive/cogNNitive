@@ -57,11 +57,11 @@ adelante con los cambios, seguimos avanzando haz un plan e implementa los cambio
 the stale tree:
 
 - `doc-step` rows already used a real `<button class="proc-step-toggle">` with
-  `aria-expanded` — the "mouse-only rows" finding was about the *old* table, now deleted.
-- The mojibake (`'A�…'`, `'�?"'`) lived only inside the removed Steps table and its
-  `.dotmark` rules; nothing left to fix.
+  `aria-expanded` -- the "mouse-only rows" finding was about the *old* table, now deleted.
+- The removed table's symbols carried replacement characters instead of an ellipsis or a
+  dash, so dropping it only removed broken text; nothing left to fix.
 
-Also found while editing: `.proc-tab-btn` has no rule of its own — the tabs are styled by the
+Also found while editing: `.proc-tab-btn` has no rule of its own -- the tabs are styled by the
 `.proc-tabbar button` descendant selectors — and there was no `:focus-visible` for them at all,
 which a roving-tabindex tablist cannot go without.
 
