@@ -626,7 +626,7 @@ describe('procedure runner UX (standalone console)', () => {
         b.getAttribute('data-run-id'),
       )
     click(container.querySelector('[data-proc-filter="closed"]'))
-    assert.deepEqual(shown(), ['r-a', 'r-z'], 'the open run stays listed while it is selected')
+    assert.deepEqual(shown(), ['r-z'], 'a filtered-out run is not kept just because it is selected')
     click(container.querySelector('[data-proc-filter="mine"]'))
     assert.deepEqual(shown(), ['r-a'])
     click(container.querySelector('[data-proc-filter="open"]'))
@@ -1607,6 +1607,23 @@ describe('procedure flow graph through the shared chart API', () => {
     assert.ok(order.indexOf('review') < order.indexOf('normalize'), order.join(' > '))
     assert.ok(order.indexOf('review') < order.indexOf('discard'), order.join(' > '))
     assert.equal(order[0], 'transcribe')
+  })
+
+  it('filters the run list, and drops a selection the filter hides', () => {
+    stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
+    assert.ok(container.querySelector('.proc-run[data-run-id="r1"]'), 'the run is listed')
+    click(container.querySelector('[data-proc-filter="closed"]'))
+    assert.equal(
+      container.querySelector('.proc-run[data-run-id="r1"]'),
+      null,
+      'a waiting run is not closed',
+    )
+    assert.match(container.querySelector('.proc-run-list').textContent, /No run matches/)
+    assert.match(
+      container.querySelector('.proc-runbar').textContent,
+      /definition/,
+      'the panel does not keep the run the list just hid',
+    )
   })
 
   it('writes the flow hint in English', () => {
