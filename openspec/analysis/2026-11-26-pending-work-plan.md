@@ -36,6 +36,31 @@ Suggested batching, in order: **A** = 1–4 (one PR, "make the engine tests tell
 truth"), **B** = 13 (mechanical, alone), **C** = 5–8 (console and mcp polish), **D** = 9–11
 (TestLab verification), **E** = 14 (investigation), **F** = 12 (data, not code).
 
+## Board — final state, 2026-11-26
+
+Nine of the fourteen are closed; five remain, and none of them is blocked by a decision.
+Nothing here needs rediscovering: each row says what is left and what it waits on.
+
+| # | State | Evidence / what is left |
+|---|---|---|
+| 1 | ✅ closed by #884 | `overlay-model-pricing.test.mjs` prices an overlay-only model through `estimateScriptCost`; the fix landed before this plan was written and the plan did not know it |
+| 2 | ✅ #892 | `SKILL.md` names the default and points at the catalog for the allow list |
+| 3 | ✅ #892 | exemption narrowed to the `DEFAULT_GUARD` literal; `asset-cost-estimator.mjs` lost it entirely; a test proves the list is real |
+| 4 | ✅ #892 | `loadGuard` warns once when the shipped list is in force; the eight ids stay, by decision (option B) |
+| 5 | ✅ #893 | root echoed; `NO_DOMAIN_ROOT` on the ambiguous empty case |
+| 6 | ✅ #894 | one composer behind both entry points |
+| 7 | ⚠️ code ✅ #894, **test missing** | the `<pre>` renders `composeAgentPrompt(state)`. The acceptance wants a jsdom test that mounts the **export** modal and compares both strings; `openExportModal` is not exposed, so it needs a harness that reaches it through the public API |
+| 8 | ✅ closed as not-a-defect | `intake_status` appears nowhere outside this document |
+| 9 | ⚠️ **screenshot missing** | the smoke harness now runs on Windows (`sys.stdout` reconfigured). Still needed: a dirty draft, which means building a valid draft outside the UI or clicking the field; `state.store.addDraft` validates a contract |
+| 10 | ⚠️ **half exists** | `test/ui/procedure_console_driver.mjs` is complete (`prepare` / `import`); its docstring names `test/ui/procedure_console_e2e.py`, which does not exist. Writing it is the whole task and the driver is why it is small |
+| 11 | ⚠️ **needs the thread** | the layout decision is taken (keep the overlay). The 17-point list lives in the TestLab thread of 2026-11-24, not in the repository |
+| 12 | ➖ not repo work | `resolutions::` is authored in the Series domain |
+| 13 | ✅ #892 | the eight files are formatted in their own commit |
+| 14 | ⚠️ **needs the episode** | `assertAuthoredStaged` now refuses a vanished `sourceDir`; the original 8106/7506 observation needs the episode's own assets, which the repository does not hold |
+
+**Start here:** item 10. It is the only one of the five with a complete, tested driver
+waiting for its other half, and it closes the round-trip that was never exercised.
+
 ---
 
 ## 1. Pricing overlay ignored in estimates
