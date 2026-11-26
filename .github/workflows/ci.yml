@@ -256,7 +256,17 @@ jobs:
       needs.regen.result == 'success'
     runs-on: ubuntu-latest
     concurrency:
-      group: "publish-web"
+      # ONE group for every job that pushes to cogNNitive-web. `release (<tag>)`
+      # (release.yml) uses the same name, so a docs publish and a release leg queue
+      # instead of racing on the same `main` — which is what broke run 45843892753
+      # (`git pull --rebase` could not replay its own publish commit).
+      #
+      # `cancel-in-progress: false` never interrupts a running push. GitHub keeps a
+      # single pending entry per group, and a newer arrival replaces a pending one, so
+      # a dropped pending job must be re-run: a `release (<tag>)` leg that never ran is
+      # a tag with no release, recovered with
+      # `gh workflow run release.yml --ref main -f tag=<tag> -f publish=true`.
+      group: publish-cognnitive-web
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7

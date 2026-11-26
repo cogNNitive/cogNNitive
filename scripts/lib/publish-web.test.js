@@ -182,6 +182,112 @@ async function testGuardFailureCreatesNoTempDir() {
   console.log('PASS: guard failure rejects before creating any temp directory');
 }
 
+async function testEmptyBuildLeavesMirrorUntouched() {
+  // Run 45843892753: the docs build produced nothing and the publisher computed
+  // "0 added, 0 modified, 405 removed". Only a rebase conflict stopped the deletion.
+  const bareDir = mkTmpDir('bare-repo-');
+  initBareRepo(bareDir);
+  initInitialCommit(bareDir, {
+    'docs/index.html': '<h1>Live Site</h1>',
+    'docs/section/page.html': '<h1>Page</h1>',
+    'docs/.nojekyll': '',
+  });
+  const before = execFileSync('git', ['-C', bareDir, 'rev-parse', 'main'], { encoding: 'utf8' }).trim();
+
+  const repoRoot = mkTmpDir('source-repo-');
+  // The build ran and produced an empty directory: the artifact exists, the site does not.
+  fs.mkdirSync(path.join(repoRoot, 'docs'), { recursive: true });
+
+  const tmpRoot = mkTmpDir('tmp-root-');
+  const silentLogger = { log: () => {} };
+
+  await assert.rejects(
+    async () => {
+      await runPublish(
+        {
+          repoRoot,
+          docsRoot: path.join(repoRoot, 'docs'),
+          targetRepo: 'test/repo',
+          token: 'fake_secret_token',
+          skipDistribution: true,
+        },
+        { tmpRoot, remoteUrl: bareDir, logger: silentLogger }
+      );
+    },
+    (err) => {
+      assert.match(err.message, /has 0 files/, 'the refusal must name the empty artifact');
+      assert.match(err.message, /Nothing was pushed/);
+      return true;
+    }
+  );
+
+  const after = execFileSync('git', ['-C', bareDir, 'rev-parse', 'main'], { encoding: 'utf8' }).trim();
+  assert.strictEqual(after, before, 'the mirror must be byte-for-byte untouched');
+
+  // And the files are still there, not merely the ref unchanged.
+  const verifyClone = mkTmpDir('verify-clone-');
+  try {
+    execFileSync('git', ['clone', bareDir, verifyClone], { stdio: 'ignore' });
+    assert.strictEqual(
+      fs.readFileSync(path.join(verifyClone, 'docs', 'section', 'page.html'), 'utf8'),
+      '<h1>Page</h1>'
+    );
+  } finally {
+    fs.rmSync(verifyClone, { recursive: true, force: true });
+    fs.rmSync(bareDir, { recursive: true, force: true });
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+
+  console.log('PASS: an empty build fails loudly and leaves the mirror untouched');
+}
+
+async function testLargeRemovalIsRefusedBeforePush() {
+  // A partial artifact: the build emitted one page and lost the rest. Above the ceiling,
+  // so it must refuse rather than publish a shrunken site.
+  const bareDir = mkTmpDir('bare-repo-');
+  initBareRepo(bareDir);
+  const initial = { 'docs/.nojekyll': '' };
+  for (let i = 0; i < 30; i++) initial[`docs/page-${i}.html`] = `<h1>${i}</h1>`;
+  initInitialCommit(bareDir, initial);
+  const before = execFileSync('git', ['-C', bareDir, 'rev-parse', 'main'], { encoding: 'utf8' }).trim();
+
+  const repoRoot = mkTmpDir('source-repo-');
+  fs.mkdirSync(path.join(repoRoot, 'docs'), { recursive: true });
+  fs.writeFileSync(path.join(repoRoot, 'docs', 'page-0.html'), '<h1>0</h1>', 'utf8');
+
+  const tmpRoot = mkTmpDir('tmp-root-');
+  const silentLogger = { log: () => {} };
+
+  await assert.rejects(
+    async () => {
+      await runPublish(
+        {
+          repoRoot,
+          docsRoot: path.join(repoRoot, 'docs'),
+          targetRepo: 'test/repo',
+          token: 'fake_secret_token',
+          skipDistribution: true,
+        },
+        { tmpRoot, remoteUrl: bareDir, logger: silentLogger }
+      );
+    },
+    (err) => {
+      assert.match(err.message, /would delete 29 file/);
+      return true;
+    }
+  );
+
+  const after = execFileSync('git', ['-C', bareDir, 'rev-parse', 'main'], { encoding: 'utf8' }).trim();
+  assert.strictEqual(after, before, 'the mirror must be untouched after a refused publish');
+
+  fs.rmSync(bareDir, { recursive: true, force: true });
+  fs.rmSync(repoRoot, { recursive: true, force: true });
+  fs.rmSync(tmpRoot, { recursive: true, force: true });
+
+  console.log('PASS: a removal above the ceiling refuses before pushing');
+}
+
 async function testUpstreamRacePublishesNothingStale() {
   const bareDir = mkTmpDir('bare-repo-');
   initBareRepo(bareDir);
@@ -269,6 +375,8 @@ async function runAll() {
     await testFullPublishAndPreserveNojekyll();
     await testIdenticalArtifactIsNoOp();
     await testGuardFailureCreatesNoTempDir();
+    await testEmptyBuildLeavesMirrorUntouched();
+    await testLargeRemovalIsRefusedBeforePush();
     await testUpstreamRacePublishesNothingStale();
     console.log('\nAll publish-web integration tests passed! ✨');
   } catch (err) {

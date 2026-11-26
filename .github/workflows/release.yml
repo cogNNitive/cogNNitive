@@ -28,7 +28,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: release
     concurrency:
-      group: release
+      # The same group as `publish-web` in ci.yml (job-level concurrency is repository
+      # wide, not workflow local). Every release leg writes `main` in cogNNitive-web, so
+      # without the shared group two writers rebase over each other. See the note there.
+      group: publish-cognnitive-web
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
