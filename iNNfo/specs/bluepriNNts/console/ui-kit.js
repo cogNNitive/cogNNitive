@@ -10,6 +10,14 @@
 
   var UI_VERSION = '0.1.0'
 
+  // Dialogs are named through `aria-labelledby`, so each instance needs its own id: a Ku
+  // info panel can open over an edit modal, and two dialogs must not share a heading id.
+  var modalSeq = 0
+  function nextModalId(prefix) {
+    modalSeq += 1
+    return prefix + '-' + modalSeq
+  }
+
   // ---- Design tokens (single source of truth) ----
   //
   // Status fg values are the lightest Tailwind step whose ratio against its own
@@ -2953,6 +2961,8 @@
 
     var head = makeEl(doc, 'div', 'nn-edit-modal-head')
     var title = makeEl(doc, 'h2', null, data.title || 'Edit Component')
+    title.id = nextModalId('nn-edit-modal-title')
+    modal.setAttribute('aria-labelledby', title.id)
     head.appendChild(title)
     var closeBtn = makeEl(doc, 'button', 'nn-edit-modal-close', '\u00D7')
     closeBtn.setAttribute('type', 'button')
@@ -3239,6 +3249,8 @@
     formComment.style.display = isComment ? 'block' : 'none'
     var commentLabel = makeEl(doc, 'label', 'nn-edit-field-label', 'Reviewer Notes / Comment')
     var commentTa = makeEl(doc, 'textarea', 'nn-edit-textarea')
+    commentTa.id = nextModalId('nn-edit-comment')
+    commentLabel.setAttribute('for', commentTa.id)
     commentTa.setAttribute('placeholder', 'Enter review comment or note...')
     if (data.comment != null) commentTa.value = String(data.comment)
     formComment.appendChild(commentLabel)
@@ -3508,10 +3520,20 @@
     }
 
     var head = makeEl(doc, 'div', 'nn-edit-modal-head')
-    head.appendChild(makeEl(doc, 'h2', null, data.title || 'New element'))
+    var newTitle = makeEl(doc, 'h2', null, data.title || 'New element')
+    newTitle.id = nextModalId('nn-new-element-title')
+    modal.setAttribute('aria-labelledby', newTitle.id)
+    head.appendChild(newTitle)
     var closeBtn = makeEl(doc, 'button', 'nn-edit-modal-close', '\u00D7')
     closeBtn.setAttribute('type', 'button')
+    closeBtn.setAttribute('aria-label', 'Close')
     closeBtn.addEventListener('click', cancel)
+    // Escape has to cancel the same way the close button does. Without this the dialog
+    // closed natively and `onCancel` never ran, unlike EditModal.
+    modal.addEventListener('cancel', function (ev) {
+      if (ev && ev.preventDefault) ev.preventDefault()
+      cancel()
+    })
     head.appendChild(closeBtn)
     modal.appendChild(head)
 
@@ -3519,6 +3541,8 @@
 
     var conceptLabel = makeEl(doc, 'label', 'nn-edit-field-label', 'Concept')
     var picker = makeEl(doc, 'select', 'nn-edit-select')
+    picker.id = nextModalId('nn-new-element-concept')
+    conceptLabel.setAttribute('for', picker.id)
     picker.setAttribute('data-nn-role', 'concept')
     picker.appendChild(makeEl(doc, 'option', null, ''))
     picker.firstChild.value = ''
@@ -3547,7 +3571,10 @@
         return String(m.id) === String(data.defaultModel)
       })[0]
       if (preset) modelPicker.value = String(preset.id)
-      body.appendChild(makeEl(doc, 'label', 'nn-edit-field-label', 'Model'))
+      var modelLabel = makeEl(doc, 'label', 'nn-edit-field-label', 'Model')
+      modelPicker.id = nextModalId('nn-new-element-model')
+      modelLabel.setAttribute('for', modelPicker.id)
+      body.appendChild(modelLabel)
       body.appendChild(modelPicker)
     }
     body.appendChild(conceptLabel)
@@ -3555,6 +3582,8 @@
 
     var nameLabel = makeEl(doc, 'label', 'nn-edit-field-label', 'Name')
     var nameInput = FieldInput('text', '', opts)
+    nameInput.id = nextModalId('nn-new-element-name')
+    nameLabel.setAttribute('for', nameInput.id)
     nameInput.setAttribute('data-nn-role', 'name')
     body.appendChild(nameLabel)
     body.appendChild(nameInput)
@@ -3619,7 +3648,10 @@
         if (!def || !def.name) return
         var w = widgetFor(def)
         current.push(w)
-        fieldsHost.appendChild(makeEl(doc, 'label', 'nn-edit-field-label', def.name))
+        if (!w.node.id) w.node.id = nextModalId('nn-new-element-field')
+        var fieldLabelEl = makeEl(doc, 'label', 'nn-edit-field-label', def.name)
+        fieldLabelEl.setAttribute('for', w.node.id)
+        fieldsHost.appendChild(fieldLabelEl)
         fieldsHost.appendChild(w.node)
       })
     }
@@ -5100,7 +5132,9 @@
 
     var head = makeEl(doc, 'div', 'nn-edit-modal-head')
     var h = makeEl(doc, 'h2', 'nn-ku-info-title', descriptor.label || descriptor.address)
+    h.id = nextModalId('nn-ku-info-title')
     h.setAttribute('tabindex', '-1')
+    dlg.setAttribute('aria-labelledby', h.id)
     head.appendChild(h)
     var closeBtn = makeEl(doc, 'button', 'nn-edit-modal-close', '\u00D7')
     closeBtn.setAttribute('type', 'button')
@@ -5203,7 +5237,9 @@
     tabBtnHistory.addEventListener('click', function () { showTab('history') })
     tabBtnConnections.addEventListener('click', function () { showTab('connections') })
 
-    var foot = makeEl(doc, 'div', 'nn-edit-modal-foot')
+    // The same action bar as the other two dialogs. `nn-edit-modal-foot` had no rule at
+    // all, so this footer rendered unstyled.
+    var foot = makeEl(doc, 'div', 'nn-edit-modal-actions')
     if (typeof opts.onReveal === 'function') {
       var revBtn = makeEl(doc, 'button', 'nn-btn nn-btn-ghost', 'Reveal in context')
       revBtn.setAttribute('type', 'button')

@@ -11841,10 +11841,6 @@ button.proc-step-item-btn {
   color: var(--muted);
 }
 @media (max-width: 640px) {
-  .exec-dag-view-native {
-    display: none;
-  }
-
   .exec-step-card {
     padding: 16px;
   }
@@ -12031,11 +12027,12 @@ button.proc-step-item-btn {
 }
 
 /* ---- Procedure Runner B+D+E integrated layout ---- */
-/* The flow graph keeps the wide left column; the run column carries the runs and, under the
-   graph, the step timeline, so a person reads where the run is before reading what to do. */
+/* The run column takes the wide left side: the runs, the run state and the step timeline
+   live there. The flow graph keeps its own narrower right column, so it stays visible as
+   the answer form scrolls. */
 .nn-procedure-view .exec-workspace.proc-bde-layout {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr);
   gap: 16px;
   align-items: start;
 }
@@ -12329,6 +12326,10 @@ table.proc-steps-table tbody tr.on td:first-child {
 
 /* Persistent Rail */
 .proc-rail {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 14px;

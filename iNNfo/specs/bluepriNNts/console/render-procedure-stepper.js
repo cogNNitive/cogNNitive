@@ -1540,14 +1540,29 @@
     }
 
     /** Nodes get as wide as the host allows, up to the native 200, down to a readable 84. */
-    function flowGeometry(lay, widthPx) {
+    function flowGeometry(lay, widthPx, steps) {
       var widest = lay.rows.reduce(function (n, r) {
         return Math.max(n, r.length)
       }, 1)
       var nodeW = Math.max(84, Math.min(200, Math.floor(widthPx / widest) - 10))
       var compact = nodeW < 140
-      var nodeH = compact ? 50 : 52
-      var rowH = nodeH + 40
+      // The box has to hold the whole step name. Instead of cutting the name by a made-up
+      // characters-per-line ratio, wrap it and let the tallest name set the height of every
+      // box: rows stay aligned and no name is ever truncated on a short procedure.
+      var titleSize = compact ? 11 : 13
+      var inner = nodeW - 16
+      var perLine = Math.max(8, Math.floor(inner / (titleSize * 0.54)))
+      var lines = 1
+      Object.keys(steps || {}).forEach(function (slug) {
+        var name = String((steps[slug] && steps[slug].name) || slug)
+        var need = Math.ceil(name.length / perLine)
+        if (need > lines) lines = need
+      })
+      lines = Math.max(1, Math.min(4, lines))
+      var subLineH = 15
+      var titleLineH = 18
+      var nodeH = 9 + subLineH + lines * titleLineH + 9
+      var rowH = nodeH + 30
       var pos = {}
       lay.rows.forEach(function (row, r) {
         row.forEach(function (slug, i) {
@@ -1557,6 +1572,7 @@
       return {
         nodeW: nodeW,
         nodeH: nodeH,
+        lines: lines,
         compact: compact,
         pos: pos,
         rows: lay.rows.length,
@@ -1624,13 +1640,36 @@
           return String(s).replace(/[{}]/g, ' ')
         }
         var inner = w - 16
-        // Rich-text truncation does not hold in every renderer: cut by what fits instead.
+        // Rich-text truncation does not hold in every renderer: measure what fits instead.
         var subSize = geo.compact ? 9 : 10
         var titleSize = geo.compact ? 11 : 13
         // Upper-case bold text is wider per character than the title's mixed case.
         var cut = function (text, size, em) {
           var fit = Math.max(6, Math.floor(inner / (size * (em || 0.54))))
           return text.length > fit ? text.slice(0, fit - 1) + '…' : text
+        }
+        // The title wraps by word. Cutting it by character count broke names mid-word, and
+        // the box is already tall enough for `geo.lines` of them.
+        var wrap = function (text) {
+          var maxChars = Math.max(8, Math.floor(inner / (titleSize * 0.54)))
+          var words = String(text).split(/\s+/).filter(Boolean)
+          var out = []
+          var line = ''
+          words.forEach(function (word) {
+            var candidate = line ? line + ' ' + word : word
+            if (candidate.length <= maxChars) {
+              line = candidate
+              return
+            }
+            if (line) out.push(line)
+            line = word.length > maxChars ? word.slice(0, maxChars - 1) + '…' : word
+          })
+          if (line) out.push(line)
+          if (out.length > geo.lines) {
+            out = out.slice(0, geo.lines)
+            out[geo.lines - 1] = out[geo.lines - 1].slice(0, Math.max(4, maxChars - 1)) + '…'
+          }
+          return out.length ? out : ['']
         }
         return {
           id: slug,
@@ -1653,9 +1692,12 @@
             formatter:
               '{sub|' +
               cut(clean(sub.toUpperCase()), subSize, 0.68) +
-              '}\n{title|' +
-              cut(clean(step.name || slug), titleSize) +
-              '}',
+              '}\n' +
+              wrap(clean(step.name || slug))
+                .map(function (line) {
+                  return '{title|' + line + '}'
+                })
+                .join('\n'),
             rich: {
               sub: {
                 width: inner,
@@ -1819,7 +1861,8 @@
 
     /**
      * Draws the flow through the console's shared chart API (`renderChart`). Returns false
-     * when there is none (no ECharts in this page), so the caller draws the native svg.
+     * when the page has no chart runtime; the rail keeps the step list under the graph, so
+     * the procedure still reads as text.
      */
     function drawChartGraph(view, lay, current) {
       var rt = runtime
@@ -1845,7 +1888,7 @@
       var widthOf = function () {
         return chartHost.clientWidth || view.clientWidth || 320
       }
-      var geo = flowGeometry(lay, widthOf())
+      var geo = flowGeometry(lay, widthOf(), active.graph.steps)
       var hasFocus = false
       var firstStep = function () {
         return selectedStep || current || graph.start || Object.keys(graph.steps)[0]
@@ -1951,7 +1994,7 @@
           var now = Math.round(widthOf())
           if (g.disposed || !now || now === lastWidth) return
           lastWidth = now
-          geo = flowGeometry(lay, now)
+          geo = flowGeometry(lay, now, active.graph.steps)
           chartHost.style.height = geo.height + 'px'
           redraw()
           if (chart.resize) chart.resize({ width: 'auto', height: 'auto' })
@@ -1963,130 +2006,6 @@
         if (wrap.focus) wrap.focus()
       }
       return true
-    }
-
-    /** The hand-drawn svg: what draws the flow when the page has no ECharts. */
-    function buildNativeGraph(lay, current) {
-      var graph = active.graph
-      var state = viewState()
-      var svgNS = 'http://www.w3.org/2000/svg'
-      var nodeW = 200
-      var nodeH = 52
-      var gapX = 24
-      var gapY = 84
-      var widest = lay.rows.reduce(function (n, r) {
-        return Math.max(n, r.length)
-      }, 1)
-      var width = widest * (nodeW + gapX) + gapX
-      var svg = document.createElementNS(svgNS, 'svg')
-      svg.setAttribute('class', 'dag-canvas')
-      svg.setAttribute('data-proc-graph', '')
-      svg.setAttribute('data-pulse', pulseOf(current))
-      svg.setAttribute('role', 'group')
-      svg.setAttribute('aria-label', graphSummary(state, current))
-      svg.setAttribute('viewBox', '0 0 ' + width + ' ' + (lay.rows.length * gapY + 20))
-      var pos = {}
-      lay.rows.forEach(function (row, r) {
-        var offset = (width - row.length * (nodeW + gapX) + gapX) / 2
-        row.forEach(function (slug, i) {
-          pos[slug] = { x: offset + i * (nodeW + gapX), y: 16 + r * gapY, layer: r }
-        })
-      })
-      Object.keys(graph.steps).forEach(function (slug) {
-        graph.steps[slug].next.forEach(function (t) {
-          if (!pos[t]) return
-          var edge = document.createElementNS(svgNS, 'path')
-          var x1 = pos[slug].x + nodeW / 2
-          var y1 = pos[slug].y + nodeH
-          var x2 = pos[t].x + nodeW / 2
-          var y2 = pos[t].y
-          var f = edgeFacts(state, current, slug, t)
-
-          var edgeClasses = ['dag-edge', f.status]
-          if (f.taken) edgeClasses.push('taken')
-          if (f.off) edgeClasses.push('off_path')
-          if (f.projected) edgeClasses.push('projected')
-          edge.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2)
-          edge.setAttribute('class', edgeClasses.join(' '))
-          edge.setAttribute('data-from', slug)
-          edge.setAttribute('data-to', t)
-          svg.appendChild(edge)
-          if (f.token) {
-            var label = document.createElementNS(svgNS, 'text')
-            var labelClasses = ['dag-edge-label', f.status]
-            if (f.taken) labelClasses.push('taken')
-            if (f.off) labelClasses.push('off_path')
-            if (f.projected) labelClasses.push('projected')
-            label.setAttribute('class', labelClasses.join(' '))
-            label.setAttribute('x', x2)
-            label.setAttribute('y', y2 - 6)
-            label.setAttribute('text-anchor', 'middle')
-            label.textContent = f.token.length > 24 ? f.token.substring(0, 22) + '…' : f.token
-            svg.appendChild(label)
-          }
-        })
-      })
-      Object.keys(graph.steps).forEach(function (slug) {
-        var step = graph.steps[slug]
-        var p = pos[slug]
-        var status = stepStatus(slug)
-        var g = document.createElementNS(svgNS, 'g')
-        g.setAttribute(
-          'class',
-          'dag-node ' +
-            status +
-            (step.stepType === 'decision' ? ' decision' : '') +
-            (slug === current ? ' current' : '') +
-            (isProjected(slug) ? ' projected' : '') +
-            (slug === selectedStep ? ' selected' : ''),
-        )
-        g.setAttribute('data-step', slug)
-        g.setAttribute('data-status', status)
-        g.setAttribute('data-layer', String(p.layer))
-        g.setAttribute('tabindex', '0')
-        g.setAttribute('role', 'button')
-        g.setAttribute('aria-label', announceStep(slug))
-        g.addEventListener('click', function () {
-          selectStep(slug)
-        })
-        g.addEventListener('keydown', function (ev) {
-          if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
-            if (ev.preventDefault) ev.preventDefault()
-            selectStep(slug)
-          }
-        })
-        var rect = document.createElementNS(svgNS, 'rect')
-        rect.setAttribute('x', p.x)
-        rect.setAttribute('y', p.y)
-        rect.setAttribute('width', nodeW)
-        rect.setAttribute('height', nodeH)
-        rect.setAttribute('rx', '8')
-        g.appendChild(rect)
-        var dot = document.createElementNS(svgNS, 'circle')
-        dot.setAttribute('cx', p.x + 16)
-        dot.setAttribute('cy', p.y + nodeH / 2)
-        dot.setAttribute('r', '6')
-        dot.setAttribute('class', 'node-dot')
-        g.appendChild(dot)
-        var sub = document.createElementNS(svgNS, 'text')
-        sub.setAttribute('x', p.x + 30)
-        sub.setAttribute('y', p.y + 20)
-        sub.setAttribute('class', 'node-sub')
-        sub.textContent =
-          (step.stepType || 'task').toUpperCase() +
-          (step.executor ? ' · ' + step.executor : '') +
-          (status !== 'definition' ? ' · ' + status : '')
-        g.appendChild(sub)
-        var title = document.createElementNS(svgNS, 'text')
-        title.setAttribute('x', p.x + 30)
-        title.setAttribute('y', p.y + 38)
-        title.setAttribute('class', 'node-title')
-        var name = step.name || slug
-        title.textContent = name.length > 24 ? name.substring(0, 22) + '…' : name
-        g.appendChild(title)
-        svg.appendChild(g)
-      })
-      return svg
     }
 
     function renderGraph(hostEl) {
@@ -2115,10 +2034,9 @@
       col.appendChild(hint)
       // Attached before the chart is drawn, so the chart measures the width it really has.
       hostEl.appendChild(col)
-      if (!drawChartGraph(view, lay, current)) {
-        view.className += ' exec-dag-view-native'
-        view.appendChild(buildNativeGraph(lay, current))
-      }
+      // One renderer. The hand-drawn svg fallback was a second implementation of the same
+      // picture, and the step list above is already the graph's text alternative.
+      drawChartGraph(view, lay, current)
     }
 
     /** The same walk as a vertical list: the graph's text alternative, with each status in words. */
@@ -4267,12 +4185,12 @@
       var ws = make('div', 'exec-workspace proc-bde-layout')
       body.appendChild(ws)
 
-      // Column 1: the flow graph. It is what the person reads first: where the run is.
+      // Right column: the flow graph, so the person reads what to do first and looks right
+      // for where that step sits in the procedure.
       var rail = make('aside', 'proc-rail rail')
       renderBdeRail(rail)
-      ws.appendChild(rail)
 
-      // Column 2: the runs, the run state and the step timeline, whose rows open in place.
+      // Left column: the runs, the run state and the step timeline, whose rows open in place.
       // The start form takes the column while it is open, so preparing a run never competes
       // with the steps of a run the person is answering.
       var main = make('div', 'proc-main main')
@@ -4290,6 +4208,7 @@
         renderRunPanel(main)
       }
       ws.appendChild(main)
+      ws.appendChild(rail)
     }
 
     // The inbox is the front door: open on the first run that waits on this person.
