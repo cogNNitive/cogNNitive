@@ -1029,6 +1029,16 @@ agent-bootstrap:
   fs.mkdirSync(path.join(pkg, 'skills', 'nn-org'), { recursive: true });
   fs.writeFileSync(path.join(pkg, 'spec_NN.md'), '---\nblueprint_version: "V_0-4-0"\nlevel: 2\n---\n# org', 'utf-8');
   fs.writeFileSync(
+    path.join(pkg, 'blueprint.json'),
+    JSON.stringify({
+      name: 'organization',
+      version: 'V_0-4-0',
+      format_version: 'V_0-5-0',
+      distribution_url: 'https://raw.githubusercontent.com/o/r/main/iNNfo/specs/bluepriNNts/organization',
+    }),
+    'utf-8',
+  );
+  fs.writeFileSync(
     path.join(pkg, 'skills', 'nn-org', 'SKILL.md'),
     '---\nname: nn-org\nversion: V_1-0-0\n---\n# nn-org',
     'utf-8',
@@ -1104,6 +1114,31 @@ agent-bootstrap:
       'embedded skill must be projected to the agent dir',
     );
     assert.ok(downloads.some((u) => u.includes('blueprints-v0.39.0')), 'must download from the catalog release pin');
+
+    // Provenance recorded beside the installed copy (P1, S3/S7): the version and the
+    // publisher's own address come from the shipped blueprint.json, and a tag is
+    // never stored in the commit field.
+    const lockPath = path.join(blueprintsDir, '.blueprint-lock.json');
+    assert.ok(fs.existsSync(lockPath), 'the installer must record provenance next to the installed copy');
+    const lock = JSON.parse(fs.readFileSync(lockPath, 'utf-8'));
+    assert.strictEqual(lock.format_version, 1);
+    assert.deepStrictEqual(
+      {
+        version: lock.blueprints.organization.version,
+        tag: lock.blueprints.organization.tag,
+        distribution_url: lock.blueprints.organization.distribution_url,
+      },
+      {
+        version: 'V_0-4-0',
+        tag: 'blueprints-v0.39.0',
+        distribution_url: 'https://raw.githubusercontent.com/o/r/main/iNNfo/specs/bluepriNNts/organization',
+      },
+    );
+    assert.strictEqual(lock.blueprints.organization.commit, null, 'a tag must never be stored as the commit');
+    assert.ok(
+      Object.keys(lock.blueprints.organization.digests).includes('spec_NN.md'),
+      'the lock must hold a digest of every installed file',
+    );
 
     // Unknown blueprint name is rejected before any download.
     let caught = null;
@@ -1365,7 +1400,13 @@ agent-bootstrap:
     const st = await spawnAsync([managerScript, 'status', ...flags], { env: { ...baseEnv, COGNNITIVE_CATALOG: catalogPath } });
     assert.strictEqual(st.status, 0, `status must succeed. stderr: ${st.stderr}`);
     const row = (name) => st.stdout.split('\n').find((l) => l.split('|')[1] && l.split('|')[1].trim() === name);
-    assert.ok(!/\bunknown\b/.test(st.stdout), `no row may read "unknown" any more:\n${st.stdout}`);
+    // P1 supersedes the catalog as a version source (C3/S5): with no recorded
+    // provenance a unit reads `unknown`, never `up-to-date` (A4). The reason is
+    // named in the provenance block, so `unknown` is never silent.
+    assert.ok(
+      !/up-to-date/.test(st.stdout.split('\n\n')[0]),
+      `no blueprint row may claim up-to-date without provenance:\n${st.stdout}`,
+    );
     assert.match(row('gone') || '', /retired/, 'a tracked bluepriNNt missing from the catalog is retired');
     assert.match(row('video') || '', /retired/, 'an untracked directory missing from the catalog is retired');
     assert.match(row('video.md') || '', /retired/, 'a flat .md nothing records is reported');
@@ -1375,7 +1416,8 @@ agent-bootstrap:
       'a stray copy is reported under its directory name, not the declared one',
     );
     assert.ok(!row('video-script'), 'the declared name of a stray copy is never a row of its own');
-    assert.match(row('organization') || '', /up-to-date/, 'a catalog bluepriNNt still compares normally');
+    assert.match(row('organization') || '', /unknown/, 'a catalogued bluepriNNt with no recorded provenance is unknown, not current');
+    assert.match(st.stdout, /organization: no provenance recorded/, 'the reason is named, not implied');
     assert.ok(!row('tracked-copy'), 'a directory tracked by its state path is not reported twice');
     assert.match(st.stdout, /not in the catalog \(retired\)\. No update will ever touch them/, 'the retired summary names the consequence');
     assert.ok(fs.existsSync(path.join(blueprintsDir, 'video')), 'status deletes nothing');

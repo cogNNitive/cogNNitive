@@ -1,10 +1,10 @@
 /**
  * scripts/lib/skills-commands.test.js
  *
- * `status` and `update` cover installed catalog bluepriNNts that the state file
- * does not record (#611): a package under the blueprints dir hydrated outside
- * the manager, older than the catalog, must not read as "up to date". Every
- * run uses an isolated HOME, an explicit catalog and a local manifest server.
+ * `status` and `update` read a bluepriNNt's provenance from the installed unit —
+ * the `.blueprint-lock.json` beside it and the publisher's `versions.json` — never
+ * from a catalog (blueprints-distribution plan, P1, S5). Every run uses an
+ * isolated HOME, an explicit catalog and local servers.
  */
 
 const { test } = require('node:test');
@@ -17,8 +17,9 @@ const { spawn } = require('node:child_process');
 
 const managerScript = path.join(__dirname, '..', 'skills-manager.js');
 const COMMIT = '1111111111111111111111111111111111111111';
-const INSTALL_COMMAND =
-  'node ~/.agents/skills/nn-skills-lifecycle/scripts/skills-manager.js install --blueprint coNNtent --yes';
+const INSTALLED_COMMIT = '6666666666666666666666666666666666666666';
+const PUBLISHED_COMMIT = '7777777777777777777777777777777777777777';
+const BLUEPRINT_PATH = 'iNNfo/specs/bluepriNNts/coNNtent';
 
 const MANIFEST = `---
 agent-bootstrap:
@@ -47,6 +48,32 @@ function serve(content) {
   });
 }
 
+/** Serves the publisher side of one blueprint: `versions.json` and one commit's tree. */
+function servePublisher({ versions, manifestAt }) {
+  return new Promise((resolve) => {
+    const server = http.createServer((req, res) => {
+      const routes = {
+        [`/o/r/main/${BLUEPRINT_PATH}/versions.json`]: versions,
+        ...manifestAt,
+      };
+      const body = routes[req.url];
+      if (body === undefined) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('not found');
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(body);
+    });
+    server.listen(0, '127.0.0.1', () => {
+      resolve({
+        base: `http://127.0.0.1:${server.address().port}`,
+        close: () => new Promise((r) => server.close(r)),
+      });
+    });
+  });
+}
+
 function run(args, env) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [managerScript, ...args], { env });
@@ -58,8 +85,25 @@ function run(args, env) {
   });
 }
 
-/** One installed, up-to-date skill; optionally a hydrated coNNtent package the state does not record. */
-async function fixture({ engine } = {}) {
+function versionsBody(...list) {
+  return JSON.stringify({ versions: list });
+}
+
+function manifestBody(version) {
+  return JSON.stringify({
+    name: 'coNNtent',
+    version,
+    format_version: 'V_0-5-0',
+    distribution_url: 'placeholder',
+  });
+}
+
+/**
+ * One installed skill, plus one installed `coNNtent` package whose provenance is
+ * either recorded (`installed`) or absent (`installed: null`), published at
+ * `published` by a local server.
+ */
+async function fixture({ installed, published, arms = 'published' } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'skills-commands-bp-'));
   const home = path.join(root, 'home');
   const skillsDir = path.join(root, 'skills');
@@ -70,13 +114,53 @@ async function fixture({ engine } = {}) {
   fs.mkdirSync(path.join(skillsDir, 'nn-sample'), { recursive: true });
   fs.writeFileSync(path.join(skillsDir, 'nn-sample', 'SKILL.md'), '# sample\n');
   fs.mkdirSync(blueprintsDir, { recursive: true });
-  if (engine) {
-    fs.mkdirSync(path.join(blueprintsDir, 'coNNtent'), { recursive: true });
+
+  let publisher = null;
+  if (installed !== undefined) {
+    const pkgDir = path.join(blueprintsDir, 'coNNtent');
+    fs.mkdirSync(pkgDir, { recursive: true });
     fs.writeFileSync(
-      path.join(blueprintsDir, 'coNNtent', 'spec_NN.md'),
-      `---\nlevel: 2\nblueprint_name: "coNNtent"\nblueprint_version: "${engine}"\n---\n# coNNtent\n`,
+      path.join(pkgDir, 'spec_NN.md'),
+      `---\nlevel: 2\nblueprint_name: "coNNtent"\nblueprint_version: "${installed || 'V_0-15-1'}"\n---\n# coNNtent\n`,
     );
+
+    publisher = await servePublisher({
+      versions: arms === 'unreachable'
+        ? undefined
+        : versionsBody({ version: published, tag: 'blueprints-v0.60.0', commit: PUBLISHED_COMMIT }),
+      manifestAt: {
+        [`/o/r/${PUBLISHED_COMMIT}/${BLUEPRINT_PATH}/blueprint.json`]: manifestBody(published),
+      },
+    });
+
+    const distributionUrl = arms === 'unreachable'
+      ? `http://127.0.0.1:1/o/r/main/${BLUEPRINT_PATH}`
+      : `${publisher.base}/o/r/main/${BLUEPRINT_PATH}`;
+
+    fs.writeFileSync(
+      path.join(pkgDir, 'blueprint.json'),
+      JSON.stringify({ name: 'coNNtent', version: installed, format_version: 'V_0-5-0', distribution_url: distributionUrl }, null, 2),
+    );
+
+    if (installed !== null) {
+      fs.writeFileSync(
+        path.join(blueprintsDir, '.blueprint-lock.json'),
+        JSON.stringify({
+          format_version: 1,
+          blueprints: {
+            coNNtent: {
+              version: installed,
+              tag: 'blueprints-v0.59.0',
+              commit: INSTALLED_COMMIT,
+              distribution_url: distributionUrl,
+              digests: {},
+            },
+          },
+        }, null, 2),
+      );
+    }
   }
+
   fs.writeFileSync(stateFile, JSON.stringify({ skills: { 'nn-sample': { commit: COMMIT, version: '1.0.0' } }, blueprints: {} }));
   fs.writeFileSync(
     catalogFile,
@@ -101,27 +185,76 @@ async function fixture({ engine } = {}) {
     flags,
     close: async () => {
       await server.close();
+      if (publisher) await publisher.close();
       fs.rmSync(root, { recursive: true, force: true });
     },
   };
 }
 
-test('status lists a hydrated catalog bluepriNNt older than the catalog as outdated, with the install command', async () => {
-  const f = await fixture({ engine: 'V_0-15-1' });
+function rowFor(stdout, name) {
+  return stdout.split('\n').find((line) => new RegExp(`^catalog\\s*\\|\\s*${name}\\s*\\|`).test(line));
+}
+
+test('status reports current when the installed unit matches the published version (A1)', async () => {
+  const f = await fixture({ installed: 'V_0-18-0', published: 'V_0-18-0' });
   try {
     const res = await run(['status', ...f.flags], f.env);
     assert.strictEqual(res.status, 0, res.stderr);
-    const row = res.stdout.split('\n').find((l) => /^catalog\s*\|\s*coNNtent\s*\|/.test(l));
+    const row = rowFor(res.stdout, 'coNNtent');
     assert.ok(row, res.stdout);
-    assert.deepStrictEqual(row.split('|').map((c) => c.trim()), ['catalog', 'coNNtent', 'V_0-18-0', 'V_0-15-1', 'outdated']);
-    assert.ok(res.stdout.includes(INSTALL_COMMAND), res.stdout);
+    assert.deepStrictEqual(row.split('|').map((c) => c.trim()), ['catalog', 'coNNtent', 'V_0-18-0', 'V_0-18-0', 'current']);
   } finally {
     await f.close();
   }
 });
 
-test('update selects a hydrated catalog bluepriNNt older than the catalog instead of reporting up to date', async () => {
-  const f = await fixture({ engine: 'V_0-15-1' });
+test('status detects a version bump at the recorded distribution_url (A2)', async () => {
+  const f = await fixture({ installed: 'V_0-15-1', published: 'V_0-18-0' });
+  try {
+    const res = await run(['status', ...f.flags], f.env);
+    assert.strictEqual(res.status, 0, res.stderr);
+    const row = rowFor(res.stdout, 'coNNtent');
+    assert.ok(row, res.stdout);
+    assert.strictEqual(row.split('|').map((c) => c.trim())[4], 'update-available');
+    assert.ok(res.stdout.includes('update --blueprint coNNtent'), res.stdout);
+    assert.ok(res.stdout.includes('published V_0-18-0'), res.stdout);
+  } finally {
+    await f.close();
+  }
+});
+
+test('status reports an unreachable publisher loudly, naming its URL (A3)', async () => {
+  const f = await fixture({ installed: 'V_0-15-1', published: 'V_0-18-0', arms: 'unreachable' });
+  try {
+    const res = await run(['status', ...f.flags], f.env);
+    assert.strictEqual(res.status, 0, res.stderr);
+    const row = rowFor(res.stdout, 'coNNtent');
+    assert.ok(row, res.stdout);
+    assert.strictEqual(row.split('|').map((c) => c.trim())[4], 'unreachable');
+    assert.ok(res.stdout.includes('http://127.0.0.1:1/o/r/main/'), res.stdout);
+    assert.ok(!row.includes('up-to-date'), res.stdout);
+  } finally {
+    await f.close();
+  }
+});
+
+test('a unit installed before provenance existed reports unknown, never current (A4)', async () => {
+  const f = await fixture({ installed: null, published: 'V_0-18-0' });
+  try {
+    const res = await run(['status', ...f.flags], f.env);
+    assert.strictEqual(res.status, 0, res.stderr);
+    const row = rowFor(res.stdout, 'coNNtent');
+    assert.ok(row, res.stdout);
+    assert.strictEqual(row.split('|').map((c) => c.trim())[4], 'unknown');
+    assert.ok(!row.includes('up-to-date'), res.stdout);
+    assert.ok(/no provenance recorded/.test(res.stdout), res.stdout);
+  } finally {
+    await f.close();
+  }
+});
+
+test('update selects a unit whose provenance reports an available version', async () => {
+  const f = await fixture({ installed: 'V_0-15-1', published: 'V_0-18-0' });
   try {
     // No --yes and no TTY: the consent gate names what would be updated and exits 2.
     const res = await run(['update', ...f.flags], f.env);
@@ -133,8 +266,8 @@ test('update selects a hydrated catalog bluepriNNt older than the catalog instea
   }
 });
 
-test('update reports up to date when the hydrated bluepriNNt matches the catalog', async () => {
-  const f = await fixture({ engine: 'V_0-18-0' });
+test('update reports up to date when provenance reports current', async () => {
+  const f = await fixture({ installed: 'V_0-18-0', published: 'V_0-18-0' });
   try {
     const res = await run(['update', ...f.flags], f.env);
     assert.strictEqual(res.status, 0, res.stderr);
