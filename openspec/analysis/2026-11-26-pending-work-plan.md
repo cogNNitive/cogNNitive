@@ -167,6 +167,12 @@ wrappers. Deleting is preferred unless a consumer outside the repository is know
 **Accept.** The console test suite is green, `window.nnConsole` keeps its documented
 entry point, and a grep finds one composer instead of two.
 
+**Status 2026-11-26 — done, by removing the duplication instead of the function.** Seven
+test files call `composeChangesetExport`, so deleting it was never on the table. It is now
+a thin reshape over `composeExport`: one set of checks (reviewer, blueprint version,
+verdicts, absent elements) and one serializer behind both entry points, with the output
+field names the tests already use.
+
 ---
 
 ## 7. Modal prompt `<pre>` still holds a stub string
@@ -182,6 +188,13 @@ written file cannot disagree.
 
 **Accept.** A test opens the modal for a fixture domain and asserts the visible prompt
 equals the exported one byte for byte.
+
+**Status 2026-11-26 — code done, the pinning test is not written.** The `<pre>` renders
+`composeAgentPrompt(state)`, the same function the export calls, so the preview and the
+written file cannot disagree; the stub string built from `UI.COPY.agentPromptSkipped` is
+gone. The acceptance as written (open the modal in jsdom and compare both strings) still
+needs a harness that mounts the export modal, which `openExportModal` does not expose.
+Listed as the remaining half rather than claimed.
 
 ---
 
