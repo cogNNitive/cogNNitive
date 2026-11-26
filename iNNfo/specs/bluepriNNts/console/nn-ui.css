@@ -11841,6 +11841,10 @@ button.proc-step-item-btn {
   color: var(--muted);
 }
 @media (max-width: 640px) {
+  .exec-dag-view-native {
+    display: none;
+  }
+
   .exec-step-card {
     padding: 16px;
   }

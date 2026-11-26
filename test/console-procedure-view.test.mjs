@@ -266,13 +266,14 @@ describe('procedure view (bluepriNNt)', () => {
     assert.match(container.querySelector('.exec-step-card').textContent, /Approve the draft\?/)
   })
 
-  it('puts the flow graph in the first column and opens one step card inside the timeline', (context) => {
+  it('puts the flow graph in the last column and opens one step card inside the timeline', (context) => {
     mount(payload(), context)
     const ws = container.querySelector('.exec-workspace')
-    // The graph is the left column; the runs, the run state and the timeline are the right one.
-    assert.match(ws.children[0].className, /proc-rail/)
-    assert.match(ws.children[1].className, /proc-main/)
-    assert.ok(ws.children[1].querySelector('.proc-nav'), 'the runs list lives in the run column')
+    // The runs, the run state and the timeline are the wide left column; the graph is the
+    // narrow one on the right, so it stays visible while the answer form scrolls.
+    assert.match(ws.children[0].className, /proc-main/)
+    assert.match(ws.children[1].className, /proc-rail/)
+    assert.ok(ws.children[0].querySelector('.proc-nav'), 'the runs list lives in the run column')
     // One toggle per step, the one the view points at open, and its card inside its own row.
     const toggles = () => [...container.querySelectorAll('[data-proc-step-toggle]')]
     assert.equal(toggles().length, 4)

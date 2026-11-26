@@ -27,7 +27,7 @@ shared dialog shell accessibility. Branch `session/console-proc-nav`. Delivery s
 | --- | ---- | ----- | ------ | -------- |
 | T1  | S2   | inline | done | `flowGeometry` derives node height from wrapped lines; `cut()` no longer truncates titles |
 | T2  | S1   | inline | done | `render()` appends `main` then `rail`; grid `3fr / minmax(300px,2fr)`; rail sticky |
-| T3  | S6   | inline | done | `buildNativeGraph` (123 lines) and its call site removed; dead `.exec-dag-view-native` rule removed |
+| T3  | S6   | inline | **reverted** | `buildNativeGraph` removed, then restored: it is the only renderer a test (or a page without a chart runtime) can interact with. See the log. |
 | T4  | S5   | inline | done | `aria-labelledby` on the three dialogs, close label + `cancel` on `NewElementModal`, `nn-edit-modal-foot` → `nn-edit-modal-actions` |
 | T5  | S5   | inline | done | `for`/`id` on concept, model, name, comment, dynamic field labels |
 | T6  | S1   | inline | done | Steps tab and its 91-line table panel removed; shared table CSS narrowed to artifacts; dead `.dotmark` rules removed |
@@ -64,3 +64,21 @@ the stale tree:
 Also found while editing: `.proc-tab-btn` has no rule of its own — the tabs are styled by the
 `.proc-tabbar button` descendant selectors — and there was no `:focus-visible` for them at all,
 which a roving-tabindex tablist cannot go without.
+
+**S6 reverted.** CI caught it before I did: `verify` runs four `test/console-procedure-*.test.mjs`
+suites that click `.dag-node[data-step]`. Those nodes only exist in `buildNativeGraph`, because
+jsdom has no canvas and the chart never draws. The "duplicate renderer" was also the only
+testable one. Removing it is still the right destination, but it needs the replacement first: an
+interactive step list in the DOM (the SVG node's role, click, Enter/Space, `data-status`,
+`aria-label` and `current/selected` classes), then the tests move to it. Restored the function,
+its call site and its `display:none` mobile rule; the graph keeps one visual language and the
+step toggles remain the real navigation.
+
+The same run also caught a real invariant I had broken: the procedure view must carry **no
+`id`** anywhere, because two consoles can be mounted on one page. My tablist had given every tab
+and panel a global id. `role=tab`/`aria-selected`/`tabindex` stay; `id`, `aria-controls` and
+`aria-labelledby` are gone.
+
+Tests now: view 22, runner-ux 65, artifacts 7, projection 7, console-bundle 1, console-export 67.
+The one test I changed asserts the new column order.
+

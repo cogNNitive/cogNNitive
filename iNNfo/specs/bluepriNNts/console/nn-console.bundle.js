@@ -23172,8 +23172,7 @@ if (typeof window !== 'undefined') {
 
     /**
      * Draws the flow through the console's shared chart API (`renderChart`). Returns false
-     * when the page has no chart runtime; the rail keeps the step list under the graph, so
-     * the procedure still reads as text.
+     * when there is none (no ECharts in this page), so the caller draws the native svg.
      */
     function drawChartGraph(view, lay, current) {
       var rt = runtime
@@ -23319,6 +23318,130 @@ if (typeof window !== 'undefined') {
       return true
     }
 
+    /** The hand-drawn svg: what draws the flow when the page has no ECharts. */
+    function buildNativeGraph(lay, current) {
+      var graph = active.graph
+      var state = viewState()
+      var svgNS = 'http://www.w3.org/2000/svg'
+      var nodeW = 200
+      var nodeH = 52
+      var gapX = 24
+      var gapY = 84
+      var widest = lay.rows.reduce(function (n, r) {
+        return Math.max(n, r.length)
+      }, 1)
+      var width = widest * (nodeW + gapX) + gapX
+      var svg = document.createElementNS(svgNS, 'svg')
+      svg.setAttribute('class', 'dag-canvas')
+      svg.setAttribute('data-proc-graph', '')
+      svg.setAttribute('data-pulse', pulseOf(current))
+      svg.setAttribute('role', 'group')
+      svg.setAttribute('aria-label', graphSummary(state, current))
+      svg.setAttribute('viewBox', '0 0 ' + width + ' ' + (lay.rows.length * gapY + 20))
+      var pos = {}
+      lay.rows.forEach(function (row, r) {
+        var offset = (width - row.length * (nodeW + gapX) + gapX) / 2
+        row.forEach(function (slug, i) {
+          pos[slug] = { x: offset + i * (nodeW + gapX), y: 16 + r * gapY, layer: r }
+        })
+      })
+      Object.keys(graph.steps).forEach(function (slug) {
+        graph.steps[slug].next.forEach(function (t) {
+          if (!pos[t]) return
+          var edge = document.createElementNS(svgNS, 'path')
+          var x1 = pos[slug].x + nodeW / 2
+          var y1 = pos[slug].y + nodeH
+          var x2 = pos[t].x + nodeW / 2
+          var y2 = pos[t].y
+          var f = edgeFacts(state, current, slug, t)
+
+          var edgeClasses = ['dag-edge', f.status]
+          if (f.taken) edgeClasses.push('taken')
+          if (f.off) edgeClasses.push('off_path')
+          if (f.projected) edgeClasses.push('projected')
+          edge.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2)
+          edge.setAttribute('class', edgeClasses.join(' '))
+          edge.setAttribute('data-from', slug)
+          edge.setAttribute('data-to', t)
+          svg.appendChild(edge)
+          if (f.token) {
+            var label = document.createElementNS(svgNS, 'text')
+            var labelClasses = ['dag-edge-label', f.status]
+            if (f.taken) labelClasses.push('taken')
+            if (f.off) labelClasses.push('off_path')
+            if (f.projected) labelClasses.push('projected')
+            label.setAttribute('class', labelClasses.join(' '))
+            label.setAttribute('x', x2)
+            label.setAttribute('y', y2 - 6)
+            label.setAttribute('text-anchor', 'middle')
+            label.textContent = f.token.length > 24 ? f.token.substring(0, 22) + '…' : f.token
+            svg.appendChild(label)
+          }
+        })
+      })
+      Object.keys(graph.steps).forEach(function (slug) {
+        var step = graph.steps[slug]
+        var p = pos[slug]
+        var status = stepStatus(slug)
+        var g = document.createElementNS(svgNS, 'g')
+        g.setAttribute(
+          'class',
+          'dag-node ' +
+            status +
+            (step.stepType === 'decision' ? ' decision' : '') +
+            (slug === current ? ' current' : '') +
+            (isProjected(slug) ? ' projected' : '') +
+            (slug === selectedStep ? ' selected' : ''),
+        )
+        g.setAttribute('data-step', slug)
+        g.setAttribute('data-status', status)
+        g.setAttribute('data-layer', String(p.layer))
+        g.setAttribute('tabindex', '0')
+        g.setAttribute('role', 'button')
+        g.setAttribute('aria-label', announceStep(slug))
+        g.addEventListener('click', function () {
+          selectStep(slug)
+        })
+        g.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+            if (ev.preventDefault) ev.preventDefault()
+            selectStep(slug)
+          }
+        })
+        var rect = document.createElementNS(svgNS, 'rect')
+        rect.setAttribute('x', p.x)
+        rect.setAttribute('y', p.y)
+        rect.setAttribute('width', nodeW)
+        rect.setAttribute('height', nodeH)
+        rect.setAttribute('rx', '8')
+        g.appendChild(rect)
+        var dot = document.createElementNS(svgNS, 'circle')
+        dot.setAttribute('cx', p.x + 16)
+        dot.setAttribute('cy', p.y + nodeH / 2)
+        dot.setAttribute('r', '6')
+        dot.setAttribute('class', 'node-dot')
+        g.appendChild(dot)
+        var sub = document.createElementNS(svgNS, 'text')
+        sub.setAttribute('x', p.x + 30)
+        sub.setAttribute('y', p.y + 20)
+        sub.setAttribute('class', 'node-sub')
+        sub.textContent =
+          (step.stepType || 'task').toUpperCase() +
+          (step.executor ? ' · ' + step.executor : '') +
+          (status !== 'definition' ? ' · ' + status : '')
+        g.appendChild(sub)
+        var title = document.createElementNS(svgNS, 'text')
+        title.setAttribute('x', p.x + 30)
+        title.setAttribute('y', p.y + 38)
+        title.setAttribute('class', 'node-title')
+        var name = step.name || slug
+        title.textContent = name.length > 24 ? name.substring(0, 22) + '…' : name
+        g.appendChild(title)
+        svg.appendChild(g)
+      })
+      return svg
+    }
+
     function renderGraph(hostEl) {
       disposeGraph()
       var graph = active.graph
@@ -23345,9 +23468,10 @@ if (typeof window !== 'undefined') {
       col.appendChild(hint)
       // Attached before the chart is drawn, so the chart measures the width it really has.
       hostEl.appendChild(col)
-      // One renderer. The hand-drawn svg fallback was a second implementation of the same
-      // picture, and the step list above is already the graph's text alternative.
-      drawChartGraph(view, lay, current)
+      if (!drawChartGraph(view, lay, current)) {
+        view.className += ' exec-dag-view-native'
+        view.appendChild(buildNativeGraph(lay, current))
+      }
     }
 
     /** The same walk as a vertical list: the graph's text alternative, with each status in words. */
@@ -25268,11 +25392,10 @@ if (typeof window !== 'undefined') {
           },
           {
             'data-tab': t.id,
-            id: 'proc-tab-' + t.id,
             role: 'tab',
             'aria-selected': isOn ? 'true' : 'false',
-            'aria-controls': 'proc-panel-' + t.id,
-            // A tablist is one tab stop: the arrows move between tabs.
+            // A tablist is one tab stop: the arrows move between tabs. No ids: the view
+            // must be mountable twice on one page (`no global ids` in its test).
             tabindex: isOn ? '0' : '-1',
           },
         )
@@ -25319,9 +25442,7 @@ if (typeof window !== 'undefined') {
         'proc-panel panel panel-flow' + (activeTab === 'flow' ? ' on' : ''),
       )
       pFlow.setAttribute('data-tab-panel', 'flow')
-      pFlow.id = 'proc-panel-flow'
       pFlow.setAttribute('role', 'tabpanel')
-      pFlow.setAttribute('aria-labelledby', 'proc-tab-flow')
       var padFlow = make('div', 'pad')
       var branches = stepKeys.some(function (slug) {
         return Array.isArray(steps[slug].next) && steps[slug].next.length > 1
@@ -25382,9 +25503,7 @@ if (typeof window !== 'undefined') {
         'proc-panel panel panel-requests' + (activeTab === 'requests' ? ' on' : ''),
       )
       pReqs.setAttribute('data-tab-panel', 'requests')
-      pReqs.id = 'proc-panel-requests'
       pReqs.setAttribute('role', 'tabpanel')
-      pReqs.setAttribute('aria-labelledby', 'proc-tab-requests')
       var padReqs = make('div', 'pad')
       renderRequestQueue(padReqs)
       pReqs.appendChild(padReqs)
@@ -25396,9 +25515,7 @@ if (typeof window !== 'undefined') {
         'proc-panel panel panel-artifacts' + (activeTab === 'artifacts' ? ' on' : ''),
       )
       pArts.setAttribute('data-tab-panel', 'artifacts')
-      pArts.id = 'proc-panel-artifacts'
       pArts.setAttribute('role', 'tabpanel')
-      pArts.setAttribute('aria-labelledby', 'proc-tab-artifacts')
       renderArtifactPanel(pArts)
       hostEl.appendChild(pArts)
     }
