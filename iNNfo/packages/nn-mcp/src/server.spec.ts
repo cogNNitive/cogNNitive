@@ -1,5 +1,5 @@
 ﻿import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { readFile, rm, mkdir, writeFile } from 'node:fs/promises'
@@ -743,7 +743,7 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
   })
 
   describe('list_blueprints and hydrate_blueprint', () => {
-    it('list_blueprints returns enveloped array under "blueprints"', async () => {
+    it('list_blueprints returns enveloped array under "blueprints" and states the root', async () => {
       const result = await client.callTool({
         name: 'list_blueprints',
         arguments: { domain: rootDir },
@@ -751,6 +751,7 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
       expect(result.isError).toBeFalsy()
       const parsed = JSON.parse(textOf(result as CallToolResult))
       expect(parsed.version).toBe('innfo-list-blueprints@1')
+      expect(parsed.root).toBe(resolve(rootDir))
       expect(Array.isArray(parsed.blueprints)).toBe(true)
     })
 

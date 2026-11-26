@@ -555,7 +555,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'list_blueprints',
       annotations: { readOnlyHint: true },
       description:
-        'List all available Level 2 spec blueprints across local domain, global environment, and installed skills',
+        'List all available Level 2 spec blueprints across local domain, global environment, and installed skills. The result always states the resolved `root`; when the listing is empty and that root holds no domaiNN_NN.md the call returns ok=false with code NO_DOMAIN_ROOT instead of a bare empty list, so an empty answer never silently reads as "there is no such blueprint"',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1418,11 +1418,30 @@ async function handleInitKnowledge(args: Record<string, unknown>): Promise<CallT
 }
 
 async function handleListBlueprints(args: Record<string, unknown>): Promise<CallToolResult> {
-  const root = (args.domain as string) || (args.root as string) || ROOT_DIR
+  const root = resolve((args.domain as string) || (args.root as string) || ROOT_DIR)
   const blueprints = await listBlueprints(root)
-  return textResult(
-    JSON.stringify(envelopeList('innfo-list-blueprints', 'blueprints', blueprints), null, 2),
-  )
+  const list = envelopeList('innfo-list-blueprints', 'blueprints', blueprints)
+
+  // The listing aggregates the domain, the global environment and the installed skills, so
+  // an empty answer is meaningful only when the root is a domain; elsewhere it says nothing
+  // about which blueprints exist and the caller must not read it as "there are none".
+  if (blueprints.length === 0 && !isDomainRoot(root)) {
+    return errorResult(
+      JSON.stringify(
+        {
+          ...list,
+          ok: false,
+          code: 'NO_DOMAIN_ROOT',
+          root,
+          detail: `${root} holds no domaiNN_NN.md, so it is not a domaiNN and this empty listing proves nothing about any blueprint; point the server at a domaiNN (or pass domain) before concluding a blueprint is absent.`,
+        },
+        null,
+        2,
+      ),
+    )
+  }
+
+  return textResult(JSON.stringify({ ...list, ok: true, root }, null, 2))
 }
 
 async function handleHydrateBlueprint(args: Record<string, unknown>): Promise<CallToolResult> {
