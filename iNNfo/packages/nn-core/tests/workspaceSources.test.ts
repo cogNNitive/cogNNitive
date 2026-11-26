@@ -274,6 +274,7 @@ describe('add_element no longer writes sources (removed from the change model)',
   const LEVEL3_MODEL = `---
 spec_version: "V_0-2-1"
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: "Fixture"
   url: "https://example.test/fixture"
@@ -395,6 +396,7 @@ describe('validateWorkspaceSources — conflicts:: (D5)', () => {
     const model = parseKnowledge(`---
 spec_version: "V_0-2-1"
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: "Fixture"
   url: "https://example.test/fixture"

@@ -52,6 +52,7 @@ function md(frontmatter: Record<string, unknown>, body?: string): string {
 const CANONICAL_DOMAIN_FM = {
   spec_version: 'V_0-3-0',
   level: 3,
+  blueprint_version: 'V_0-1-0',
   knowledge_version: '0.1.0',
   parent_spec: { name: 'domaiNN_V_0-1-0_NN.md', url: 'https://cognnitive.com/innfo/specs/bluepriNNts/domaiNN/V_0-1-0/spec_NN.md' },
   title: 'Test DomaiNN',
@@ -105,7 +106,7 @@ describe('Task 7.3: Canonical DomaiNN Entrypoint Resolution', () => {
 
   it('does NOT treat index.md as an entrypoint; scans root .md files with a missing-entrypoint warning issue', async () => {
     const indexContent = md({ title: 'Index' }, '\n# NN index\n* [[doc1_NN.md]]\n')
-    const docContent = md({ title: 'Doc 1', level: 3, knowledge_version: '0.1.0', parent_spec: { name: 'custom', url: '' } }, '\n# NN custom\n')
+    const docContent = md({ title: 'Doc 1', level: 3, blueprint_version: 'V_0-1-0', knowledge_version: '0.1.0', parent_spec: { name: 'custom', url: '' } }, '\n# NN custom\n')
     const dir = fakeDir('root', [
       ['index.md', fakeFile('index.md', indexContent)],
       ['doc1_NN.md', fakeFile('doc1_NN.md', docContent)],

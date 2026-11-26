@@ -62,6 +62,7 @@ describe('Workspace Taxonomy and Submodels (Phase 1 nn-core)', () => {
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec_01
   url: https://example.com/workspace_spec_01.md
@@ -80,6 +81,7 @@ status:: active
         'kNNowledge/subsystem_a_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: subsystem_spec_01
   url: https://example.com/subsystem_spec_01.md
@@ -108,6 +110,7 @@ description:: Core engine component.
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com/spec.md
@@ -120,6 +123,7 @@ title: Legacy Index Workspace
         'kNNowledge/subsystem_b_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com/spec.md
@@ -143,6 +147,7 @@ title: Subsystem B
         'standalone_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com/spec.md
@@ -169,6 +174,7 @@ title: Standalone Model
       const templateContent = `---
 spec_version: V_1-0-0
 level: 2
+blueprint_version: V_0-1-0
 parent_spec:
   name: iNNfo_V_0-1-0
   url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-1-0_NN.md
@@ -211,6 +217,7 @@ description:: Path to submodel file.
         rawContent: `---
 spec_version: V_1-0-0
 level: 2
+blueprint_version: V_0-1-0
 parent_spec:
   name: iNNfo_V_0-1-0
   url: https://example.com
@@ -230,6 +237,7 @@ type:: knowledge
       const modelContent = `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec_01
   url: https://example.com
@@ -263,6 +271,7 @@ path:: kNNowledge/engine_01.md
       const modelContent = `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com
@@ -292,6 +301,7 @@ title: Index-Free Model
       const parsedModel = parseKnowledge(`---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com
@@ -324,6 +334,7 @@ parent_component:: C1
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec_01
   url: https://example.com/workspace_spec_01.md
@@ -341,6 +352,7 @@ path:: model_b_01.md
         'model_a_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com/spec.md
@@ -353,6 +365,7 @@ title: Model A
         'model_b_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com/spec.md
@@ -395,6 +408,7 @@ path:: model_a_01.md
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec_01
   url: https://example.com/workspace_spec_01.md
@@ -412,6 +426,7 @@ path:: model_b_01.md
         'model_a_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com/spec.md
@@ -424,6 +439,7 @@ title: Model A
         'model_b_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com/spec.md
@@ -465,6 +481,7 @@ title: Model B
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec_01
   url: https://example.com/workspace_spec_01.md
@@ -482,6 +499,7 @@ path:: org_two_01.md
         'org_one_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com/spec.md
@@ -494,6 +512,7 @@ title: Acme Org
         'org_two_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com/spec.md
@@ -581,6 +600,7 @@ title: Acme Org
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec_01
   url: https://example.com/workspace_spec_01.md
@@ -598,6 +618,7 @@ path:: model_b_01.md
         'model_a_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com/spec.md
@@ -610,6 +631,7 @@ title: Model A
         'model_b_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com/spec.md
@@ -639,6 +661,7 @@ path:: model_a_01.md
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec_01
   url: https://example.com/workspace_spec_01.md
@@ -665,6 +688,7 @@ path:: ghost_business_01.md
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec_01
   url: https://example.com/workspace_spec_01.md
@@ -679,6 +703,7 @@ path:: model_a_01.md
         'model_a_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com/spec.md
@@ -745,6 +770,7 @@ title: Model A
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec_01
   url: https://example.com/workspace_spec_01.md
@@ -770,6 +796,7 @@ description:: Living-dining room.
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec_01
   url: https://example.com/workspace_spec_01.md
@@ -785,6 +812,7 @@ path:: model_a_01.md
         'model_a_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com/spec.md
@@ -808,6 +836,7 @@ title: Model A
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec_01
   url: https://example.com/workspace_spec_01.md
@@ -822,6 +851,7 @@ path:: model_a_01.md
         'model_a_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com/spec.md
@@ -845,6 +875,7 @@ title: Model A
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec_01
   url: https://example.com/workspace_spec_01.md
@@ -859,6 +890,7 @@ path:: model_a_01.md
         'model_a_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec_01
   url: https://example.com/spec.md

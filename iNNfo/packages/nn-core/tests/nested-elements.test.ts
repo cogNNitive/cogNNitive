@@ -14,6 +14,7 @@ describe('Nested Level-3 Elements (Phase 1)', () => {
   const nestedDoc = `---
 spec_version: "V_0-4-0"
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: "coNNtent"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/coNNtent/spec_NN.md"
@@ -137,6 +138,7 @@ asset:: https://example.com/logo.png
     const docWithoutSlugs = `---
 spec_version: "V_0-4-0"
 level: 3
+blueprint_version: V_0-1-0
 title: "Script Without Explicit Slugs"
 ---
 
@@ -230,6 +232,7 @@ prop:: value
     const flatDoc = `---
 spec_version: "V_0-4-0"
 level: 3
+blueprint_version: V_0-1-0
 title: "Flat Script"
 ---
 
@@ -295,6 +298,7 @@ describe('Nested Level-3 Elements Validator & Graph (Phase 2)', () => {
     const validNested = `---
 spec_version: "V_0-4-0"
 level: 3
+blueprint_version: V_0-1-0
 title: "Valid Nested"
 ---
 
@@ -317,6 +321,7 @@ slug:: l1
     const invalidNested = `---
 spec_version: "V_0-4-0"
 level: 3
+blueprint_version: V_0-1-0
 title: "Invalid Nested"
 ---
 
@@ -344,6 +349,7 @@ slug:: s1
     const mismatchDoc = `---
 spec_version: "V_0-4-0"
 level: 3
+blueprint_version: V_0-1-0
 title: "Section Mismatch"
 ---
 
@@ -366,6 +372,7 @@ slug:: rogue-layer
     const docWithH3 = `---
 spec_version: "V_0-4-0"
 level: 3
+blueprint_version: V_0-1-0
 knowledge_version: "0.1.0"
 title: "Nested Markers Document"
 ---
@@ -391,6 +398,7 @@ type:: presenter
     const doc = `---
 spec_version: "V_0-4-0"
 level: 3
+blueprint_version: V_0-1-0
 knowledge_version: "0.1.0"
 title: "Graph Script"
 ---

@@ -89,6 +89,7 @@ describe('Recursive Submodels & Specification Alignment (Phase 4 nn-core)', () =
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec_01
   url: https://example.com/workspace_spec_01.md
@@ -103,6 +104,7 @@ author:: architect@example.com
         'kNNowledge/system_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: system_spec_01
   url: https://example.com/system_spec_01.md
@@ -116,6 +118,7 @@ path:: ./subsystems/auth_01.md
         'kNNowledge/subsystems/auth_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: auth_spec_01
   url: https://example.com/auth_spec_01.md
@@ -161,6 +164,7 @@ description:: Administrator role.
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec
   url: https://example.com/spec.md
@@ -174,6 +178,7 @@ path:: kNNowledge/service_a_01.md
         'kNNowledge/service_a_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: service_spec
   url: https://example.com/spec.md
@@ -187,6 +192,7 @@ path:: ./service_b_01.md
         'kNNowledge/service_b_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: service_spec
   url: https://example.com/spec.md
@@ -217,6 +223,7 @@ path:: ./service_a_01.md
         'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec
   url: https://example.com/spec.md
@@ -232,6 +239,7 @@ path:: ./service_2_01.md
         'service_1_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec
   url: https://example.com/spec.md
@@ -245,6 +253,7 @@ path:: ./shared_db_01.md
         'service_2_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec
   url: https://example.com/spec.md
@@ -258,6 +267,7 @@ path:: ./shared_db_01.md
         'shared_db_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec
   url: https://example.com/spec.md
@@ -303,6 +313,7 @@ title: Shared Database
       files['domaiNN_NN.md'] = `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec
   url: https://example.com/spec.md
@@ -317,6 +328,7 @@ path:: level_1_01.md
         files[`level_${i}_01.md`] = `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: spec
   url: https://example.com/spec.md
@@ -350,6 +362,7 @@ path:: level_${i + 1}_01.md
     const templateContent = `---
 spec_version: V_1-0-0
 level: 2
+blueprint_version: V_0-1-0
 parent_spec:
   name: iNNfo_V_0-1-0
   url: https://example.com/iNNfo_V_0-1-0_NN.md
@@ -392,6 +405,7 @@ target_blueprint:: service_template_01
       const content = `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: architecture_template
   url: https://example.com/arch.md
@@ -429,6 +443,7 @@ submodel_file:: [[kNNowledge/nonexistent_payment_01.md]]
       const content = `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: architecture_template
   url: https://example.com/arch.md
@@ -467,6 +482,7 @@ submodel_file:: kNNowledge/legacy_payment_01.md
       const content = `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: architecture_template
   url: https://example.com/arch.md
@@ -538,6 +554,7 @@ submodel_file:: [[kNNowledge/payment_01.md]]
     const workspaceContent = `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec
   url: https://example.com/spec.md
@@ -552,6 +569,7 @@ path:: startups/acme_startup_01.md
     const startupContent = `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: startup_V_0-1-0
   url: https://example.com/startup.md
@@ -566,6 +584,7 @@ business_model:: startups/acme_business_01.md
     const businessContent = `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: business_V_0-1-0
   url: https://example.com/business.md
@@ -652,6 +671,7 @@ path:: startups/notes_01.md
         'startups/notes_01.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: notes_V_0-1-0
   url: https://example.com/notes.md
@@ -714,6 +734,7 @@ title: Notes
       const diamondWorkspaceContent = `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec
   url: https://example.com/spec.md

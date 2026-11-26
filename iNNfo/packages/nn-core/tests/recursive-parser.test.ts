@@ -58,6 +58,7 @@ function md(frontmatter: Record<string, unknown>, body?: string): string {
 const BASE_FM = {
   spec_version: 'V_0-1-2',
   level: 3,
+  blueprint_version: 'V_0-1-1',
   knowledge_version: 'V_0-0-1',
   parent: { name: 'business_V_0-1-1', url: 'https://example.com/business' },
 }
@@ -68,12 +69,12 @@ function makeModel(title: string, body?: string): string {
 
 function makeIndex(wikilinks: string[]): string {
   const items = wikilinks.map((w) => `* [[${w}]]`).join('\n')
-  return `---\nspec_version: "V_0-3-0"\nlevel: 3\nknowledge_version: "V_0-1-0"\nparent_spec:\n  name: "domaiNN"\n  url: "https://example.com/domaiNN"\ntitle: "Root"\n---\n\n# NN index\n\n${items}\n`
+  return `---\nspec_version: "V_0-3-0"\nlevel: 3\nblueprint_version: "V_0-1-0"\nknowledge_version: "V_0-1-0"\nparent_spec:\n  name: "domaiNN"\n  url: "https://example.com/domaiNN"\ntitle: "Root"\n---\n\n# NN index\n\n${items}\n`
 }
 
 function makeIndexWithMdLinks(links: string[]): string {
   const items = links.map((p) => `* [${p}](./${p})`).join('\n')
-  return `---\nspec_version: "V_0-3-0"\nlevel: 3\nknowledge_version: "V_0-1-0"\nparent_spec:\n  name: "domaiNN"\n  url: "https://example.com/domaiNN"\ntitle: "Root"\n---\n\n# NN index\n\n${items}\n`
+  return `---\nspec_version: "V_0-3-0"\nlevel: 3\nblueprint_version: "V_0-1-0"\nknowledge_version: "V_0-1-0"\nparent_spec:\n  name: "domaiNN"\n  url: "https://example.com/domaiNN"\ntitle: "Root"\n---\n\n# NN index\n\n${items}\n`
 }
 
 function makeWorkspaceEntrypoint(workspaceId?: string): string {
@@ -822,6 +823,7 @@ En España fallecieron 439.146 personas en 2024 (INE).
       '---\n' +
       'spec_version: "V_0-1-2"\n' +
       'level: 3\n' +
+      'blueprint_version: V_0-1-1\n' +
       'knowledge_version: "V_0-0-1"\n' +
       'title: "Dash Test"\n' +
       'parent: { name: "business_V_0-1-1", url: "https://example.com/business" }\n' +
@@ -873,6 +875,7 @@ describe('AD-06: per-file validator still bypasses qualified cross-model refs', 
       rawContent: `---
 spec_version: V_1-0-0
 level: 2
+blueprint_version: V_0-1-0
 parent_spec:
   name: iNNfo_V_0-1-0
   url: https://example.com
@@ -892,6 +895,7 @@ type:: reference
     const modelContent = `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: person_spec_01
   url: https://example.com
