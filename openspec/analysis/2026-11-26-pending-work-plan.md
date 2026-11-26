@@ -8,7 +8,9 @@ of that date, plus `openspec/analysis/2026-11-25-conntent-boundaries.md`.
 "Grill: blueprints as independent distributable units" session. Everything that
 does — manifest membership, release-key granularity, content-sha pins, installer
 layout, mirror freshness — is parked as its own batch in `openspec/backlog_NN.md`
-(`b6-on-hold-blueprints`) and is **not** planned here.
+(`b6-on-hold-blueprints`) and is **not** planned here. Each of those eight items is
+described in detail, with what it needs from that session, in
+`openspec/analysis/2026-11-26-blueprints-handoff.md`.
 
 Each item names where it lives, what is wrong today, the fix, and how to accept it.
 Sizes are the usual S/M/L; "lane" is the repository lane (light = work, PR, CI).
