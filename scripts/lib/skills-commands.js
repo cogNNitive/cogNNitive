@@ -55,6 +55,8 @@ const {
   blueprintVerdict,
 } = require('./blueprint-provenance.js');
 
+const { loadChannels, resolveBlueprintInChannels } = require('./blueprint-channels.js');
+
 const DEFAULT_MANIFEST_URL = 'https://cognnitive.com/use/manifest.md';
 const FALLBACK_MANIFEST_URL = 'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/docs/use/manifest.md';
 // Repos retired from distribution: pins pointing here 404 on codeload/raw.
@@ -1527,7 +1529,7 @@ async function describeBlueprintPackage(template) {
  * (`skills-manager.js install --blueprint <name>`) from its catalog release pin
  * into the blueprints directory, projecting any embedded `<name>/skills/*` into
  * the skills directory. Consent-gated.
- * @param {{ blueprintsDir?: string, skillsDir?: string, stateFile: string, blueprint: string, repo?: string, catalogPath?: string, yes?: boolean, agent?: string, scope?: string }} args
+ * @param {{ blueprintsDir?: string, skillsDir?: string, stateFile: string, blueprint: string, repo?: string, catalogPath?: string, channelsPath?: string, fetchString?: (url: string) => Promise<string>, yes?: boolean, agent?: string, scope?: string }} args
  * @returns {Promise<void>}
  */
 async function cmdInstallBlueprint(args) {
@@ -1535,45 +1537,110 @@ async function cmdInstallBlueprint(args) {
   if (!name) throw new Error('install --blueprint requires a blueprint name');
 
   const catalogPath = args.catalogPath;
-  const catalog = await loadBlueprintCatalog(catalogPath);
-  const entry = findCatalogEntry(catalog, name);
-  if (!entry) {
-    throw new Error(
-      `blueprint '${name}' is not in the catalog (${catalogPath || DEFAULT_CATALOG_PATH}); ` +
-        'check the name or refresh catalog.json',
-    );
-  }
-  if (!entry.release_tag) {
-    throw new Error(`blueprint '${name}' is not yet released (no matching blueprints-v* tag); update the catalog`);
-  }
-
   const blueprintsDir = args.blueprintsDir || DEFAULT_BLUEPRINTS_DIR;
   const skillsDir = args.skillsDir || DEFAULT_SKILLS_DIR;
-  const repo = args.repo || DEFAULT_BLUEPRINT_REPO;
-  const ref = entry.release_tag;
-  const version = entry.adopted;
-  const entryName = entry.name || name;
-  const embedded = Array.isArray(entry.embedded_skills) ? entry.embedded_skills : [];
 
-  // codeload accepts a tag as the archive ref; reuse the (repo, ref) tarball
-  // cache and the standard blueprint install path for extraction + projection.
-  // A tag is not a commit, so resolve it: provenance must name an immutable tree
-  // (S3). When resolution fails the tag is still recorded, and the lock records
-  // `commit: null` rather than a tag in a commit field.
-  let resolvedCommit = ref;
+  // Catalog first, unchanged. Then channels (plan P2): "not in the catalog" stops being
+  // terminal, and it covers an unreachable catalog too — a transient network failure
+  // must not be reported as "this blueprint does not exist" when a channel carries it.
+  let entry = null;
+  let catalogError = null;
   try {
-    const resolved = await resolveRef(repo, ref);
-    if (resolved && 'sha' in resolved && resolved.sha) resolvedCommit = resolved.sha;
-  } catch (_) { /* offline or rate-limited: the tag still fetches the archive */ }
+    const catalog = await loadBlueprintCatalog(catalogPath);
+    entry = findCatalogEntry(catalog, name);
+  } catch (err) {
+    catalogError = err;
+  }
 
-  const template = {
-    name: entryName,
-    repo,
-    path: `iNNfo/specs/bluepriNNts/${entryName}/spec_NN.md`,
-    version,
-    ref,
-    commit: resolvedCommit,
-  };
+  /** @type {{ template: object, header: string[] }} */
+  let plan;
+  if (entry) {
+    if (!entry.release_tag) {
+      throw new Error(`blueprint '${name}' is not yet released (no matching blueprints-v* tag); update the catalog`);
+    }
+    const repo = args.repo || DEFAULT_BLUEPRINT_REPO;
+    const ref = entry.release_tag;
+    const version = entry.adopted;
+    const entryName = entry.name || name;
+
+    // codeload accepts a tag as the archive ref; reuse the (repo, ref) tarball
+    // cache and the standard blueprint install path for extraction + projection.
+    // A tag is not a commit, so resolve it: provenance must name an immutable tree
+    // (S3). When resolution fails the tag is still recorded, and the lock records
+    // `commit: null` rather than a tag in a commit field.
+    let resolvedCommit = ref;
+    try {
+      const resolved = await resolveRef(repo, ref);
+      if (resolved && 'sha' in resolved && resolved.sha) resolvedCommit = resolved.sha;
+    } catch (_) { /* offline or rate-limited: the tag still fetches the archive */ }
+
+    plan = {
+      template: {
+        name: entryName,
+        repo,
+        path: `iNNfo/specs/bluepriNNts/${entryName}/spec_NN.md`,
+        version,
+        tag: ref,
+        ref,
+        commit: resolvedCommit,
+      },
+      header: [
+        'Optional catalog blueprint (on demand):',
+        `  - ${entryName} (${version}) from ${repo} @ ${ref}`,
+        `  tier: ${entry.tier || 'free'} · access: ${entry.access || 'public'}`,
+      ],
+    };
+  } else {
+    // A channel answers "does someone publish this name, and at which commit". The
+    // commit comes from the publisher's own versions.json and is verified by reading
+    // that commit's blueprint.json (C3), so the install fetches an immutable tree and
+    // never a branch or a tag list.
+    const loaded = await loadChannels({ file: args.channelsPath, env: process.env });
+    const resolved = await resolveBlueprintInChannels(
+      { name, channels: loaded.channels },
+      { fetchString: args.fetchString },
+    );
+    if (!resolved.ok) {
+      const tried = resolved.tried.map((t) => `${t.channel}: ${t.reason}`).join('; ');
+      throw new Error(
+        `blueprint '${name}' is not in the catalog ` +
+          (catalogError ? `(${catalogError.message})` : `(${catalogPath || DEFAULT_CATALOG_PATH})`) +
+          ` and no channel carries it. channels (${loaded.source}): ${tried}`,
+      );
+    }
+    // The failure branch above establishes the invariant; the resolver returns nulls
+    // instead of a discriminated union so `checkJs` can narrow it here in one place.
+    const hit = /** @type {{ channel: { name: string, distribution_url: string }, distribution_url: string, entry: { version: string, tag: string | null, commit: string } }} */ (
+      resolved
+    );
+    const parts = distributionUrlParts(hit.distribution_url);
+    if (!parts) {
+      throw new Error(
+        `blueprint '${name}' resolved in channel '${hit.channel.name}' but ` +
+          `${hit.distribution_url} cannot address a commit's tree`,
+      );
+    }
+    plan = {
+      template: {
+        name,
+        repo: parts.repo,
+        path: `${parts.blueprintPath}/spec_NN.md`,
+        version: hit.entry.version,
+        tag: hit.entry.tag,
+        ref: hit.entry.commit,
+        commit: hit.entry.commit,
+      },
+      header: [
+        'Optional channel blueprint (on demand):',
+        `  - ${name} (${hit.entry.version}) from ${parts.repo} @ ${hit.entry.commit.slice(0, 7)}`,
+        `  channel: ${hit.channel.name} · ${hit.channel.distribution_url}`,
+      ],
+    };
+  }
+
+  const { template } = plan;
+  const entryName = template.name;
+  const embedded = Array.isArray(entry && entry.embedded_skills) ? entry.embedded_skills : [];
 
   const summary = await describeBlueprintPackage(template);
   const summaryMenu = summary
@@ -1585,9 +1652,7 @@ async function cmdInstallBlueprint(args) {
     : (embedded.length ? `  embedded skills: ${embedded.join(', ')}\n` : '');
 
   const menu =
-    `Optional catalog blueprint (on demand):\n` +
-    `  - ${entryName} (${version}) from ${repo} @ ${ref}\n` +
-    `  tier: ${entry.tier || 'free'} · access: ${entry.access || 'public'}\n` +
+    `${plan.header.join('\n')}\n` +
     summaryMenu +
     `\n[a] Install\n[b] Skip\n`;
   const proceed = await consentOrAbort(`install catalog blueprint ${entryName}`, [`blueprint:${entryName}`], menu, args.yes);
@@ -1611,7 +1676,7 @@ async function cmdInstallBlueprint(args) {
   });
   saveState(args.stateFile, state);
   console.log(
-    `installed catalog blueprint ${entryName} (${version}) @ ${ref}` +
+    `installed blueprint ${entryName} (${template.version}) @ ${template.ref}` +
       (projected.length ? ` and projected ${projected.length} skill(s): ${projected.join(', ')}` : ''),
   );
 }
