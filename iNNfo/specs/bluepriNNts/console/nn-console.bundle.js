@@ -18272,13 +18272,14 @@ if (typeof window !== 'undefined') {
                     y: n.y,
                     symbol: 'rect',
                     symbolSize: [SCHEMA_BOX_WIDTH, n.h],
-                    itemStyle: { color: '#ffffff', borderColor: color, borderWidth: 2 },
+                    itemStyle: { color: '#ffffff', borderColor: color, borderWidth: 1 },
                     label: {
                       show: true,
-                      position: [8, 8],
+                      // Inside the 1px border, so the header band is flush with the box.
+                      position: [1, 1],
                       align: 'left',
                       verticalAlign: 'top',
-                      width: SCHEMA_BOX_WIDTH - 16,
+                      width: SCHEMA_BOX_WIDTH - 2,
                       overflow: 'truncate',
                       formatter:
                         '{t|' +
@@ -18289,15 +18290,20 @@ if (typeof window !== 'undefined') {
                         lines.join('\n'),
                       rich: {
                         t: {
-                          width: SCHEMA_BOX_WIDTH - 16,
+                          // The 8px side padding adds to the width, so take it off here.
+                          width: SCHEMA_BOX_WIDTH - 2 - 16,
                           backgroundColor: color,
                           color: '#ffffff',
-                          fontWeight: 'bold',
+                          fontWeight: 600,
                           fontSize: 12,
-                          padding: [5, 6],
-                          borderRadius: 3,
+                          padding: [5, 8],
                         },
-                        f: { fontSize: 11, color: '#1f2937', lineHeight: SCHEMA_LINE },
+                        f: {
+                          fontSize: 11,
+                          color: '#1f2937',
+                          lineHeight: SCHEMA_LINE,
+                          padding: [0, 0, 0, 8],
+                        },
                         k: { fontSize: 10, color: '#6b7280', lineHeight: SCHEMA_LINE },
                       },
                     },
@@ -18322,16 +18328,19 @@ if (typeof window !== 'undefined') {
                   target: e.target,
                   lineStyle: {
                     type: e.kind === 'matrix' ? 'solid' : 'dashed',
-                    width: 1.5,
+                    width: 1,
                     color: '#64748b',
                   },
+                  // The name rides just above the line instead of cutting through it.
                   label: {
                     show: !!e.label,
                     formatter: e.label,
+                    position: 'middle',
+                    align: 'center',
+                    verticalAlign: 'bottom',
+                    distance: 4,
                     fontSize: 10,
-                    color: '#334155',
-                    backgroundColor: '#ffffff',
-                    padding: [1, 3],
+                    color: '#475569',
                   },
                 }
               }),
@@ -22949,8 +22958,9 @@ if (typeof window !== 'undefined') {
       var state = viewState()
       var w = geo.nodeW
       var h = geo.nodeH
+      // A faint wash, not a fill: a flow of green and amber slabs was the heaviest thing on the page.
       var tint = function (c) {
-        return blend(c, pal.surface, 0.14)
+        return blend(c, pal.surface, 0.07)
       }
       var data = Object.keys(graph.steps).map(function (slug) {
         var step = graph.steps[slug]
@@ -22960,7 +22970,7 @@ if (typeof window !== 'undefined') {
         var projected = isProjected(slug)
         var border = step.stepType === 'decision' ? pal.warning : pal.border
         var fill = pal.surface
-        var width = 1.5
+        var width = 1
         var type = 'solid'
         var opacity = 1
         if (status === 'done') {
@@ -22968,11 +22978,9 @@ if (typeof window !== 'undefined') {
           fill = tint(pal.success)
         } else if (status === 'failed') {
           border = pal.danger
-          width = 2
           fill = tint(pal.danger)
         } else if (status === 'waiting') {
           border = pal.warning
-          width = 2
           fill = tint(pal.warning)
         } else if (status === 'active') {
           border = pal.primary
@@ -22985,7 +22993,7 @@ if (typeof window !== 'undefined') {
         }
         if (isCurrent) {
           border = pal.primary
-          width = 3.5
+          width = 2
           type = 'solid'
         }
         if (projected) type = 'dotted'
@@ -23038,7 +23046,9 @@ if (typeof window !== 'undefined') {
           id: slug,
           name: step.name || slug,
           value: [geo.pos[slug].x, geo.pos[slug].y],
-          symbol: 'roundRect',
+          // 'roundRect' rounds by a fixed fraction of the box, which on these wide boxes
+          // made pills; a plain rectangle matches the metamodel boxes.
+          symbol: 'rect',
           symbolSize: [w, h],
           status: status,
           current: isCurrent,
@@ -23070,7 +23080,7 @@ if (typeof window !== 'undefined') {
                 fontSize: subSize,
                 lineHeight: 15,
                 color: isCurrent ? pal.primary : pal.muted,
-                fontWeight: 600,
+                fontWeight: 400,
               },
               title: {
                 width: inner,
@@ -23080,7 +23090,7 @@ if (typeof window !== 'undefined') {
                 fontSize: titleSize,
                 lineHeight: 18,
                 color: isCurrent ? pal.primary : pal.text,
-                fontWeight: isCurrent ? 700 : 600,
+                fontWeight: isCurrent ? 600 : 500,
               },
             },
           },
@@ -23111,7 +23121,7 @@ if (typeof window !== 'undefined') {
           var dashed = f.off || f.projected || f.status === 'waiting' || f.status === 'pending'
           var stroke = {
             color: color,
-            width: f.taken ? 3 : 1.5,
+            width: f.taken ? 2 : 1,
             type: dashed ? 'dashed' : 'solid',
             opacity: f.off ? 0.5 : 1,
           }
@@ -23136,7 +23146,7 @@ if (typeof window !== 'undefined') {
                   formatter: f.token.length > 24 ? f.token.substring(0, 22) + '…' : f.token,
                   color: f.taken ? pal.success : pal.muted,
                   fontSize: 11,
-                  fontWeight: 700,
+                  fontWeight: 500,
                   backgroundColor: pal.surface,
                   padding: [1, 4],
                   position: 'middle',
@@ -23176,7 +23186,7 @@ if (typeof window !== 'undefined') {
           coordinateSystem: 'cartesian2d',
           silent: true,
           z: 1,
-          symbol: 'roundRect',
+          symbol: 'rect',
           symbolSize: [w, h],
           showEffectOn: 'render',
           rippleEffect: { period: 3, scale: 1.2, brushType: 'stroke', color: pal.primary },
@@ -23190,9 +23200,9 @@ if (typeof window !== 'undefined') {
           coordinateSystem: 'cartesian2d',
           silent: true,
           z: 4,
-          symbol: 'roundRect',
+          symbol: 'rect',
           symbolSize: [w + 12, h + 12],
-          itemStyle: { color: 'rgba(0,0,0,0)', borderColor: pal.text, borderWidth: 3 },
+          itemStyle: { color: 'rgba(0,0,0,0)', borderColor: pal.text, borderWidth: 2 },
           data: [{ id: focusSlug, value: at(focusSlug) }],
         })
       }

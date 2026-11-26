@@ -7774,13 +7774,14 @@
                     y: n.y,
                     symbol: 'rect',
                     symbolSize: [SCHEMA_BOX_WIDTH, n.h],
-                    itemStyle: { color: '#ffffff', borderColor: color, borderWidth: 2 },
+                    itemStyle: { color: '#ffffff', borderColor: color, borderWidth: 1 },
                     label: {
                       show: true,
-                      position: [8, 8],
+                      // Inside the 1px border, so the header band is flush with the box.
+                      position: [1, 1],
                       align: 'left',
                       verticalAlign: 'top',
-                      width: SCHEMA_BOX_WIDTH - 16,
+                      width: SCHEMA_BOX_WIDTH - 2,
                       overflow: 'truncate',
                       formatter:
                         '{t|' +
@@ -7791,15 +7792,20 @@
                         lines.join('\n'),
                       rich: {
                         t: {
-                          width: SCHEMA_BOX_WIDTH - 16,
+                          // The 8px side padding adds to the width, so take it off here.
+                          width: SCHEMA_BOX_WIDTH - 2 - 16,
                           backgroundColor: color,
                           color: '#ffffff',
-                          fontWeight: 'bold',
+                          fontWeight: 600,
                           fontSize: 12,
-                          padding: [5, 6],
-                          borderRadius: 3,
+                          padding: [5, 8],
                         },
-                        f: { fontSize: 11, color: '#1f2937', lineHeight: SCHEMA_LINE },
+                        f: {
+                          fontSize: 11,
+                          color: '#1f2937',
+                          lineHeight: SCHEMA_LINE,
+                          padding: [0, 0, 0, 8],
+                        },
                         k: { fontSize: 10, color: '#6b7280', lineHeight: SCHEMA_LINE },
                       },
                     },
@@ -7824,16 +7830,19 @@
                   target: e.target,
                   lineStyle: {
                     type: e.kind === 'matrix' ? 'solid' : 'dashed',
-                    width: 1.5,
+                    width: 1,
                     color: '#64748b',
                   },
+                  // The name rides just above the line instead of cutting through it.
                   label: {
                     show: !!e.label,
                     formatter: e.label,
+                    position: 'middle',
+                    align: 'center',
+                    verticalAlign: 'bottom',
+                    distance: 4,
                     fontSize: 10,
-                    color: '#334155',
-                    backgroundColor: '#ffffff',
-                    padding: [1, 3],
+                    color: '#475569',
                   },
                 }
               }),

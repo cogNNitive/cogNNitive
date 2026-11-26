@@ -1516,7 +1516,16 @@ describe('procedure flow graph through the shared chart API', () => {
     )
     assert.equal(container.querySelector('[data-proc-graph]').getAttribute('data-pulse'), 'off')
     const current = graphOf(still).data.find((d) => d.id === 'review')
-    assert.ok(current.itemStyle.borderWidth >= 3, 'the active step is still marked, without motion')
+    const others = graphOf(still).data.filter((d) => d.id !== 'review' && d.itemStyle)
+    assert.ok(
+      others.every((d) => current.itemStyle.borderWidth > d.itemStyle.borderWidth),
+      'the active step is still marked, without motion: its border is the heaviest one',
+    )
+    assert.ok(
+      others.every((d) => d.itemStyle.borderWidth <= 1.5),
+      'every other node keeps a hairline border',
+    )
+    assert.equal(current.symbol, 'rect', 'boxes are plain rectangles, not pills')
   })
 
   it('lays the flow out for the width it has: wide nodes on a wide host, narrow ones on a phone', () => {
