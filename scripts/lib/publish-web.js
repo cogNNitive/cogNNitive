@@ -7,7 +7,8 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { diffTrees } = require('./publish-diff.js');
+const { diffTrees, collectTree } = require('./publish-diff.js');
+const { assertNotDestructive } = require('./publish-web-diff-guard.js');
 const { assertNoSource } = require('./publish-web-guard.js');
 const { buildGitAuthEnv, runGit, PublishError } = require('./publish-web-git.js');
 const { replaceSiteTree, copyDistributionPath, assertNoReleaseOwnedInArtifact } = require('./publish-web-tree.js');
@@ -25,6 +26,7 @@ const { DISTRIBUTION_PATHS } = require('../release/release-keys.js');
  * @param {string[]} [config.distributionPaths]
  * @param {string} [config.token]
  * @param {boolean} [config.dryRun]
+ * @param {number|string} [config.maxRemovals] override the destructive-diff ceiling (WEB_PUBLISH_MAX_REMOVALS)
  * @param {object} [options]
  * @param {string} [options.tmpRoot]
  * @param {string} [options.remoteUrl]
@@ -80,6 +82,16 @@ async function runPublish(config, options = {}) {
     // 2. Site: diff and replace
     const targetTree = path.join(work, subdir);
     const siteDiff = diffTrees(docsRoot, fs.existsSync(targetTree) ? targetTree : path.join(work, '__absent__'));
+
+    // A publish that empties or guts the site is never legitimate. Checked against the
+    // built artifact and the computed removals before `replaceSiteTree` deletes anything.
+    const sourceFileCount = collectTree(docsRoot).size;
+    assertNotDestructive({
+      siteDiff,
+      sourceFileCount,
+      maxRemovals: config.maxRemovals ?? process.env.WEB_PUBLISH_MAX_REMOVALS,
+      subdir,
+    });
 
     if (siteDiff.identical) {
       logger.log('publish-web: site artifact is byte-identical.');
