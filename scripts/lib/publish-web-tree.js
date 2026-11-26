@@ -124,6 +124,46 @@ function replaceSiteTree(srcDir, dstDir, options = {}) {
  * @param {string} workDir
  * @returns {boolean} True if copied, false if source did not exist
  */
+/**
+ * Asserts that the destination reproduces the source: same file list, same byte size for
+ * every file. A wholesale copy that silently lost files (a filtered directory, a rename, a
+ * partial write) is invisible without this — the release would publish a tree that is not
+ * the tag's tree, and nothing downstream compares the two (handoff item 3, 2026-11-26).
+ *
+ * Sizes rather than hashes: the point is to catch a mirror that stopped carrying files, and
+ * hashing every byte of `iNNfo/specs` on every release buys nothing over a size check for
+ * that class of failure.
+ * @param {string} from source directory
+ * @param {string} to destination directory
+ * @param {string} label repo-relative path, for the message
+ */
+function assertMirrored(from, to, label) {
+  const listOf = (dir) =>
+    collectFiles(dir).filter((rel) => !rel.split('/').includes('node_modules'));
+
+  const source = listOf(from).sort();
+  const dest = listOf(to).sort();
+
+  const missing = source.filter((rel) => !dest.includes(rel));
+  const extra = dest.filter((rel) => !source.includes(rel));
+  const wrongSize = [];
+  for (const rel of source) {
+    if (!dest.includes(rel)) continue;
+    const a = fs.statSync(path.join(from, rel)).size;
+    const b = fs.statSync(path.join(to, rel)).size;
+    if (a !== b) wrongSize.push(`${rel} (${a} vs ${b} bytes)`);
+  }
+
+  const problems = [];
+  if (missing.length) problems.push(`${missing.length} file(s) missing: ${missing.slice(0, 5).join(', ')}`);
+  if (extra.length) problems.push(`${extra.length} file(s) not in the source: ${extra.slice(0, 5).join(', ')}`);
+  if (wrongSize.length) problems.push(`${wrongSize.length} file(s) with a different size: ${wrongSize.slice(0, 5).join(', ')}`);
+
+  if (problems.length) {
+    throw new Error(`mirror parity failed for ${label}: ${problems.join('; ')}`);
+  }
+}
+
 function copyDistributionPath(repoRoot, relPath, workDir) {
   const from = path.join(repoRoot, relPath);
   if (!fs.existsSync(from)) return false;
@@ -135,6 +175,7 @@ function copyDistributionPath(repoRoot, relPath, workDir) {
     recursive: true,
     filter: (src) => !src.split(path.sep).includes('node_modules'),
   });
+  assertMirrored(from, to, relPath);
   return true;
 }
 
@@ -144,4 +185,5 @@ module.exports = {
   assertNoReleaseOwnedInArtifact,
   replaceSiteTree,
   copyDistributionPath,
+  assertMirrored,
 };
