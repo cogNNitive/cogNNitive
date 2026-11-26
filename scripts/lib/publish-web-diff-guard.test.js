@@ -13,7 +13,14 @@ const {
   preservedOnReplace,
   resolveMaxRemovals,
 } = require('./publish-web-diff-guard.js')
+const { DEFAULT_PRESERVE } = require('./publish-web-tree.js')
 const { PublishError } = require('./publish-web-git.js')
+const { RELEASE_OWNED_GLOBS } = require('../release/release-keys.js')
+
+/** A concrete path for a single-segment `*` glob, so the samples come from the globs. */
+function sampleForGlob(glob, fill = '1') {
+  return glob.replace(/\*/g, fill)
+}
 
 const diff = (removed = [], added = [], modified = []) => ({
   added,
@@ -87,16 +94,10 @@ function testNormalPublishPasses() {
 function testPreservedPathsAreNotCounted() {
   // `replaceSiteTree` restores these, so they are in `removed` on every publish yet
   // never deleted. Counting them would make each post-release publish look destructive.
-  const preserved = [
-    'CNAME',
-    '.nojekyll',
-    'use/manifest.md',
-    'update/manifest.md',
-    'use/manifests/blueprints-v0.104.0.md',
-    'innfo/cdn/manifest.json',
-    'innfo/cdn/nn-mcp-v0.60.0.bundle.js',
-    'innfo/cdn/innfo-mcp-v0.8.1.bundle.js',
-  ]
+  //
+  // Derived from the artifacts' own declarations rather than copied: a hand-written
+  // sample drifts from the globs the tree code actually applies.
+  const preserved = [...DEFAULT_PRESERVE, ...RELEASE_OWNED_GLOBS.map((glob) => sampleForGlob(glob))]
   for (const rel of preserved) {
     assert.strictEqual(preservedOnReplace(rel), true, `${rel} must be treated as preserved`)
   }
@@ -104,7 +105,9 @@ function testPreservedPathsAreNotCounted() {
 
   // A hundred release-owned files plus one real deletion is still one deletion.
   const many = [
-    ...Array.from({ length: 100 }, (_, i) => `innfo/cdn/nn-mcp-v0.${i}.0.bundle.js`),
+    ...Array.from({ length: 100 }, (_, i) =>
+      sampleForGlob(RELEASE_OWNED_GLOBS[i % RELEASE_OWNED_GLOBS.length], String(i)),
+    ),
     'documentation/retired.html',
   ]
   assert.doesNotThrow(() => assertNotDestructive({ siteDiff: diff(many), sourceFileCount: 172 }))
