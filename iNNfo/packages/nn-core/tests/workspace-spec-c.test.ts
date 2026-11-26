@@ -67,6 +67,7 @@ describe('Change C — workspace-scoped author:: propagation', () => {
       'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec
   url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/workspace_spec_NN.md
@@ -91,6 +92,7 @@ author:: Grace Hopper
       'alpha_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: some_spec
   url: https://example.com/some_spec.md
@@ -103,6 +105,7 @@ title: Alpha Model
       'beta_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: some_spec
   url: https://example.com/some_spec.md
@@ -129,6 +132,7 @@ title: Beta Model
       'domaiNN_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace_spec
   url: https://example.com/workspace_spec_NN.md
@@ -147,6 +151,7 @@ status:: active
       'gamma_NN.md': `---
 spec_version: V_1-0-0
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: some_spec
   url: https://example.com/some_spec.md

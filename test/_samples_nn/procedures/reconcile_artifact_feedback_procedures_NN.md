@@ -1,5 +1,6 @@
 ---
 level: 3
+blueprint_version: "V_0-2-0"
 parent_spec:
   name: "procedures_V_0-2-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/procedures/procedures_V_0-2-0_NN.md"

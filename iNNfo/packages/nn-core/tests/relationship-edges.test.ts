@@ -6,6 +6,7 @@ describe('Relationship Edges & Origins (relationship-types)', () => {
     const md = `---
 spec_version: "V_0-1-2"
 level: 3
+blueprint_version: V_0-1-0
 knowledge_version: "V_0-0-1"
 title: "Matrix Test"
 ---
@@ -52,6 +53,7 @@ description:: Final approval
     const md = `---
 spec_version: "V_0-1-2"
 level: 3
+blueprint_version: V_0-1-0
 knowledge_version: "V_0-0-1"
 title: "Field Test"
 ---
@@ -113,6 +115,7 @@ depends_on:: [[Alpha]]
     const md = `---
 spec_version: "V_0-1-2"
 level: 3
+blueprint_version: V_0-1-0
 knowledge_version: "V_0-0-1"
 title: "Mention Test"
 ---
@@ -159,6 +162,7 @@ description:: See details in [[First Item]] for guidance.
     const md = `---
 spec_version: "V_0-1-2"
 level: 3
+blueprint_version: V_0-1-0
 knowledge_version: "V_0-0-1"
 title: "Case Insensitive Test"
 ---
@@ -192,6 +196,7 @@ note:: Requires [[passport]]
     const md = `---
 spec_version: "V_0-1-2"
 level: 3
+blueprint_version: V_0-1-0
 knowledge_version: "V_0-0-1"
 title: "Dangling Test"
 ---
@@ -219,6 +224,7 @@ description:: Mentions [[NonExistentTarget]] and [[see [[Nested]] here]]
     const md = `---
 spec_version: "V_0-1-2"
 level: 3
+blueprint_version: V_0-1-0
 knowledge_version: "V_0-0-1"
 title: "Empty Wikilinks Test"
 ---
@@ -243,6 +249,7 @@ description:: Clean text [[]]
     const md = `---
 spec_version: "V_0-1-2"
 level: 3
+blueprint_version: V_0-1-0
 knowledge_version: "V_0-0-1"
 title: "Dedup Test"
 ---
@@ -300,6 +307,7 @@ description:: Also refers to [[Target]]
     const md = `---
 spec_version: "V_0-1-2"
 level: 3
+blueprint_version: V_0-1-0
 knowledge_version: "V_0-0-1"
 title: "Graph Edge Test"
 graph_edges:

@@ -8,6 +8,7 @@ const rootDir = join(import.meta.dirname!, '..', 'temp-test-workspace-sources')
 const INDEX = `---
 spec_version: "V_0-3-0"
 level: 3
+blueprint_version: "V_0-1-0"
 title: "Workspace Index"
 ---
 
@@ -22,6 +23,7 @@ title: "Workspace Index"
 // CI runner — a vertical here would make this suite green on Windows and red on Linux.
 const MODEL = `---
 level: 3
+blueprint_version: "V_0-4-1"
 parent_spec:
   name: blank
   url: "blank"
@@ -95,6 +97,7 @@ describe('validate_model workspace mode — sources:: Citations', () => {
 
     const nestedModel = `---
 level: 3
+blueprint_version: "V_0-4-1"
 parent_spec:
   name: blank
   url: "blank"
@@ -138,6 +141,7 @@ Budget details.
 
     const nestedModel = `---
 level: 3
+blueprint_version: "V_0-4-1"
 parent_spec:
   name: blank
   url: "blank"
@@ -178,6 +182,7 @@ Root policy details.
   it('emits missing parent directory and fuzzy suggestions in diagnostics', async () => {
     const modelWithErrors = `---
 level: 3
+blueprint_version: "V_0-4-1"
 parent_spec:
   name: blank
   url: "blank"

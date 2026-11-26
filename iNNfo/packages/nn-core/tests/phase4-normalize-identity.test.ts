@@ -7,6 +7,7 @@ describe('Phase 4: Normalization & Identity Registry Reversing R-IE-02', () => {
     const md = `---
 spec_version: "V_0-3-0"
 level: 3
+blueprint_version: V_0-1-0
 ---
 
 # NN Product
@@ -45,6 +46,7 @@ desc:: Vendor Name
     const md = `---
 spec_version: "V_0-3-0"
 level: 3
+blueprint_version: V_0-1-0
 ---
 
 # NN Product

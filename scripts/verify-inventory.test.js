@@ -375,6 +375,72 @@ blueprints:
     }
   }
 
+  // 12. Real repo: every published blueprint declares blueprint.json beside spec_NN.md,
+  // and that declaration agrees with the spec frontmatter and the catalog's adopted version.
+  {
+    const repoRoot = path.resolve(__dirname, '..')
+    const blueprintsDir = path.join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts')
+    const catalog = JSON.parse(fs.readFileSync(path.join(blueprintsDir, 'catalog.json'), 'utf8'))
+    const pinned = []
+    for (const entry of fs.readdirSync(blueprintsDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue
+      const name = entry.name
+      const specPath = path.join(blueprintsDir, name, 'spec_NN.md')
+      if (!fs.existsSync(specPath)) continue
+      const rel = `${name}/blueprint.json`
+      const manifestPath = path.join(blueprintsDir, name, 'blueprint.json')
+      assert.ok(
+        fs.existsSync(manifestPath),
+        `${rel}: ${name}/spec_NN.md is published but ${rel} is missing`,
+      )
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+      const specText = fs.readFileSync(specPath, 'utf8')
+      const declared = (key) => {
+        const match = new RegExp(`^${key}:\\s*"?([^"\\n]+)"?\\s*$`, 'm').exec(specText)
+        return match ? match[1] : undefined
+      }
+      const specVersion = declared('blueprint_version')
+      const formatVersion = declared('spec_version')
+      assert.strictEqual(
+        manifest.name,
+        name,
+        `${rel}: name "${manifest.name}" but the folder is "${name}"`,
+      )
+      assert.strictEqual(
+        manifest.version,
+        specVersion,
+        `${rel}: version "${manifest.version}" but spec_NN.md declares "${specVersion}"`,
+      )
+      assert.strictEqual(
+        manifest.format_version,
+        formatVersion,
+        `${rel}: format_version "${manifest.format_version}" but spec_NN.md declares "${formatVersion}"`,
+      )
+      const expectedUrl = `https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/${name}`
+      assert.strictEqual(
+        manifest.distribution_url,
+        expectedUrl,
+        `${rel}: distribution_url "${manifest.distribution_url}" but expected "${expectedUrl}"`,
+      )
+      // `workspace` is frozen, not adopted: it has no entry in catalog.blueprints.
+      const catalogEntry = catalog.blueprints[name]
+      if (catalogEntry && catalogEntry.adopted) {
+        assert.strictEqual(
+          manifest.version,
+          catalogEntry.adopted,
+          `${rel}: version "${manifest.version}" but catalog.json adopted "${catalogEntry.adopted}"`,
+        )
+      }
+      pinned.push(name)
+    }
+    assert.strictEqual(
+      pinned.length,
+      23,
+      `expected 23 published blueprints, found ${pinned.length}: ${pinned.sort().join(', ')}`,
+    )
+    console.log('✔ Every published blueprint ships a blueprint.json that agrees with its spec')
+  }
+
   console.log('All verify-inventory unit tests passed successfully!')
 }
 

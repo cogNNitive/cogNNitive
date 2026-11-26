@@ -72,6 +72,24 @@ export function normalizeSingleKnowledge(
     return { nodes: ctx.nodes, issues: ctx.issues }
   }
 
+  // `blueprint_version` is REQUIRED at load (blueprints-distribution plan, C2).
+  // A level-2 blueprint declares its own version (D3); a level-3 document declares
+  // the version it was authored against. Validated-when-present made the field
+  // advisory: 114 of 140 documents in a measured domain declare none and loaded
+  // anyway. Levels 0 and 1 are exempt — they declare `spec_version` and are not
+  // instances of a blueprint.
+  const level = typeof fm.level === 'number' ? fm.level : Number(fm.level)
+  const declaresBlueprintVersion =
+    typeof fm.blueprint_version === 'string' && fm.blueprint_version.trim().length > 0
+  if (Number.isFinite(level) && level >= 2 && !declaresBlueprintVersion) {
+    ctx.issues.push({
+      path: refPath,
+      severity: 'error',
+      message: `missing required frontmatter field "blueprint_version" (level ${level} document) — refused`,
+    })
+    return { nodes: ctx.nodes, issues: ctx.issues }
+  }
+
   // Create root node for this model
   const qualifiedId = ctx.identity.register(null, refName)
   const rootNode: KnowledgeNode = {

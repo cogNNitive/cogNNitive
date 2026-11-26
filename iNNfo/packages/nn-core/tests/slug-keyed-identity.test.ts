@@ -4,6 +4,7 @@ import { normalizeSingleKnowledge } from '../src/recursiveParser/knowledge.js'
 const FRONT = `---
 spec_version: "V_0-3-0"
 level: 3
+blueprint_version: V_0-15-0
 parent_spec:
   name: coNNtent_V_0-15-0
   url: https://example.com/coNNtent_V_0-15-0_NN.md

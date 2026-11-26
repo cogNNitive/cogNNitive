@@ -26,6 +26,7 @@ const sha256 = (bytes: string | Buffer): string => createHash('sha256').update(b
 
 const organization = (slugTitle: string): string => `---
 level: 3
+blueprint_version: "V_0-1-0"
 parent_spec:
   name: organization_V_0-1-0
 knowledge_version: "V_0-1-0"
@@ -82,6 +83,7 @@ type:: reference
 const CONSUMER_MODEL = `---
 spec_version: "V_0-4-0"
 level: 3
+blueprint_version: "V_0-1-0"
 parent_spec:
   name: "procedures_V_0-1-0"
   url: "specs/procedures_V_0-1-0_NN.md"
@@ -99,6 +101,7 @@ responsable:: ${MIRROR_ADDRESS}
 
 const CATALOG = (origin: string): string => `---
 level: 3
+blueprint_version: "V_0-1-0"
 title: "Sources"
 ---
 
@@ -153,7 +156,7 @@ beforeEach(() => {
   origin = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-sync-e2e-origin-'))
   put(origin, 'organization_NN.md', organization('Gerente'))
   put(origin, 'changes/org_agent_20261010T120000Z_changes_NN.md', CHANGESET)
-  put(root, 'domaiNN_NN.md', '---\nlevel: 3\ntitle: "Procedures domain"\n---\n\n# NN index\n\n* [Procedures](./kNNowledge/procedures_NN.md)\n')
+  put(root, 'domaiNN_NN.md', '---\nlevel: 3\nblueprint_version: "V_0-1-0"\ntitle: "Procedures domain"\n---\n\n# NN index\n\n* [Procedures](./kNNowledge/procedures_NN.md)\n')
   put(root, 'kNNowledge/procedures_NN.md', CONSUMER_MODEL)
   put(root, 'sources/sources_NN.md', CATALOG(origin))
 })

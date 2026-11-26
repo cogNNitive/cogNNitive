@@ -36,6 +36,7 @@ const {
   fetchString,
   fetchJson,
   downloadFile,
+  resolveRef,
 } = require('./github-client.js');
 
 const {
@@ -45,6 +46,14 @@ const {
 const { parseFocusedYaml, parseFrontmatter } = require('./yaml-lite.js');
 
 const { registerMcpAuto } = require('./mcp-config-adapter.js');
+const {
+  recordProvenance,
+  readProvenance,
+  readBlueprintManifest,
+  digestTree,
+  distributionUrlParts,
+  blueprintVerdict,
+} = require('./blueprint-provenance.js');
 
 const DEFAULT_MANIFEST_URL = 'https://cognnitive.com/use/manifest.md';
 const FALLBACK_MANIFEST_URL = 'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/docs/use/manifest.md';
@@ -706,6 +715,23 @@ async function installBlueprintAtCommit(template, blueprintsDir, state, skillsDi
     path: recordedPath,
     updated_at: new Date().toISOString(),
   };
+
+  // Provenance is recorded beside the managed layer, in the directory that holds
+  // it, so it travels with the domain and a clone with no network still reads it
+  // (plan C5). `status` and `update` read it instead of walking a catalog (S5).
+  // The version and the distribution_url come from the unit's own
+  // `blueprint.json`; `commit` is a sha or it is null, never a tag (S3).
+  const installedDir = recordedPath === pkgDestPath ? pkgDestPath : null;
+  const shipped = installedDir ? readBlueprintManifest(installedDir) : { ok: false, value: null };
+  const isSha = /^[0-9a-f]{40}$/i.test(String(template.commit || ''));
+  recordProvenance(blueprintsDir, template.name, {
+    version: (shipped.ok && shipped.value.version) || template.version || null,
+    tag: isSha ? template.tag || template.ref || null : template.commit || null,
+    commit: isSha ? template.commit : null,
+    distribution_url: shipped.ok ? shipped.value.distribution_url : null,
+    digests: installedDir ? digestTree(installedDir) : {},
+  });
+
   return projected;
 }
 
@@ -860,6 +886,27 @@ async function consentOrAbort(label, names, menu, yes) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Provenance verdicts for the blueprints present on disk, keyed by name.
+ *
+ * A unit that is not on disk needs no fetch: `status` reports it as missing from
+ * the state, not from the network. A unit with no lock entry is reported by the
+ * caller as today (manifest pin) or as `unknown` — never as `current`.
+ *
+ * @param {string} blueprintsDir
+ * @param {Iterable<string>} names
+ * @returns {Promise<Map<string, { status: string, recorded: boolean, installed: string|null, published: string|null, commit: string|null, tag: string|null, detail: string|null }>>}
+ */
+async function collectBlueprintVerdicts(blueprintsDir, names) {
+  const verdicts = new Map();
+  for (const name of new Set([...names].filter(Boolean))) {
+    const installedDir = path.join(blueprintsDir, name);
+    if (!fs.existsSync(installedDir) || !fs.statSync(installedDir).isDirectory()) continue;
+    verdicts.set(name, await blueprintVerdict({ blueprintsDir, installedDir, name }));
+  }
+  return verdicts;
+}
+
+/**
  * Executes status command comparing installed commits against pinned commits.
  * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, mcpDir?: string, stateFile: string, catalogPath?: string }} args
  * @returns {Promise<void>}
@@ -877,6 +924,15 @@ async function cmdStatus(args) {
   const outdatedConsoleAssets = [];
   const outdatedMcp = [];
   const modifiedSkills = [];
+  const blueprintDetails = [];
+
+  const manifestNames = new Set(blueprints.map((t) => t.name));
+  const untracked = untrackedInstalledBlueprints(args.blueprintsDir, state, manifestNames);
+  const verdicts = await collectBlueprintVerdicts(args.blueprintsDir, [
+    ...manifestNames,
+    ...Object.keys(state.blueprints || {}),
+    ...untracked.map((item) => item.name),
+  ]);
 
   for (const skill of skills) {
     const dirPresent = fs.existsSync(path.join(args.skillsDir, skill.name));
@@ -913,22 +969,33 @@ async function cmdStatus(args) {
     const fileName = template.name.endsWith('.md') ? template.name : `${template.name}.md`;
     const pathPresent = fs.existsSync(path.join(args.blueprintsDir, fileName)) || fs.existsSync(path.join(args.blueprintsDir, template.name));
     const entry = state.blueprints[template.name];
+    const verdict = verdicts.get(template.name);
     let status;
-    if (pathPresent) {
-      if (!entry) status = 'untracked';
-      else if (entry.commit === template.commit) status = 'up-to-date';
-      else status = 'outdated';
-    } else {
+    if (!pathPresent) {
       status = entry ? 'file-missing' : 'missing';
+    } else if (verdict && verdict.recorded) {
+      // A recorded provenance is the answer: the unit says what it is and where
+      // it came from, so a catalog or a manifest pin is not consulted (S5).
+      status = verdict.status;
+    } else if (!entry) {
+      status = 'untracked';
+    } else {
+      // No provenance yet: the manifest pin is all that is known, and it is stated
+      // as a pin comparison — of immutable commits, not of versions.
+      status = entry.commit === template.commit ? 'up-to-date' : 'outdated';
     }
     rows.push({
       type: 'template',
       name: template.name,
-      pinned: statusRef(template.commit),
-      installed: statusRef(entry && entry.commit),
+      pinned: verdict && verdict.published ? verdict.published : statusRef(template.commit),
+      installed: verdict && verdict.installed ? verdict.installed : statusRef(entry && entry.commit),
       status,
     });
-    if (status === 'outdated') outdatedBlueprints.push(template);
+    if (status === 'outdated' || status === 'update-available') outdatedBlueprints.push(template);
+    // A manifest-pinned unit with no recorded provenance already reads as a pin
+    // comparison; repeating "no provenance" for every core blueprint would bury
+    // the rows that do need an explanation.
+    if (verdict && verdict.detail && verdict.recorded) blueprintDetails.push(`${template.name}: ${verdict.detail}`);
   }
 
   for (const server of mcp || []) {
@@ -977,58 +1044,58 @@ async function cmdStatus(args) {
     if (status === 'outdated') outdatedConsoleAssets.push(asset);
   }
 
-  // Installed catalog bluepriNNts not covered by the manifest: compare to the catalog.
+  // Installed bluepriNNts the manifest does not list: provenance decides. A unit
+  // with no recorded provenance is `unknown`, never `up-to-date` (A4). The catalog
+  // is consulted only to tell a retired orphan from a live one.
   let catalog = null;
   try {
     catalog = await loadBlueprintCatalog(args.catalogPath);
   } catch (_) {
     catalog = null;
   }
-  const manifestNames = new Set(blueprints.map((t) => t.name));
   for (const [name, entry] of Object.entries(state.blueprints || {})) {
     if (manifestNames.has(name)) continue;
+    const verdict = verdicts.get(name);
     const catalogEntry = findCatalogEntry(catalog, name);
-    const installedTag = entry && entry.commit;
     let status;
-    if (!catalogEntry) status = unmatchedCatalogStatus(catalog);
-    else if (!catalogEntry.release_tag) status = 'unreleased';
-    else if (installedTag === catalogEntry.release_tag) status = 'up-to-date';
-    else status = 'outdated';
+    if (verdict && verdict.recorded) status = verdict.status;
+    else if (!catalogEntry) status = unmatchedCatalogStatus(catalog);
+    else status = 'unknown';
     rows.push({
       type: 'catalog',
       name,
-      pinned: statusRef(catalogEntry && catalogEntry.release_tag),
-      installed: statusRef(installedTag),
+      pinned: verdict && verdict.published ? verdict.published : statusRef(catalogEntry && catalogEntry.release_tag),
+      installed: verdict && verdict.installed ? verdict.installed : statusRef(entry && entry.commit),
       status,
     });
+    if (verdict && verdict.detail) blueprintDetails.push(`${name}: ${verdict.detail}`);
   }
 
-  // Catalog bluepriNNts hydrated outside the manager: compare the installed
-  // spec's blueprint_version with the catalog's adopted version.
-  const behindBlueprints = [];
-  for (const item of untrackedInstalledBlueprints(args.blueprintsDir, state, manifestNames)) {
+  // BluepriNNt packages present on disk that nothing records: same rule. A flat
+  // file is never a package, so it has no provenance to read.
+  for (const item of untracked) {
     const { name, version } = item;
-    // A flat file is never a catalog package: only its absence from the catalog is judged.
+    const verdict = verdicts.get(name);
     const catalogEntry = item.kind === 'dir' ? findCatalogEntry(catalog, name) : null;
     let status;
-    if (!catalogEntry) status = unmatchedCatalogStatus(catalog);
-    else if (!catalogEntry.adopted) status = 'unreleased';
-    else if (compareBlueprintVersions(version, catalogEntry.adopted) < 0) status = 'outdated';
-    else status = 'up-to-date';
-    if (status === 'outdated') behindBlueprints.push({ name: catalogEntry.name || name, version, adopted: catalogEntry.adopted });
+    if (verdict && verdict.recorded) status = verdict.status;
+    else if (!catalogEntry) status = unmatchedCatalogStatus(catalog);
+    else status = 'unknown';
     rows.push({
       type: 'catalog',
       name: untrackedDisplayName(item),
-      pinned: catalogEntry && catalogEntry.adopted ? String(catalogEntry.adopted) : '-',
-      installed: version || '-',
+      pinned: verdict && verdict.published ? verdict.published : catalogEntry && catalogEntry.adopted ? String(catalogEntry.adopted) : '-',
+      installed: verdict && verdict.installed ? verdict.installed : version || '-',
       status,
     });
+    if (verdict && verdict.detail) blueprintDetails.push(`${untrackedDisplayName(item)}: ${verdict.detail}`);
   }
 
   printStatusTable(rows);
 
-  for (const bp of behindBlueprints) {
-    console.log(`\nbluepriNNt ${bp.name} ${bp.version || '(unknown version)'} is older than the catalog (${bp.adopted}). Run: ${blueprintInstallCommand(bp.name)}`);
+  if (blueprintDetails.length > 0) {
+    console.log('\nbluepriNNt provenance:');
+    for (const line of blueprintDetails) console.log(`  ${line}`);
   }
   const retired = rows.filter((r) => r.type === 'catalog' && r.status === 'retired');
   if (retired.length > 0) {
@@ -1045,8 +1112,9 @@ async function cmdStatus(args) {
       console.log(`  skill ${skill.name}: ${await fetchCompareSummary(skill, installed)}`);
     }
     for (const template of outdatedBlueprints) {
-      const installed = state.blueprints[template.name].commit;
-      console.log(`  template ${template.name}: ${await fetchCompareSummary(template, installed)}`);
+      const installed = state.blueprints[template.name];
+      const summary = await fetchCompareSummary(template, installed && installed.commit);
+      console.log(`  template ${template.name}: ${summary}`);
       // A blueprint is a unit with its own name, so the repair line can name it. Without this
       // the report says "outdated" and leaves the reader with no next step (decision 4,
       // 2026-11-26).
@@ -1320,18 +1388,6 @@ function blueprintInstallCommand(name) {
   return `node ~/.agents/skills/nn-skills-lifecycle/scripts/skills-manager.js install --blueprint ${name} --yes`;
 }
 
-/** Orders two `V_x-y-z` versions; an unparseable one sorts first. */
-function compareBlueprintVersions(a, b) {
-  const parse = (v) => {
-    const m = /^V_(\d+)-(\d+)-(\d+)$/i.exec(String(v || '').trim());
-    return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : [-1, -1, -1];
-  };
-  const pa = parse(a);
-  const pb = parse(b);
-  for (let i = 0; i < 3; i++) if (pa[i] !== pb[i]) return pa[i] - pb[i];
-  return 0;
-}
-
 /**
  * Status of an installed bluepriNNt that has no catalog entry. The two causes
  * must not share a word: `retired` is a permanent orphan (the catalog was read
@@ -1501,13 +1557,22 @@ async function cmdInstallBlueprint(args) {
 
   // codeload accepts a tag as the archive ref; reuse the (repo, ref) tarball
   // cache and the standard blueprint install path for extraction + projection.
+  // A tag is not a commit, so resolve it: provenance must name an immutable tree
+  // (S3). When resolution fails the tag is still recorded, and the lock records
+  // `commit: null` rather than a tag in a commit field.
+  let resolvedCommit = ref;
+  try {
+    const resolved = await resolveRef(repo, ref);
+    if (resolved && 'sha' in resolved && resolved.sha) resolvedCommit = resolved.sha;
+  } catch (_) { /* offline or rate-limited: the tag still fetches the archive */ }
+
   const template = {
     name: entryName,
     repo,
     path: `iNNfo/specs/bluepriNNts/${entryName}/spec_NN.md`,
     version,
     ref,
-    commit: ref,
+    commit: resolvedCommit,
   };
 
   const summary = await describeBlueprintPackage(template);
@@ -1563,6 +1628,17 @@ async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString(
   const mcpDir = args.mcpDir || DEFAULT_MCP_DIR;
   migrateLegacyMcpState(state, mcpDir);
 
+  // Provenance for every blueprint on disk, computed once. `update` reads it
+  // instead of a catalog (S5); the network is touched only for units that carry a
+  // recorded distribution_url, and this command is explicitly invoked (A5).
+  const manifestNames = new Set(blueprints.map((t) => t.name));
+  const untrackedUpdate = untrackedInstalledBlueprints(args.blueprintsDir, state, manifestNames);
+  const verdicts = await collectBlueprintVerdicts(args.blueprintsDir, [
+    ...manifestNames,
+    ...Object.keys(state.blueprints || {}),
+    ...untrackedUpdate.map((item) => item.name),
+  ]);
+
   const isOutdatedSkill = (skill) => {
     const dirPresent = fs.existsSync(path.join(args.skillsDir, skill.name));
     const entry = state.skills[skill.name];
@@ -1572,8 +1648,15 @@ async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString(
   const isOutdatedBlueprint = (template) => {
     const fileName = template.name.endsWith('.md') ? template.name : `${template.name}.md`;
     const pathPresent = fs.existsSync(path.join(args.blueprintsDir, fileName)) || fs.existsSync(path.join(args.blueprintsDir, template.name));
+    if (!pathPresent) return false;
+    const verdict = verdicts.get(template.name);
+    // Provenance is the answer when it exists: the unit says what it is and where
+    // it came from, so the manifest pin is not consulted (S5). A recorded but
+    // unknown verdict is selected too — it is the only way a unit can gain the
+    // provenance it lacks.
+    if (verdict && verdict.recorded) return verdict.status === 'update-available' || verdict.status === 'unknown';
     const entry = state.blueprints[template.name];
-    return pathPresent && (!entry || entry.commit !== template.commit);
+    return !entry || entry.commit !== template.commit;
   };
 
   const isOutdatedMcp = (server) => {
@@ -1619,37 +1702,25 @@ async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString(
     selectedMcp = [];
   }
 
-  // Installed catalog bluepriNNts (not in the manifest) whose recorded commit
-  // differs from the catalog release_tag. An unreleased/unknown entry is skipped.
-  let catalog = null;
-  try {
-    catalog = await loadBlueprintCatalog(args.catalogPath);
-  } catch (_) {
-    catalog = null;
-  }
-  const manifestNames = new Set(blueprints.map((t) => t.name));
+  // BluepriNNts the manifest does not list: provenance decides, and a unit with no
+  // provenance is selected so `update` can record one instead of reporting
+  // "up to date" for something it never checked (A4, A7).
   const selectedCatalog = [];
-  for (const [name, entry] of Object.entries(state.blueprints || {})) {
+  for (const name of new Set([...Object.keys(state.blueprints || {}), ...untrackedUpdate.map((item) => item.name)])) {
     if (manifestNames.has(name)) continue;
     if (args.positional.length > 0 && !args.positional.includes(name)) continue;
-    const catalogEntry = findCatalogEntry(catalog, name);
-    if (!catalogEntry || !catalogEntry.release_tag) continue;
-    if (entry && entry.commit === catalogEntry.release_tag) continue;
-    selectedCatalog.push({ name, catalogEntry });
-  }
-  // Catalog bluepriNNts hydrated outside the manager (no state entry) whose
-  // installed blueprint_version is older than the catalog's adopted version.
-  for (const { name, version, kind } of untrackedInstalledBlueprints(args.blueprintsDir, state, manifestNames)) {
-    if (kind !== 'dir') continue;
-    if (args.positional.length > 0 && !args.positional.includes(name)) continue;
-    const catalogEntry = findCatalogEntry(catalog, name);
-    if (!catalogEntry || !catalogEntry.adopted) continue;
-    if (compareBlueprintVersions(version, catalogEntry.adopted) >= 0) continue;
-    if (!catalogEntry.release_tag) {
-      console.log(`bluepriNNt ${name} ${version || '(unknown version)'} is older than the catalog (${catalogEntry.adopted}), which is not released yet; nothing to install.`);
+    if (args.blueprint && name !== args.blueprint) continue;
+    const verdict = verdicts.get(name);
+    if (!verdict) continue;
+    if (!verdict.recorded) {
+      // No provenance and no manifest pin: the unit can still be named, but its
+      // version cannot be resolved from a catalog (S5), so it is skipped loudly
+      // rather than reported as up to date.
+      selectedCatalog.push({ name, verdict });
       continue;
     }
-    selectedCatalog.push({ name, catalogEntry });
+    if (verdict.status !== 'update-available' && verdict.status !== 'unknown') continue;
+    selectedCatalog.push({ name, verdict });
   }
 
   // Locally modified skills: name the differing files for the consent prompt.
@@ -1751,19 +1822,28 @@ async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString(
     }
   }
 
-  for (const { name, catalogEntry } of selectedCatalog) {
-    const entryName = catalogEntry.name || name;
+  for (const { name, verdict } of selectedCatalog) {
+    // The install target comes from the unit's own provenance: the repository and
+    // the in-repo path are read out of its distribution_url, and the tree is the
+    // commit `versions.json` named and `blueprint.json` verified (C3, S5).
+    const recorded = readProvenance(args.blueprintsDir, name);
+    const parts = distributionUrlParts(recorded.entry && recorded.entry.distribution_url);
+    if (!parts || !verdict.commit) {
+      console.log(`  skipped catalog blueprint ${name}: ${verdict.detail || 'no verifiable published version'}`);
+      continue;
+    }
     const template = {
-      name: entryName,
-      repo: args.repo || DEFAULT_BLUEPRINT_REPO,
-      path: `iNNfo/specs/bluepriNNts/${entryName}/spec_NN.md`,
-      version: catalogEntry.adopted,
-      ref: catalogEntry.release_tag,
-      commit: catalogEntry.release_tag,
+      name,
+      repo: parts.repo,
+      path: `${parts.blueprintPath}/spec_NN.md`,
+      version: verdict.published,
+      tag: verdict.tag || null,
+      ref: verdict.tag || parts.ref,
+      commit: verdict.commit,
     };
     try {
       embeddedSkillNames.push(...await installBlueprintAtCommit(template, args.blueprintsDir, state, args.skillsDir));
-      console.log(`  updated catalog blueprint ${name} -> ${catalogEntry.adopted} (${catalogEntry.release_tag})`);
+      console.log(`  updated catalog blueprint ${name} -> ${verdict.published} (${verdict.commit.slice(0, 7)})`);
     } catch (err) {
       failures++;
       if (err.projectedSkills) embeddedSkillNames.push(...err.projectedSkills);

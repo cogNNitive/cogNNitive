@@ -54,6 +54,7 @@ describe('DAG Topology Scanner & Root Discovery (nn-core)', () => {
     const files: Record<string, string> = {
       'domaiNN_NN.md': `---
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace
   url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/workspace_spec_NN.md
@@ -78,6 +79,7 @@ path:: artifacts_NN.md
 `,
       'sources_NN.md': `---
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: sources
   url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/sources/spec_NN.md
@@ -100,6 +102,7 @@ Evidence content.
 `,
       'procedures_NN.md': `---
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: procedures
   url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/procedures/spec_NN.md
@@ -113,6 +116,7 @@ procedure_model:: procedures/ingest_pipeline_NN.md
 `,
       'procedures/ingest_pipeline_NN.md': `---
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: procedures
   url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/procedures/spec_NN.md
@@ -125,6 +129,7 @@ next:: Step 2
 `,
       'artifacts_NN.md': `---
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: artifacts
   url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/artifacts/spec_NN.md
@@ -139,6 +144,7 @@ artifact_model:: artifacts/kNNowledge/exec_summary_NN.md
 `,
       'artifacts/kNNowledge/exec_summary_NN.md': `---
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: business
   url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/business/spec_NN.md
@@ -150,6 +156,7 @@ Content.
 `,
       'kNNowledge/business_NN.md': `---
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: business
   url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/business/spec_NN.md
@@ -200,6 +207,7 @@ description:: Elimination services.
     const files: Record<string, string> = {
       'domaiNN_NN.md': `---
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace
   url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/workspace_spec_NN.md
@@ -212,6 +220,7 @@ path:: kNNowledge/a_NN.md
 `,
       'kNNowledge/a_NN.md': `---
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: business
   url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/business/spec_NN.md
@@ -236,6 +245,7 @@ path:: ../domaiNN_NN.md
     const files: Record<string, string> = {
       'domaiNN_NN.md': `---
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: workspace
   url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/workspace_spec_NN.md
@@ -251,6 +261,7 @@ path:: depth1.md
     for (let i = 1; i <= 12; i++) {
       files[`depth${i}.md`] = `---
 level: 3
+blueprint_version: V_0-1-0
 parent_spec:
   name: business
   url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/business/spec_NN.md
