@@ -239,8 +239,21 @@ jobs:
   # pushes the artifact `site` built (gated by `verify`), append-only and
   # idempotent (a byte-identical artifact is a no-op — no empty commit).
   publish-web:
-    needs: [verify, site, quality, spec-integrity, regen]
-    if: github.ref == 'refs/heads/main'
+    # Ordering matters: `release` pushes into the same `cogNNitive-web` under its own
+    # concurrency group, and both stage the same distribution paths, so publishing
+    # while a tag is being released loses the race on the rebase. Waiting for the
+    # matrix turns a collision into a sequence. The condition re-states the gates this
+    # job really depends on, because `needs` alone would also skip it when `release`
+    # is skipped (no new tag) or red (one leg failed) — neither stops the docs deploy.
+    needs: [verify, site, quality, spec-integrity, regen, release]
+    if: >-
+      !cancelled() &&
+      github.ref == 'refs/heads/main' &&
+      needs.verify.result == 'success' &&
+      needs.site.result == 'success' &&
+      needs.quality.result == 'success' &&
+      needs.spec-integrity.result == 'success' &&
+      needs.regen.result == 'success'
     runs-on: ubuntu-latest
     concurrency:
       # ONE group for every job that pushes to cogNNitive-web. `release (<tag>)`

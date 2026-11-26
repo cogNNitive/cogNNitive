@@ -144,7 +144,24 @@ async function runPublish(config, options = {}) {
         break;
       } catch (err) {
         if (attempt >= 3) throw err;
-        runGit(['pull', '--rebase', 'origin', 'main'], { cwd: work, env: authEnv, secrets });
+        try {
+          runGit(['pull', '--rebase', 'origin', 'main'], { cwd: work, env: authEnv, secrets });
+        } catch (rebaseErr) {
+          // The target moved with different bytes on the same paths (the release
+          // workflow publishes there too). A rebase cannot reconcile two publishes,
+          // and resolving it by hand would push this run's stale tree over the newer
+          // one, so leave the clone clean and report that nothing shipped.
+          try {
+            runGit(['rebase', '--abort'], { cwd: work, env: authEnv, secrets });
+          } catch {
+            // No rebase in progress: the pull failed before it started one.
+          }
+          throw new PublishError(
+            'the target repository moved while this run was publishing and the rebase ' +
+              'conflicts: nothing was published. Re-run once the concurrent publish has landed.',
+            rebaseErr
+          );
+        }
       }
     }
 
