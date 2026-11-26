@@ -94,6 +94,14 @@ for.
 **Accept.** With the exemption deleted the suite is green, and adding a literal model id
 to `asset-cost-estimator.mjs` turns it red.
 
+**Resolved 2026-11-26 (option B).** The shipped `DEFAULT_GUARD.allowedModels` is a
+declared spend policy, not dead code: an install with no merged catalog legitimately
+falls back to it, and deleting it broke 72 tests. The exemption therefore stays, but it
+is now narrow and proved: only the object literal in `lib/video-guard.mjs` is skipped,
+`asset-cost-estimator.mjs` lost its exemption entirely, and a new test asserts the list
+is non-empty and every entry is a `vendor/model` id. A literal outside that block still
+fails the suite.
+
 ---
 
 ## 4. Half-retired `video-guard.json`
@@ -116,6 +124,13 @@ it retired in `layout.mjs`.
 **Accept.** `node --test` on the skill's test folder is green; a fixture
 `video-guard.json` produces a named error (preferred direction) or a warning that the
 file is live again (opposite direction); no test asserts a state the code does not have.
+
+**Resolved 2026-11-26 (option B).** An install with no merged catalog keeps spending on
+the declared default list, so the fallback stays; what changed is that the fallback is no
+longer silent. `loadGuard` warns once per process, naming the shipped ids in force and
+the `model-catalog_NN.md` that would own the decision. The delete-the-list direction was
+tried and reverted: it broke 72 tests and it is a spend-policy change, not a cleanup.
+`spendGuardFromDocuments` keeps its fallback for the same reason.
 
 ---
 
