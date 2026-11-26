@@ -27,8 +27,16 @@ const { parseFocusedYaml, parseFrontmatter } = require('./yaml-parser.js');
 
 const MANIFEST_PATH = 'manifest/source.yaml';
 
-/** Fixed carve-out prefixes (posix, repo-relative). */
-const FROZEN_PREFIXES = [];
+/**
+ * Fixed carve-out prefixes (posix, repo-relative).
+ *
+ * `bluepriNNts/workspace_spec_NN.md` is frozen legacy content: it predates
+ * `blueprint_version`, and renaming it would change what an install resolves. The carve-out
+ * used to be derived from `frozen_blueprints` in `manifest/source.yaml`; that section is gone
+ * (2026-11-26 decision 6) because it promised entries the manifest never rendered. The
+ * exemption is a property of the content, not of the manifest, so it lives here.
+ */
+const FROZEN_PREFIXES = ['iNNfo/specs/bluepriNNts/workspace_spec_NN.md'];
 
 /**
  * Violators that part B of slice S6 renames. Prefix match; a reason is mandatory.
@@ -37,9 +45,10 @@ const FROZEN_PREFIXES = [];
 const TEMPORARY_ALLOWLIST = [];
 
 /**
- * Carve-out prefixes of the frozen blueprints: the folder of a `spec_NN.md` entry,
- * or the exact file of a flat entry (e.g. `bluepriNNts/workspace_spec_NN.md`,
- * whose folder holds live blueprints).
+ * Carve-out prefixes of the frozen blueprints: the folder of a `spec_NN.md` entry, or the
+ * exact file of a flat entry. `manifest/source.yaml` no longer declares a frozen section
+ * (2026-11-26 decision 6), so in the real repo this contributes nothing and `FROZEN_PREFIXES`
+ * carries the one legacy carve-out; a manifest that still declares entries is still honoured.
  * @param {string} manifestText contents of manifest/source.yaml
  * @returns {string[]}
  */
