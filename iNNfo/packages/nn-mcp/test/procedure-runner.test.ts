@@ -1,7 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { readFile, readdir, writeFile } from 'node:fs/promises'
 import { tmpdir, hostname } from 'node:os'
 import { join } from 'node:path'
@@ -199,6 +207,175 @@ describe('procedure_start', SLOW, () => {
     })
     expect(refused).toMatchObject({ ok: false, code: 'PROCEDURE_NOT_RUNNABLE' })
     expect(await snapshot()).toEqual(before)
+  })
+})
+
+/**
+ * The reported case: a procedure is shipped by a bluepriNNt package, not by a scope, so
+ * `validate_blueprint` and `list_blueprint_procedures` see it while `procedure_start` said
+ * `PROCEDURE_NOT_FOUND`. The fixture mirrors the report: the domaiNN entry declares the
+ * `domaiNN` container blueprint, a second package ships the procedure, and a `kNNowledge`
+ * scope names that package in its own `parent_spec`. Every package is written into the
+ * scratch root; `fetch` is off, so nothing is pulled from anywhere.
+ */
+const BLUEPRINT_DOMAIN_ENTRY = `---
+level: 3
+parent_spec:
+  name: "domaiNN"
+  url: "https://example.invalid/domaiNN/spec_NN.md"
+knowledge_version: "V_0-1-0"
+title: "BluepriNNt procedures"
+scope: true
+---
+
+# NN domaiNN
+`
+
+const SCENE_SCOPE = `---
+level: 3
+parent_spec:
+  name: "music-bands"
+  url: "https://example.invalid/music-bands/spec_NN.md"
+knowledge_version: "V_0-1-0"
+title: "Second scene"
+scope: true
+---
+
+# NN kNNowledge
+`
+
+const BANDS_PROCEDURE = `---
+level: 3
+parent_spec:
+  name: "music-bands"
+  url: "https://example.invalid/music-bands/spec_NN.md"
+knowledge_version: "V_0-1-0"
+title: "Add Music Group"
+slots:
+  - { name: group, kind: value, required: true }
+---
+
+# NN Procedure
+
+## NN Procedure: Add Music Group
+slug:: add-music-group-procedure
+
+# NN Work
+
+## NN Work: Lineup
+slug:: lineup
+step_type:: task
+executor:: agent
+`
+
+/** `specs/bluepriNNts/<name>/V_0-1-0/`, declaring and shipping `add-music-group`. */
+function installBandsBlueprint(name: string): void {
+  const pkg = join(root, 'specs', 'bluepriNNts', name, 'V_0-1-0')
+  mkdirSync(join(pkg, 'procedures'), { recursive: true })
+  writeFileSync(
+    join(pkg, 'spec_NN.md'),
+    `---\nlevel: 2\nspec_version: "V_0-1-0"\ntitle: "${name}"\nprocedures:\n  - { id: add-music-group, name: "Add Music Group", path: procedures/add_music_group_procedures_NN.md }\n---\n`,
+  )
+  writeFileSync(join(pkg, 'procedures', 'add_music_group_procedures_NN.md'), BANDS_PROCEDURE)
+}
+
+/** The `domaiNN` container blueprint: installed, and it ships no procedure. */
+function installDomainBlueprint(): void {
+  const pkg = join(root, 'specs', 'bluepriNNts', 'domaiNN')
+  mkdirSync(pkg, { recursive: true })
+  writeFileSync(
+    join(pkg, 'spec_NN.md'),
+    '---\nlevel: 2\nspec_version: "V_0-1-0"\ntitle: "DomaiNN"\n---\n',
+  )
+}
+
+function installBlueprintDomain(): void {
+  writeFileSync(join(root, 'domaiNN_NN.md'), BLUEPRINT_DOMAIN_ENTRY)
+  installDomainBlueprint()
+}
+
+describe('procedure_start: a procedure only a bluepriNNt package ships', SLOW, () => {
+  it('starts the only installed blueprint that declares the id, from "."', async () => {
+    installBlueprintDomain()
+    installBandsBlueprint('music-bands')
+    const started = ok(
+      await procedureStart(root, {
+        procedure: 'add-music-group',
+        params: { group: 'abbey-road' },
+        run: 'm1',
+      }),
+    )
+    // The run header records the address the loader reads back, package and document.
+    expect(started.procedure).toBe(
+      'bluepriNNt:music-bands/procedures/add_music_group_procedures_NN.md',
+    )
+    const state = ok(await procedureState(root, { run: 'm1' }))
+    expect(state.params).toEqual({ group: 'abbey-road' })
+    expect(state.state).toMatchObject({ status: 'open', currentStep: 'lineup' })
+    expect(await changesets()).toHaveLength(1)
+  })
+
+  it('keeps a domaiNN procedure document with the same id ahead of the blueprint', async () => {
+    installBlueprintDomain()
+    installBandsBlueprint('music-bands')
+    writeFileSync(join(root, 'procedures', 'add_music_group_procedures_NN.md'), BANDS_PROCEDURE)
+    const started = ok(
+      await procedureStart(root, {
+        procedure: 'add-music-group',
+        params: { group: 'abbey-road' },
+        run: 'd1',
+      }),
+    )
+    expect(started.procedure).toBe('procedures/add_music_group_procedures_NN.md')
+  })
+
+  it('refuses an id two installed blueprints declare, naming both', async () => {
+    installBlueprintDomain()
+    installBandsBlueprint('music-bands')
+    installBandsBlueprint('other-bands')
+    const refused = await procedureStart(root, {
+      procedure: 'add-music-group',
+      params: { group: 'abbey-road' },
+      run: 'm3',
+    })
+    expect(refused).toMatchObject({ ok: false, code: 'PROCEDURE_NOT_FOUND' })
+    const detail = String((refused as { detail: string }).detail)
+    expect(detail).toContain('music-bands')
+    expect(detail).toContain('other-bands')
+    expect(existsSync(join(root, 'executions'))).toBe(false)
+  })
+
+  it('still refuses an id nobody declares', async () => {
+    installBlueprintDomain()
+    installBandsBlueprint('music-bands')
+    expect(await procedureStart(root, { procedure: 'ghost', params: {} })).toMatchObject({
+      ok: false,
+      code: 'PROCEDURE_NOT_FOUND',
+    })
+  })
+
+  it('follows the blueprint named by the parent_spec of the document it resolves in', async () => {
+    installBlueprintDomain()
+    installBandsBlueprint('music-bands')
+    writeFileSync(join(root, 'kNNowledge', 'second-scene_music-bands_NN.md'), SCENE_SCOPE)
+    const started = ok(
+      await procedureStart(root, {
+        procedure: 'add-music-group',
+        params: { group: 'abbey-road' },
+        path: 'kNNowledge/second-scene_music-bands_NN.md',
+        run: 'm5',
+      }),
+    )
+    expect(started.procedure).toBe(
+      'bluepriNNt:music-bands/procedures/add_music_group_procedures_NN.md',
+    )
+  })
+
+  it('still starts a procedure document given as the procedure', async () => {
+    const started = ok(
+      await procedureStart(root, { procedure: 'procedures/deliver_procedures_NN.md', run: 'p1' }),
+    )
+    expect(started.procedure).toBe('procedures/deliver_procedures_NN.md')
   })
 })
 
