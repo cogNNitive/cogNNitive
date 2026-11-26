@@ -182,11 +182,94 @@ async function testGuardFailureCreatesNoTempDir() {
   console.log('PASS: guard failure rejects before creating any temp directory');
 }
 
+async function testUpstreamRacePublishesNothingStale() {
+  const bareDir = mkTmpDir('bare-repo-');
+  initBareRepo(bareDir);
+  initInitialCommit(bareDir, {
+    'docs/index.html': '<h1>Site</h1>',
+    'skills/raced/SKILL.md': 'v1',
+  });
+
+  // A second writer with its own clone of the same target repository, the way
+  // release.yml publishes into cogNNitive-web under its own concurrency group.
+  const rivalDir = mkTmpDir('rival-clone-');
+  execFileSync('git', ['clone', bareDir, rivalDir], { stdio: 'ignore' });
+  execFileSync('git', ['config', 'user.name', 'Rival'], { cwd: rivalDir, stdio: 'ignore' });
+  execFileSync('git', ['config', 'user.email', 'rival@test.com'], { cwd: rivalDir, stdio: 'ignore' });
+
+  const repoRoot = mkTmpDir('source-repo-');
+  fs.mkdirSync(path.join(repoRoot, 'docs'), { recursive: true });
+  fs.writeFileSync(path.join(repoRoot, 'docs', 'index.html'), '<h1>Site</h1>', 'utf8');
+  fs.mkdirSync(path.join(repoRoot, 'skills', 'raced'), { recursive: true });
+  fs.writeFileSync(path.join(repoRoot, 'skills', 'raced', 'SKILL.md'), 'from-publish', 'utf8');
+
+  const tmpRoot = mkTmpDir('tmp-root-');
+  let rivalPushed = false;
+  // The publish logs this once its tree is staged, which is the exact window in
+  // which the two writers collide in production.
+  const racingLogger = {
+    log: (message) => {
+      if (rivalPushed || typeof message !== 'string' || !message.includes('staged')) return;
+      rivalPushed = true;
+      fs.writeFileSync(path.join(rivalDir, 'skills', 'raced', 'SKILL.md'), 'from-release', 'utf8');
+      execFileSync('git', ['commit', '-am', 'chore: rival publish'], { cwd: rivalDir, stdio: 'ignore' });
+      execFileSync('git', ['push', 'origin', 'main'], { cwd: rivalDir, stdio: 'ignore' });
+    },
+  };
+
+  try {
+    await assert.rejects(
+      async () => {
+        await runPublish(
+          {
+            repoRoot,
+            docsRoot: path.join(repoRoot, 'docs'),
+            targetRepo: 'test/repo',
+            token: 'fake_secret_token',
+            distributionPaths: ['skills/raced'],
+          },
+          { tmpRoot, remoteUrl: bareDir, logger: racingLogger }
+        );
+      },
+      (err) => {
+        assert.ok(err instanceof PublishError, `expected PublishError, got ${err.name}: ${err.message}`);
+        assert.ok(
+          /nothing was published/i.test(err.message),
+          `the failure must say nothing shipped, got: ${err.message}`
+        );
+        return true;
+      }
+    );
+    assert.ok(rivalPushed, 'the rival push must have happened');
+
+    // The newer content on the target must survive: a stale publish that rebases
+    // its own bytes over it is worse than no publish at all.
+    const verifyClone = mkTmpDir('verify-clone-');
+    try {
+      execFileSync('git', ['clone', bareDir, verifyClone], { stdio: 'ignore' });
+      assert.strictEqual(
+        fs.readFileSync(path.join(verifyClone, 'skills', 'raced', 'SKILL.md'), 'utf8'),
+        'from-release'
+      );
+    } finally {
+      fs.rmSync(verifyClone, { recursive: true, force: true });
+    }
+
+    console.log('PASS: an upstream race fails loudly and publishes nothing stale');
+  } finally {
+    fs.rmSync(bareDir, { recursive: true, force: true });
+    fs.rmSync(rivalDir, { recursive: true, force: true });
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+}
+
 async function runAll() {
   try {
     await testFullPublishAndPreserveNojekyll();
     await testIdenticalArtifactIsNoOp();
     await testGuardFailureCreatesNoTempDir();
+    await testUpstreamRacePublishesNothingStale();
     console.log('\nAll publish-web integration tests passed! ✨');
   } catch (err) {
     console.error(`\npublish-web tests FAILED: ${err.message}`);
