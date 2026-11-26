@@ -409,8 +409,15 @@
       return n + (Array.isArray(e.runs) ? e.runs.length : 0)
     }, 0)
     var strip = make('div', 'proc-structure-strip')
+    var plural = function (n, noun) {
+      return n + ' ' + noun + (n === 1 ? '' : 's')
+    }
     strip.appendChild(
-      make('div', 'proc-structure-summary', entries.length + ' procedures · ' + runCount + ' runs'),
+      make(
+        'div',
+        'proc-structure-summary',
+        plural(entries.length, 'procedure') + ' · ' + plural(runCount, 'run'),
+      ),
     )
     root.appendChild(strip)
     var defectsEl = make('div', 'proc-structure-defects')
@@ -4094,7 +4101,7 @@
           ? 'The document as defined: each step with its instructions. No run state, no executed sequence.'
           : branches
             ? 'Steps in the order of progress. The branches and where each one leads are drawn in the flow graph.'
-            : 'A straight chain with no branches, in the order of progress. The flow graph shows the same steps.',
+            : 'A straight chain with no branches, in the order of progress.',
       )
       padFlow.appendChild(noteFlow)
 

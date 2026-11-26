@@ -1055,7 +1055,9 @@
         parts.push('Generated ' + stamp + ' UTC')
       }
       host.textContent = ''
-      if (parts.length) {
+      // A scoped console shows one view, not the domaiNN, so it skips the glossary.
+      var showVocabulary = !consoleScopeOf(meta)
+      if (parts.length || showVocabulary) {
         var infoBtn = doc.createElement('button')
         infoBtn.className = 'nn-navbar-info-btn'
         infoBtn.type = 'button'
@@ -1080,6 +1082,7 @@
             .trim()
           popoverLines.push('<div><strong>Generated:</strong> ' + stamp + ' UTC</div>')
         }
+        if (showVocabulary) popoverLines.push(vocabularyLegendHtml())
         popover.innerHTML = popoverLines.join('')
 
         infoBtn.addEventListener('click', function (ev) {
@@ -4228,7 +4231,8 @@
     })
   }
 
-  // One line under the tabs that translates the iNNfo vocabulary for a newcomer.
+  // Translates the iNNfo vocabulary for a newcomer. It lives in the header's info
+  // popover: a permanent line under the tabs cost every tab a row of chrome.
   var VOCABULARY_LEGEND = [
     ['bluepriNNt', 'the template a model follows'],
     ['concept', 'a type of card'],
@@ -4236,16 +4240,14 @@
     ['field', 'one piece of data on a card'],
   ]
 
-  function ensureVocabularyLegend(doc, nav) {
-    if (!nav || !nav.parentNode || doc.querySelector('.nn-vocab-legend')) return
-    var legend = el('p', 'nn-vocab-legend')
-    legend.setAttribute('aria-label', 'Vocabulary')
-    VOCABULARY_LEGEND.forEach(function (pair, i) {
-      if (i) legend.appendChild(doc.createTextNode(' · '))
-      legend.appendChild(el('strong', null, pair[0]))
-      legend.appendChild(doc.createTextNode(' = ' + pair[1]))
-    })
-    nav.parentNode.insertBefore(legend, nav.nextSibling)
+  function vocabularyLegendHtml() {
+    return (
+      '<div class="nn-vocab-legend" role="group" aria-label="Vocabulary">' +
+      VOCABULARY_LEGEND.map(function (pair) {
+        return '<div><strong>' + pair[0] + '</strong><span>' + pair[1] + '</span></div>'
+      }).join('') +
+      '</div>'
+    )
   }
 
   // Switches to the Knowledge tab with `token` (a facet such as `concept:Deal`) in
@@ -4563,7 +4565,6 @@
       if (firstPanel) shell.main.insertBefore(subnav, firstPanel)
       else nav.parentNode.insertBefore(subnav, nav.nextSibling)
     }
-    if (!scopedView) ensureVocabularyLegend(doc, nav)
     updateTabBadges(doc, opts.state)
 
     var current = ''
@@ -4921,6 +4922,16 @@
       }
     }
 
+    // True when the mounted view reacts to the global filter, so the bar is its control too.
+    function usesFilter(id) {
+      var m = mounted[id]
+      if (!m || m.failed) return false
+      return (
+        (Array.isArray(m.filterListeners) && m.filterListeners.length > 0) ||
+        (!!m.api && typeof m.api.onFilter === 'function')
+      )
+    }
+
     function notifyFilter(filteredElements, query) {
       tabs.forEach(function (t) {
         var m = mounted[t.id]
@@ -5002,6 +5013,14 @@
       if (next.external) {
         if (mounted[tabId]) hook(tabId, 'onShow')
         else mountView(next)
+      }
+      if (!scopedView && doc.querySelector) {
+        // The search/filter bar acts on the Knowledge explorer and on any view that
+        // subscribes to the global filter (ctx.filter.onChange / onFilter). On every
+        // other tab it is a control that does nothing, so it is not drawn there.
+        // Decided after the mount, because a view subscribes while it mounts.
+        var toolbar = doc.querySelector('.nn-toolbar')
+        if (toolbar) toolbar.style.display = tabId === 'explorer' || usesFilter(tabId) ? '' : 'none'
       }
       var nextHash = buildViewHash(tabId, opts.getQuery ? opts.getQuery() : '')
       if (!fromHash && doc.location && doc.location.hash !== nextHash) {

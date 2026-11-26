@@ -7886,18 +7886,26 @@ button.btn-primary:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.18);
   color: #ffffff;
 }
-/* Blueprint accordion sections (the rail's top level): the same black bar and
-   white text the design system already uses for a selected model, so a group
-   reads as a section header instead of another model row. The chevron is drawn
-   with box-shadow in a fixed colour, so it needs its own override. */
+/* Blueprint accordion sections (the rail's top level): a quiet section header,
+   not a bar. The black fill is reserved for the one selected model, so a group
+   no longer outweighs the rows it contains. The chevron is drawn with
+   box-shadow in a fixed colour, so it needs its own override. */
 #nn-rail details.collapse.nn-rail-blueprint > summary.collapse-title {
-  background: var(--nn-accent, #171717);
-  color: #ffffff;
-  border-color: var(--nn-accent, #171717);
-  font-weight: 600;
+  background: transparent;
+  color: var(--muted, #52525b);
+  border-color: transparent;
+  border-bottom-color: #e5e5e5;
+  border-radius: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+#nn-rail details.collapse.nn-rail-blueprint > summary.collapse-title:hover {
+  color: var(--text, #0a0a0a);
 }
 #nn-rail details.collapse.nn-rail-blueprint > summary.collapse-title:after {
-  box-shadow: 1.5px 1.5px 0 0 #ffffff !important;
+  box-shadow: 1.5px 1.5px 0 0 currentColor !important;
 }
 
 #nn-rail .menu ul {
@@ -10526,14 +10534,22 @@ select {
   margin-top: 4px;
 }
 
-/* ---- Vocabulary legend (under the tabs) ---- */
+/* ---- Vocabulary legend (inside the header info popover) ---- */
 .nn-vocab-legend {
-  margin: -8px 0 14px;
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
   font-size: 0.78rem;
   color: var(--muted);
 }
 
+.nn-vocab-legend div {
+  display: flex;
+  gap: 6px;
+}
+
 .nn-vocab-legend strong {
+  flex: 0 0 5.5em;
   color: var(--text);
   font-weight: 700;
 }
@@ -11734,6 +11750,9 @@ button.proc-inbox-open:hover {
 .proc-runs {
   flex-wrap: wrap;
   row-gap: 8px;
+  /* The bar sits inside a bordered card: without side padding the "Runs" label
+     touched that border and read as clipped. 16px matches the card's other rows. */
+  padding: 0 16px;
 }
 .proc-run-filters,
 .proc-run-list {
@@ -12147,6 +12166,18 @@ button.proc-step-item-btn {
 }
 .proc-nav .proc-runs {
   border-top: 1px solid var(--border);
+}
+/* Inside .proc-main the runs bar is a row of that card, not a second card: it
+   inherits the card's own border and shadow and spans its full width. */
+.proc-main > .proc-nav {
+  align-self: stretch;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.proc-main > .proc-nav .proc-runs {
+  border-top: 0;
 }
 
 .proc-main {
