@@ -119,9 +119,17 @@ function replaceSiteTree(srcDir, dstDir, options = {}) {
 /**
  * Copies a distribution path from the repository root into the working clone.
  *
+ * `preserve` names repo-relative files the destination may hold and the source does not.
+ * They are snapshotted before the destination is replaced and written back after the copy,
+ * and they are excluded from the parity check — a path that is release-owned state (the
+ * blueprint `versions.json` accumulators) must survive a republish instead of being wiped
+ * by the next copying job.
+ *
  * @param {string} repoRoot
  * @param {string} relPath
  * @param {string} workDir
+ * @param {object} [options]
+ * @param {string[]} [options.preserve] repo-relative paths to keep from the destination
  * @returns {boolean} True if copied, false if source did not exist
  */
 /**
@@ -137,7 +145,7 @@ function replaceSiteTree(srcDir, dstDir, options = {}) {
  * @param {string} to destination directory
  * @param {string} label repo-relative path, for the message
  */
-function assertMirrored(from, to, label) {
+function assertMirrored(from, to, label, options = {}) {
   // A key may distribute a single file (`scripts/export-console.mjs`), not only a directory.
   if (fs.statSync(from).isFile()) {
     if (!fs.existsSync(to)) {
@@ -153,11 +161,14 @@ function assertMirrored(from, to, label) {
     return;
   }
 
+  const ignored = new Set(options.ignore || []);
   const listOf = (dir) =>
     collectFiles(dir).filter((rel) => !rel.split('/').includes('node_modules'));
 
   const source = listOf(from).sort();
-  const dest = listOf(to).sort();
+  const dest = listOf(to)
+    .filter((rel) => !ignored.has(rel))
+    .sort();
 
   const missing = source.filter((rel) => !dest.includes(rel));
   const extra = dest.filter((rel) => !source.includes(rel));
@@ -179,18 +190,35 @@ function assertMirrored(from, to, label) {
   }
 }
 
-function copyDistributionPath(repoRoot, relPath, workDir) {
+function copyDistributionPath(repoRoot, relPath, workDir, options = {}) {
   const from = path.join(repoRoot, relPath);
   if (!fs.existsSync(from)) return false;
 
   const to = path.join(workDir, relPath);
+  const inScope = (rel) => rel === relPath || rel.startsWith(`${relPath.replace(/\\/g, '/')}/`);
+  const saved = (options.preserve || [])
+    .filter(inScope)
+    .map((rel) => ({ rel, abs: path.join(workDir, rel) }))
+    .filter((item) => fs.existsSync(item.abs))
+    .map((item) => ({ rel: item.rel, body: fs.readFileSync(item.abs) }));
+
   fs.rmSync(to, { recursive: true, force: true });
   fs.mkdirSync(path.dirname(to), { recursive: true });
   fs.cpSync(from, to, {
     recursive: true,
     filter: (src) => !src.split(path.sep).includes('node_modules'),
   });
-  assertMirrored(from, to, relPath);
+
+  for (const item of saved) {
+    const abs = path.join(workDir, item.rel);
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    fs.writeFileSync(abs, item.body);
+  }
+
+  const ignore = saved.map((item) =>
+    path.relative(to, path.join(workDir, item.rel)).split(path.sep).join('/'),
+  );
+  assertMirrored(from, to, relPath, { ignore });
   return true;
 }
 

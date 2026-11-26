@@ -44,18 +44,24 @@ function defaultChannelsFile(home = os.homedir()) {
 }
 
 /**
- * Channels every installation knows about, resolved in this order. D5 asks for two:
- * one official, one curated third-party. Only the official one is published today
- * (`cogNNitive_blueprints` is the only blueprint distribution repository in the
- * organisation), so the list carries what exists and the second default is an open
- * item in the ledger — inventing a URL that 404s would be the silent failure this
- * plan exists to remove.
+ * Channels every installation knows about, resolved in this order.
+ *
+ * D5 asks for two: one official, one curated third-party. Only the official one exists —
+ * and its address is not a free choice: every shipped `blueprint.json` declares its
+ * `distribution_url` under `cogNNitive-web`, which is where `publish-web` and the
+ * `release (blueprints-*)` leg actually copy `iNNfo/specs`. A default pointing anywhere
+ * else would install a unit whose recorded provenance names a different repository than
+ * the one it was fetched from, and `cogNNitive_blueprints` (the older proof-of-concept
+ * repository) is stale, holds one unit and carries no provenance files.
+ *
+ * The curated second channel does not exist yet. Inventing a URL that 404s would be the
+ * silent failure this plan exists to remove, so the list carries what is published.
  */
 const DEFAULT_CHANNELS = [
   {
     name: 'official',
     distribution_url:
-      'https://raw.githubusercontent.com/cogNNitive/cogNNitive_blueprints/main/iNNfo/specs/bluepriNNts',
+      'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts',
   },
 ]
 

@@ -370,6 +370,73 @@ async function testUpstreamRacePublishesNothingStale() {
   }
 }
 
+async function testBlueprintVersionsSurviveARepublish() {
+  // `versions.json` is written by the release pipeline and lives inside `iNNfo/specs`,
+  // which this job replaces wholesale. Without carrying it across, every push to main
+  // would erase the provenance the release wrote and every channel would answer
+  // `no-versions` — the exact silence the caller cannot distinguish from "unpublished".
+  const bareDir = mkTmpDir('bare-repo-');
+  initBareRepo(bareDir);
+  initInitialCommit(bareDir, {
+    'docs/index.html': '<h1>Site</h1>',
+    'docs/.nojekyll': '',
+    'iNNfo/specs/bluepriNNts/demo/spec_NN.md': '---\nlevel: 2\n---\n# demo',
+    'iNNfo/specs/bluepriNNts/demo/versions.json': JSON.stringify({
+      versions: [
+        {
+          version: 'V_0-1-0',
+          tag: 'blueprints-v0.1.0',
+          commit: '9999999999999999999999999999999999999999',
+        },
+      ],
+    }),
+  });
+
+  const repoRoot = mkTmpDir('source-repo-');
+  fs.mkdirSync(path.join(repoRoot, 'docs'), { recursive: true });
+  fs.writeFileSync(path.join(repoRoot, 'docs', 'index.html'), '<h1>Site</h1>', 'utf8');
+  // The source tree has no versions.json: only the mirror holds the accumulator.
+  fs.mkdirSync(path.join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'demo'), { recursive: true });
+  fs.writeFileSync(
+    path.join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'demo', 'spec_NN.md'),
+    '---\nlevel: 2\n---\n# demo',
+    'utf8'
+  );
+
+  const tmpRoot = mkTmpDir('tmp-root-');
+  const silentLogger = { log: () => {} };
+
+  try {
+    await runPublish(
+      {
+        repoRoot,
+        docsRoot: path.join(repoRoot, 'docs'),
+        targetRepo: 'test/repo',
+        token: 'fake_secret_token',
+        distributionPaths: ['iNNfo/specs'],
+      },
+      { tmpRoot, remoteUrl: bareDir, logger: silentLogger }
+    );
+
+    const verifyClone = mkTmpDir('verify-clone-');
+    try {
+      execFileSync('git', ['clone', bareDir, verifyClone], { stdio: 'ignore' });
+      const kept = path.join(verifyClone, 'iNNfo', 'specs', 'bluepriNNts', 'demo', 'versions.json');
+      assert.ok(fs.existsSync(kept), 'versions.json must survive a republish of the tree that holds it');
+      const body = JSON.parse(fs.readFileSync(kept, 'utf8'));
+      assert.strictEqual(body.versions[0].version, 'V_0-1-0');
+    } finally {
+      fs.rmSync(verifyClone, { recursive: true, force: true });
+    }
+  } finally {
+    fs.rmSync(bareDir, { recursive: true, force: true });
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+
+  console.log('PASS: blueprint versions.json survives a republish and the publish stays a no-op');
+}
+
 async function runAll() {
   try {
     await testFullPublishAndPreserveNojekyll();
@@ -378,6 +445,7 @@ async function runAll() {
     await testEmptyBuildLeavesMirrorUntouched();
     await testLargeRemovalIsRefusedBeforePush();
     await testUpstreamRacePublishesNothingStale();
+    await testBlueprintVersionsSurviveARepublish();
     console.log('\nAll publish-web integration tests passed! ✨');
   } catch (err) {
     console.error(`\npublish-web tests FAILED: ${err.message}`);

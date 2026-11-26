@@ -16,6 +16,7 @@ const { readEntryVersion } = require('../manifest/lib/entry-version.js');
 const { parseFocusedYaml } = require('../lib/yaml-parser.js');
 const { buildGitAuthEnv, runGit } = require('../lib/publish-web-git.js');
 const { copyDistributionPath } = require('../lib/publish-web-tree.js');
+const { readVersionLists, recordBlueprintVersions, stampCatalog } = require('./blueprint-versions.js');
 const { validateManifestText } = require('../manifest/validate-manifest.js');
 
 class ReleaseError extends Error {
@@ -58,21 +59,6 @@ function pushWithRetry(workDir, args, authEnv, secrets, maxAttempts = 5) {
   }
 }
 
-function stampBlueprintCatalog(workDir, tag, logger) {
-  for (const rel of ['iNNfo/specs/bluepriNNts/catalog.json', 'docs/innfo/blueprints/catalog.json']) {
-    const catPath = path.join(workDir, ...rel.split('/'));
-    if (!fs.existsSync(catPath)) continue;
-    try {
-      const raw = JSON.parse(fs.readFileSync(catPath, 'utf8'));
-      for (const sec of [raw.blueprints, raw.frozen]) {
-        if (sec) for (const bp of Object.values(sec)) if (bp && typeof bp === 'object') bp.release_tag = tag;
-      }
-      fs.writeFileSync(catPath, JSON.stringify(raw, null, 2) + '\n', 'utf8');
-    } catch (e) {
-      logger.warn(`Could not stamp release_tag on ${catPath}: ${e.message}`);
-    }
-  }
-}
 
 async function runRelease(config, options = {}) {
   const logger = config.logger || options.logger || console;
@@ -96,6 +82,10 @@ async function runRelease(config, options = {}) {
     runGit(['config', 'user.email', 'release@cognnitive.com'], { cwd: work, env: authEnv, secrets });
     const git = (args) => runGit(args, { cwd: work, env: authEnv, secrets }).trim();
 
+    // The accumulators live inside the tree `copyDistributionPath` replaces wholesale, so
+    // they are read before staging and written back after the content commit.
+    const blueprintVersions = key === 'blueprints' ? readVersionLists(work, logger) : null;
+
     const existingTags = git(['tag', '-l']).split(/\r?\n/).map((t) => t.trim()).filter(Boolean);
     checkVersionAgreement({ releaseTag: tag, repoRoot, existingTags });
 
@@ -113,7 +103,7 @@ async function runRelease(config, options = {}) {
       }
     }
 
-    if (key === 'blueprints') stampBlueprintCatalog(work, tag, logger);
+    if (key === 'blueprints') stampCatalog(work, tag, logger);
 
     // 2. Diff and decide commit C
     git(['add', '-A']);
@@ -134,6 +124,12 @@ async function runRelease(config, options = {}) {
       contentSha = git(['rev-parse', 'HEAD']);
     } else {
       contentSha = tagExists ? git(['rev-parse', `${tag}^{commit}`]) : git(['rev-parse', 'HEAD']);
+    }
+
+    // A versions.json entry must name a commit whose tree carries that version, and the tag
+    // has to point at the tree that includes the file: the record is a second commit.
+    if (key === 'blueprints' && !dryRun) {
+      contentSha = recordBlueprintVersions({ mirrorDir: work, tag, contentSha, existing: blueprintVersions, logger, git, push: () => pushWithRetry(work, ['origin', 'main'], authEnv, secrets) });
     }
 
     if (decision.needTag && !dryRun) {

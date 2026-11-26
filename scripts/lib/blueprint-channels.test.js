@@ -76,10 +76,13 @@ function tmpFile(rel, body) {
 
 // --- the default list ----------------------------------------------------
 
-test('the built-in defaults are a channel list that parses, official first', () => {
+test('the built-in defaults point at the address the units themselves declare', () => {
   assert.doesNotThrow(() => parseChannels({ channels: DEFAULT_CHANNELS }))
   assert.strictEqual(DEFAULT_CHANNELS[0].name, 'official')
-  assert.ok(DEFAULT_CHANNELS[0].distribution_url.includes('cogNNitive_blueprints'))
+  // Verified against every shipped blueprint.json: the distribution_url they record is
+  // under cogNNitive-web, so a channel anywhere else would install a unit whose provenance
+  // names a different repository than the one it was fetched from.
+  assert.ok(DEFAULT_CHANNELS[0].distribution_url.includes('cogNNitive-web'))
 })
 
 test('every default channel carries name and distribution_url and nothing else', () => {

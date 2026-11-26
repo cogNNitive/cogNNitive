@@ -225,6 +225,20 @@ test('runRelease blueprint release stamps release_tag on catalog.json', async (t
     }, null, 2) + '\n'
   );
 
+  // A distributable unit beside the catalog: it carries the version the accumulator must record.
+  const unitDir = path.join(catDir, 'procedures');
+  fs.mkdirSync(unitDir, { recursive: true });
+  fs.writeFileSync(path.join(unitDir, 'spec_NN.md'), '---\nlevel: 2\nblueprint_version: "V_0-6-1"\n---\n# procedures\n');
+  fs.writeFileSync(
+    path.join(unitDir, 'blueprint.json'),
+    JSON.stringify({
+      name: 'procedures',
+      version: 'V_0-6-1',
+      format_version: 'V_0-5-0',
+      distribution_url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/procedures',
+    }, null, 2) + '\n'
+  );
+
   // Update source.yaml with blueprint
   fs.writeFileSync(
     path.join(fx.monorepo, 'manifest', 'source.yaml'),
@@ -254,4 +268,20 @@ test('runRelease blueprint release stamps release_tag on catalog.json', async (t
     fs.readFileSync(path.join(checkClone, 'iNNfo', 'specs', 'bluepriNNts', 'catalog.json'), 'utf8')
   );
   assert.equal(publishedCat.blueprints.procedures.release_tag, 'blueprints-v0.50.0');
+
+  // The accumulator C3 needs: one entry, naming the tag and a commit whose tree carries
+  // that version. `verifyCommit` reads `<commit>/…/blueprint.json`, so the entry must not
+  // name the tag, and the file must survive in the mirror rather than be treated as debris.
+  const versions = JSON.parse(
+    fs.readFileSync(path.join(checkClone, 'iNNfo', 'specs', 'bluepriNNts', 'procedures', 'versions.json'), 'utf8')
+  );
+  assert.equal(versions.versions.length, 1);
+  assert.equal(versions.versions[0].version, 'V_0-6-1');
+  assert.equal(versions.versions[0].tag, 'blueprints-v0.50.0');
+  assert.match(versions.versions[0].commit, /^[0-9a-f]{40}$/);
+
+  // The named commit really carries that version, in this repository.
+  const verifyGit = (args) => execFileSync('git', args, { cwd: checkClone, encoding: 'utf8' }).trim();
+  const atCommit = verifyGit(['show', `${versions.versions[0].commit}:iNNfo/specs/bluepriNNts/procedures/blueprint.json`]);
+  assert.equal(JSON.parse(atCommit).version, 'V_0-6-1');
 });
