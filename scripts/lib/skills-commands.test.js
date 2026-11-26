@@ -7,19 +7,20 @@
  * isolated HOME, an explicit catalog and local servers.
  */
 
-const { test } = require('node:test');
-const assert = require('node:assert');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const http = require('node:http');
-const { spawn } = require('node:child_process');
+const { test } = require('node:test')
+const assert = require('node:assert')
+const fs = require('node:fs')
+const os = require('node:os')
+const path = require('node:path')
+const http = require('node:http')
+const { spawn } = require('node:child_process')
+const { digestTree } = require('./blueprint-provenance.js')
 
-const managerScript = path.join(__dirname, '..', 'skills-manager.js');
-const COMMIT = '1111111111111111111111111111111111111111';
-const INSTALLED_COMMIT = '6666666666666666666666666666666666666666';
-const PUBLISHED_COMMIT = '7777777777777777777777777777777777777777';
-const BLUEPRINT_PATH = 'iNNfo/specs/bluepriNNts/coNNtent';
+const managerScript = path.join(__dirname, '..', 'skills-manager.js')
+const COMMIT = '1111111111111111111111111111111111111111'
+const INSTALLED_COMMIT = '6666666666666666666666666666666666666666'
+const PUBLISHED_COMMIT = '7777777777777777777777777777777777777777'
+const BLUEPRINT_PATH = 'iNNfo/specs/bluepriNNts/coNNtent'
 
 const MANIFEST = `---
 agent-bootstrap:
@@ -31,21 +32,21 @@ agent-bootstrap:
       version: "1.0.0"
       commit: "${COMMIT}"
 ---
-# Manifest`;
+# Manifest`
 
 function serve(content) {
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
-      res.writeHead(200, { 'Content-Type': 'text/markdown' });
-      res.end(content);
-    });
+      res.writeHead(200, { 'Content-Type': 'text/markdown' })
+      res.end(content)
+    })
     server.listen(0, '127.0.0.1', () => {
       resolve({
         url: `http://127.0.0.1:${server.address().port}/manifest.md`,
         close: () => new Promise((r) => server.close(r)),
-      });
-    });
-  });
+      })
+    })
+  })
 }
 
 /** Serves the publisher side of one blueprint: `versions.json` and one commit's tree. */
@@ -55,38 +56,42 @@ function servePublisher({ versions, manifestAt }) {
       const routes = {
         [`/o/r/main/${BLUEPRINT_PATH}/versions.json`]: versions,
         ...manifestAt,
-      };
-      const body = routes[req.url];
-      if (body === undefined) {
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        res.end('not found');
-        return;
       }
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(body);
-    });
+      const body = routes[req.url]
+      if (body === undefined) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' })
+        res.end('not found')
+        return
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(body)
+    })
     server.listen(0, '127.0.0.1', () => {
       resolve({
         base: `http://127.0.0.1:${server.address().port}`,
         close: () => new Promise((r) => server.close(r)),
-      });
-    });
-  });
+      })
+    })
+  })
 }
 
 function run(args, env) {
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, [managerScript, ...args], { env });
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (c) => { stdout += c; });
-    child.stderr.on('data', (c) => { stderr += c; });
-    child.on('close', (status) => resolve({ status, stdout, stderr }));
-  });
+    const child = spawn(process.execPath, [managerScript, ...args], { env })
+    let stdout = ''
+    let stderr = ''
+    child.stdout.on('data', (c) => {
+      stdout += c
+    })
+    child.stderr.on('data', (c) => {
+      stderr += c
+    })
+    child.on('close', (status) => resolve({ status, stdout, stderr }))
+  })
 }
 
 function versionsBody(...list) {
-  return JSON.stringify({ versions: list });
+  return JSON.stringify({ versions: list })
 }
 
 function manifestBody(version) {
@@ -95,7 +100,7 @@ function manifestBody(version) {
     version,
     format_version: 'V_0-5-0',
     distribution_url: 'placeholder',
-  });
+  })
 }
 
 /**
@@ -103,185 +108,236 @@ function manifestBody(version) {
  * either recorded (`installed`) or absent (`installed: null`), published at
  * `published` by a local server.
  */
-async function fixture({ installed, published, arms = 'published' } = {}) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'skills-commands-bp-'));
-  const home = path.join(root, 'home');
-  const skillsDir = path.join(root, 'skills');
-  const blueprintsDir = path.join(root, 'bluepriNNts');
-  const stateFile = path.join(root, 'bootstrap-state.json');
-  const catalogFile = path.join(root, 'catalog.json');
-  fs.mkdirSync(home, { recursive: true });
-  fs.mkdirSync(path.join(skillsDir, 'nn-sample'), { recursive: true });
-  fs.writeFileSync(path.join(skillsDir, 'nn-sample', 'SKILL.md'), '# sample\n');
-  fs.mkdirSync(blueprintsDir, { recursive: true });
+async function fixture({ installed, published, arms = 'published', withDigests = false } = {}) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'skills-commands-bp-'))
+  const home = path.join(root, 'home')
+  const skillsDir = path.join(root, 'skills')
+  const blueprintsDir = path.join(root, 'bluepriNNts')
+  const stateFile = path.join(root, 'bootstrap-state.json')
+  const catalogFile = path.join(root, 'catalog.json')
+  fs.mkdirSync(home, { recursive: true })
+  fs.mkdirSync(path.join(skillsDir, 'nn-sample'), { recursive: true })
+  fs.writeFileSync(path.join(skillsDir, 'nn-sample', 'SKILL.md'), '# sample\n')
+  fs.mkdirSync(blueprintsDir, { recursive: true })
 
-  let publisher = null;
+  let publisher = null
+  let pkgDir = null
   if (installed !== undefined) {
-    const pkgDir = path.join(blueprintsDir, 'coNNtent');
-    fs.mkdirSync(pkgDir, { recursive: true });
+    pkgDir = path.join(blueprintsDir, 'coNNtent')
+    fs.mkdirSync(pkgDir, { recursive: true })
     fs.writeFileSync(
       path.join(pkgDir, 'spec_NN.md'),
       `---\nlevel: 2\nblueprint_name: "coNNtent"\nblueprint_version: "${installed || 'V_0-15-1'}"\n---\n# coNNtent\n`,
-    );
+    )
 
     publisher = await servePublisher({
-      versions: arms === 'unreachable'
-        ? undefined
-        : versionsBody({ version: published, tag: 'blueprints-v0.60.0', commit: PUBLISHED_COMMIT }),
+      versions:
+        arms === 'unreachable'
+          ? undefined
+          : versionsBody({
+              version: published,
+              tag: 'blueprints-v0.60.0',
+              commit: PUBLISHED_COMMIT,
+            }),
       manifestAt: {
         [`/o/r/${PUBLISHED_COMMIT}/${BLUEPRINT_PATH}/blueprint.json`]: manifestBody(published),
       },
-    });
+    })
 
-    const distributionUrl = arms === 'unreachable'
-      ? `http://127.0.0.1:1/o/r/main/${BLUEPRINT_PATH}`
-      : `${publisher.base}/o/r/main/${BLUEPRINT_PATH}`;
+    const distributionUrl =
+      arms === 'unreachable'
+        ? `http://127.0.0.1:1/o/r/main/${BLUEPRINT_PATH}`
+        : `${publisher.base}/o/r/main/${BLUEPRINT_PATH}`
 
     fs.writeFileSync(
       path.join(pkgDir, 'blueprint.json'),
-      JSON.stringify({ name: 'coNNtent', version: installed, format_version: 'V_0-5-0', distribution_url: distributionUrl }, null, 2),
-    );
+      JSON.stringify(
+        {
+          name: 'coNNtent',
+          version: installed,
+          format_version: 'V_0-5-0',
+          distribution_url: distributionUrl,
+        },
+        null,
+        2,
+      ),
+    )
 
     if (installed !== null) {
       fs.writeFileSync(
         path.join(blueprintsDir, '.blueprint-lock.json'),
-        JSON.stringify({
-          format_version: 1,
-          blueprints: {
-            coNNtent: {
-              version: installed,
-              tag: 'blueprints-v0.59.0',
-              commit: INSTALLED_COMMIT,
-              distribution_url: distributionUrl,
-              digests: {},
+        JSON.stringify(
+          {
+            format_version: 1,
+            blueprints: {
+              coNNtent: {
+                version: installed,
+                tag: 'blueprints-v0.59.0',
+                commit: INSTALLED_COMMIT,
+                distribution_url: distributionUrl,
+                digests: withDigests ? digestTree(pkgDir) : {},
+              },
             },
           },
-        }, null, 2),
-      );
+          null,
+          2,
+        ),
+      )
     }
   }
 
-  fs.writeFileSync(stateFile, JSON.stringify({ skills: { 'nn-sample': { commit: COMMIT, version: '1.0.0' } }, blueprints: {} }));
+  fs.writeFileSync(
+    stateFile,
+    JSON.stringify({
+      skills: { 'nn-sample': { commit: COMMIT, version: '1.0.0' } },
+      blueprints: {},
+    }),
+  )
   fs.writeFileSync(
     catalogFile,
     JSON.stringify({
       blueprints: {
-        coNNtent: { name: 'coNNtent', adopted: 'V_0-18-0', release_tag: 'blueprints-v0.58.0', versions: [{ blueprint_version: 'V_0-18-0' }] },
+        coNNtent: {
+          name: 'coNNtent',
+          adopted: 'V_0-18-0',
+          release_tag: 'blueprints-v0.58.0',
+          versions: [{ blueprint_version: 'V_0-18-0' }],
+        },
       },
     }),
-  );
-  const server = await serve(MANIFEST);
+  )
+  const server = await serve(MANIFEST)
   const env = {
     ...process.env,
     HOME: home,
     USERPROFILE: home,
     SM_MANIFEST_URL: server.url,
     COGNNITIVE_CATALOG: catalogFile,
-  };
-  delete env.SM_CATALOG;
-  const flags = ['--skills-dir', skillsDir, '--blueprints-dir', blueprintsDir, '--state', stateFile, '--agent', 'claude'];
+  }
+  delete env.SM_CATALOG
+  const flags = [
+    '--skills-dir',
+    skillsDir,
+    '--blueprints-dir',
+    blueprintsDir,
+    '--state',
+    stateFile,
+    '--agent',
+    'claude',
+  ]
   return {
     env,
     flags,
+    root,
+    blueprintsDir,
+    pkgDir,
     close: async () => {
-      await server.close();
-      if (publisher) await publisher.close();
-      fs.rmSync(root, { recursive: true, force: true });
+      await server.close()
+      if (publisher) await publisher.close()
+      fs.rmSync(root, { recursive: true, force: true })
     },
-  };
+  }
 }
 
 function rowFor(stdout, name) {
-  return stdout.split('\n').find((line) => new RegExp(`^catalog\\s*\\|\\s*${name}\\s*\\|`).test(line));
+  return stdout
+    .split('\n')
+    .find((line) => new RegExp(`^catalog\\s*\\|\\s*${name}\\s*\\|`).test(line))
 }
 
 test('status reports current when the installed unit matches the published version (A1)', async () => {
-  const f = await fixture({ installed: 'V_0-18-0', published: 'V_0-18-0' });
+  const f = await fixture({ installed: 'V_0-18-0', published: 'V_0-18-0' })
   try {
-    const res = await run(['status', ...f.flags], f.env);
-    assert.strictEqual(res.status, 0, res.stderr);
-    const row = rowFor(res.stdout, 'coNNtent');
-    assert.ok(row, res.stdout);
-    assert.deepStrictEqual(row.split('|').map((c) => c.trim()), ['catalog', 'coNNtent', 'V_0-18-0', 'V_0-18-0', 'current']);
+    const res = await run(['status', ...f.flags], f.env)
+    assert.strictEqual(res.status, 0, res.stderr)
+    const row = rowFor(res.stdout, 'coNNtent')
+    assert.ok(row, res.stdout)
+    assert.deepStrictEqual(
+      row.split('|').map((c) => c.trim()),
+      ['catalog', 'coNNtent', 'V_0-18-0', 'V_0-18-0', 'current'],
+    )
   } finally {
-    await f.close();
+    await f.close()
   }
-});
+})
 
 test('status detects a version bump at the recorded distribution_url (A2)', async () => {
-  const f = await fixture({ installed: 'V_0-15-1', published: 'V_0-18-0' });
+  const f = await fixture({ installed: 'V_0-15-1', published: 'V_0-18-0' })
   try {
-    const res = await run(['status', ...f.flags], f.env);
-    assert.strictEqual(res.status, 0, res.stderr);
-    const row = rowFor(res.stdout, 'coNNtent');
-    assert.ok(row, res.stdout);
-    assert.strictEqual(row.split('|').map((c) => c.trim())[4], 'update-available');
-    assert.ok(res.stdout.includes('update --blueprint coNNtent'), res.stdout);
-    assert.ok(res.stdout.includes('published V_0-18-0'), res.stdout);
+    const res = await run(['status', ...f.flags], f.env)
+    assert.strictEqual(res.status, 0, res.stderr)
+    const row = rowFor(res.stdout, 'coNNtent')
+    assert.ok(row, res.stdout)
+    assert.strictEqual(row.split('|').map((c) => c.trim())[4], 'update-available')
+    assert.ok(res.stdout.includes('update --blueprint coNNtent'), res.stdout)
+    assert.ok(res.stdout.includes('published V_0-18-0'), res.stdout)
   } finally {
-    await f.close();
+    await f.close()
   }
-});
+})
 
 test('status reports an unreachable publisher loudly, naming its URL (A3)', async () => {
-  const f = await fixture({ installed: 'V_0-15-1', published: 'V_0-18-0', arms: 'unreachable' });
+  const f = await fixture({ installed: 'V_0-15-1', published: 'V_0-18-0', arms: 'unreachable' })
   try {
-    const res = await run(['status', ...f.flags], f.env);
-    assert.strictEqual(res.status, 0, res.stderr);
-    const row = rowFor(res.stdout, 'coNNtent');
-    assert.ok(row, res.stdout);
-    assert.strictEqual(row.split('|').map((c) => c.trim())[4], 'unreachable');
-    assert.ok(res.stdout.includes('http://127.0.0.1:1/o/r/main/'), res.stdout);
-    assert.ok(!row.includes('up-to-date'), res.stdout);
+    const res = await run(['status', ...f.flags], f.env)
+    assert.strictEqual(res.status, 0, res.stderr)
+    const row = rowFor(res.stdout, 'coNNtent')
+    assert.ok(row, res.stdout)
+    assert.strictEqual(row.split('|').map((c) => c.trim())[4], 'unreachable')
+    assert.ok(res.stdout.includes('http://127.0.0.1:1/o/r/main/'), res.stdout)
+    assert.ok(!row.includes('up-to-date'), res.stdout)
   } finally {
-    await f.close();
+    await f.close()
   }
-});
+})
 
 test('a unit installed before provenance existed reports unknown, never current (A4)', async () => {
-  const f = await fixture({ installed: null, published: 'V_0-18-0' });
+  const f = await fixture({ installed: null, published: 'V_0-18-0' })
   try {
-    const res = await run(['status', ...f.flags], f.env);
-    assert.strictEqual(res.status, 0, res.stderr);
-    const row = rowFor(res.stdout, 'coNNtent');
-    assert.ok(row, res.stdout);
-    assert.strictEqual(row.split('|').map((c) => c.trim())[4], 'unknown');
-    assert.ok(!row.includes('up-to-date'), res.stdout);
-    assert.ok(/no provenance recorded/.test(res.stdout), res.stdout);
+    const res = await run(['status', ...f.flags], f.env)
+    assert.strictEqual(res.status, 0, res.stderr)
+    const row = rowFor(res.stdout, 'coNNtent')
+    assert.ok(row, res.stdout)
+    assert.strictEqual(row.split('|').map((c) => c.trim())[4], 'unknown')
+    assert.ok(!row.includes('up-to-date'), res.stdout)
+    assert.ok(/no provenance recorded/.test(res.stdout), res.stdout)
   } finally {
-    await f.close();
+    await f.close()
   }
-});
+})
 
 test('update selects a unit whose provenance reports an available version', async () => {
-  const f = await fixture({ installed: 'V_0-15-1', published: 'V_0-18-0' });
+  const f = await fixture({ installed: 'V_0-15-1', published: 'V_0-18-0' })
   try {
     // No --yes and no TTY: the consent gate names what would be updated and exits 2.
-    const res = await run(['update', ...f.flags], f.env);
-    assert.strictEqual(res.status, 2, `${res.stdout}\n${res.stderr}`);
-    assert.ok(!res.stdout.includes('up to date'), res.stdout);
-    assert.ok(/needs decision: .*catalog:coNNtent/.test(res.stdout), res.stdout);
+    const res = await run(['update', ...f.flags], f.env)
+    assert.strictEqual(res.status, 2, `${res.stdout}\n${res.stderr}`)
+    assert.ok(!res.stdout.includes('up to date'), res.stdout)
+    assert.ok(/needs decision: .*catalog:coNNtent/.test(res.stdout), res.stdout)
   } finally {
-    await f.close();
+    await f.close()
   }
-});
+})
 
 test('update reports up to date when provenance reports current', async () => {
-  const f = await fixture({ installed: 'V_0-18-0', published: 'V_0-18-0' });
+  const f = await fixture({ installed: 'V_0-18-0', published: 'V_0-18-0' })
   try {
-    const res = await run(['update', ...f.flags], f.env);
-    assert.strictEqual(res.status, 0, res.stderr);
-    assert.ok(res.stdout.includes('All skills, templates, and console assets up to date.'), res.stdout);
+    const res = await run(['update', ...f.flags], f.env)
+    assert.strictEqual(res.status, 0, res.stderr)
+    assert.ok(
+      res.stdout.includes('All skills, templates, and console assets up to date.'),
+      res.stdout,
+    )
   } finally {
-    await f.close();
+    await f.close()
   }
-});
+})
 
 test('skills-only output of status and update is unchanged (existing behaviour)', async () => {
-  const f = await fixture();
+  const f = await fixture()
   try {
-    const status = await run(['status', ...f.flags], f.env);
-    assert.strictEqual(status.status, 0, status.stderr);
+    const status = await run(['status', ...f.flags], f.env)
+    assert.strictEqual(status.status, 0, status.stderr)
     assert.strictEqual(
       status.stdout,
       [
@@ -290,11 +346,65 @@ test('skills-only output of status and update is unchanged (existing behaviour)'
         'skill | nn-sample | 1111111 | 1111111   | up-to-date',
         '',
       ].join('\n'),
-    );
-    const update = await run(['update', ...f.flags], f.env);
-    assert.strictEqual(update.status, 0, update.stderr);
-    assert.strictEqual(update.stdout.split('\n')[0], 'All skills, templates, and console assets up to date.');
+    )
+    const update = await run(['update', ...f.flags], f.env)
+    assert.strictEqual(update.status, 0, update.stderr)
+    assert.strictEqual(
+      update.stdout.split('\n')[0],
+      'All skills, templates, and console assets up to date.',
+    )
   } finally {
-    await f.close();
+    await f.close()
   }
-});
+})
+
+test('status reports modified-locally when a managed blueprint file is edited by hand (P3, D9)', async () => {
+  const f = await fixture({ installed: 'V_0-15-1', published: 'V_0-18-0', withDigests: true })
+  try {
+    // Modify a file in the managed blueprint package
+    fs.appendFileSync(path.join(f.pkgDir, 'spec_NN.md'), '\n<!-- user hand edit -->\n')
+
+    const res = await run(['status', ...f.flags], f.env)
+    assert.strictEqual(res.status, 0, res.stderr)
+    const row = rowFor(res.stdout, 'coNNtent')
+    assert.ok(row, res.stdout)
+    assert.strictEqual(row.split('|').map((c) => c.trim())[4], 'modified-locally')
+    assert.ok(res.stdout.includes('spec_NN.md (modified)'), res.stdout)
+    assert.ok(res.stdout.includes('update is refused to protect local edits'), res.stdout)
+  } finally {
+    await f.close()
+  }
+})
+
+test('update --blueprint refuses when a managed blueprint file is edited by hand (P3, D9)', async () => {
+  const f = await fixture({ installed: 'V_0-15-1', published: 'V_0-18-0', withDigests: true })
+  try {
+    // Modify a file in the managed blueprint package
+    fs.appendFileSync(path.join(f.pkgDir, 'spec_NN.md'), '\n<!-- user hand edit -->\n')
+
+    const res = await run(['update', '--blueprint', 'coNNtent', ...f.flags], f.env)
+    assert.notStrictEqual(res.status, 0, 'Must exit non-zero on refusal')
+    const combinedOutput = `${res.stdout}\n${res.stderr}`
+    assert.ok(combinedOutput.includes("refusing to update blueprint 'coNNtent'"), combinedOutput)
+    assert.ok(combinedOutput.includes('locally modified'), combinedOutput)
+  } finally {
+    await f.close()
+  }
+})
+
+test('update proceeds when only unmanaged user content outside the blueprint is modified (P3, D9)', async () => {
+  const f = await fixture({ installed: 'V_0-15-1', published: 'V_0-18-0', withDigests: true })
+  try {
+    // Modify user content outside the blueprint directory
+    const userDocDir = path.join(f.root, 'series', 'episode1')
+    fs.mkdirSync(userDocDir, { recursive: true })
+    fs.writeFileSync(path.join(userDocDir, 'scene.md'), '# User Scene\n')
+
+    // Without --yes in non-TTY, update detects coNNtent and exits 2 for consent
+    const res = await run(['update', ...f.flags], f.env)
+    assert.strictEqual(res.status, 2, `${res.stdout}\n${res.stderr}`)
+    assert.ok(/needs decision: .*catalog:coNNtent/.test(res.stdout), res.stdout)
+  } finally {
+    await f.close()
+  }
+})
