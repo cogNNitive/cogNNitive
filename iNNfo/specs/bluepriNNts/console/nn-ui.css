@@ -8714,22 +8714,10 @@ select {
   color: #fecdd3 !important;
 }
 
-/* 11. Domain Navbar Info Popover & Borderless Button */
+/* 11. Domain Navbar Info Popover & Icon Button */
+/* Look comes from .nn-navbar-action-btn (ui-kit); this only squares it to the icon. */
 .nn-navbar-info-btn {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  color: var(--nn-muted) !important;
-  cursor: pointer !important;
-  padding: 2px 6px !important;
-  border-radius: 4px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  font-size: 12px !important;
-}
-.nn-navbar-info-btn:hover {
-  background: #f1f5f9 !important;
-  color: #0f172a !important;
+  padding: 5px 7px;
 }
 .nn-navbar-info-popover {
   position: absolute !important;

@@ -11557,11 +11557,13 @@ if (typeof window !== 'undefined') {
       var showVocabulary = !consoleScopeOf(meta)
       if (parts.length || showVocabulary) {
         var infoBtn = doc.createElement('button')
-        infoBtn.className = 'nn-navbar-info-btn'
+        // The same button as Save Snapshot and Copy AI Prompt, icon only, so the
+        // header reads as one family instead of a stray glyph beside the title.
+        infoBtn.className = 'nn-navbar-action-btn nn-navbar-info-btn'
         infoBtn.type = 'button'
         infoBtn.setAttribute('aria-label', 'Domain info')
-        infoBtn.innerHTML =
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+        infoBtn.setAttribute('title', 'About this domain: template, version and vocabulary')
+        infoBtn.innerHTML = '<span class="nn-btn-icon">' + UI.icon('info', 15) + '</span>'
 
         var popover = doc.createElement('div')
         popover.className = 'nn-navbar-info-popover'
