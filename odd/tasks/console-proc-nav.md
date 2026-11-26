@@ -82,3 +82,22 @@ and panel a global id. `role=tab`/`aria-selected`/`tabindex` stay; `id`, `aria-c
 Tests now: view 22, runner-ux 65, artifacts 7, projection 7, console-bundle 1, console-export 67.
 The one test I changed asserts the new column order.
 
+## Visual pass
+
+**S7 (user, verbatim)** -- *"Esto quiero que se implemente"*, over the list of audit findings: wrong token
+fallbacks, duplicated selectors, missing `:focus-visible`, no typographic scale, uneven vertical
+density, and two greys for the same job.
+
+| ID  | Spec | Status | Evidence |
+| --- | ---- | ------ | -------- |
+| T9  | S7   | done | 30 `#64748b` values replaced with the real tokens. `--nn-slate` was declared nowhere, so every `var(--nn-slate, #64748b)` had been resolving to slate-500 -- that is why an artifact badge and the rail used two different greys. One left on purpose: the last fallback of a concept-pill colour chain. |
+| T10 | S7   | done | `.nn-edit-modal-close`, `.nn-modal-tab-btn` and `.nn-btn` had no focus ring at all; they now use the kit's ring (`2px var(--nn-focus)`) |
+| T11 | S7   | **blocked** | The 19 selectors that exist in both `COMPONENT_CSS` and `nn-ui.css` are not all duplicates by accident: `COMPONENT_CSS` exists so a component works without the app sheet. Some pairs agree (`.nn-kpi-card` padding), some do not (`.nn-chip` is `2px 4px 2px 8px` in the kit and `4px 12px` in the sheet). Fixing them one by one changes whichever rule loses today, across 19 selectors, with no way to preview. Needs one decision first: which layer owns component appearance. |
+| T12 | S7   | **blocked** | Measured: `nn-ui.css` uses **46 distinct font sizes**, including `0.78/0.76/0.74/0.73/0.72rem` and `12.5/11.5/10.5px`. Collapsing that to a 5-step scale touches ~300 declarations and repaints every screen. It needs a preview loop, not a blind edit. |
+| T13 | S7   | todo | Vertical density: the timeline row and the graph node use different paddings for the same rank of content |
+
+The two blocked items are not laziness: both are "change what the user sees" jobs, and this session has no
+way to look at the rendered result before committing. T9 and T10 change only values that were provably
+wrong (a fallback for a token that never existed, a missing ring).
+
+

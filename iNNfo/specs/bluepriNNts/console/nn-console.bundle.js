@@ -1782,6 +1782,12 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
       '[data-nn-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=concept] .nn-ku-icon,[data-nn-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=document] .nn-ku-icon{color:var(--nn-concept-' + kslot + ')}',
     )
   }
+  // Dialogs and their controls had no visible focus ring at all: tabbing through a modal
+  // showed nothing. Same ring as the rest of the kit.
+  COMPONENT_CSS.push(
+    '.nn-edit-modal-close:focus-visible,.nn-modal-tab-btn:focus-visible,.nn-btn:focus-visible{outline:2px solid var(--nn-focus);outline-offset:2px}',
+  )
+
   var COMPONENT_CSS_TEXT = COMPONENT_CSS.join('\n')
 
   // Light-only theme: pins color-scheme: light and never switches on OS dark mode.
@@ -6137,24 +6143,24 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
       '.nn-ku-wrap{display:inline-flex;align-items:center;gap:.2em;position:relative;vertical-align:middle}',
       '.nn-ku{display:inline-flex;align-items:center;gap:.3em;border-radius:.4em;padding:.12em .5em;font-size:.82rem;line-height:1.4;background:var(--nn-surface-2,#f1f5f9);--c:var(--nn-concept-1,#3b82f6);--cb:var(--nn-concept-1-bg,#eff6ff)}',
       '.nn-ku[data-ku-nature=container]{border:2px solid var(--nn-accent,#0f172a);background:var(--nn-surface,#fff)}',
-      '.nn-ku[data-ku-nature=structure]{border:1.5px solid var(--c);font-family:ui-monospace,monospace;color:var(--nn-muted,#64748b);background:var(--nn-surface,#fff)}',
+      '.nn-ku[data-ku-nature=structure]{border:1.5px solid var(--c);font-family:ui-monospace,monospace;color:var(--nn-muted);background:var(--nn-surface,#fff)}',
       '.nn-ku[data-ku-nature=content]{border:0;background:var(--nn-surface-2,#f1f5f9)}',
       '.nn-ku[data-ku-nature=content]>.nn-ku-label,.nn-ku[data-ku-nature=content]>.nn-ku-value{color:var(--c)}',
       '.nn-ku[data-ku-nature=content]>.nn-ku-icon{color:var(--c)}',
       '.nn-ku[data-ku-home=source]{background:var(--nn-source-paper,#fff7e6)}',
-      '.nn-ku[data-ku-home=source]>.nn-ku-label,.nn-ku[data-ku-home=source] .nn-ku-icon{color:var(--nn-muted,#64748b)}',
+      '.nn-ku[data-ku-home=source]>.nn-ku-label,.nn-ku[data-ku-home=source] .nn-ku-icon{color:var(--nn-muted)}',
       '.nn-ku--block{display:flex;width:100%;padding:.5em .7em}',
-      '.nn-ku-more{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--nn-muted,#64748b);cursor:pointer}',
+      '.nn-ku-more{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--nn-muted);cursor:pointer}',
       '.nn-ku-more:hover,.nn-ku-more[aria-expanded=true]{color:var(--nn-text,#0a0a0a);background:var(--nn-surface-2,#f1f5f9)}',
       '.nn-ku-actions{display:none !important}',
       '.nn-ku-wrap[data-ku-open=true]>.nn-ku-actions{display:none !important}',
-      '.nn-ku-action{display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;border:0;background:transparent;cursor:pointer;color:var(--nn-muted,#64748b)}',
+      '.nn-ku-action{display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;border:0;background:transparent;cursor:pointer;color:var(--nn-muted)}',
       '.nn-ku-action:hover{color:var(--nn-text,#0a0a0a);background:var(--nn-surface-2,#f1f5f9)}',
       '.nn-ku[data-ku-kind=change]{border:1.5px solid var(--nn-amber,#d97706);background:color-mix(in srgb,var(--nn-amber,#d97706) 12%,var(--nn-surface,#fff));--c:var(--nn-amber,#d97706)}',
       '.nn-ku[data-ku-kind=change]>.nn-ku-icon,.nn-ku[data-ku-kind=change]>.nn-ku-label{color:var(--nn-amber-text,#b45309)}',
       '.nn-ku[data-ku-kind=origin]{border:1.5px solid var(--nn-purple,#8b5cf6);background:color-mix(in srgb,var(--nn-purple,#8b5cf6) 12%,var(--nn-surface,#fff));--c:var(--nn-purple,#8b5cf6)}',
       '.nn-ku[data-ku-kind=origin]>.nn-ku-icon,.nn-ku[data-ku-kind=origin]>.nn-ku-label{color:var(--nn-purple-text,#7c3aed)}',
-      '.nn-ku[data-ku-kind=artifact]{border:1px solid var(--nn-border,#cbd5e1);background:color-mix(in srgb,var(--nn-slate,#64748b) 10%,var(--nn-surface,#fff));--c:var(--nn-slate,#64748b)}',
+      '.nn-ku[data-ku-kind=artifact]{border:1px solid var(--nn-border,#cbd5e1);background:color-mix(in srgb,var(--muted) 10%,var(--nn-surface,#fff));--c:var(--muted)}',
       '.nn-ku[data-ku-kind=artifact]>.nn-ku-icon,.nn-ku[data-ku-kind=artifact]>.nn-ku-label{color:var(--nn-slate-text,#475569)}',
       '.nn-ku[data-ku-kind=source]{border:1px solid color-mix(in srgb,var(--nn-cyan,#0284c7) 35%,var(--nn-border,#cbd5e1));background:color-mix(in srgb,var(--nn-cyan,#0284c7) 10%,var(--nn-surface,#fff));--c:var(--nn-cyan,#0284c7)}',
       '.nn-ku[data-ku-kind=source]>.nn-ku-icon,.nn-ku[data-ku-kind=source]>.nn-ku-label{color:var(--nn-cyan-text,#0369a1)}',
