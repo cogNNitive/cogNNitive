@@ -746,7 +746,11 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
     it('list_blueprints returns enveloped array under "blueprints" and states the root', async () => {
       // A domaiNN root makes an empty listing a true answer; a bare directory is the case the
       // tool now refuses, so the enveloped success has to be asserted from a real domain.
-      await writeFile(join(rootDir, 'domaiNN_NN.md'), ['---', 'level: 2', '---'].join('\n'), 'utf-8')
+      await writeFile(
+        join(rootDir, 'domaiNN_NN.md'),
+        ['---', 'level: 2', '---'].join('\n'),
+        'utf-8',
+      )
       const result = await client.callTool({
         name: 'list_blueprints',
         arguments: { domain: rootDir },
