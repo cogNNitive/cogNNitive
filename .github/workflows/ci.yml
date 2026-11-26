@@ -208,7 +208,11 @@ jobs:
   spec-integrity:
     runs-on: ubuntu-latest
     steps:
+      # Full history and tags: the release-pin check below resolves the manifest's recorded
+      # commits and its release tags in this clone, and needs both to mean anything.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -219,6 +223,15 @@ jobs:
       # check-spec-version.mjs uses only node: built-ins and scripts/lib, so no npm ci.
       - name: Check spec URLs resolve
         run: npm run check:spec-urls
+
+      # BLOCKING, on purpose: a released artifact whose `main` moved ahead of the pin in the
+      # committed manifest, or a release tag that no longer resolves to the commit the manifest
+      # records, fails this required job. CI never passes `--advisory`; that flag exists only
+      # for a local run during a known lag (scripts/release/channel-drift.js documents it).
+      # The committed snapshot is the preview channel today, so it carries no released pin and
+      # this passes trivially until a stable snapshot is committed or `--manifest` points at one.
+      - name: Check release pins against main
+        run: node scripts/release/channel-drift.js
 
   # One-way publish of the built site to the public distribution repo
   # (`cogNNitive-web`), which owns the GitHub Pages deployment for
