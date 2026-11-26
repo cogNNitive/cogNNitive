@@ -53,7 +53,9 @@ export function viewRootCandidates({ domainRoot, specName, packagesDir }) {
   const { base, version } = parseSpecName(specName)
   // The base becomes a path segment: a name like `../../x` must never reach `join`.
   if (!SPEC_BASE_RE.test(base)) {
-    throw new Error(`parent_spec "${specName}" is not a valid name: the part before the version may only use letters, digits, "_" and "-"`)
+    throw new Error(
+      `parent_spec "${specName}" is not a valid name: the part before the version may only use letters, digits, "_" and "-"`,
+    )
   }
   const tier1 = join(domainRoot, 'specs', 'bluepriNNts', base)
   return [
@@ -116,13 +118,13 @@ function viewFiles(dir, entries, blueprint) {
     if (!entry.name.endsWith('.js') || entry.name.endsWith('.data.mjs')) continue
     if (blueprint && !entry.name.startsWith(BLUEPRINT_VIEW_PREFIX)) continue
     if (entry.isSymbolicLink()) {
-      throw new Error(`${join(dir, entry.name)} is a symbolic link; symlinked views are not supported, copy the file instead`)
+      throw new Error(
+        `${join(dir, entry.name)} is a symbolic link; symlinked views are not supported, copy the file instead`,
+      )
     }
     if (entry.isFile()) {
       const stem = entry.name.slice(0, -'.js'.length)
-      const slug = blueprint
-        ? entry.name.slice(BLUEPRINT_VIEW_PREFIX.length, -'.js'.length)
-        : stem
+      const slug = blueprint ? entry.name.slice(BLUEPRINT_VIEW_PREFIX.length, -'.js'.length) : stem
       const dataName = `${stem}.data.mjs`
       if (dataNames.has(dataName)) claimed.add(dataName)
       const cssName = `${stem}.css`
@@ -167,7 +169,12 @@ const SECONDARY_VIEW_ID = /registerView\s*\(\s*\{[\s\S]*?\bid\s*:\s*['"]([a-z0-9
  * and the runtime refuses reserved ids too.
  */
 function isRegistrableSecondaryId(slug, extraId) {
-  return Boolean(extraId) && extraId !== slug && extraId.startsWith(`${slug}-`) && !RESERVED_VIEW_IDS.includes(extraId)
+  return (
+    Boolean(extraId) &&
+    extraId !== slug &&
+    extraId.startsWith(`${slug}-`) &&
+    !RESERVED_VIEW_IDS.includes(extraId)
+  )
 }
 
 async function readViews(dir, files, origin, sourcePrefix) {
@@ -176,7 +183,9 @@ async function readViews(dir, files, origin, sourcePrefix) {
     const id = slug
     const source = `${sourcePrefix}/${name}`
     if (!VIEW_ID_RE.test(id)) {
-      throw new Error(`invalid view id "${id}" from ${source}: the file name must be a slug of lowercase alphanumerics and hyphens`)
+      throw new Error(
+        `invalid view id "${id}" from ${source}: the file name must be a slug of lowercase alphanumerics and hyphens`,
+      )
     }
     if (RESERVED_VIEW_IDS.includes(id)) throw new Error(`view id "${id}" is reserved (${source})`)
     const code = await readFile(join(dir, name), 'utf8')
@@ -208,7 +217,9 @@ async function readViews(dir, files, origin, sourcePrefix) {
  */
 function warnNonViewFiles(dir, entries, onWarning) {
   const strays = entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.js') && !entry.name.endsWith('.data.mjs'))
+    .filter(
+      (entry) => entry.isFile() && entry.name.endsWith('.js') && !entry.name.endsWith('.data.mjs'),
+    )
     .map((entry) => entry.name)
     .filter((name) => !name.startsWith(BLUEPRINT_VIEW_PREFIX))
     .sort(compareCodeUnits)
@@ -233,7 +244,12 @@ function warnNonViewFiles(dir, entries, onWarning) {
  * is used instead, and when a domaiNN view file keeps the bluepriNNt prefix.
  * @param {{ domainRoot: string, specNames?: string[], packagesDir: string, onWarning?: (message: string) => void }} options
  */
-export async function discoverViews({ domainRoot, specNames = [], packagesDir, onWarning = () => {} }) {
+export async function discoverViews({
+  domainRoot,
+  specNames = [],
+  packagesDir,
+  onWarning = () => {},
+}) {
   // Plain code-unit order (not localeCompare) so the result and the messages never depend
   // on the machine's locale or on the order the models were found in.
   const sortedNames = [...new Set(specNames)].sort(compareCodeUnits)
@@ -285,7 +301,14 @@ export async function discoverViews({ domainRoot, specNames = [], packagesDir, o
         `models on blueprint "${base}" resolve to different views: ${hits[0].specName} (${hits[0].dir}) and ${other.specName} (${other.dir}); keep views for one version, or move them to the shared folder`,
       )
     }
-    found.push(...(await readViews(hits[0].dir, hits[0].files, 'bluepriNNt', `bluepriNNt:${base}/${BLUEPRINT_VIEWS_SUBPATH.join('/')}`)))
+    found.push(
+      ...(await readViews(
+        hits[0].dir,
+        hits[0].files,
+        'bluepriNNt',
+        `bluepriNNt:${base}/${BLUEPRINT_VIEWS_SUBPATH.join('/')}`,
+      )),
+    )
   }
   const domainDir = join(domainRoot, ...DOMAIN_VIEWS_SUBPATH)
   const domainEntries = await listEntries(domainDir)
@@ -322,7 +345,20 @@ function wrapperText(view) {
 }
 
 const WORDS_BEFORE_REGEX = new Set([
-  'return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void', 'throw', 'case', 'do', 'else', 'yield', 'await',
+  'return',
+  'typeof',
+  'instanceof',
+  'in',
+  'of',
+  'new',
+  'delete',
+  'void',
+  'throw',
+  'case',
+  'do',
+  'else',
+  'yield',
+  'await',
 ])
 const IMPORT_DECLARATION = /^\s*[A-Za-z_$*{'"]/
 const EXPORT_DECLARATION = /^\s*(?:default\b|const\b|let\b|var\b|function\b|class\b|async\b|[{*])/
@@ -392,7 +428,13 @@ export function findModuleSyntax(code) {
       skipTemplate()
       prev = 's'
       prevChar = c
-    } else if (c === '/' && (prev === '' || prev === 'o' || prev === '}' || (prev === 'w' && WORDS_BEFORE_REGEX.has(prevWord)))) {
+    } else if (
+      c === '/' &&
+      (prev === '' ||
+        prev === 'o' ||
+        prev === '}' ||
+        (prev === 'w' && WORDS_BEFORE_REGEX.has(prevWord)))
+    ) {
       skipRegex()
       prev = 's'
       prevChar = '/'
@@ -405,7 +447,8 @@ export function findModuleSyntax(code) {
         if (word === 'import' && /^\s*\./.test(rest)) return 'import.meta'
         if (word === 'import' && depth === 0 && IMPORT_DECLARATION.test(rest)) return 'import'
         if (word === 'export' && depth === 0 && EXPORT_DECLARATION.test(rest)) return 'export'
-        if (word === 'await' && depth === 0 && prevChar !== '>' && TOP_LEVEL_AWAIT.test(rest)) return 'top-level await'
+        if (word === 'await' && depth === 0 && prevChar !== '>' && TOP_LEVEL_AWAIT.test(rest))
+          return 'top-level await'
       }
       i = j
       prev = 'w'
@@ -482,7 +525,8 @@ function escapeChecked(text, label) {
 }
 
 export const escapeStyle = (text) => text.replace(/<\/(style)/gi, '<\\/$1')
-const escapeAttr = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+const escapeAttr = (s) =>
+  s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 /**
  * Runs every view's `collect({ rootDir, models })` data module and returns
@@ -507,7 +551,9 @@ export async function collectViewData({ views, rootDir, models = [] }) {
       const info = await stat(view.dataPath)
       mod = await import(`${pathToFileURL(view.dataPath).href}?v=${info.mtimeMs}`)
     } catch (err) {
-      throw new Error(`cannot load the data module for view "${view.id}" (${view.dataPath}): ${err.message}`)
+      throw new Error(
+        `cannot load the data module for view "${view.id}" (${view.dataPath}): ${err.message}`,
+      )
     }
     if (typeof mod.collect !== 'function') {
       throw new Error(
@@ -538,7 +584,8 @@ export function viewsHeader(views) {
   if (views.length === 0) return ''
   const clean = (s) => s.replace(/\s+/g, '_').replace(/-{2,}/g, '-')
   const lines = views.map(
-    (v) => `${clean(v.id)} ${v.origin} ${clean(v.source)} sha256:${v.sha256.slice(0, HASH_DISPLAY_LENGTH)}`,
+    (v) =>
+      `${clean(v.id)} ${v.origin} ${clean(v.source)} sha256:${v.sha256.slice(0, HASH_DISPLAY_LENGTH)}`,
   )
   return `<!-- nn-views (trusted code, full page access)\n${lines.join('\n')}\n-->`
 }
@@ -580,7 +627,8 @@ const PREPARED = Symbol('prepared console assets')
  * CSS, or a view or bundle that cannot be embedded.
  */
 export function prepareAssets({ bundle, css, views }) {
-  if (typeof bundle !== 'string' || bundle === '') throw new Error('console bundle is missing or empty')
+  if (typeof bundle !== 'string' || bundle === '')
+    throw new Error('console bundle is missing or empty')
   if (typeof css !== 'string') throw new Error('console stylesheet is missing')
   const seenSources = new Set()
   const uniqueViews = views.filter((v) => {
@@ -603,16 +651,23 @@ const prepared = (assets) => (assets[PREPARED] ? assets : prepareAssets(assets))
 
 function assertShell(shell) {
   /** @type {[string, RegExp][]} */
-  const anchors = [['stylesheet link', CSS_LINK], ['viewport meta', VIEWPORT], ['bundle script tags', BUNDLE_TAGS]]
+  const anchors = [
+    ['stylesheet link', CSS_LINK],
+    ['viewport meta', VIEWPORT],
+    ['bundle script tags', BUNDLE_TAGS],
+  ]
   for (const [name, re] of anchors) {
     if (!re.test(shell)) throw new Error(`console shell has no ${name} to replace (anchor missing)`)
   }
   // Every block is replaced by a full copy of the bundle, and a second copy would replace
   // `window.nnConsole`; so exactly one block, and no stray bundle tag next to it.
   const blocks = [...shell.matchAll(new RegExp(BUNDLE_TAGS.source, 'g'))].length
-  if (blocks !== 1) throw new Error(`console shell has ${blocks} bundle script blocks; exactly 1 is expected`)
+  if (blocks !== 1)
+    throw new Error(`console shell has ${blocks} bundle script blocks; exactly 1 is expected`)
   if (STRAY_BUNDLE_TAG.test(shell.replace(BUNDLE_TAGS, ''))) {
-    throw new Error('console shell has a bundle script tag outside the shell block, which would stay external')
+    throw new Error(
+      'console shell has a bundle script tag outside the shell block, which would stay external',
+    )
   }
 }
 
@@ -665,7 +720,12 @@ function findCspMeta(html) {
     const httpEquiv = attrs.get('http-equiv')
     const content = attrs.get('content')
     if (httpEquiv?.value && content && CSP_HTTP_EQUIV.test(httpEquiv.value.trim())) {
-      return { policy: content.value, contentStart: content.start, contentEnd: content.end, quoted: content.quoted }
+      return {
+        policy: content.value,
+        contentStart: content.start,
+        contentEnd: content.end,
+        quoted: content.quoted,
+      }
     }
   }
   return null
@@ -697,7 +757,9 @@ function withInlineScriptHashes(policy, hashes) {
     )
   }
   // `'none'` is only meaningful as a directive's sole source, so it is not carried over.
-  const sources = directiveTokens(segments[defaultAt]).filter((token) => token.toLowerCase() !== "'none'")
+  const sources = directiveTokens(segments[defaultAt]).filter(
+    (token) => token.toLowerCase() !== "'none'",
+  )
   const directive = ['script-src', ...sources, ...hashes].join(' ')
   const head = policy.replace(/[\s;]+$/, '')
   return head ? `${head}; ${directive}` : directive
@@ -718,7 +780,9 @@ export function allowInlineScripts(html) {
     const attrs = m[1]
     if (SCRIPT_SRC_ATTR.test(attrs)) continue
     const typeMatch = SCRIPT_TYPE_ATTR.exec(attrs)
-    const type = typeMatch ? (typeMatch[1] ?? typeMatch[2] ?? typeMatch[3]).trim().toLowerCase() : ''
+    const type = typeMatch
+      ? (typeMatch[1] ?? typeMatch[2] ?? typeMatch[3]).trim().toLowerCase()
+      : ''
     if (!EXECUTABLE_SCRIPT_TYPES.has(type)) continue
     // The HTML parser normalizes CRLF and CR to LF, and maps null bytes (\0) to \uFFFD before the script text is hashed.
     const text = m[2].replace(/\r\n?/g, '\n').replace(/\0/g, '\uFFFD')
@@ -727,7 +791,11 @@ export function allowInlineScripts(html) {
   if (hashes.size === 0) return html
   const policy = withInlineScriptHashes(meta.policy, [...hashes])
   // An unquoted content value cannot hold a policy (it has spaces), so it is quoted here.
-  return html.slice(0, meta.contentStart) + (meta.quoted ? policy : `"${policy}"`) + html.slice(meta.contentEnd)
+  return (
+    html.slice(0, meta.contentStart) +
+    (meta.quoted ? policy : `"${policy}"`) +
+    html.slice(meta.contentEnd)
+  )
 }
 
 /**
@@ -822,12 +890,18 @@ export function resolveSizeBudget(frontmatter, defaults = CONSOLE_SIZE_BUDGET) {
   }
   const warnBytes = read('console_size_budget_warn') ?? defaults.warnBytes
   const failBytes = read('console_size_budget_fail') ?? defaults.failBytes
-  const source = warnBytes === defaults.warnBytes && failBytes === defaults.failBytes ? 'default' : 'domain'
+  const source =
+    warnBytes === defaults.warnBytes && failBytes === defaults.failBytes ? 'default' : 'domain'
   if (warnBytes >= failBytes) {
     problems.push(
       `console_size_budget_warn (${warnBytes} B) must be lower than console_size_budget_fail (${failBytes} B); using the defaults.`,
     )
-    return { warnBytes: defaults.warnBytes, failBytes: defaults.failBytes, source: 'default', problems }
+    return {
+      warnBytes: defaults.warnBytes,
+      failBytes: defaults.failBytes,
+      source: 'default',
+      problems,
+    }
   }
   return { warnBytes, failBytes, source, problems }
 }
@@ -849,8 +923,10 @@ export function evaluateSizeBudget({
   budget = null,
   strategy = 'none',
 }) {
-  const warnBytes = budget && Number.isFinite(budget.warnBytes) ? budget.warnBytes : CONSOLE_SIZE_BUDGET.warnBytes
-  const failBytes = budget && Number.isFinite(budget.failBytes) ? budget.failBytes : CONSOLE_SIZE_BUDGET.failBytes
+  const warnBytes =
+    budget && Number.isFinite(budget.warnBytes) ? budget.warnBytes : CONSOLE_SIZE_BUDGET.warnBytes
+  const failBytes =
+    budget && Number.isFinite(budget.failBytes) ? budget.failBytes : CONSOLE_SIZE_BUDGET.failBytes
   // The page ships its model deflate-raw + base64, so the bytes on disk say nothing about
   // what the browser holds once it inflates them. Gate on the larger of the two: a payload
   // that compresses to 40 MB and inflates to 400 MB is a dead tab, not a passing export.
@@ -865,5 +941,16 @@ export function evaluateSizeBudget({
       ? `${breakdown}${strategyNote}`
       : `console is larger than ${limit} B; ${breakdown}${strategyNote}` +
         (status === 'fail' ? '. Views are not split lazily: remove or slim what is inlined.' : '')
-  return { status, total, effective, modelsRawBytes, limit, warnBytes, failBytes, strategy, breakdown, message }
+  return {
+    status,
+    total,
+    effective,
+    modelsRawBytes,
+    limit,
+    warnBytes,
+    failBytes,
+    strategy,
+    breakdown,
+    message,
+  }
 }

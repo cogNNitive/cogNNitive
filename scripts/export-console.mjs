@@ -55,9 +55,24 @@ const repoConsoleDir = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console'
 /** Lazily loads the coNNtent layout checker, or null when that blueprint is not present. */
 async function loadLayoutChecker() {
   const candidates = [
-    new URL('../iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/lib/layout.mjs', import.meta.url).href,
+    new URL(
+      '../iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/lib/layout.mjs',
+      import.meta.url,
+    ).href,
     new URL('../../coNNtent/skills/nn-conntent/scripts/lib/layout.mjs', import.meta.url).href,
-    pathToFileURL(join(homedir(), '.agents', 'bluepriNNts', 'coNNtent', 'skills', 'nn-conntent', 'scripts', 'lib', 'layout.mjs')).href,
+    pathToFileURL(
+      join(
+        homedir(),
+        '.agents',
+        'bluepriNNts',
+        'coNNtent',
+        'skills',
+        'nn-conntent',
+        'scripts',
+        'lib',
+        'layout.mjs',
+      ),
+    ).href,
   ]
   for (const cand of candidates) {
     try {

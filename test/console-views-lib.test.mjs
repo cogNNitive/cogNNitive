@@ -50,12 +50,18 @@ describe('console-views lib', () => {
     await rm(pkgs, { recursive: true, force: true })
   })
 
-  const discover = (specNames = []) => discoverViews({ domainRoot: domain, specNames, packagesDir: pkgs })
+  const discover = (specNames = []) =>
+    discoverViews({ domainRoot: domain, specNames, packagesDir: pkgs })
 
   describe('unresolvable bluepriNNt packages', () => {
     const collect = async (specNames) => {
       const warnings = []
-      await discoverViews({ domainRoot: domain, specNames, packagesDir: pkgs, onWarning: (w) => warnings.push(w) })
+      await discoverViews({
+        domainRoot: domain,
+        specNames,
+        packagesDir: pkgs,
+        onWarning: (w) => warnings.push(w),
+      })
       return warnings
     }
 
@@ -90,7 +96,9 @@ describe('console-views lib', () => {
     const runtimeSource = readFileSync(join(consoleDir, 'nn-runtime.js'), 'utf8')
     const accepted = (id) => {
       try {
-        nnConsole.createViewRegistry().register({ id, title: 't', icon: 'x', order: 1, kind: 'readonly', mount() {} })
+        nnConsole
+          .createViewRegistry()
+          .register({ id, title: 't', icon: 'x', order: 1, kind: 'readonly', mount() {} })
         return true
       } catch {
         return false
@@ -102,18 +110,50 @@ describe('console-views lib', () => {
       const runtimeReserved = [...declared.matchAll(/'([^']+)'/g)].map((m) => m[1])
       assert.ok(runtimeReserved.length > 0, 'the runtime list was found')
       assert.deepEqual([...RESERVED_VIEW_IDS].sort(), [...runtimeReserved].sort())
-      for (const id of RESERVED_VIEW_IDS) assert.equal(accepted(id), false, id + ' is refused by the runtime')
+      for (const id of RESERVED_VIEW_IDS)
+        assert.equal(accepted(id), false, id + ' is refused by the runtime')
     })
 
     it('the id pattern is the runtime pattern, and both agree on a wide set of probes', () => {
       const declared = runtimeSource.match(/var VIEW_ID_RE = \/(.*)\/\s*$/m)[1]
       assert.equal(VIEW_ID_RE.source, declared)
       const probes = [
-        'a', 'a-b', 'a-b1', '1', '0-1', 'a1-b2-c3', 'a--b', '-a', 'a-', '-', '', 'A', 'aB', 'a_b', 'a b', 'a.b', 'a/b',
-        'é', 'aé', 'a\n', 'a-b\n', ' a', 'a ', 'x'.repeat(200), 'timeline', 'review', 'explorer', 'matrices', 'Review',
+        'a',
+        'a-b',
+        'a-b1',
+        '1',
+        '0-1',
+        'a1-b2-c3',
+        'a--b',
+        '-a',
+        'a-',
+        '-',
+        '',
+        'A',
+        'aB',
+        'a_b',
+        'a b',
+        'a.b',
+        'a/b',
+        'é',
+        'aé',
+        'a\n',
+        'a-b\n',
+        ' a',
+        'a ',
+        'x'.repeat(200),
+        'timeline',
+        'review',
+        'explorer',
+        'matrices',
+        'Review',
       ]
       for (const id of probes) {
-        assert.equal(accepted(id), VIEW_ID_RE.test(id) && !RESERVED_VIEW_IDS.includes(id), JSON.stringify(id))
+        assert.equal(
+          accepted(id),
+          VIEW_ID_RE.test(id) && !RESERVED_VIEW_IDS.includes(id),
+          JSON.stringify(id),
+        )
       }
     })
 
@@ -131,7 +171,10 @@ describe('console-views lib', () => {
     it('ignores surrounding whitespace and the case of the version suffix', () => {
       assert.deepEqual(parseSpecName(' metrics_V_0-4-1 '), { base: 'metrics', version: 'V_0-4-1' })
       assert.deepEqual(parseSpecName('metrics_v_0-4-1'), { base: 'metrics', version: 'v_0-4-1' })
-      assert.deepEqual(parseSpecName('\tmetrics_V_0-4-1\n'), { base: 'metrics', version: 'V_0-4-1' })
+      assert.deepEqual(parseSpecName('\tmetrics_V_0-4-1\n'), {
+        base: 'metrics',
+        version: 'V_0-4-1',
+      })
       assert.deepEqual(parseSpecName('coNNtent_V_0-2-0'), { base: 'coNNtent', version: 'V_0-2-0' })
     })
 
@@ -143,9 +186,18 @@ describe('console-views lib', () => {
 
     it('resolves a padded or suffix-cased parent_spec to the same views folder as the canonical name', async () => {
       await put(join(pkgs, 'metrics', 'assets', 'console-view-timeline.js'))
-      assert.deepEqual((await discover(['metrics_V_0-4-1'])).map((v) => v.id), ['timeline'])
-      assert.deepEqual((await discover([' metrics_V_0-4-1 '])).map((v) => v.id), ['timeline'])
-      assert.deepEqual((await discover(['metrics_v_0-4-1'])).map((v) => v.id), ['timeline'])
+      assert.deepEqual(
+        (await discover(['metrics_V_0-4-1'])).map((v) => v.id),
+        ['timeline'],
+      )
+      assert.deepEqual(
+        (await discover([' metrics_V_0-4-1 '])).map((v) => v.id),
+        ['timeline'],
+      )
+      assert.deepEqual(
+        (await discover(['metrics_v_0-4-1'])).map((v) => v.id),
+        ['timeline'],
+      )
       assert.deepEqual(await discover(['meterics_V_0-4-1']), [])
     })
 
@@ -160,7 +212,11 @@ describe('console-views lib', () => {
         'procedures_V_0-2-0',
         'coNNtent_V_0-2-0',
       ]) {
-        assert.equal(exportConsole.coreBlueprintOf(name), parseSpecName(name).base.toLowerCase(), JSON.stringify(name))
+        assert.equal(
+          exportConsole.coreBlueprintOf(name),
+          parseSpecName(name).base.toLowerCase(),
+          JSON.stringify(name),
+        )
       }
       assert.equal(exportConsole.coreBlueprintOf(' Sources_V_0-1-0 '), 'sources')
       assert.equal(exportConsole.coreBlueprintOf('artefacts_V_0-1-0'), 'artefacts')
@@ -169,9 +225,18 @@ describe('console-views lib', () => {
 
   describe('discovery roots', () => {
     it('lists domain version dir, domain base dir, then the package dir', () => {
-      const roots = viewRootCandidates({ domainRoot: domain, specName: 'metrics_V_0-4-1', packagesDir: pkgs })
+      const roots = viewRootCandidates({
+        domainRoot: domain,
+        specName: 'metrics_V_0-4-1',
+        packagesDir: pkgs,
+      })
       assert.deepEqual(
-        roots.map((r) => r.replace(/\\/g, '/').replace(domain.replace(/\\/g, '/'), '<d>').replace(pkgs.replace(/\\/g, '/'), '<p>')),
+        roots.map((r) =>
+          r
+            .replace(/\\/g, '/')
+            .replace(domain.replace(/\\/g, '/'), '<d>')
+            .replace(pkgs.replace(/\\/g, '/'), '<p>'),
+        ),
         [
           '<d>/specs/bluepriNNts/metrics/V_0-4-1/assets',
           '<d>/specs/bluepriNNts/metrics/assets',
@@ -183,9 +248,15 @@ describe('console-views lib', () => {
     it('the first existing root wins and roots are never merged', async () => {
       await put(join(pkgs, 'metrics', 'assets', 'console-view-timeline.js'))
       await put(join(pkgs, 'metrics', 'assets', 'console-view-extra.js'))
-      await put(join(domain, 'specs', 'bluepriNNts', 'metrics', 'assets', 'console-view-timeline.js'), GOOD + '// domain copy\n')
+      await put(
+        join(domain, 'specs', 'bluepriNNts', 'metrics', 'assets', 'console-view-timeline.js'),
+        GOOD + '// domain copy\n',
+      )
       const views = await discover(['metrics_V_0-4-1'])
-      assert.deepEqual(views.map((v) => v.id), ['timeline'])
+      assert.deepEqual(
+        views.map((v) => v.id),
+        ['timeline'],
+      )
       assert.match(views[0].code, /domain copy/)
       assert.equal(views[0].source, 'bluepriNNt:metrics/assets/console-view-timeline.js')
       assert.equal(views[0].origin, 'bluepriNNt')
@@ -194,7 +265,10 @@ describe('console-views lib', () => {
     it('reads each base once even when several models share it', async () => {
       await put(join(pkgs, 'metrics', 'assets', 'console-view-timeline.js'))
       const views = await discover(['metrics_V_0-4-1', 'metrics_V_0-3-0', 'metrics_V_0-4-1'])
-      assert.deepEqual(views.map((v) => v.id), ['timeline'])
+      assert.deepEqual(
+        views.map((v) => v.id),
+        ['timeline'],
+      )
     })
   })
 
@@ -219,7 +293,13 @@ describe('console-views lib', () => {
     })
 
     it('accepts letters, digits, underscores and hyphens', () => {
-      assert.doesNotThrow(() => viewRootCandidates({ domainRoot: domain, specName: 'My_Spec-2_V_0-1-0', packagesDir: pkgs }))
+      assert.doesNotThrow(() =>
+        viewRootCandidates({
+          domainRoot: domain,
+          specName: 'My_Spec-2_V_0-1-0',
+          packagesDir: pkgs,
+        }),
+      )
     })
   })
 
@@ -239,7 +319,9 @@ describe('console-views lib', () => {
       await put(join(domainViews('metrics', 'V_0-3-0'), 'console-view-old.js'))
       await put(join(domainViews('metrics', 'V_0-4-1'), 'console-view-new.js'))
       const expected = (err) =>
-        /metrics_V_0-3-0/.test(err.message) && /metrics_V_0-4-1/.test(err.message) && /different views/.test(err.message)
+        /metrics_V_0-3-0/.test(err.message) &&
+        /metrics_V_0-4-1/.test(err.message) &&
+        /different views/.test(err.message)
       await assert.rejects(discover(['metrics_V_0-4-1', 'metrics_V_0-3-0']), expected)
       await assert.rejects(discover(['metrics_V_0-3-0', 'metrics_V_0-4-1']), expected)
     })
@@ -252,7 +334,10 @@ describe('console-views lib', () => {
 
     it('is fine when only one version resolves to any views', async () => {
       await put(join(domainViews('metrics', 'V_0-4-1'), 'console-view-new.js'))
-      assert.deepEqual((await discover(['metrics_V_0-3-0', 'metrics_V_0-4-1'])).map((v) => v.id), ['new'])
+      assert.deepEqual(
+        (await discover(['metrics_V_0-3-0', 'metrics_V_0-4-1'])).map((v) => v.id),
+        ['new'],
+      )
     })
 
     it('treats an existing but empty candidate directory as absent', async () => {
@@ -260,7 +345,10 @@ describe('console-views lib', () => {
       await put(join(domainViews('metrics'), 'readme.md'), '# no views here')
       await put(join(pkgViews('metrics'), 'console-view-timeline.js'))
       const views = await discover(['metrics_V_0-4-1'])
-      assert.deepEqual(views.map((v) => v.id), ['timeline'])
+      assert.deepEqual(
+        views.map((v) => v.id),
+        ['timeline'],
+      )
       assert.equal(views[0].source, 'bluepriNNt:metrics/assets/console-view-timeline.js')
     })
 
@@ -278,7 +366,10 @@ describe('console-views lib', () => {
       await put(join(domain, 'consoles', 'views', 'pipeline.js'))
       await put(join(domain, 'consoles', 'views', 'alpha.js'))
       const views = await discover()
-      assert.deepEqual(views.map((v) => v.id), ['alpha', 'pipeline'])
+      assert.deepEqual(
+        views.map((v) => v.id),
+        ['alpha', 'pipeline'],
+      )
       assert.equal(views[1].origin, 'domaiNN')
       assert.equal(views[1].source, 'domaiNN:consoles/views/pipeline.js')
       assert.equal(views[1].sha256, createHash('sha256').update(GOOD, 'utf8').digest('hex'))
@@ -297,7 +388,10 @@ describe('console-views lib', () => {
       await put(join(dir, 'mod.mjs'), 'export {}')
       await mkdir(join(dir, 'folder.js'), { recursive: true })
       await put(join(dir, 'ok.js'))
-      assert.deepEqual((await discover()).map((v) => v.id), ['ok'])
+      assert.deepEqual(
+        (await discover()).map((v) => v.id),
+        ['ok'],
+      )
     })
   })
 
@@ -310,9 +404,14 @@ describe('console-views lib', () => {
       `registerView({ title: 'T', id: ${JSON.stringify(id)}, icon: 'x', order: 1, kind: 'readonly', mount() {} })\n`
     const runtimeAccepts = (slug, declared) => {
       try {
-        nnConsole
-          .createViewRegistry()
-          .registrar(slug, 'probe.js')({ id: declared, title: 't', icon: 'x', order: 1, kind: 'readonly', mount() {} })
+        nnConsole.createViewRegistry().registrar(slug, 'probe.js')({
+          id: declared,
+          title: 't',
+          icon: 'x',
+          order: 1,
+          kind: 'readonly',
+          mount() {},
+        })
         return true
       } catch {
         return false
@@ -336,8 +435,13 @@ describe('console-views lib', () => {
         assert.deepEqual(extras, isExtra ? [declared] : [])
         // Parity in the direction that matters: no discovered view id is one the runtime
         // refuses at boot for a declared id on this file.
-        for (const extraId of extras) assert.ok(runtimeAccepts('timeline', extraId), `the registrar accepts "${extraId}"`)
-        assert.equal(runtimeAccepts('timeline', declared), isExtra || declared === 'timeline', 'the registrar verdict on the declared id')
+        for (const extraId of extras)
+          assert.ok(runtimeAccepts('timeline', extraId), `the registrar accepts "${extraId}"`)
+        assert.equal(
+          runtimeAccepts('timeline', declared),
+          isExtra || declared === 'timeline',
+          'the registrar verdict on the declared id',
+        )
         if (isExtra) {
           const extra = views.find((v) => v.id === declared)
           assert.equal(extra.sha256, views[0].sha256)
@@ -352,7 +456,10 @@ describe('console-views lib', () => {
         join(domain, 'consoles', 'views', 'timeline.js'),
         `// registerView({ id: 'ghost' })\nvar quoted = "registerView({ id: 'ghost-two' })"\nvar cfg = { id: 'untitled' }\n${GOOD}`,
       )
-      assert.deepEqual((await discover()).map((v) => v.id), ['timeline'])
+      assert.deepEqual(
+        (await discover()).map((v) => v.id),
+        ['timeline'],
+      )
     })
   })
 
@@ -376,17 +483,27 @@ describe('console-views lib', () => {
       await put(join(assets, 'timeline.js'))
       await mkdir(join(pkgs, 'metrics'), { recursive: true })
       const { views, warnings } = await collect(['metrics'])
-      assert.deepEqual(views.map((v) => v.id), [])
+      assert.deepEqual(
+        views.map((v) => v.id),
+        [],
+      )
       assert.equal(warnings.length, 1)
       assert.ok(warnings[0].includes(join(assets, 'timeline.js')), 'names the offending file')
-      assert.ok(warnings[0].includes(join(assets, 'console-view-timeline.js')), 'names the expected file')
+      assert.ok(
+        warnings[0].includes(join(assets, 'console-view-timeline.js')),
+        'names the expected file',
+      )
     })
 
     it('warns, naming the file and the plain slug it should use, when a domaiNN view keeps the bluepriNNt prefix', async () => {
       const dir = join(domain, 'consoles', 'views')
       await put(join(dir, 'console-view-foo.js'))
       const { views, warnings } = await collect()
-      assert.deepEqual(views.map((v) => v.id), ['console-view-foo'], 'the export still succeeds with the id it derives')
+      assert.deepEqual(
+        views.map((v) => v.id),
+        ['console-view-foo'],
+        'the export still succeeds with the id it derives',
+      )
       assert.equal(warnings.length, 1)
       assert.ok(warnings[0].includes(join(dir, 'console-view-foo.js')), 'names the offending file')
       assert.ok(warnings[0].includes(join(dir, 'foo.js')), 'names the expected file')
@@ -398,7 +515,11 @@ describe('console-views lib', () => {
       const used = join(pkgs, 'metrics', 'assets')
       await put(join(used, 'console-view-timeline.js'))
       const { views, warnings } = await collect(['metrics'])
-      assert.deepEqual(views.map((v) => v.id), ['timeline'], 'the later tier still supplies the views')
+      assert.deepEqual(
+        views.map((v) => v.id),
+        ['timeline'],
+        'the later tier still supplies the views',
+      )
       assert.equal(warnings.length, 1)
       assert.ok(warnings[0].includes(empty), 'names the folder that yielded nothing')
       assert.ok(warnings[0].includes(used), 'names the folder that was used instead')
@@ -409,7 +530,10 @@ describe('console-views lib', () => {
       await put(join(domain, 'specs', 'bluepriNNts', 'metrics', 'assets', 'console-view-domain.js'))
       await put(join(domain, 'consoles', 'views', 'pipeline.js'))
       const { views, warnings } = await collect(['metrics'])
-      assert.deepEqual(views.map((v) => v.id), ['domain', 'pipeline'])
+      assert.deepEqual(
+        views.map((v) => v.id),
+        ['domain', 'pipeline'],
+      )
       assert.deepEqual(warnings, [])
     })
   })
@@ -418,7 +542,10 @@ describe('console-views lib', () => {
     // A file symlink needs a privilege on Windows; a junction to a folder does not, and both
     // show up as symbolic links in a directory listing.
     const link = async (target, at) => {
-      for (const [to, type] of [[target, 'file'], [dirname(target), 'junction']]) {
+      for (const [to, type] of [
+        [target, 'file'],
+        [dirname(target), 'junction'],
+      ]) {
         try {
           await symlink(to, at, type)
           return true
@@ -436,7 +563,10 @@ describe('console-views lib', () => {
       if (!(await link(join(domain, 'real', 'timeline.js'), join(dir, 'timeline.js')))) {
         return t.skip('cannot create a symlink or junction here')
       }
-      await assert.rejects(discover(), (err) => /timeline.js/.test(err.message) && /symbolic link/.test(err.message))
+      await assert.rejects(
+        discover(),
+        (err) => /timeline.js/.test(err.message) && /symbolic link/.test(err.message),
+      )
     })
 
     it('rethrows a read error that is not "does not exist" instead of reporting no views', async (t) => {
@@ -444,7 +574,8 @@ describe('console-views lib', () => {
       await put(join(dir, 'ok.js'))
       const real = fsp.readdir
       t.mock.method(fsp, 'readdir', async (path, ...rest) => {
-        if (path === dir) throw Object.assign(new Error('EACCES: permission denied'), { code: 'EACCES' })
+        if (path === dir)
+          throw Object.assign(new Error('EACCES: permission denied'), { code: 'EACCES' })
         return real(path, ...rest)
       })
       syncBuiltinESMExports()
@@ -465,7 +596,10 @@ describe('console-views lib', () => {
   describe('view stylesheets (.css)', () => {
     it('discovers sibling .css for a bluepriNNt view and includes its css text', async () => {
       await put(join(pkgs, 'metrics', 'assets', 'console-view-timeline.js'))
-      await put(join(pkgs, 'metrics', 'assets', 'console-view-timeline.css'), '.timeline { color: blue; }')
+      await put(
+        join(pkgs, 'metrics', 'assets', 'console-view-timeline.css'),
+        '.timeline { color: blue; }',
+      )
       const views = await discover(['metrics_V_0-4-1'])
       assert.equal(views.length, 1)
       assert.equal(views[0].id, 'timeline')
@@ -491,17 +625,17 @@ describe('console-views lib', () => {
 
     it('rejects an orphan domaiNN view stylesheet with no matching .js', async () => {
       await put(join(domain, 'consoles', 'views', 'orphan.css'), '.orphan {}')
-      await assert.rejects(
-        discover([]),
-        /orphan\.css has no matching view/,
-      )
+      await assert.rejects(discover([]), /orphan\.css has no matching view/)
     })
   })
 
   describe('validation', () => {
     it('rejects a file name that is not a slug, naming the file', async () => {
       await put(join(domain, 'consoles', 'views', 'Bad_Name.js'))
-      await assert.rejects(discover(), /Bad_Name.*domaiNN:consoles\/views\/Bad_Name\.js|domaiNN:consoles\/views\/Bad_Name\.js.*Bad_Name/s)
+      await assert.rejects(
+        discover(),
+        /Bad_Name.*domaiNN:consoles\/views\/Bad_Name\.js|domaiNN:consoles\/views\/Bad_Name\.js.*Bad_Name/s,
+      )
     })
 
     it('rejects reserved ids', async () => {
@@ -522,20 +656,30 @@ describe('console-views lib', () => {
     })
 
     it('rejects ES module syntax with a clear error naming the source', async () => {
-      await put(join(domain, 'consoles', 'views', 'esm.js'), "import x from './x.js'\nregisterView({})\n")
+      await put(
+        join(domain, 'consoles', 'views', 'esm.js'),
+        "import x from './x.js'\nregisterView({})\n",
+      )
       await assert.rejects(discover(), /domaiNN:consoles\/views\/esm\.js.*ES module syntax/s)
       await put(join(domain, 'consoles', 'views', 'esm.js'), 'export const a = 1\n')
       await assert.rejects(discover(), /ES module syntax/)
     })
 
     it('assertClassicScript accepts dynamic import() and strings that mention import', () => {
-      assert.doesNotThrow(() => assertClassicScript("var s = 'import x'; // export y\nimport('./a.js')", 'src'))
+      assert.doesNotThrow(() =>
+        assertClassicScript("var s = 'import x'; // export y\nimport('./a.js')", 'src'),
+      )
     })
 
     describe('module syntax is found from the tokens, not from the engine message', () => {
-      const esm = (code) => assert.throws(() => assertClassicScript(code, 'src'), /^Error: src: ES module syntax/, code)
+      const esm = (code) =>
+        assert.throws(() => assertClassicScript(code, 'src'), /^Error: src: ES module syntax/, code)
       const plain = (code) =>
-        assert.throws(() => assertClassicScript(code, 'src'), (e) => /syntax error/.test(e.message) && !/ES module/.test(e.message), code)
+        assert.throws(
+          () => assertClassicScript(code, 'src'),
+          (e) => /syntax error/.test(e.message) && !/ES module/.test(e.message),
+          code,
+        )
 
       it('names import, export, import.meta and top-level await', () => {
         esm("import x from 'y'\nregisterView({})")
@@ -582,7 +726,11 @@ describe('console-views lib', () => {
     })
 
     it('reports other syntax errors as syntax errors, not as modules', () => {
-      assert.throws(() => assertClassicScript('var = ;', 'src'), (e) => /src/.test(e.message) && /syntax error/i.test(e.message) && !/ES module/.test(e.message))
+      assert.throws(
+        () => assertClassicScript('var = ;', 'src'),
+        (e) =>
+          /src/.test(e.message) && /syntax error/i.test(e.message) && !/ES module/.test(e.message),
+      )
     })
   })
 
@@ -600,8 +748,19 @@ describe('console-views lib', () => {
     })
 
     it('escapes <script followed by whitespace, / or > in any case, but not identifiers', () => {
-      for (const open of ['<script>', '<SCRIPT ', '<ScRiPt\n', '<script\t', '<script/', '<sCript\r']) {
-        assert.equal(/<script[\s/>]/i.test(escapeScript('x ' + open + ' y')), false, JSON.stringify(open))
+      for (const open of [
+        '<script>',
+        '<SCRIPT ',
+        '<ScRiPt\n',
+        '<script\t',
+        '<script/',
+        '<sCript\r',
+      ]) {
+        assert.equal(
+          /<script[\s/>]/i.test(escapeScript('x ' + open + ' y')),
+          false,
+          JSON.stringify(open),
+        )
       }
       assert.equal(escapeScript('i<script.length && a<scripts'), 'i<script.length && a<scripts')
     })
@@ -612,7 +771,8 @@ describe('console-views lib', () => {
     })
 
     describe('script data double-escaped state', () => {
-      const registrar = '<script>window.nnConsole = { viewRegistrar: () => (def) => { window.__view = def } }</script>'
+      const registrar =
+        '<script>window.nnConsole = { viewRegistrar: () => (def) => { window.__view = def } }</script>'
       const parse = async (markup) => {
         const dom = new JSDOM(markup, { runScripts: 'dangerously' })
         await new Promise((ok) => dom.window.addEventListener('load', ok))
@@ -632,13 +792,18 @@ describe('console-views lib', () => {
         "var s = '<!--\\n<script\\t>'\nregisterView({ title: 'T' })\n",
         "var r = /<!--\s*<script/u\nregisterView({ title: 'T' })\n",
       ]) {
-        it('a view with ' + JSON.stringify(code.slice(0, 24)) + ' does not swallow the rest of the page', async () => {
-          const win = await parse(page(wrapView({ ...view, code })))
-          assert.ok(win.__view, 'the view itself ran')
-          assert.equal(win.__after, 1, 'the following script ran')
-          assert.ok(win.document.getElementById('after-div'), 'following markup parsed')
-          assert.ok(win.document.getElementById('elements'))
-        })
+        it(
+          'a view with ' +
+            JSON.stringify(code.slice(0, 24)) +
+            ' does not swallow the rest of the page',
+          async () => {
+            const win = await parse(page(wrapView({ ...view, code })))
+            assert.ok(win.__view, 'the view itself ran')
+            assert.equal(win.__after, 1, 'the following script ran')
+            assert.ok(win.document.getElementById('after-div'), 'following markup parsed')
+            assert.ok(win.document.getElementById('elements'))
+          },
+        )
       }
 
       it('a bundle with the same strings does not swallow the rest of the page', async () => {
@@ -657,32 +822,53 @@ describe('console-views lib', () => {
       it('fails clearly when the sequence sits in code, where it cannot be escaped', () => {
         const code = 'var script = 3; var r = 1 <script >2\nregisterView({})\n'
         assert.doesNotThrow(() => assertClassicScript(code, 'src'))
-        assert.throws(() => wrapView({ ...view, code }), /domaiNN:consoles\/views\/pipeline\.js.*cannot be embedded/s)
+        assert.throws(
+          () => wrapView({ ...view, code }),
+          /domaiNN:consoles\/views\/pipeline\.js.*cannot be embedded/s,
+        )
         const shell = [
           '<head><meta name="viewport" content="x" /><link rel="stylesheet" href="./nn-ui.css" /></head>',
           '<script src="./nn-console.bundle.js"></script>',
           '<!-- nn:console-shell:start --><!-- nn:console-shell:end -->',
         ].join('\n')
-        assert.throws(() => inlineConsoleAssets(shell, { bundle: code, css: '', views: [] }), /console bundle.*cannot be embedded/s)
+        assert.throws(
+          () => inlineConsoleAssets(shell, { bundle: code, css: '', views: [] }),
+          /console bundle.*cannot be embedded/s,
+        )
       })
     })
 
     it('wraps a view with the registrar for its slug and tags the script', () => {
       const out = wrapView({ ...view, code: "var s = '</script>'\n// tail" })
-      assert.match(out, /^<script data-nn-view="pipeline" data-nn-view-source="domaiNN:consoles\/views\/pipeline\.js">/)
-      assert.ok(out.includes("nnConsole.viewRegistrar(\"pipeline\", \"domaiNN:consoles/views/pipeline.js\")"))
+      assert.match(
+        out,
+        /^<script data-nn-view="pipeline" data-nn-view-source="domaiNN:consoles\/views\/pipeline\.js">/,
+      )
+      assert.ok(
+        out.includes('nnConsole.viewRegistrar("pipeline", "domaiNN:consoles/views/pipeline.js")'),
+      )
       assert.equal(out.match(/<\/script/gi).length, 1, 'only the closing tag survives')
-      assert.match(out, /\/\/ tail\n\}\)\(nnConsole/, 'a trailing line comment cannot swallow the closing')
+      assert.match(
+        out,
+        /\/\/ tail\n\}\)\(nnConsole/,
+        'a trailing line comment cannot swallow the closing',
+      )
     })
 
     it('escapes attribute values', () => {
-      assert.ok(wrapView({ ...view, source: 'a"b<c&d' }).includes('data-nn-view-source="a&quot;b&lt;c&amp;d"'))
+      assert.ok(
+        wrapView({ ...view, source: 'a"b<c&d' }).includes(
+          'data-nn-view-source="a&quot;b&lt;c&amp;d"',
+        ),
+      )
     })
 
     it('header lists id, origin, source and a 12 hex digest per view, with -- sanitized', () => {
       const h = viewsHeader([view, { ...view, id: 'x--y', source: 'domaiNN:a--b.js' }])
       assert.match(h, /^<!-- nn-views \(trusted code, full page access\)\n/)
-      assert.ok(h.includes('pipeline domaiNN domaiNN:consoles/views/pipeline.js sha256:abababababab\n'))
+      assert.ok(
+        h.includes('pipeline domaiNN domaiNN:consoles/views/pipeline.js sha256:abababababab\n'),
+      )
       const body = h.slice(4, -3)
       assert.equal(body.includes('--'), false)
       assert.ok(h.endsWith('\n-->'))
@@ -707,20 +893,43 @@ describe('console-views lib', () => {
 
     it('replaces every external tag with one inline bundle, inline css, header and views', () => {
       const view = { id: 'p', origin: 'domaiNN', source: 's', code: GOOD, sha256: 'c'.repeat(64) }
-      const out = inlineConsoleAssets(shell, { bundle: '/*BUNDLE*/ var a = "</script>"', css: '.a{}', views: [view] })
+      const out = inlineConsoleAssets(shell, {
+        bundle: '/*BUNDLE*/ var a = "</script>"',
+        css: '.a{}',
+        views: [view],
+      })
       assert.equal(/<script[^>]*\ssrc=/.test(out), false)
       assert.equal(/<link[^>]*stylesheet/.test(out), false)
       assert.equal(out.split('/*BUNDLE*/').length - 1, 1)
       assert.equal(out.includes('nn:console-shell'), false)
       assert.ok(out.includes('<style>.a{}</style>'))
       assert.ok(out.indexOf('nn-views') > out.indexOf('name="viewport"'))
-      assert.ok(out.indexOf('/*BUNDLE*/') < out.indexOf('data-nn-view="p"'), 'views run after the bundle')
+      assert.ok(
+        out.indexOf('/*BUNDLE*/') < out.indexOf('data-nn-view="p"'),
+        'views run after the bundle',
+      )
     })
 
     it('inlines a module only once when it registers multiple views, while header documents all ids', () => {
-      const view1 = { id: 'conntent', origin: 'bluepriNNt', source: 'pkg/console-view-conntent.js', code: GOOD, sha256: 'a'.repeat(64) }
-      const view2 = { id: 'conntent-delivery', origin: 'bluepriNNt', source: 'pkg/console-view-conntent.js', code: GOOD, sha256: 'a'.repeat(64) }
-      const out = inlineConsoleAssets(shell, { bundle: '/*BUNDLE*/', css: '.a{}', views: [view1, view2] })
+      const view1 = {
+        id: 'conntent',
+        origin: 'bluepriNNt',
+        source: 'pkg/console-view-conntent.js',
+        code: GOOD,
+        sha256: 'a'.repeat(64),
+      }
+      const view2 = {
+        id: 'conntent-delivery',
+        origin: 'bluepriNNt',
+        source: 'pkg/console-view-conntent.js',
+        code: GOOD,
+        sha256: 'a'.repeat(64),
+      }
+      const out = inlineConsoleAssets(shell, {
+        bundle: '/*BUNDLE*/',
+        css: '.a{}',
+        views: [view1, view2],
+      })
       assert.ok(out.includes('conntent bluepriNNt pkg/console-view-conntent.js'))
       assert.ok(out.includes('conntent-delivery bluepriNNt pkg/console-view-conntent.js'))
       const scriptMatches = out.match(/data-nn-view-source="pkg\/console-view-conntent\.js"/g)
@@ -736,8 +945,16 @@ describe('console-views lib', () => {
         sha256: 'a'.repeat(64),
         css: '.styled { color: red; } /* </style> probe */',
       }
-      const out = inlineConsoleAssets(shell, { bundle: '/*BUNDLE*/', css: '.base{}', views: [view] })
-      assert.ok(out.includes('<style>.base{}</style>\n<style data-nn-view="styled" data-nn-view-source="pkg/console-view-styled.js">'))
+      const out = inlineConsoleAssets(shell, {
+        bundle: '/*BUNDLE*/',
+        css: '.base{}',
+        views: [view],
+      })
+      assert.ok(
+        out.includes(
+          '<style>.base{}</style>\n<style data-nn-view="styled" data-nn-view-source="pkg/console-view-styled.js">',
+        ),
+      )
       assert.ok(out.includes('.styled { color: red; } /* <\\/style> probe */'))
     })
 
@@ -758,19 +975,29 @@ describe('console-views lib', () => {
         sha256: 'a'.repeat(64),
         css: '.multi {}',
       }
-      const out = inlineConsoleAssets(shell, { bundle: '/*BUNDLE*/', css: '.base{}', views: [view1, view2] })
+      const out = inlineConsoleAssets(shell, {
+        bundle: '/*BUNDLE*/',
+        css: '.base{}',
+        views: [view1, view2],
+      })
       const matches = out.match(/data-nn-view-source="pkg\/console-view-multi\.js"/g)
       assert.equal(matches?.length, 2)
-      const styleMatches = out.match(/<style[^>]*data-nn-view-source="pkg\/console-view-multi\.js"/g)
+      const styleMatches = out.match(
+        /<style[^>]*data-nn-view-source="pkg\/console-view-multi\.js"/g,
+      )
       assert.equal(styleMatches?.length, 1)
     })
 
     it('fails when the shell lacks an expected anchor', () => {
-      assert.throws(() => inlineConsoleAssets('<html></html>', { bundle: 'b', css: 'c', views: [] }), /anchor/)
+      assert.throws(
+        () => inlineConsoleAssets('<html></html>', { bundle: 'b', css: 'c', views: [] }),
+        /anchor/,
+      )
     })
 
     it('fails when the shell carries two bundle blocks, instead of replacing only the first', () => {
-      const block = '<script src="./nn-console.bundle.js"></script>\n<!-- nn:console-shell:start -->\n<!-- nn:console-shell:end -->'
+      const block =
+        '<script src="./nn-console.bundle.js"></script>\n<!-- nn:console-shell:start -->\n<!-- nn:console-shell:end -->'
       const twice = shell.replace('</body>', block + '\n</body>')
       const args = { bundle: 'b', css: 'c', views: [] }
       assert.throws(() => assertInlinable(twice, args), /2 bundle script blocks/)
@@ -778,19 +1005,34 @@ describe('console-views lib', () => {
     })
 
     it('fails on a bundle script tag left outside the replaced block', () => {
-      const stray = shell.replace('</body>', '<script src="https://cdn.example/nn-console.bundle.js"></script>\n</body>')
-      assert.throws(() => inlineConsoleAssets(stray, { bundle: 'b', css: 'c', views: [] }), /outside the shell block/)
+      const stray = shell.replace(
+        '</body>',
+        '<script src="https://cdn.example/nn-console.bundle.js"></script>\n</body>',
+      )
+      assert.throws(
+        () => inlineConsoleAssets(stray, { bundle: 'b', css: 'c', views: [] }),
+        /outside the shell block/,
+      )
     })
 
     it('assertInlinable throws on a missing bundle or css, and each missing anchor, without output', () => {
-      assert.throws(() => assertInlinable(shell, { bundle: null, css: 'c', views: [] }), /bundle is missing/)
-      assert.throws(() => assertInlinable(shell, { bundle: 'b', css: undefined, views: [] }), /stylesheet is missing/)
+      assert.throws(
+        () => assertInlinable(shell, { bundle: null, css: 'c', views: [] }),
+        /bundle is missing/,
+      )
+      assert.throws(
+        () => assertInlinable(shell, { bundle: 'b', css: undefined, views: [] }),
+        /stylesheet is missing/,
+      )
       for (const [name, re] of [
         ['stylesheet link', /<link[^>]*>/],
         ['viewport meta', /<meta[^>]*>/],
         ['bundle script tags', /<!-- nn:console-shell:end -->/],
       ]) {
-        assert.throws(() => assertInlinable(shell.replace(re, ''), { bundle: 'b', css: 'c', views: [] }), new RegExp(name))
+        assert.throws(
+          () => assertInlinable(shell.replace(re, ''), { bundle: 'b', css: 'c', views: [] }),
+          new RegExp(name),
+        )
       }
       assert.doesNotThrow(() => assertInlinable(shell, { bundle: 'b', css: 'c', views: [] }))
     })
@@ -825,8 +1067,16 @@ describe('console-views lib', () => {
         2,
         'raw assets are compiled per call, so this counter sees the work',
       )
-      assert.equal(countCompiles(() => inlineConsoleAssets(shell, prepared)), 0, 'prepared assets are not compiled again')
-      assert.equal(inlineConsoleAssets(shell, prepared), inlineConsoleAssets(shell, assets), 'same output either way')
+      assert.equal(
+        countCompiles(() => inlineConsoleAssets(shell, prepared)),
+        0,
+        'prepared assets are not compiled again',
+      )
+      assert.equal(
+        inlineConsoleAssets(shell, prepared),
+        inlineConsoleAssets(shell, assets),
+        'same output either way',
+      )
     })
 
     it('is deterministic', () => {
@@ -856,11 +1106,16 @@ describe('allowInlineScripts', () => {
     assert.ok(!policy.includes(sha('commented()')))
     assert.ok(!policy.includes(sha('{"a":1}')))
     assert.equal((policy.match(/sha256-/g) ?? []).length, 2)
-    assert.match(policy, /script-src 'self' https:\/\/cdn\.jsdelivr\.net 'sha256-[^;]*; object-src 'none'$/)
+    assert.match(
+      policy,
+      /script-src 'self' https:\/\/cdn\.jsdelivr\.net 'sha256-[^;]*; object-src 'none'$/,
+    )
   })
 
   it('hashes with CRLF normalized to LF, as the HTML parser does', () => {
-    assert.ok(policyOf(allowInlineScripts(page('<script>a()\r\nb()</script>'))).includes(sha('a()\nb()')))
+    assert.ok(
+      policyOf(allowInlineScripts(page('<script>a()\r\nb()</script>'))).includes(sha('a()\nb()')),
+    )
   })
 
   it('is a no-op without a CSP meta or without inline scripts', () => {
@@ -886,18 +1141,27 @@ describe('allowInlineScripts', () => {
     )
 
   it('creates script-src from the default-src sources when the policy declares none', () => {
-    const html = withPolicy("default-src 'self' https://cdn.jsdelivr.net; object-src 'none'", '<script>run()</script>')
+    const html = withPolicy(
+      "default-src 'self' https://cdn.jsdelivr.net; object-src 'none'",
+      '<script>run()</script>',
+    )
     const out = directivesOf(policyOf(allowInlineScripts(html)))
     assert.deepEqual(
       out['script-src'],
       ["'self'", 'https://cdn.jsdelivr.net', sha('run()')],
       'a new script-src must keep every default-src source, or it narrows the policy',
     )
-    assert.deepEqual(out['default-src'], ["'self'", 'https://cdn.jsdelivr.net'], 'default-src is untouched')
+    assert.deepEqual(
+      out['default-src'],
+      ["'self'", 'https://cdn.jsdelivr.net'],
+      'default-src is untouched',
+    )
 
     // default-src 'none' is only meaningful alone, so it is not carried into the new directive.
     const locked = withPolicy("default-src 'none'; object-src 'none'", '<script>run()</script>')
-    assert.deepEqual(directivesOf(policyOf(allowInlineScripts(locked)))['script-src'], [sha('run()')])
+    assert.deepEqual(directivesOf(policyOf(allowInlineScripts(locked)))['script-src'], [
+      sha('run()'),
+    ])
   })
 
   it('adds the hashes to script-src-elem, the directive that governs inline script elements', () => {
@@ -917,7 +1181,11 @@ describe('allowInlineScripts', () => {
       '<script>run()</script>',
     )
     const scriptFirstOut = directivesOf(policyOf(allowInlineScripts(scriptFirst)))
-    assert.deepEqual(scriptFirstOut['script-src-elem'], ["'self'", hash], 'the effective directive takes the hashes')
+    assert.deepEqual(
+      scriptFirstOut['script-src-elem'],
+      ["'self'", hash],
+      'the effective directive takes the hashes',
+    )
     assert.deepEqual(scriptFirstOut['script-src'], ["'self'", 'https://cdn.jsdelivr.net'])
   })
 
@@ -943,7 +1211,10 @@ describe('allowInlineScripts', () => {
     const html = withPolicy("object-src 'none'; base-uri 'none'", '<script>run()</script>')
     assert.throws(() => allowInlineScripts(html), /Content-Security-Policy[\s\S]*no script-src/)
     // Without hashes to add there is nothing to report: the page stays exactly as it is.
-    const inlineFree = withPolicy("object-src 'none'; base-uri 'none'", '<script type="application/json">{}</script>')
+    const inlineFree = withPolicy(
+      "object-src 'none'; base-uri 'none'",
+      '<script type="application/json">{}</script>',
+    )
     assert.equal(allowInlineScripts(inlineFree), inlineFree)
   })
 
@@ -954,12 +1225,19 @@ describe('allowInlineScripts', () => {
     // whole difference: that is the byte-identity this case pins.
     assert.equal(before.match(/sha256-/g), null, 'the shell carries no hand-written hash')
     const after = policyOf(inlineConsoleAssets(shell, { bundle: 'b()', css: 'a{}', views: [] }))
-    assert.equal(after, before.replace(/(script-src[^;]*)/, (directive) => `${directive} ${sha('\nb()\n')}`))
+    assert.equal(
+      after,
+      before.replace(/(script-src[^;]*)/, (directive) => `${directive} ${sha('\nb()\n')}`),
+    )
   })
 
   it('inlineConsoleAssets authorizes the inlined bundle and views', () => {
     const shell = readFileSync(join(consoleDir, 'artifact_shell.html'), 'utf8')
-    const out = inlineConsoleAssets(shell, { bundle: 'window.nnConsole = {}', css: 'a{}', views: [] })
+    const out = inlineConsoleAssets(shell, {
+      bundle: 'window.nnConsole = {}',
+      css: 'a{}',
+      views: [],
+    })
     assert.ok(policyOf(out).includes(sha('\nwindow.nnConsole = {}\n')))
   })
 })
