@@ -1047,6 +1047,10 @@ async function cmdStatus(args) {
     for (const template of outdatedBlueprints) {
       const installed = state.blueprints[template.name].commit;
       console.log(`  template ${template.name}: ${await fetchCompareSummary(template, installed)}`);
+      // A blueprint is a unit with its own name, so the repair line can name it. Without this
+      // the report says "outdated" and leaves the reader with no next step (decision 4,
+      // 2026-11-26).
+      console.log(`    repair: update --blueprint ${template.name}`);
     }
   }
 
@@ -1549,7 +1553,7 @@ async function cmdInstallBlueprint(args) {
 
 /**
  * Executes update command updating outdated skills and templates with consent.
- * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, mcpDir?: string, stateFile: string, positional: string[], yes: boolean, agent?: string, scope?: string, catalogPath?: string, repo?: string }} args
+ * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, mcpDir?: string, stateFile: string, positional: string[], yes: boolean, agent?: string, scope?: string, catalogPath?: string, repo?: string, blueprint?: string | null }} args
  * @returns {Promise<void>}
  */
 async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString();
@@ -1603,6 +1607,16 @@ async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString(
     selectedBlueprints = blueprints.filter(t => args.positional.includes(t.name) && isOutdatedBlueprint(t));
     selectedConsole = (consoleAssets || []).filter(a => args.positional.includes(path.basename(a.file || a.url)) && isOutdatedConsole(a));
     selectedMcp = (mcp || []).filter(m => (args.positional.includes(m.name) || args.positional.includes('mcp')) && isOutdatedMcp(m));
+  }
+
+  // `--blueprint <name>` is the repair line `status` prints: exactly one blueprint unit, and
+  // never a skill, console asset or MCP server that happens to share the name. A blueprint is
+  // a unit with its own name and version (decision 4, 2026-11-26).
+  if (args.blueprint) {
+    selectedSkills = [];
+    selectedBlueprints = blueprints.filter(t => t.name === args.blueprint && isOutdatedBlueprint(t));
+    selectedConsole = [];
+    selectedMcp = [];
   }
 
   // Installed catalog bluepriNNts (not in the manifest) whose recorded commit
