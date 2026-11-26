@@ -12114,6 +12114,11 @@ button.proc-step-item-btn {
 .proc-tabbar button:hover {
   color: var(--text);
 }
+/* The tablist is one tab stop and the arrows move inside it, so focus has to be visible. */
+.proc-tabbar button:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: -3px;
+}
 .proc-tabbar button.on {
   color: var(--text);
   border-bottom-color: var(--primary);
@@ -12256,12 +12261,10 @@ button.proc-step-item-btn {
 }
 
 /* E: Table */
-table.proc-steps-table,
 table.proc-artifacts-table {
   width: 100%;
   border-collapse: collapse;
 }
-table.proc-steps-table thead th,
 table.proc-artifacts-table thead th {
   text-align: left;
   font-size: 10.5px;
@@ -12273,57 +12276,14 @@ table.proc-artifacts-table thead th {
   border-bottom: 1px solid var(--border);
   background: var(--surface-2);
 }
-table.proc-steps-table tbody td,
 table.proc-artifacts-table tbody td {
   padding: 9px 10px;
   border-bottom: 1px solid var(--border);
   font-size: 12.5px;
 }
-table.proc-steps-table tbody tr {
-  cursor: pointer;
-}
-table.proc-steps-table tbody tr:hover,
 table.proc-artifacts-table tbody tr:hover {
   background: var(--surface-2);
 }
-table.proc-steps-table tbody tr.on {
-  background: var(--primary-light);
-}
-table.proc-steps-table tbody tr.on td:first-child {
-  box-shadow: inset 2px 0 0 var(--primary);
-}
-.dotmark {
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  font-weight: 700;
-}
-.dotmark.done {
-  background: var(--success);
-  color: #fff;
-}
-.dotmark.failed {
-  background: var(--error);
-  color: #fff;
-}
-.dotmark.waiting {
-  border: 2px solid var(--warning);
-  color: var(--warning);
-  background: var(--warning-light);
-}
-.dotmark.pending {
-  border: 1.5px solid var(--border-strong);
-  color: var(--faint);
-}
-.dotmark.definition {
-  border: 1.5px solid var(--border-strong);
-  color: var(--muted);
-}
-
 /* Persistent Rail */
 .proc-rail {
   position: sticky;

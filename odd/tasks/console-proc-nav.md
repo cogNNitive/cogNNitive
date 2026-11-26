@@ -30,9 +30,9 @@ shared dialog shell accessibility. Branch `session/console-proc-nav`. Delivery s
 | T3  | S6   | inline | done | `buildNativeGraph` (123 lines) and its call site removed; dead `.exec-dag-view-native` rule removed |
 | T4  | S5   | inline | done | `aria-labelledby` on the three dialogs, close label + `cancel` on `NewElementModal`, `nn-edit-modal-foot` → `nn-edit-modal-actions` |
 | T5  | S5   | inline | done | `for`/`id` on concept, model, name, comment, dynamic field labels |
-| T6  | S1   | —     | pending | Remove the Steps table (duplicate of the Flow stepper) |
-| T7  | S4   | —     | pending | `doc-step` rows are `div` + click: no `tabindex`, no key handler; tab bar has no `role="tab"` |
-| T8  | S4   | —     | pending | "Allowed next" is still inside a collapsed `<details>` |
+| T6  | S1   | inline | done | Steps tab and its 91-line table panel removed; shared table CSS narrowed to artifacts; dead `.dotmark` rules removed |
+| T7  | S4   | inline | done | Tab bar is a `tablist`: `role=tab`/`aria-selected`/`aria-controls`, roving `tabindex`, arrows + Home/End, `:focus-visible`. Rows already used a real `<button>` with `aria-expanded` |
+| T8  | S4   | inline | done | "Allowed next" moved out of the collapsed `<details>`; the agent instruction stays folded |
 
 ## Log
 
@@ -52,3 +52,15 @@ adelante con los cambios, seguimos avanzando haz un plan e implementa los cambio
   `node --test test/console-export.test.mjs` 67/67.
 - Pending: the `EditModal` value label (`fieldLabel`, `ui-kit.js`) is created before its widget
   is chosen, so it has no `for` yet — it needs the widget ref, not a blind id.
+
+**Second pass.** Corrections to the earlier map, both from re-reading `origin/main` instead of
+the stale tree:
+
+- `doc-step` rows already used a real `<button class="proc-step-toggle">` with
+  `aria-expanded` — the "mouse-only rows" finding was about the *old* table, now deleted.
+- The mojibake (`'A�…'`, `'�?"'`) lived only inside the removed Steps table and its
+  `.dotmark` rules; nothing left to fix.
+
+Also found while editing: `.proc-tab-btn` has no rule of its own — the tabs are styled by the
+`.proc-tabbar button` descendant selectors — and there was no `:focus-visible` for them at all,
+which a roving-tabindex tablist cannot go without.

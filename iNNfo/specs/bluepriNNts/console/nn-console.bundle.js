@@ -25026,29 +25026,30 @@ if (typeof window !== 'undefined') {
       var details = detailsBox('proc-run-details')
       // "Allowed next" is what the step's guards permit, which is meaningless when the fold
       // says the run cannot advance. A blocked step would read as if its branches were open.
+      // It is the one line that answers "what happens next", so it stays outside the fold.
+      var allowedEl = null
       if (
         state.allowedNext.length &&
         !state.blockedBy &&
         !state.drift &&
         !TERMINAL_RUN[state.status]
       ) {
-        details.appendChild(
-          make(
-            'div',
-            'proc-run-allowed',
-            'Allowed next: ' +
-              state.allowedNext
-                .map(function (tr) {
-                  return stepName(tr.to) + ' (' + guardText(tr.guard) + ')'
-                })
-                .join(', '),
-          ),
+        allowedEl = make(
+          'div',
+          'proc-run-allowed',
+          'Allowed next: ' +
+            state.allowedNext
+              .map(function (tr) {
+                return stepName(tr.to) + ' (' + guardText(tr.guard) + ')'
+              })
+              .join(', '),
         )
       }
       details.appendChild(make('div', 'proc-run-seq', 'Run seq: ' + runSeq()))
       if (!activeRun.closed && !TERMINAL_RUN[recorded.status]) {
         details.appendChild(make('div', 'proc-run-next', agentInstruction(recorded)))
       }
+      if (allowedEl) panel.appendChild(allowedEl)
       panel.appendChild(details)
       renderRequestQueue(col)
     }
@@ -25246,9 +25247,9 @@ if (typeof window !== 'undefined') {
     // ---- BDE Tab Bar ----
     function renderBdeTabBar(hostEl) {
       var bar = make('div', 'proc-tabbar tabbar')
+      bar.setAttribute('role', 'tablist')
       var tabs = [
         { id: 'flow', label: 'Flow' },
-        { id: 'steps', label: 'Steps' },
         { id: 'requests', label: 'Requests', count: requestsOf(activeRun).length },
         {
           id: 'artifacts',
@@ -25257,14 +25258,23 @@ if (typeof window !== 'undefined') {
         },
       ]
       tabs.forEach(function (t) {
+        var isOn = activeTab === t.id
         var btn = button(
-          'proc-tab-btn' + (activeTab === t.id ? ' on' : ''),
+          'proc-tab-btn' + (isOn ? ' on' : ''),
           t.label,
           function () {
             activeTab = t.id
             render()
           },
-          { 'data-tab': t.id },
+          {
+            'data-tab': t.id,
+            id: 'proc-tab-' + t.id,
+            role: 'tab',
+            'aria-selected': isOn ? 'true' : 'false',
+            'aria-controls': 'proc-panel-' + t.id,
+            // A tablist is one tab stop: the arrows move between tabs.
+            tabindex: isOn ? '0' : '-1',
+          },
         )
         if (t.count !== undefined && t.count > 0) {
           btn.appendChild(make('span', 'faint count', ' ' + t.count))
@@ -25273,6 +25283,22 @@ if (typeof window !== 'undefined') {
           btn.hidden = true
         }
         bar.appendChild(btn)
+      })
+      bar.addEventListener('keydown', function (ev) {
+        var key = ev && ev.key
+        if (key !== 'ArrowRight' && key !== 'ArrowLeft' && key !== 'Home' && key !== 'End') return
+        var items = Array.prototype.filter.call(bar.children, function (el) {
+          return el && !el.hidden
+        })
+        var at = items.indexOf(document.activeElement)
+        if (at < 0) return
+        if (ev.preventDefault) ev.preventDefault()
+        var nextIdx
+        if (key === 'Home') nextIdx = 0
+        else if (key === 'End') nextIdx = items.length - 1
+        else if (key === 'ArrowRight') nextIdx = (at + 1) % items.length
+        else nextIdx = (at - 1 + items.length) % items.length
+        if (items[nextIdx] && items[nextIdx].focus) items[nextIdx].focus()
       })
       hostEl.appendChild(bar)
     }
@@ -25293,6 +25319,9 @@ if (typeof window !== 'undefined') {
         'proc-panel panel panel-flow' + (activeTab === 'flow' ? ' on' : ''),
       )
       pFlow.setAttribute('data-tab-panel', 'flow')
+      pFlow.id = 'proc-panel-flow'
+      pFlow.setAttribute('role', 'tabpanel')
+      pFlow.setAttribute('aria-labelledby', 'proc-tab-flow')
       var padFlow = make('div', 'pad')
       var branches = stepKeys.some(function (slug) {
         return Array.isArray(steps[slug].next) && steps[slug].next.length > 1
@@ -25347,103 +25376,15 @@ if (typeof window !== 'undefined') {
       pFlow.appendChild(padFlow)
       hostEl.appendChild(pFlow)
 
-      // Panel 2: Steps (Master table)
-      var pSteps = make(
-        'section',
-        'proc-panel panel panel-steps' + (activeTab === 'steps' ? ' on' : ''),
-      )
-      pSteps.setAttribute('data-tab-panel', 'steps')
-      var padSteps = make('div', 'pad')
-      var cardSteps = make('div', 'card')
-      var headSteps = make('div', 'col-head')
-      headSteps.appendChild(make('span', null, 'Steps'))
-      headSteps.appendChild(
-        make(
-          'span',
-          'count',
-          def
-            ? 'definición del documento · ' + stepKeys.length
-            : 'orden de ejecución · ' + stepKeys.length,
-        ),
-      )
-      cardSteps.appendChild(headSteps)
-      var table = make('table', 'proc-steps-table')
-      var thead = make('thead')
-      var htr = make('tr')
-      htr.appendChild(make('th', null))
-      htr.appendChild(make('th', null, 'Step'))
-      htr.appendChild(make('th', null, 'Type'))
-      htr.appendChild(make('th', null, 'Executor'))
-      if (def) {
-        htr.appendChild(make('th', null, 'Inputs'))
-        htr.appendChild(make('th', null, 'Outputs'))
-      } else {
-        var thDur = make('th', 'num', 'Attempt')
-        thDur.style.textAlign = 'right'
-        htr.appendChild(thDur)
-        htr.appendChild(make('th', null, 'Artifacts'))
-      }
-      thead.appendChild(htr)
-      table.appendChild(thead)
-      var tbody = make('tbody')
-      stepKeys.forEach(function (slug) {
-        var s = steps[slug]
-        var st = def ? 'definition' : stepStatus(slug)
-        var tr = make('tr', slug === selectedStep ? 'on' : '')
-        tr.setAttribute('data-step', slug)
-        var td1 = make('td')
-        var mark = make('span', 'dotmark ' + st, MARK_SYMBOLS[st] || '·')
-        td1.appendChild(mark)
-        tr.appendChild(td1)
-        var td2 = make('td')
-        if (slug === selectedStep) {
-          td2.appendChild(make('b', null, s.name || slug))
-        } else {
-          td2.textContent = s.name || slug
-        }
-        tr.appendChild(td2)
-        var td3 = make('td')
-        td3.appendChild(
-          make(
-            'span',
-            'pill' + (s.stepType === 'decision' ? ' decision' : ''),
-            s.stepType || 'task',
-          ),
-        )
-        tr.appendChild(td3)
-        tr.appendChild(make('td', 'dim', s.executor || '—'))
-        if (def) {
-          var inText = s.inputs && s.inputs.length ? s.inputs.join(', ') : '—'
-          var outText = s.outputs && s.outputs.length ? s.outputs.join(', ') : '—'
-          tr.appendChild(make('td', s.inputs && s.inputs.length ? 'faint' : 'dim', inText))
-          tr.appendChild(make('td', s.outputs && s.outputs.length ? 'faint' : 'dim', outText))
-        } else {
-          var stepState = state && state.steps ? state.steps[slug] : null
-          var attText = stepState && stepState.attempt ? String(stepState.attempt) : '—'
-          var artText = s.outputs && s.outputs.length ? s.outputs.length + ' out' : '—'
-          var tdAtt = make('td', 'num', attText)
-          tdAtt.style.textAlign = 'right'
-          tr.appendChild(tdAtt)
-          tr.appendChild(make('td', s.outputs && s.outputs.length ? 'faint' : 'dim', artText))
-        }
-        tr.addEventListener('click', function () {
-          selectedStep = slug
-          render()
-        })
-        tbody.appendChild(tr)
-      })
-      table.appendChild(tbody)
-      cardSteps.appendChild(table)
-      padSteps.appendChild(cardSteps)
-      pSteps.appendChild(padSteps)
-      hostEl.appendChild(pSteps)
-
       // Panel 3: Requests
       var pReqs = make(
         'section',
         'proc-panel panel panel-requests' + (activeTab === 'requests' ? ' on' : ''),
       )
       pReqs.setAttribute('data-tab-panel', 'requests')
+      pReqs.id = 'proc-panel-requests'
+      pReqs.setAttribute('role', 'tabpanel')
+      pReqs.setAttribute('aria-labelledby', 'proc-tab-requests')
       var padReqs = make('div', 'pad')
       renderRequestQueue(padReqs)
       pReqs.appendChild(padReqs)
@@ -25455,6 +25396,9 @@ if (typeof window !== 'undefined') {
         'proc-panel panel panel-artifacts' + (activeTab === 'artifacts' ? ' on' : ''),
       )
       pArts.setAttribute('data-tab-panel', 'artifacts')
+      pArts.id = 'proc-panel-artifacts'
+      pArts.setAttribute('role', 'tabpanel')
+      pArts.setAttribute('aria-labelledby', 'proc-tab-artifacts')
       renderArtifactPanel(pArts)
       hostEl.appendChild(pArts)
     }
