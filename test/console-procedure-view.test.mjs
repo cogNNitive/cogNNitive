@@ -250,8 +250,9 @@ describe('procedure view (bluepriNNt)', () => {
     assert.equal(handle.ok, true)
     assert.equal(handle.steps, 4, 'the container-less graph has four steps')
     assert.deepEqual(texts('.dag-node .node-title'), ['Draft', 'Review', 'Publish', 'Rework'])
-    // The decision forks: one edge per target, the two targets side by side in one layer.
-    assert.equal(container.querySelectorAll('.dag-edge').length, 3)
+    // A list has no edges: the fork shows as the two targets sharing a layer, and as the one
+    // decision node's own class. The step card below spells both branches out in words.
+    assert.equal(container.querySelectorAll('.dag-node.decision').length, 1)
     const [publish, rework] = ['publish', 'rework'].map((s) =>
       container.querySelector(`.dag-node[data-step="${s}"]`),
     )
@@ -266,13 +267,14 @@ describe('procedure view (bluepriNNt)', () => {
     assert.match(container.querySelector('.exec-step-card').textContent, /Approve the draft\?/)
   })
 
-  it('puts the flow graph in the first column and opens one step card inside the timeline', (context) => {
+  it('puts the flow graph in the last column and opens one step card inside the timeline', (context) => {
     mount(payload(), context)
     const ws = container.querySelector('.exec-workspace')
-    // The graph is the left column; the runs, the run state and the timeline are the right one.
-    assert.match(ws.children[0].className, /proc-rail/)
-    assert.match(ws.children[1].className, /proc-main/)
-    assert.ok(ws.children[1].querySelector('.proc-nav'), 'the runs list lives in the run column')
+    // The runs, the run state and the timeline are the wide left column; the graph is the
+    // narrow one on the right, so it stays visible while the answer form scrolls.
+    assert.match(ws.children[0].className, /proc-main/)
+    assert.match(ws.children[1].className, /proc-rail/)
+    assert.ok(ws.children[0].querySelector('.proc-nav'), 'the runs list lives in the run column')
     // One toggle per step, the one the view points at open, and its card inside its own row.
     const toggles = () => [...container.querySelectorAll('[data-proc-step-toggle]')]
     assert.equal(toggles().length, 4)
@@ -310,8 +312,10 @@ describe('procedure view (bluepriNNt)', () => {
     const run = container.querySelector('.proc-run[data-run-id="r1"]')
     assert.ok(run, 'the run is listed')
     assert.match(run.textContent, /r1 · open/)
+    // The current step is the run bar's job; the panel keeps the reference facts.
+    const bar = container.querySelector('.proc-runbar').textContent
+    assert.match(bar, /Current step: Publish/)
     const state = container.querySelector('.proc-run-state').textContent
-    assert.match(state, /Current step: Publish/)
     assert.match(state, /Path: Draft → Review → Publish/)
     const statusOf = (s) =>
       container.querySelector(`.dag-node[data-step="${s}"]`).getAttribute('data-status')

@@ -1431,7 +1431,7 @@ describe('procedure flow graph through the shared chart API', () => {
     assert.equal(calls.length, 1, 'one chart for the one flow')
     const { host, option } = calls[0]
     assert.ok(host.closest('.exec-dag-view'), 'drawn inside the flow card')
-    assert.equal(container.querySelector('svg.dag-canvas'), null, 'no hand-drawn svg beside it')
+    assert.equal(container.querySelector('.dag-canvas'), null, 'no native renderer beside it')
     const graph = graphOf(calls[0])
     assert.deepEqual(graph.data.map((d) => d.id).sort(), [
       'discard',
@@ -1623,13 +1623,13 @@ describe('procedure flow graph through the shared chart API', () => {
     } finally {
       console.warn = warn
     }
-    assert.ok(container.querySelector('svg.dag-canvas'), 'native flow drawn')
+    assert.ok(container.querySelector('.dag-canvas'), 'native flow drawn')
     assert.equal(container.querySelectorAll('.dag-node').length, 4)
-    assert.ok(container.querySelector('svg.dag-canvas[data-proc-graph]'), 'the same graph hook')
+    assert.ok(container.querySelector('.dag-canvas[data-proc-graph]'), 'the same graph hook')
     assert.ok(container.querySelector('.exec-dag-view-native'), 'marked, so narrow CSS can hide it')
     const node = container.querySelector('.dag-node[data-step="review"]')
-    assert.equal(node.getAttribute('tabindex'), '0', 'native nodes are keyboard operable too')
-    assert.equal(node.getAttribute('role'), 'button')
+    assert.equal(node.tagName, 'BUTTON', 'native nodes are real buttons, not divs with a role')
+    assert.equal(node.getAttribute('type'), 'button')
     key(container.querySelector('.dag-node[data-step="transcribe"]'), 'Enter')
     assert.equal(cardStep(), 'transcribe')
   })

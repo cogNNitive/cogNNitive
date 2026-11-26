@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-XXj5e0YZ37qGyhzLZWZ9Yzo5F2/IZBF14IAuhsya0SA=' 'sha256-qsjLjnpwNES4Y0CM36eMiDfJELR1nScCKX3nlAuFDJI='; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; media-src 'self' file: blob:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-oo+TiNTYgZbKgt8mkuVCzaKM061/hV6KXIS/h4KfAlM=' 'sha256-qsjLjnpwNES4Y0CM36eMiDfJELR1nScCKX3nlAuFDJI='; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; media-src 'self' file: blob:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -6035,6 +6035,95 @@ svg.dag-canvas {
   width: 100%;
   display: block;
 }
+/* The graph with no chart runtime: the same walk as a list of buttons. It carries the node
+   contract the svg had, so nothing downstream can tell them apart except by looking. */
+.dag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 8px;
+}
+.dag-layer {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.dag-list .dag-node {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  max-width: 260px;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.dag-list .dag-node.done {
+  border-color: var(--success);
+}
+.dag-list .dag-node.waiting {
+  border-color: var(--warning);
+}
+.dag-list .dag-node.failed {
+  border-color: var(--danger);
+}
+.dag-list .dag-node.pending {
+  border-style: dashed;
+}
+.dag-list .dag-node.current {
+  border-width: 2px;
+  border-color: var(--primary);
+}
+.dag-list .dag-node.decision {
+  border-left-width: 4px;
+}
+.dag-list .dag-node:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: -3px;
+}
+.dag-list .node-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: var(--faint);
+}
+.dag-list .dag-node.done .node-dot {
+  background: var(--success);
+}
+.dag-list .dag-node.waiting .node-dot {
+  background: var(--warning);
+}
+.dag-list .dag-node.failed .node-dot {
+  background: var(--danger);
+}
+.dag-list .dag-node.current .node-dot {
+  background: var(--primary);
+}
+.dag-list .node-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.dag-list .node-sub {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.dag-list .node-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text);
+}
 .dag-node {
   cursor: pointer;
   transition: all 0.15s ease;
@@ -8239,14 +8328,14 @@ button.cite-icon,
   padding: 2px 0 !important;
 }
 .nn-qud-id {
-  color: var(--nn-muted, #64748b) !important;
+  color: var(--nn-muted) !important;
   font-family: var(--nn-mono), ui-monospace, monospace !important;
   font-size: 0.82rem !important;
 }
 .nn-qud-btn {
   background: transparent !important;
   border: none !important;
-  color: var(--nn-muted, #64748b) !important;
+  color: var(--nn-muted) !important;
   padding: 2px 4px !important;
 }
 .nn-qud-btn:hover {
@@ -8259,7 +8348,7 @@ button.cite-icon,
   padding: 0 0 6px 0 !important;
 }
 .nn-card-path {
-  color: var(--nn-muted, #64748b) !important;
+  color: var(--nn-muted) !important;
   background: transparent !important;
   border: none !important;
   border-radius: 0 !important;
@@ -8296,7 +8385,7 @@ button.cite-icon,
 .nn-strip-rel-group .nn-strip-rel-field,
 .nn-rel-list li.nn-rel-row .nn-rel-field {
   background-color: #f8fafc !important;
-  color: #64748b !important;
+  color: var(--muted) !important;
   font-family: var(--nn-mono), ui-monospace, monospace !important;
   font-size: 11px !important;
   font-weight: 400 !important;
@@ -8493,7 +8582,7 @@ button.cite-icon,
   font-family: var(--nn-mono), ui-monospace, monospace !important;
   font-size: 11px !important;
   font-weight: 400 !important;
-  color: #64748b !important;
+  color: var(--muted) !important;
   border: none !important;
   background: transparent !important;
   padding: 0 !important;
@@ -8654,7 +8743,7 @@ select {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  color: var(--nn-muted, #64748b) !important;
+  color: var(--nn-muted) !important;
   cursor: pointer !important;
   padding: 2px 6px !important;
   border-radius: 4px !important;
@@ -8881,7 +8970,7 @@ select {
 .nn-card-incoming-label {
   font-size: 11px !important;
   font-weight: 600 !important;
-  color: var(--nn-muted, #64748b) !important;
+  color: var(--nn-muted) !important;
   text-transform: uppercase !important;
   letter-spacing: 0.04em !important;
   text-align: left !important;
@@ -8909,18 +8998,18 @@ select {
 .nn-modal-details > summary {
   cursor: pointer;
   font-weight: 600;
-  color: var(--muted, #64748b);
+  color: var(--muted);
   user-select: none;
 }
 .nn-modal-details h4 {
   margin: 8px 0 4px;
   font-size: 0.75rem;
   text-transform: uppercase;
-  color: var(--muted, #64748b);
+  color: var(--muted);
 }
 .nn-review-dock .nn-dock-drafts {
   font-size: 0.75rem;
-  color: var(--muted, #64748b);
+  color: var(--muted);
   white-space: nowrap;
 }
 
@@ -8981,7 +9070,7 @@ select {
   align-items: center !important;
   gap: 6px !important;
   font-size: 0.78rem !important;
-  color: #64748b !important;
+  color: var(--muted) !important;
 }
 .nn-review-dock .nn-reviewer-name {
   width: 7.5rem !important;
@@ -9054,7 +9143,7 @@ select {
   appearance: none !important;
   border: 1px solid #e2e8f0 !important;
   background: #ffffff !important;
-  color: #64748b !important;
+  color: var(--muted) !important;
   font: inherit !important;
   font-size: 0.75rem !important;
   padding: 3px 8px !important;
@@ -9117,7 +9206,7 @@ select {
   margin: 0;
   font-size: 0.82rem;
   line-height: 1.45;
-  color: var(--nn-muted, #64748b);
+  color: var(--nn-muted);
 }
 .nn-export-field {
   display: flex;
@@ -9140,7 +9229,7 @@ select {
 }
 .nn-export-list-head span {
   font-size: 0.78rem;
-  color: var(--nn-muted, #64748b);
+  color: var(--nn-muted);
 }
 /* One list container for every change list: the export modal's pending list and
    the review tab's unsent/applied sections. */
@@ -9156,7 +9245,7 @@ select {
   margin: 0;
   padding: 12px 0;
   font-size: 0.82rem;
-  color: var(--nn-muted, #64748b);
+  color: var(--nn-muted);
 }
 /* A stale draft says so in the sheet head, not as a body line. */
 .nn-change-sheet-stale {
@@ -9174,7 +9263,7 @@ select {
   appearance: none;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--nn-muted, #64748b);
+  color: var(--nn-muted);
   font: inherit;
   font-size: 0.76rem;
   font-weight: 600;
@@ -9191,7 +9280,7 @@ select {
 .nn-change-sheet-state {
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--nn-muted, #64748b);
+  color: var(--nn-muted);
   white-space: nowrap;
 }
 .nn-change-sheet-discard:hover {
@@ -9247,7 +9336,7 @@ select {
 }
 [data-nn='copy-status'] {
   font-size: 0.8rem;
-  color: var(--nn-muted, #64748b);
+  color: var(--nn-muted);
 }
 /* Dock Changes button */
 .nn-dock-changes {
@@ -9349,7 +9438,7 @@ select {
 .nn-card-incoming-label {
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--nn-muted, #64748b);
+  color: var(--nn-muted);
   text-transform: none;
   letter-spacing: 0.02em;
 }
@@ -9416,7 +9505,7 @@ select {
 .nn-episode-cost {
   margin: 0;
   font-size: 12.5px;
-  color: #64748b;
+  color: var(--muted);
 }
 .nn-btn {
   font: inherit;
@@ -9690,7 +9779,7 @@ select {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #64748b;
+  color: var(--muted);
 }
 .nn-conntent-section[data-nn-home] > h3 {
   margin-top: 8px;
@@ -9733,7 +9822,7 @@ select {
 .nn-gate-notes,
 .nn-gate-cause {
   font-size: 12px;
-  color: #64748b;
+  color: var(--muted);
 }
 .nn-series-board {
   list-style: none;
@@ -9797,7 +9886,7 @@ select {
 .nn-gate-protects {
   flex-basis: 100%;
   font-size: 11.5px;
-  color: #64748b;
+  color: var(--muted);
 }
 .nn-gate-actions {
   display: flex;
@@ -9809,7 +9898,7 @@ select {
 .nn-gate-hint {
   margin: 0;
   font-size: 12px;
-  color: #64748b;
+  color: var(--muted);
 }
 .nn-review-media {
   display: flex;
@@ -11075,8 +11164,8 @@ pre.nn-file-preview-code {
 .nn-ku[data-ku-kind='artifact'],
 [data-nn-component='ku-badge'][data-ku-kind='artifact'] {
   border: 1px solid var(--border, #cbd5e1);
-  background: color-mix(in srgb, var(--nn-slate, #64748b) 10%, var(--surface, #ffffff));
-  --c: var(--nn-slate, #64748b);
+  background: color-mix(in srgb, var(--muted) 10%, var(--surface, #ffffff));
+  --c: var(--muted);
 }
 .nn-ku[data-ku-kind='artifact'] > .nn-ku-icon,
 .nn-ku[data-ku-kind='artifact'] > .nn-ku-label {
@@ -12063,11 +12152,12 @@ button.proc-step-item-btn {
 }
 
 /* ---- Procedure Runner B+D+E integrated layout ---- */
-/* The flow graph keeps the wide left column; the run column carries the runs and, under the
-   graph, the step timeline, so a person reads where the run is before reading what to do. */
+/* The run column takes the wide left side: the runs, the run state and the step timeline
+   live there. The flow graph keeps its own narrower right column, so it stays visible as
+   the answer form scrolls. */
 .nn-procedure-view .exec-workspace.proc-bde-layout {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr);
   gap: 16px;
   align-items: start;
 }
@@ -12148,6 +12238,11 @@ button.proc-step-item-btn {
 }
 .proc-tabbar button:hover {
   color: var(--text);
+}
+/* The tablist is one tab stop and the arrows move inside it, so focus has to be visible. */
+.proc-tabbar button:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: -3px;
 }
 .proc-tabbar button.on {
   color: var(--text);
@@ -12291,12 +12386,10 @@ button.proc-step-item-btn {
 }
 
 /* E: Table */
-table.proc-steps-table,
 table.proc-artifacts-table {
   width: 100%;
   border-collapse: collapse;
 }
-table.proc-steps-table thead th,
 table.proc-artifacts-table thead th {
   text-align: left;
   font-size: 10.5px;
@@ -12308,59 +12401,20 @@ table.proc-artifacts-table thead th {
   border-bottom: 1px solid var(--border);
   background: var(--surface-2);
 }
-table.proc-steps-table tbody td,
 table.proc-artifacts-table tbody td {
   padding: 9px 10px;
   border-bottom: 1px solid var(--border);
   font-size: 12.5px;
 }
-table.proc-steps-table tbody tr {
-  cursor: pointer;
-}
-table.proc-steps-table tbody tr:hover,
 table.proc-artifacts-table tbody tr:hover {
   background: var(--surface-2);
 }
-table.proc-steps-table tbody tr.on {
-  background: var(--primary-light);
-}
-table.proc-steps-table tbody tr.on td:first-child {
-  box-shadow: inset 2px 0 0 var(--primary);
-}
-.dotmark {
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  font-weight: 700;
-}
-.dotmark.done {
-  background: var(--success);
-  color: #fff;
-}
-.dotmark.failed {
-  background: var(--error);
-  color: #fff;
-}
-.dotmark.waiting {
-  border: 2px solid var(--warning);
-  color: var(--warning);
-  background: var(--warning-light);
-}
-.dotmark.pending {
-  border: 1.5px solid var(--border-strong);
-  color: var(--faint);
-}
-.dotmark.definition {
-  border: 1.5px solid var(--border-strong);
-  color: var(--muted);
-}
-
 /* Persistent Rail */
 .proc-rail {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -12996,7 +13050,7 @@ table.proc-steps-table tbody tr.on td:first-child {
 {"concepts":[{"name":"Procedure Execution","type":"list","icon":"play-circle","color":"purple","weight":100,"storage":{"mode":"distributed","placement":"executions/{slug}/"},"fields":[{"name":"procedure","type":"address","scope":"concept","description":"Address of the Procedure or root Work this run executes (model@element or document@container).","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"def_rev","type":"string","scope":"concept","description":"knowledge_version of the procedure model when the run started; the run follows that revision to the end.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"params","type":"string","scope":"concept","description":"Opaque parameters the run was started with (a JSON object of slot values).","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"seq","type":"number","scope":"concept","description":"The run's write counter. Every runner changeset increments it with a from guard, so any concurrent write to the same run conflicts the whole changeset.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"state","type":"select","options":["open","paused","completed","failed","cancelled"],"scope":"concept","description":"The stored lifecycle of the run. The status the tools return is the fold's derived RunStatus, which reports paused when this is paused.","transitions":{"":["open"],"open":["paused","completed","failed","cancelled"],"paused":["open","completed","failed","cancelled"],"completed":[],"failed":[],"cancelled":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-0"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"Step Run","type":"list","icon":"list-checks","color":"blue","weight":90,"description":"One row per step of the procedure. Its slug is the step slug. Mutable: the runner writes it as the step advances.","fields":[{"name":"attempt","type":"number","scope":"concept","description":"The attempt number of the current claim, 1 for the first try.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"outcome","type":"string","scope":"concept","description":"The answer the step recorded; for a decision step, the token its next conditions test.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"next","type":"string","scope":"concept","description":"The slug of the step this one moved to.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"inputs","type":"string","scope":"concept","description":"The input artifact revisions frozen at claim time: a JSON object mapping artifact slug to its rev.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"waiting_on","type":"string","scope":"concept","description":"What a waiting step waits on.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"failure","type":"string","scope":"concept","description":"Why the step failed.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"claimed_at","type":"string","scope":"concept","description":"When the current attempt was claimed (ISO 8601).","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"timeout_ms","type":"number","scope":"concept","description":"The budget of the current attempt. At most 300000.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"holder","type":"string","scope":"concept","description":"Who holds the claim, as pid@host. For an engine step it is the process that runs the command, not the server that reports it. A step whose holder is gone is a crash, derived from it; a claim that names neither a holder nor a claim time is broken, never a permanent holder.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"evidence","type":"string","scope":"concept","description":"The applied change ids a human step observed, such as the verdicts it waited on.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"status","type":"select","options":["pending","active","waiting","done","failed","expected","produced","validated","rejected"],"scope":"list","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed) or an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle; the rows never cross. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending","expected"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-7-0"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"Run Artifact","type":"list","icon":"package","color":"orange","weight":80,"description":"One row per artifact of the procedure. Its slug is the artifact slug. Mutable: verification and staleness move it.","fields":[{"name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"How the artifact is carried: a file, a model element, or a changeset of several elements.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"value","type":"string","scope":"concept","description":"Where the artifact is: a path, a model@element address, or a changeset path.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"status","type":"select","options":["pending","active","waiting","done","failed","expected","produced","validated","rejected"],"scope":"list","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed) or an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle; the rows never cross. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending","expected"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact (sha256 for a file, the element's origin change id for an element, the applied change for a changeset) or the recorded input's value.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"Input","type":"list","icon":"log-in","color":"grey","weight":70,"description":"A computed or entered input the run recorded, with its revision. One row per input name.","fields":[{"name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact (sha256 for a file, the element's origin change id for an element, the applied change for a changeset) or the recorded input's value.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"Step Request","type":"list","icon":"inbox","color":"yellow","weight":60,"description":"One row per human request that an action be recorded on a step. Intent, never state: only the runner consumes it, and it never moves a Step Run row by itself.","fields":[{"name":"action","type":"select","options":["start","wait","complete","fail"],"scope":"concept","description":"The action the person asked the runner to record on the step.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"step","type":"string","scope":"concept","description":"The slug of the step the request names.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"base_seq","type":"number","scope":"concept","description":"The run's header seq when the request was made. A consumer refuses the request when the run has advanced past it.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"reason","type":"string","scope":"concept","description":"Why the request was rejected or found stale, as the runner reported it.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"request_status","type":"select","options":["pending","done","stale","rejected"],"scope":"concept","description":"The life of a request: pending while nobody consumed it, then done, stale or rejected. A resolved request never returns to pending.","transitions":{"":["pending"],"pending":["done","stale","rejected"],"done":[],"stale":[],"rejected":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"requested_outcome","type":"string","scope":"concept","description":"The outcome the person asked for when the request names a branching step.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"requested_value","type":"string","scope":"concept","description":"The value the person attached to the request, such as who a step waits on or why it failed.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"requested_outputs","type":"string","scope":"concept","description":"The deliverables a person wrote for the step's file outputs, as one line of JSON: artifact slug -> { \"name\"?: string, \"text\": string }. Valid only with action complete; each text is UTF-8 and at most 256 KiB.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"name":"Concept 1","type":"list","icon":"box","color":"blue","weight":100,"description":"Baseline domain concept holding the 1A/1B/1C element triangle. Concept 1 carries every field type and anchors the Concept 1-Concept 2 matrix.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"manual","type":"markdown_file","scope":"concept","description":"External markdown file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"photo","type":"image","scope":"concept","description":"Image attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"demo_video","type":"video","scope":"concept","description":"Downloaded video asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"voice_note","type":"audio","scope":"concept","description":"Downloaded and transcribed audio asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"sibling","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"Reference to an element of Concept 2.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"status","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"Lifecycle status of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Concept 2","type":"list","icon":"boxes","color":"green","weight":90,"description":"Owner concept holding the 2A/2B elements that reference Concept 1. Concept 2 closes the matrix crossings and proves bidirectional reference resolution.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"owner","type":"reference","target_concepts":["Concept 1"],"scope":"concept","description":"Reference back to an element of Concept 1.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Edge Cases","type":"list","icon":"flask-conical","color":"amber","weight":80,"description":"Quarantined stress probes with literal names describing the case under test: traceability probes, the very-long-description probe, the file probe, the artifact-as-source probe, the broken reference probe, and the sourceless probe.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"photo","type":"image","scope":"concept","description":"Image attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Modification Cases","type":"list","icon":"git-pull-request","color":"violet","weight":70,"description":"One field per Level-1 field type, so the review pass can exercise every kind of modification (a field of each type) with a self-describing name.","fields":[{"name":"string_field","type":"string","scope":"concept","description":"A string field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"number_field","type":"number","scope":"concept","description":"A number field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"boolean_field","type":"boolean","scope":"concept","description":"A boolean field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"select_field","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"A select field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"reference_field","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"A reference field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"image_field","type":"image","scope":"concept","description":"An image field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"file_field","type":"file","scope":"concept","description":"A file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"video_field","type":"video","scope":"concept","description":"A video field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"audio_field","type":"audio","scope":"concept","description":"An audio field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"url_field","type":"url","scope":"concept","description":"A URL field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"markdown_inline_field","type":"markdown_inline","scope":"concept","description":"A markdown_inline field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"markdown_file_field","type":"markdown_file","scope":"concept","description":"A markdown_file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"knowledge_field","type":"knowledge","target_blueprint":"TestLab","scope":"concept","description":"A knowledge field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"address_field","type":"address","scope":"concept","description":"An address field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"citation_field","type":"citation","scope":"concept","description":"A citation field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Procedure","type":"list","icon":"workflow","color":"teal","weight":110,"fields":[{"name":"category","type":"select","options":["ingestion","transformation","audit","reporting","custom"],"scope":"concept","description":"Functional classification of the procedure workflow.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"summary","type":"string","scope":"concept","description":"Mandatory concise summary of the workflow intent and transformation steps.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"inputs_required","type":"string","scope":"concept","description":"References to required Source or Model concepts consumed as inputs.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"outputs_expected","type":"string","scope":"concept","description":"References to expected Artifact concepts produced by the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"executed_by","type":"string","scope":"concept","description":"Reference to responsible agent or functional role executing the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"procedure_model","type":"knowledge","scope":"concept","description":"Link to concrete procedure definition or executable stepper model _NN.md.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"Work","type":"list","icon":"list-ordered","color":"blue","weight":100,"fields":[{"name":"step_type","type":"select","options":["task","decision","event"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"parent","type":"reference","target_concepts":["Work"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"next","type":"reference","target_concepts":["Work"],"scope":"concept","description":"Step or steps that may follow. A decision step lists several targets as an inline list (next:: [@approve, @decline], addresses like every reference field); the run records the one it took.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"condition","type":"string","scope":"concept","description":"Guard to enter the step. Evaluable forms are outcome == \u003ctoken> and [[artifact]] validated; anything else is prose the actor asserts.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"decision","type":"string","scope":"concept","description":"Question a decision step asks; its answer is the outcome the run records.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"command","type":"string","scope":"concept","description":"Shell command an engine step runs; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"produces","type":"string","scope":"concept","description":"Path or address the step produces; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"executor","type":"select","options":["human","agent","engine"],"scope":"concept","description":"Who performs the step. A step without executor is performed by an agent.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"input","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"output","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"output_status","type":"string","scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"tool","type":"reference","target_concepts":["Tools"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"Artifact","type":"list","icon":"package","color":"orange","weight":80,"fields":[{"name":"verify","type":"string","scope":"concept","description":"How the artifact is checked: file:\u003cglob>, element:\u003caddress>, command:\u003ccmd> or human.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"required","type":"boolean","scope":"concept","description":"Whether a run must produce the artifact when its producer is on the walked path (default true).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"Tools","type":"list","icon":"wrench","color":"orange","weight":70,"fields":[{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"Roles","type":"list","icon":"users","color":"green","weight":60,"fields":[{"name":"scope","type":"select","options":["internal","external"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"fields":[{"concept":"Procedure Execution","name":"procedure","type":"address","scope":"concept","description":"Address of the Procedure or root Work this run executes (model@element or document@container).","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Procedure Execution","name":"def_rev","type":"string","scope":"concept","description":"knowledge_version of the procedure model when the run started; the run follows that revision to the end.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Procedure Execution","name":"params","type":"string","scope":"concept","description":"Opaque parameters the run was started with (a JSON object of slot values).","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Procedure Execution","name":"seq","type":"number","scope":"concept","description":"The run's write counter. Every runner changeset increments it with a from guard, so any concurrent write to the same run conflicts the whole changeset.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Procedure Execution","name":"state","type":"select","options":["open","paused","completed","failed","cancelled"],"scope":"concept","description":"The stored lifecycle of the run. The status the tools return is the fold's derived RunStatus, which reports paused when this is paused.","transitions":{"":["open"],"open":["paused","completed","failed","cancelled"],"paused":["open","completed","failed","cancelled"],"completed":[],"failed":[],"cancelled":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Run","name":"attempt","type":"number","scope":"concept","description":"The attempt number of the current claim, 1 for the first try.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Run","name":"outcome","type":"string","scope":"concept","description":"The answer the step recorded; for a decision step, the token its next conditions test.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Run","name":"next","type":"string","scope":"concept","description":"The slug of the step this one moved to.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Run","name":"inputs","type":"string","scope":"concept","description":"The input artifact revisions frozen at claim time: a JSON object mapping artifact slug to its rev.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Run","name":"waiting_on","type":"string","scope":"concept","description":"What a waiting step waits on.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Run","name":"failure","type":"string","scope":"concept","description":"Why the step failed.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Run","name":"claimed_at","type":"string","scope":"concept","description":"When the current attempt was claimed (ISO 8601).","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Run","name":"timeout_ms","type":"number","scope":"concept","description":"The budget of the current attempt. At most 300000.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Run","name":"holder","type":"string","scope":"concept","description":"Who holds the claim, as pid@host. For an engine step it is the process that runs the command, not the server that reports it. A step whose holder is gone is a crash, derived from it; a claim that names neither a holder nor a claim time is broken, never a permanent holder.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Run","name":"evidence","type":"string","scope":"concept","description":"The applied change ids a human step observed, such as the verdicts it waited on.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Run","name":"status","type":"select","options":["pending","active","waiting","done","failed","expected","produced","validated","rejected"],"scope":"list","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed) or an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle; the rows never cross. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending","expected"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Run Artifact","name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"How the artifact is carried: a file, a model element, or a changeset of several elements.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Run Artifact","name":"value","type":"string","scope":"concept","description":"Where the artifact is: a path, a model@element address, or a changeset path.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Run Artifact","name":"status","type":"select","options":["pending","active","waiting","done","failed","expected","produced","validated","rejected"],"scope":"list","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed) or an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle; the rows never cross. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending","expected"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Run Artifact","name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact (sha256 for a file, the element's origin change id for an element, the applied change for a changeset) or the recorded input's value.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Input","name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact (sha256 for a file, the element's origin change id for an element, the applied change for a changeset) or the recorded input's value.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Request","name":"action","type":"select","options":["start","wait","complete","fail"],"scope":"concept","description":"The action the person asked the runner to record on the step.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Request","name":"step","type":"string","scope":"concept","description":"The slug of the step the request names.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Request","name":"base_seq","type":"number","scope":"concept","description":"The run's header seq when the request was made. A consumer refuses the request when the run has advanced past it.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Request","name":"reason","type":"string","scope":"concept","description":"Why the request was rejected or found stale, as the runner reported it.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Request","name":"request_status","type":"select","options":["pending","done","stale","rejected"],"scope":"concept","description":"The life of a request: pending while nobody consumed it, then done, stale or rejected. A resolved request never returns to pending.","transitions":{"":["pending"],"pending":["done","stale","rejected"],"done":[],"stale":[],"rejected":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Request","name":"requested_outcome","type":"string","scope":"concept","description":"The outcome the person asked for when the request names a branching step.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Request","name":"requested_value","type":"string","scope":"concept","description":"The value the person attached to the request, such as who a step waits on or why it failed.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Step Request","name":"requested_outputs","type":"string","scope":"concept","description":"The deliverables a person wrote for the step's file outputs, as one line of JSON: artifact slug -> { \"name\"?: string, \"text\": string }. Valid only with action complete; each text is UTF-8 and at most 256 KiB.","declaredBy":{"family":"executions-app","version":"V_0-7-0"}},{"concept":"Concept 1","name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"manual","type":"markdown_file","scope":"concept","description":"External markdown file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"photo","type":"image","scope":"concept","description":"Image attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"demo_video","type":"video","scope":"concept","description":"Downloaded video asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"voice_note","type":"audio","scope":"concept","description":"Downloaded and transcribed audio asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"sibling","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"Reference to an element of Concept 2.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"status","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"Lifecycle status of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"owner","type":"reference","target_concepts":["Concept 1"],"scope":"concept","description":"Reference back to an element of Concept 1.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"summary","type":"string","scope":"concept","description":"One-line summary of the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"photo","type":"image","scope":"concept","description":"Image attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"string_field","type":"string","scope":"concept","description":"A string field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"number_field","type":"number","scope":"concept","description":"A number field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"boolean_field","type":"boolean","scope":"concept","description":"A boolean field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"select_field","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"A select field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"reference_field","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"A reference field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"image_field","type":"image","scope":"concept","description":"An image field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"file_field","type":"file","scope":"concept","description":"A file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"video_field","type":"video","scope":"concept","description":"A video field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"audio_field","type":"audio","scope":"concept","description":"An audio field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"url_field","type":"url","scope":"concept","description":"A URL field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"markdown_inline_field","type":"markdown_inline","scope":"concept","description":"A markdown_inline field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"markdown_file_field","type":"markdown_file","scope":"concept","description":"A markdown_file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"knowledge_field","type":"knowledge","target_blueprint":"TestLab","scope":"concept","description":"A knowledge field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"address_field","type":"address","scope":"concept","description":"An address field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"citation_field","type":"citation","scope":"concept","description":"A citation field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Procedure","name":"category","type":"select","options":["ingestion","transformation","audit","reporting","custom"],"scope":"concept","description":"Functional classification of the procedure workflow.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"summary","type":"string","scope":"concept","description":"Mandatory concise summary of the workflow intent and transformation steps.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"inputs_required","type":"string","scope":"concept","description":"References to required Source or Model concepts consumed as inputs.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"outputs_expected","type":"string","scope":"concept","description":"References to expected Artifact concepts produced by the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"executed_by","type":"string","scope":"concept","description":"Reference to responsible agent or functional role executing the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"procedure_model","type":"knowledge","scope":"concept","description":"Link to concrete procedure definition or executable stepper model _NN.md.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"step_type","type":"select","options":["task","decision","event"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"parent","type":"reference","target_concepts":["Work"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"next","type":"reference","target_concepts":["Work"],"scope":"concept","description":"Step or steps that may follow. A decision step lists several targets as an inline list (next:: [@approve, @decline], addresses like every reference field); the run records the one it took.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"condition","type":"string","scope":"concept","description":"Guard to enter the step. Evaluable forms are outcome == \u003ctoken> and [[artifact]] validated; anything else is prose the actor asserts.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"decision","type":"string","scope":"concept","description":"Question a decision step asks; its answer is the outcome the run records.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"command","type":"string","scope":"concept","description":"Shell command an engine step runs; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"produces","type":"string","scope":"concept","description":"Path or address the step produces; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"executor","type":"select","options":["human","agent","engine"],"scope":"concept","description":"Who performs the step. A step without executor is performed by an agent.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"input","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"output","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"output_status","type":"string","scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"tool","type":"reference","target_concepts":["Tools"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Artifact","name":"verify","type":"string","scope":"concept","description":"How the artifact is checked: file:\u003cglob>, element:\u003caddress>, command:\u003ccmd> or human.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Artifact","name":"required","type":"boolean","scope":"concept","description":"Whether a run must produce the artifact when its producer is on the walked path (default true).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Artifact","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Artifact","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Tools","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Tools","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Roles","name":"scope","type":"select","options":["internal","external"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Roles","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Roles","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"markers":[],"matrices":[{"name":"Concept 1-Concept 2 Matrix","source":"Concept 1","target":"Concept 2","params":"","values":["relevant","archived"],"widgetType":"set","description":"Scores how relevant each Concept 1 element is to each Concept 2 element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"work-roles matrix","source":"Work","target":"Roles","params":"","values":["Responsible","Accountable","Consulted","Informed"],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"work-tools matrix","source":"Work","target":"Tools","params":"","values":["Uses"],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"work-artifacts matrix","source":"Work","target":"Artifact","params":"","values":["Creates","Modifies","Validates","Reviews"],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"procedures":[{"id":"usage","name":"Getting started","path":"procedures/usage_procedures_NN.md","status":"selected"}]}
 </script>
     <script type="application/x-nn-deflate-base64" id="nn-model">
-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
+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
 </script>
     <script type="application/json" id="nn-procedure-core"></script>
     <script type="application/json" id="nn-drafts">
@@ -14321,6 +14375,14 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
 
   var UI_VERSION = '0.1.0'
 
+  // Dialogs are named through `aria-labelledby`, so each instance needs its own id: a Ku
+  // info panel can open over an edit modal, and two dialogs must not share a heading id.
+  var modalSeq = 0
+  function nextModalId(prefix) {
+    modalSeq += 1
+    return prefix + '-' + modalSeq
+  }
+
   // ---- Design tokens (single source of truth) ----
   //
   // Status fg values are the lightest Tailwind step whose ratio against its own
@@ -14783,6 +14845,12 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
       '[data-nn-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=concept] .nn-ku-icon,[data-nn-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=document] .nn-ku-icon{color:var(--nn-concept-' + kslot + ')}',
     )
   }
+  // Dialogs and their controls had no visible focus ring at all: tabbing through a modal
+  // showed nothing. Same ring as the rest of the kit.
+  COMPONENT_CSS.push(
+    '.nn-edit-modal-close:focus-visible,.nn-modal-tab-btn:focus-visible,.nn-btn:focus-visible{outline:2px solid var(--nn-focus);outline-offset:2px}',
+  )
+
   var COMPONENT_CSS_TEXT = COMPONENT_CSS.join('\n')
 
   // Light-only theme: pins color-scheme: light and never switches on OS dark mode.
@@ -17264,6 +17332,8 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
 
     var head = makeEl(doc, 'div', 'nn-edit-modal-head')
     var title = makeEl(doc, 'h2', null, data.title || 'Edit Component')
+    title.id = nextModalId('nn-edit-modal-title')
+    modal.setAttribute('aria-labelledby', title.id)
     head.appendChild(title)
     var closeBtn = makeEl(doc, 'button', 'nn-edit-modal-close', '\u00D7')
     closeBtn.setAttribute('type', 'button')
@@ -17550,6 +17620,8 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
     formComment.style.display = isComment ? 'block' : 'none'
     var commentLabel = makeEl(doc, 'label', 'nn-edit-field-label', 'Reviewer Notes / Comment')
     var commentTa = makeEl(doc, 'textarea', 'nn-edit-textarea')
+    commentTa.id = nextModalId('nn-edit-comment')
+    commentLabel.setAttribute('for', commentTa.id)
     commentTa.setAttribute('placeholder', 'Enter review comment or note...')
     if (data.comment != null) commentTa.value = String(data.comment)
     formComment.appendChild(commentLabel)
@@ -17819,10 +17891,20 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
     }
 
     var head = makeEl(doc, 'div', 'nn-edit-modal-head')
-    head.appendChild(makeEl(doc, 'h2', null, data.title || 'New element'))
+    var newTitle = makeEl(doc, 'h2', null, data.title || 'New element')
+    newTitle.id = nextModalId('nn-new-element-title')
+    modal.setAttribute('aria-labelledby', newTitle.id)
+    head.appendChild(newTitle)
     var closeBtn = makeEl(doc, 'button', 'nn-edit-modal-close', '\u00D7')
     closeBtn.setAttribute('type', 'button')
+    closeBtn.setAttribute('aria-label', 'Close')
     closeBtn.addEventListener('click', cancel)
+    // Escape has to cancel the same way the close button does. Without this the dialog
+    // closed natively and `onCancel` never ran, unlike EditModal.
+    modal.addEventListener('cancel', function (ev) {
+      if (ev && ev.preventDefault) ev.preventDefault()
+      cancel()
+    })
     head.appendChild(closeBtn)
     modal.appendChild(head)
 
@@ -17830,6 +17912,8 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
 
     var conceptLabel = makeEl(doc, 'label', 'nn-edit-field-label', 'Concept')
     var picker = makeEl(doc, 'select', 'nn-edit-select')
+    picker.id = nextModalId('nn-new-element-concept')
+    conceptLabel.setAttribute('for', picker.id)
     picker.setAttribute('data-nn-role', 'concept')
     picker.appendChild(makeEl(doc, 'option', null, ''))
     picker.firstChild.value = ''
@@ -17858,7 +17942,10 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
         return String(m.id) === String(data.defaultModel)
       })[0]
       if (preset) modelPicker.value = String(preset.id)
-      body.appendChild(makeEl(doc, 'label', 'nn-edit-field-label', 'Model'))
+      var modelLabel = makeEl(doc, 'label', 'nn-edit-field-label', 'Model')
+      modelPicker.id = nextModalId('nn-new-element-model')
+      modelLabel.setAttribute('for', modelPicker.id)
+      body.appendChild(modelLabel)
       body.appendChild(modelPicker)
     }
     body.appendChild(conceptLabel)
@@ -17866,6 +17953,8 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
 
     var nameLabel = makeEl(doc, 'label', 'nn-edit-field-label', 'Name')
     var nameInput = FieldInput('text', '', opts)
+    nameInput.id = nextModalId('nn-new-element-name')
+    nameLabel.setAttribute('for', nameInput.id)
     nameInput.setAttribute('data-nn-role', 'name')
     body.appendChild(nameLabel)
     body.appendChild(nameInput)
@@ -17930,7 +18019,10 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
         if (!def || !def.name) return
         var w = widgetFor(def)
         current.push(w)
-        fieldsHost.appendChild(makeEl(doc, 'label', 'nn-edit-field-label', def.name))
+        if (!w.node.id) w.node.id = nextModalId('nn-new-element-field')
+        var fieldLabelEl = makeEl(doc, 'label', 'nn-edit-field-label', def.name)
+        fieldLabelEl.setAttribute('for', w.node.id)
+        fieldsHost.appendChild(fieldLabelEl)
         fieldsHost.appendChild(w.node)
       })
     }
@@ -19114,24 +19206,24 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
       '.nn-ku-wrap{display:inline-flex;align-items:center;gap:.2em;position:relative;vertical-align:middle}',
       '.nn-ku{display:inline-flex;align-items:center;gap:.3em;border-radius:.4em;padding:.12em .5em;font-size:.82rem;line-height:1.4;background:var(--nn-surface-2,#f1f5f9);--c:var(--nn-concept-1,#3b82f6);--cb:var(--nn-concept-1-bg,#eff6ff)}',
       '.nn-ku[data-ku-nature=container]{border:2px solid var(--nn-accent,#0f172a);background:var(--nn-surface,#fff)}',
-      '.nn-ku[data-ku-nature=structure]{border:1.5px solid var(--c);font-family:ui-monospace,monospace;color:var(--nn-muted,#64748b);background:var(--nn-surface,#fff)}',
+      '.nn-ku[data-ku-nature=structure]{border:1.5px solid var(--c);font-family:ui-monospace,monospace;color:var(--nn-muted);background:var(--nn-surface,#fff)}',
       '.nn-ku[data-ku-nature=content]{border:0;background:var(--nn-surface-2,#f1f5f9)}',
       '.nn-ku[data-ku-nature=content]>.nn-ku-label,.nn-ku[data-ku-nature=content]>.nn-ku-value{color:var(--c)}',
       '.nn-ku[data-ku-nature=content]>.nn-ku-icon{color:var(--c)}',
       '.nn-ku[data-ku-home=source]{background:var(--nn-source-paper,#fff7e6)}',
-      '.nn-ku[data-ku-home=source]>.nn-ku-label,.nn-ku[data-ku-home=source] .nn-ku-icon{color:var(--nn-muted,#64748b)}',
+      '.nn-ku[data-ku-home=source]>.nn-ku-label,.nn-ku[data-ku-home=source] .nn-ku-icon{color:var(--nn-muted)}',
       '.nn-ku--block{display:flex;width:100%;padding:.5em .7em}',
-      '.nn-ku-more{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--nn-muted,#64748b);cursor:pointer}',
+      '.nn-ku-more{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--nn-muted);cursor:pointer}',
       '.nn-ku-more:hover,.nn-ku-more[aria-expanded=true]{color:var(--nn-text,#0a0a0a);background:var(--nn-surface-2,#f1f5f9)}',
       '.nn-ku-actions{display:none !important}',
       '.nn-ku-wrap[data-ku-open=true]>.nn-ku-actions{display:none !important}',
-      '.nn-ku-action{display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;border:0;background:transparent;cursor:pointer;color:var(--nn-muted,#64748b)}',
+      '.nn-ku-action{display:inline-flex;align-items:center;justify-content:center;min-width:24px;min-height:24px;border:0;background:transparent;cursor:pointer;color:var(--nn-muted)}',
       '.nn-ku-action:hover{color:var(--nn-text,#0a0a0a);background:var(--nn-surface-2,#f1f5f9)}',
       '.nn-ku[data-ku-kind=change]{border:1.5px solid var(--nn-amber,#d97706);background:color-mix(in srgb,var(--nn-amber,#d97706) 12%,var(--nn-surface,#fff));--c:var(--nn-amber,#d97706)}',
       '.nn-ku[data-ku-kind=change]>.nn-ku-icon,.nn-ku[data-ku-kind=change]>.nn-ku-label{color:var(--nn-amber-text,#b45309)}',
       '.nn-ku[data-ku-kind=origin]{border:1.5px solid var(--nn-purple,#8b5cf6);background:color-mix(in srgb,var(--nn-purple,#8b5cf6) 12%,var(--nn-surface,#fff));--c:var(--nn-purple,#8b5cf6)}',
       '.nn-ku[data-ku-kind=origin]>.nn-ku-icon,.nn-ku[data-ku-kind=origin]>.nn-ku-label{color:var(--nn-purple-text,#7c3aed)}',
-      '.nn-ku[data-ku-kind=artifact]{border:1px solid var(--nn-border,#cbd5e1);background:color-mix(in srgb,var(--nn-slate,#64748b) 10%,var(--nn-surface,#fff));--c:var(--nn-slate,#64748b)}',
+      '.nn-ku[data-ku-kind=artifact]{border:1px solid var(--nn-border,#cbd5e1);background:color-mix(in srgb,var(--muted) 10%,var(--nn-surface,#fff));--c:var(--muted)}',
       '.nn-ku[data-ku-kind=artifact]>.nn-ku-icon,.nn-ku[data-ku-kind=artifact]>.nn-ku-label{color:var(--nn-slate-text,#475569)}',
       '.nn-ku[data-ku-kind=source]{border:1px solid color-mix(in srgb,var(--nn-cyan,#0284c7) 35%,var(--nn-border,#cbd5e1));background:color-mix(in srgb,var(--nn-cyan,#0284c7) 10%,var(--nn-surface,#fff));--c:var(--nn-cyan,#0284c7)}',
       '.nn-ku[data-ku-kind=source]>.nn-ku-icon,.nn-ku[data-ku-kind=source]>.nn-ku-label{color:var(--nn-cyan-text,#0369a1)}',
@@ -19411,7 +19503,9 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
 
     var head = makeEl(doc, 'div', 'nn-edit-modal-head')
     var h = makeEl(doc, 'h2', 'nn-ku-info-title', descriptor.label || descriptor.address)
+    h.id = nextModalId('nn-ku-info-title')
     h.setAttribute('tabindex', '-1')
+    dlg.setAttribute('aria-labelledby', h.id)
     head.appendChild(h)
     var closeBtn = makeEl(doc, 'button', 'nn-edit-modal-close', '\u00D7')
     closeBtn.setAttribute('type', 'button')
@@ -19514,7 +19608,9 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
     tabBtnHistory.addEventListener('click', function () { showTab('history') })
     tabBtnConnections.addEventListener('click', function () { showTab('connections') })
 
-    var foot = makeEl(doc, 'div', 'nn-edit-modal-foot')
+    // The same action bar as the other two dialogs. `nn-edit-modal-foot` had no rule at
+    // all, so this footer rendered unstyled.
+    var foot = makeEl(doc, 'div', 'nn-edit-modal-actions')
     if (typeof opts.onReveal === 'function') {
       var revBtn = makeEl(doc, 'button', 'nn-btn nn-btn-ghost', 'Reveal in context')
       revBtn.setAttribute('type', 'button')
@@ -35824,14 +35920,29 @@ if (typeof window !== 'undefined') {
     }
 
     /** Nodes get as wide as the host allows, up to the native 200, down to a readable 84. */
-    function flowGeometry(lay, widthPx) {
+    function flowGeometry(lay, widthPx, steps) {
       var widest = lay.rows.reduce(function (n, r) {
         return Math.max(n, r.length)
       }, 1)
       var nodeW = Math.max(84, Math.min(200, Math.floor(widthPx / widest) - 10))
       var compact = nodeW < 140
-      var nodeH = compact ? 50 : 52
-      var rowH = nodeH + 40
+      // The box has to hold the whole step name. Instead of cutting the name by a made-up
+      // characters-per-line ratio, wrap it and let the tallest name set the height of every
+      // box: rows stay aligned and no name is ever truncated on a short procedure.
+      var titleSize = compact ? 11 : 13
+      var inner = nodeW - 16
+      var perLine = Math.max(8, Math.floor(inner / (titleSize * 0.54)))
+      var lines = 1
+      Object.keys(steps || {}).forEach(function (slug) {
+        var name = String((steps[slug] && steps[slug].name) || slug)
+        var need = Math.ceil(name.length / perLine)
+        if (need > lines) lines = need
+      })
+      lines = Math.max(1, Math.min(4, lines))
+      var subLineH = 15
+      var titleLineH = 18
+      var nodeH = 9 + subLineH + lines * titleLineH + 9
+      var rowH = nodeH + 30
       var pos = {}
       lay.rows.forEach(function (row, r) {
         row.forEach(function (slug, i) {
@@ -35841,6 +35952,7 @@ if (typeof window !== 'undefined') {
       return {
         nodeW: nodeW,
         nodeH: nodeH,
+        lines: lines,
         compact: compact,
         pos: pos,
         rows: lay.rows.length,
@@ -35908,13 +36020,36 @@ if (typeof window !== 'undefined') {
           return String(s).replace(/[{}]/g, ' ')
         }
         var inner = w - 16
-        // Rich-text truncation does not hold in every renderer: cut by what fits instead.
+        // Rich-text truncation does not hold in every renderer: measure what fits instead.
         var subSize = geo.compact ? 9 : 10
         var titleSize = geo.compact ? 11 : 13
         // Upper-case bold text is wider per character than the title's mixed case.
         var cut = function (text, size, em) {
           var fit = Math.max(6, Math.floor(inner / (size * (em || 0.54))))
           return text.length > fit ? text.slice(0, fit - 1) + '…' : text
+        }
+        // The title wraps by word. Cutting it by character count broke names mid-word, and
+        // the box is already tall enough for `geo.lines` of them.
+        var wrap = function (text) {
+          var maxChars = Math.max(8, Math.floor(inner / (titleSize * 0.54)))
+          var words = String(text).split(/\s+/).filter(Boolean)
+          var out = []
+          var line = ''
+          words.forEach(function (word) {
+            var candidate = line ? line + ' ' + word : word
+            if (candidate.length <= maxChars) {
+              line = candidate
+              return
+            }
+            if (line) out.push(line)
+            line = word.length > maxChars ? word.slice(0, maxChars - 1) + '…' : word
+          })
+          if (line) out.push(line)
+          if (out.length > geo.lines) {
+            out = out.slice(0, geo.lines)
+            out[geo.lines - 1] = out[geo.lines - 1].slice(0, Math.max(4, maxChars - 1)) + '…'
+          }
+          return out.length ? out : ['']
         }
         return {
           id: slug,
@@ -35937,9 +36072,12 @@ if (typeof window !== 'undefined') {
             formatter:
               '{sub|' +
               cut(clean(sub.toUpperCase()), subSize, 0.68) +
-              '}\n{title|' +
-              cut(clean(step.name || slug), titleSize) +
-              '}',
+              '}\n' +
+              wrap(clean(step.name || slug))
+                .map(function (line) {
+                  return '{title|' + line + '}'
+                })
+                .join('\n'),
             rich: {
               sub: {
                 width: inner,
@@ -36129,7 +36267,7 @@ if (typeof window !== 'undefined') {
       var widthOf = function () {
         return chartHost.clientWidth || view.clientWidth || 320
       }
-      var geo = flowGeometry(lay, widthOf())
+      var geo = flowGeometry(lay, widthOf(), active.graph.steps)
       var hasFocus = false
       var firstStep = function () {
         return selectedStep || current || graph.start || Object.keys(graph.steps)[0]
@@ -36235,7 +36373,7 @@ if (typeof window !== 'undefined') {
           var now = Math.round(widthOf())
           if (g.disposed || !now || now === lastWidth) return
           lastWidth = now
-          geo = flowGeometry(lay, now)
+          geo = flowGeometry(lay, now, active.graph.steps)
           chartHost.style.height = geo.height + 'px'
           redraw()
           if (chart.resize) chart.resize({ width: 'auto', height: 'auto' })
@@ -36250,127 +36388,76 @@ if (typeof window !== 'undefined') {
     }
 
     /** The hand-drawn svg: what draws the flow when the page has no ECharts. */
+    /**
+     * The graph without a chart runtime: the same walk as a list of buttons. It used to be a
+     * hand-drawn svg, which meant a second layout engine, a second truncation rule and a second
+     * place for the node contract to drift. The list carries the same contract the svg did --
+     * `.dag-node`, data-step, data-status, data-layer, current/selected, role=button,
+     * Enter/Space -- so the view behaves the same either way, and the step name is never cut.
+     */
     function buildNativeGraph(lay, current) {
       var graph = active.graph
       var state = viewState()
-      var svgNS = 'http://www.w3.org/2000/svg'
-      var nodeW = 200
-      var nodeH = 52
-      var gapX = 24
-      var gapY = 84
-      var widest = lay.rows.reduce(function (n, r) {
-        return Math.max(n, r.length)
-      }, 1)
-      var width = widest * (nodeW + gapX) + gapX
-      var svg = document.createElementNS(svgNS, 'svg')
-      svg.setAttribute('class', 'dag-canvas')
-      svg.setAttribute('data-proc-graph', '')
-      svg.setAttribute('data-pulse', pulseOf(current))
-      svg.setAttribute('role', 'group')
-      svg.setAttribute('aria-label', graphSummary(state, current))
-      svg.setAttribute('viewBox', '0 0 ' + width + ' ' + (lay.rows.length * gapY + 20))
-      var pos = {}
-      lay.rows.forEach(function (row, r) {
-        var offset = (width - row.length * (nodeW + gapX) + gapX) / 2
-        row.forEach(function (slug, i) {
-          pos[slug] = { x: offset + i * (nodeW + gapX), y: 16 + r * gapY, layer: r }
-        })
-      })
-      Object.keys(graph.steps).forEach(function (slug) {
-        graph.steps[slug].next.forEach(function (t) {
-          if (!pos[t]) return
-          var edge = document.createElementNS(svgNS, 'path')
-          var x1 = pos[slug].x + nodeW / 2
-          var y1 = pos[slug].y + nodeH
-          var x2 = pos[t].x + nodeW / 2
-          var y2 = pos[t].y
-          var f = edgeFacts(state, current, slug, t)
-
-          var edgeClasses = ['dag-edge', f.status]
-          if (f.taken) edgeClasses.push('taken')
-          if (f.off) edgeClasses.push('off_path')
-          if (f.projected) edgeClasses.push('projected')
-          edge.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2)
-          edge.setAttribute('class', edgeClasses.join(' '))
-          edge.setAttribute('data-from', slug)
-          edge.setAttribute('data-to', t)
-          svg.appendChild(edge)
-          if (f.token) {
-            var label = document.createElementNS(svgNS, 'text')
-            var labelClasses = ['dag-edge-label', f.status]
-            if (f.taken) labelClasses.push('taken')
-            if (f.off) labelClasses.push('off_path')
-            if (f.projected) labelClasses.push('projected')
-            label.setAttribute('class', labelClasses.join(' '))
-            label.setAttribute('x', x2)
-            label.setAttribute('y', y2 - 6)
-            label.setAttribute('text-anchor', 'middle')
-            label.textContent = f.token.length > 24 ? f.token.substring(0, 22) + '…' : f.token
-            svg.appendChild(label)
-          }
-        })
-      })
-      Object.keys(graph.steps).forEach(function (slug) {
-        var step = graph.steps[slug]
-        var p = pos[slug]
-        var status = stepStatus(slug)
-        var g = document.createElementNS(svgNS, 'g')
-        g.setAttribute(
-          'class',
-          'dag-node ' +
-            status +
-            (step.stepType === 'decision' ? ' decision' : '') +
-            (slug === current ? ' current' : '') +
-            (isProjected(slug) ? ' projected' : '') +
-            (slug === selectedStep ? ' selected' : ''),
-        )
-        g.setAttribute('data-step', slug)
-        g.setAttribute('data-status', status)
-        g.setAttribute('data-layer', String(p.layer))
-        g.setAttribute('tabindex', '0')
-        g.setAttribute('role', 'button')
-        g.setAttribute('aria-label', announceStep(slug))
-        g.addEventListener('click', function () {
-          selectStep(slug)
-        })
-        g.addEventListener('keydown', function (ev) {
-          if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
-            if (ev.preventDefault) ev.preventDefault()
+      var box = document.createElement('div')
+      box.setAttribute('class', 'dag-canvas dag-list')
+      box.setAttribute('data-proc-graph', '')
+      box.setAttribute('data-pulse', pulseOf(current))
+      box.setAttribute('role', 'group')
+      box.setAttribute('aria-label', graphSummary(state, current))
+      lay.rows.forEach(function (row, layer) {
+        var rowEl = document.createElement('div')
+        rowEl.setAttribute('class', 'dag-layer')
+        row.forEach(function (slug) {
+          var step = graph.steps[slug]
+          var status = stepStatus(slug)
+          var node = document.createElement('button')
+          node.setAttribute('type', 'button')
+          node.setAttribute(
+            'class',
+            'dag-node ' +
+              status +
+              (step.stepType === 'decision' ? ' decision' : '') +
+              (slug === current ? ' current' : '') +
+              (isProjected(slug) ? ' projected' : '') +
+              (slug === selectedStep ? ' selected' : ''),
+          )
+          node.setAttribute('data-step', slug)
+          node.setAttribute('data-status', status)
+          node.setAttribute('data-layer', String(layer))
+          node.setAttribute('aria-label', announceStep(slug))
+          node.addEventListener('click', function () {
             selectStep(slug)
-          }
+          })
+          // jsdom does not turn Enter on a button into a click, so the key is handled here
+          // exactly as it was for the svg.
+          node.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+              if (ev.preventDefault) ev.preventDefault()
+              selectStep(slug)
+            }
+          })
+          var dot = document.createElement('span')
+          dot.setAttribute('class', 'node-dot')
+          node.appendChild(dot)
+          var text = document.createElement('span')
+          text.setAttribute('class', 'node-text')
+          var sub = document.createElement('span')
+          sub.setAttribute('class', 'node-sub')
+          sub.textContent =
+            (step.stepType || 'task').toUpperCase() +
+            (step.executor ? ' · ' + step.executor : '') +
+            (status !== 'definition' ? ' · ' + status : '')
+          var title = document.createElement('span')
+          title.setAttribute('class', 'node-title')
+          title.textContent = step.name || slug
+          text.appendChild(sub)
+          text.appendChild(title)
+          node.appendChild(text)
+          rowEl.appendChild(node)
         })
-        var rect = document.createElementNS(svgNS, 'rect')
-        rect.setAttribute('x', p.x)
-        rect.setAttribute('y', p.y)
-        rect.setAttribute('width', nodeW)
-        rect.setAttribute('height', nodeH)
-        rect.setAttribute('rx', '8')
-        g.appendChild(rect)
-        var dot = document.createElementNS(svgNS, 'circle')
-        dot.setAttribute('cx', p.x + 16)
-        dot.setAttribute('cy', p.y + nodeH / 2)
-        dot.setAttribute('r', '6')
-        dot.setAttribute('class', 'node-dot')
-        g.appendChild(dot)
-        var sub = document.createElementNS(svgNS, 'text')
-        sub.setAttribute('x', p.x + 30)
-        sub.setAttribute('y', p.y + 20)
-        sub.setAttribute('class', 'node-sub')
-        sub.textContent =
-          (step.stepType || 'task').toUpperCase() +
-          (step.executor ? ' · ' + step.executor : '') +
-          (status !== 'definition' ? ' · ' + status : '')
-        g.appendChild(sub)
-        var title = document.createElementNS(svgNS, 'text')
-        title.setAttribute('x', p.x + 30)
-        title.setAttribute('y', p.y + 38)
-        title.setAttribute('class', 'node-title')
-        var name = step.name || slug
-        title.textContent = name.length > 24 ? name.substring(0, 22) + '…' : name
-        g.appendChild(title)
-        svg.appendChild(g)
+        box.appendChild(rowEl)
       })
-      return svg
+      return box
     }
 
     function renderGraph(hostEl) {
@@ -37971,7 +38058,7 @@ if (typeof window !== 'undefined') {
     }
 
     // ---- Run panel ----
-    function renderRunPanel(hostEl) {
+    function renderRunPanel(hostEl, headShown) {
       var col = make('div', 'exec-log-col')
       hostEl.appendChild(col)
       var panel = make('div', 'proc-run-state')
@@ -37988,13 +38075,18 @@ if (typeof window !== 'undefined') {
         return
       }
       var recorded = activeRun.state
-      panel.appendChild(
-        make(
-          'div',
-          'proc-run-title',
-          'Run ' + activeRun.id + (activeRun.closed ? ' (closed)' : ''),
-        ),
-      )
+      // The run bar above already names the run, its status, its current step and the path
+      // travelled. Only the degenerate path (the export carries no definition) has no bar,
+      // and there this head is the only thing that says which run is on screen.
+      if (!headShown) {
+        panel.appendChild(
+          make(
+            'div',
+            'proc-run-title',
+            'Run ' + activeRun.id + (activeRun.closed ? ' (closed)' : ''),
+          ),
+        )
+      }
       if (!recorded) {
         panel.appendChild(
           make(
@@ -38008,7 +38100,7 @@ if (typeof window !== 'undefined') {
       }
       var state = viewState()
       var projected = state !== recorded
-      if (projected) {
+      if (!headShown && projected) {
         var pending = make(
           'div',
           'proc-run-projected',
@@ -38017,17 +38109,6 @@ if (typeof window !== 'undefined') {
         pending.setAttribute('data-proc-projected', '')
         panel.appendChild(pending)
       }
-      panel.appendChild(make('div', 'proc-run-status', 'Status: ' + state.status))
-      panel.appendChild(
-        make(
-          'div',
-          'proc-run-current',
-          'Current step: ' + (state.currentStep ? stepName(state.currentStep) : 'none'),
-        ),
-      )
-      panel.appendChild(
-        make('div', 'proc-run-path', 'Path: ' + state.path.map(stepName).join(' → ')),
-      )
       if (state.blockedBy)
         panel.appendChild(make('div', 'proc-run-blocked', 'Blocked: ' + state.blockedBy))
       if (state.crashed)
@@ -38081,29 +38162,35 @@ if (typeof window !== 'undefined') {
       var details = detailsBox('proc-run-details')
       // "Allowed next" is what the step's guards permit, which is meaningless when the fold
       // says the run cannot advance. A blocked step would read as if its branches were open.
+      // It is the one line that answers "what happens next", so it stays outside the fold.
+      var allowedEl = null
       if (
         state.allowedNext.length &&
         !state.blockedBy &&
         !state.drift &&
         !TERMINAL_RUN[state.status]
       ) {
-        details.appendChild(
-          make(
-            'div',
-            'proc-run-allowed',
-            'Allowed next: ' +
-              state.allowedNext
-                .map(function (tr) {
-                  return stepName(tr.to) + ' (' + guardText(tr.guard) + ')'
-                })
-                .join(', '),
-          ),
+        allowedEl = make(
+          'div',
+          'proc-run-allowed',
+          'Allowed next: ' +
+            state.allowedNext
+              .map(function (tr) {
+                return stepName(tr.to) + ' (' + guardText(tr.guard) + ')'
+              })
+              .join(', '),
         )
       }
       details.appendChild(make('div', 'proc-run-seq', 'Run seq: ' + runSeq()))
+      // The path travelled is reference material, not a headline: it grows with the run and
+      // used to push the status badge off the bar.
+      details.appendChild(
+        make('div', 'proc-run-path', 'Path: ' + state.path.map(stepName).join(' → ')),
+      )
       if (!activeRun.closed && !TERMINAL_RUN[recorded.status]) {
         details.appendChild(make('div', 'proc-run-next', agentInstruction(recorded)))
       }
+      if (allowedEl) panel.appendChild(allowedEl)
       panel.appendChild(details)
       renderRequestQueue(col)
     }
@@ -38268,9 +38355,6 @@ if (typeof window !== 'undefined') {
         ),
       )
       bar.appendChild(make('span', 'sep'))
-      bar.appendChild(
-        make('span', 'path proc-run-path', 'Path: ' + state.path.map(stepName).join(' → ')),
-      )
       if (projected) {
         var pending = make(
           'span',
@@ -38301,9 +38385,9 @@ if (typeof window !== 'undefined') {
     // ---- BDE Tab Bar ----
     function renderBdeTabBar(hostEl) {
       var bar = make('div', 'proc-tabbar tabbar')
+      bar.setAttribute('role', 'tablist')
       var tabs = [
         { id: 'flow', label: 'Flow' },
-        { id: 'steps', label: 'Steps' },
         { id: 'requests', label: 'Requests', count: requestsOf(activeRun).length },
         {
           id: 'artifacts',
@@ -38312,14 +38396,22 @@ if (typeof window !== 'undefined') {
         },
       ]
       tabs.forEach(function (t) {
+        var isOn = activeTab === t.id
         var btn = button(
-          'proc-tab-btn' + (activeTab === t.id ? ' on' : ''),
+          'proc-tab-btn' + (isOn ? ' on' : ''),
           t.label,
           function () {
             activeTab = t.id
             render()
           },
-          { 'data-tab': t.id },
+          {
+            'data-tab': t.id,
+            role: 'tab',
+            'aria-selected': isOn ? 'true' : 'false',
+            // A tablist is one tab stop: the arrows move between tabs. No ids: the view
+            // must be mountable twice on one page (`no global ids` in its test).
+            tabindex: isOn ? '0' : '-1',
+          },
         )
         if (t.count !== undefined && t.count > 0) {
           btn.appendChild(make('span', 'faint count', ' ' + t.count))
@@ -38328,6 +38420,22 @@ if (typeof window !== 'undefined') {
           btn.hidden = true
         }
         bar.appendChild(btn)
+      })
+      bar.addEventListener('keydown', function (ev) {
+        var key = ev && ev.key
+        if (key !== 'ArrowRight' && key !== 'ArrowLeft' && key !== 'Home' && key !== 'End') return
+        var items = Array.prototype.filter.call(bar.children, function (el) {
+          return el && !el.hidden
+        })
+        var at = items.indexOf(document.activeElement)
+        if (at < 0) return
+        if (ev.preventDefault) ev.preventDefault()
+        var nextIdx
+        if (key === 'Home') nextIdx = 0
+        else if (key === 'End') nextIdx = items.length - 1
+        else if (key === 'ArrowRight') nextIdx = (at + 1) % items.length
+        else nextIdx = (at - 1 + items.length) % items.length
+        if (items[nextIdx] && items[nextIdx].focus) items[nextIdx].focus()
       })
       hostEl.appendChild(bar)
     }
@@ -38348,6 +38456,7 @@ if (typeof window !== 'undefined') {
         'proc-panel panel panel-flow' + (activeTab === 'flow' ? ' on' : ''),
       )
       pFlow.setAttribute('data-tab-panel', 'flow')
+      pFlow.setAttribute('role', 'tabpanel')
       var padFlow = make('div', 'pad')
       var branches = stepKeys.some(function (slug) {
         return Array.isArray(steps[slug].next) && steps[slug].next.length > 1
@@ -38402,103 +38511,13 @@ if (typeof window !== 'undefined') {
       pFlow.appendChild(padFlow)
       hostEl.appendChild(pFlow)
 
-      // Panel 2: Steps (Master table)
-      var pSteps = make(
-        'section',
-        'proc-panel panel panel-steps' + (activeTab === 'steps' ? ' on' : ''),
-      )
-      pSteps.setAttribute('data-tab-panel', 'steps')
-      var padSteps = make('div', 'pad')
-      var cardSteps = make('div', 'card')
-      var headSteps = make('div', 'col-head')
-      headSteps.appendChild(make('span', null, 'Steps'))
-      headSteps.appendChild(
-        make(
-          'span',
-          'count',
-          def
-            ? 'definición del documento · ' + stepKeys.length
-            : 'orden de ejecución · ' + stepKeys.length,
-        ),
-      )
-      cardSteps.appendChild(headSteps)
-      var table = make('table', 'proc-steps-table')
-      var thead = make('thead')
-      var htr = make('tr')
-      htr.appendChild(make('th', null))
-      htr.appendChild(make('th', null, 'Step'))
-      htr.appendChild(make('th', null, 'Type'))
-      htr.appendChild(make('th', null, 'Executor'))
-      if (def) {
-        htr.appendChild(make('th', null, 'Inputs'))
-        htr.appendChild(make('th', null, 'Outputs'))
-      } else {
-        var thDur = make('th', 'num', 'Attempt')
-        thDur.style.textAlign = 'right'
-        htr.appendChild(thDur)
-        htr.appendChild(make('th', null, 'Artifacts'))
-      }
-      thead.appendChild(htr)
-      table.appendChild(thead)
-      var tbody = make('tbody')
-      stepKeys.forEach(function (slug) {
-        var s = steps[slug]
-        var st = def ? 'definition' : stepStatus(slug)
-        var tr = make('tr', slug === selectedStep ? 'on' : '')
-        tr.setAttribute('data-step', slug)
-        var td1 = make('td')
-        var mark = make('span', 'dotmark ' + st, MARK_SYMBOLS[st] || '·')
-        td1.appendChild(mark)
-        tr.appendChild(td1)
-        var td2 = make('td')
-        if (slug === selectedStep) {
-          td2.appendChild(make('b', null, s.name || slug))
-        } else {
-          td2.textContent = s.name || slug
-        }
-        tr.appendChild(td2)
-        var td3 = make('td')
-        td3.appendChild(
-          make(
-            'span',
-            'pill' + (s.stepType === 'decision' ? ' decision' : ''),
-            s.stepType || 'task',
-          ),
-        )
-        tr.appendChild(td3)
-        tr.appendChild(make('td', 'dim', s.executor || '—'))
-        if (def) {
-          var inText = s.inputs && s.inputs.length ? s.inputs.join(', ') : '—'
-          var outText = s.outputs && s.outputs.length ? s.outputs.join(', ') : '—'
-          tr.appendChild(make('td', s.inputs && s.inputs.length ? 'faint' : 'dim', inText))
-          tr.appendChild(make('td', s.outputs && s.outputs.length ? 'faint' : 'dim', outText))
-        } else {
-          var stepState = state && state.steps ? state.steps[slug] : null
-          var attText = stepState && stepState.attempt ? String(stepState.attempt) : '—'
-          var artText = s.outputs && s.outputs.length ? s.outputs.length + ' out' : '—'
-          var tdAtt = make('td', 'num', attText)
-          tdAtt.style.textAlign = 'right'
-          tr.appendChild(tdAtt)
-          tr.appendChild(make('td', s.outputs && s.outputs.length ? 'faint' : 'dim', artText))
-        }
-        tr.addEventListener('click', function () {
-          selectedStep = slug
-          render()
-        })
-        tbody.appendChild(tr)
-      })
-      table.appendChild(tbody)
-      cardSteps.appendChild(table)
-      padSteps.appendChild(cardSteps)
-      pSteps.appendChild(padSteps)
-      hostEl.appendChild(pSteps)
-
       // Panel 3: Requests
       var pReqs = make(
         'section',
         'proc-panel panel panel-requests' + (activeTab === 'requests' ? ' on' : ''),
       )
       pReqs.setAttribute('data-tab-panel', 'requests')
+      pReqs.setAttribute('role', 'tabpanel')
       var padReqs = make('div', 'pad')
       renderRequestQueue(padReqs)
       pReqs.appendChild(padReqs)
@@ -38510,6 +38529,7 @@ if (typeof window !== 'undefined') {
         'proc-panel panel panel-artifacts' + (activeTab === 'artifacts' ? ' on' : ''),
       )
       pArts.setAttribute('data-tab-panel', 'artifacts')
+      pArts.setAttribute('role', 'tabpanel')
       renderArtifactPanel(pArts)
       hostEl.appendChild(pArts)
     }
@@ -38551,12 +38571,12 @@ if (typeof window !== 'undefined') {
       var ws = make('div', 'exec-workspace proc-bde-layout')
       body.appendChild(ws)
 
-      // Column 1: the flow graph. It is what the person reads first: where the run is.
+      // Right column: the flow graph, so the person reads what to do first and looks right
+      // for where that step sits in the procedure.
       var rail = make('aside', 'proc-rail rail')
       renderBdeRail(rail)
-      ws.appendChild(rail)
 
-      // Column 2: the runs, the run state and the step timeline, whose rows open in place.
+      // Left column: the runs, the run state and the step timeline, whose rows open in place.
       // The start form takes the column while it is open, so preparing a run never competes
       // with the steps of a run the person is answering.
       var main = make('div', 'proc-main main')
@@ -38571,9 +38591,10 @@ if (typeof window !== 'undefined') {
         renderBdeRunBar(main)
         renderBdeTabBar(main)
         renderBdePanels(main)
-        renderRunPanel(main)
+        renderRunPanel(main, true)
       }
       ws.appendChild(main)
+      ws.appendChild(rail)
     }
 
     // The inbox is the front door: open on the first run that waits on this person.
