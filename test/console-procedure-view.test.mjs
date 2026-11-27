@@ -267,6 +267,14 @@ describe('procedure view (bluepriNNt)', () => {
     assert.match(container.querySelector('.exec-step-card').textContent, /Approve the draft\?/)
   })
 
+  it('counts procedures and runs with the right plural, never "1 procedures"', (context) => {
+    mount(payload(), context)
+    const summary = container.querySelector('.proc-structure-summary').textContent
+    assert.match(summary, /^1 procedure · \d+ runs?$/)
+    assert.doesNotMatch(summary, /\b1 (procedures|runs)\b/)
+    assert.doesNotMatch(container.textContent, /flow graph shows the same steps/)
+  })
+
   it('puts the flow graph in the last column and opens one step card inside the timeline', (context) => {
     mount(payload(), context)
     const ws = container.querySelector('.exec-workspace')

@@ -209,16 +209,25 @@ describe('Versions tab', () => {
       ...document.querySelectorAll('#nn-tab-versions .nn-versions-blueprints tbody tr'),
     ].map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent))
     assert.deepEqual(rows, [
-      [
-        'business',
-        'CRM',
-        'V_0-4-1',
-        'V_0-6-0',
-        'Update available (minor)',
-        'Published by cogNNitive',
-      ],
-      ['house', 'plan', 'V_0-1-0', '—', 'Not in the cogNNitive catalog', 'Local bluepriNNt'],
+      ['business', 'CRM', '0.4.1', '0.6.0', 'Update available (minor)', 'Published by cogNNitive'],
+      ['house', 'plan', '0.1.0', '—', 'Not in the cogNNitive catalog', 'Local bluepriNNt'],
     ])
+  })
+
+  it('writes every version with dots, including the spec-style V_x-y-z ones', () => {
+    const { document } = bootWith({
+      ...VERSIONS,
+      installation: {
+        scope: 'user',
+        components: [
+          { kind: 'skill', name: 'nn', version: '1.4.0', updatedAt: '2026-11-01' },
+          { kind: 'bluepriNNt', name: 'business', version: 'V_0-6-1', updatedAt: '2026-11-01' },
+        ],
+      },
+    })
+    const cells = [...document.querySelectorAll('#nn-tab-versions td')].map((td) => td.textContent)
+    assert.ok(cells.includes('0.6.1'), 'the V_0-6-1 component reads 0.6.1')
+    assert.ok(!cells.some((c) => /^V_\d/.test(c)), 'no version keeps the V_ spelling')
   })
 
   it('says when it was checked and that the console never goes online', () => {

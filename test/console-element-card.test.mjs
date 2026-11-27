@@ -89,6 +89,44 @@ describe('Element Card Redesign Contract', () => {
       assert.equal(card.querySelector('[data-nn-component="tag-row"]'), null, 'the helper row goes away with review mode')
     })
 
+    it('"+ tag" proposes the tag in place, without opening the element modal', () => {
+      const card = UI.ElementCard({ id: 'u', name: 'U', fields: [{ name: 'f', value: 'v' }] }, { doc: document, domId: 'el-u' })
+      document.body.appendChild(card)
+      const elements = [{ id: 'u', concept: 'C', name: 'U', fields: { f: 'v' }, tags: ['old'], hash: '0123456789abcdef' }]
+      const store = nnReview.createDraftStore(null, 'm')
+      const ctl = nnReview.createReviewController(document, { elements, store, meta: { modelId: 'ghostbusters' } })
+      ctl.enable()
+      card.querySelector('[data-nn-ctl="tag-add"]').dispatchEvent(new window.Event('click', { bubbles: true }))
+      const input = card.querySelector('[data-nn-ctl="tag-input"]')
+      assert.ok(input, 'the button became an input')
+      assert.equal(card.querySelector('[data-nn-ctl="tag-add"]'), null, 'in the same place')
+      assert.equal(document.querySelector('dialog[open]'), null, 'no modal')
+      input.value = 'new-tag'
+      input.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      const [draft] = store.drafts()
+      assert.equal(store.drafts().length, 1)
+      assert.equal(draft.field, 'tags')
+      assert.deepEqual(draft.proposed, ['old', 'new-tag'])
+      ctl.disable()
+    })
+
+    it('"+ tag" gives the button back on Escape and proposes nothing', () => {
+      const card = UI.ElementCard({ id: 'u', name: 'U', fields: [{ name: 'f', value: 'v' }] }, { doc: document, domId: 'el-u' })
+      document.body.appendChild(card)
+      const elements = [{ id: 'u', concept: 'C', name: 'U', fields: { f: 'v' }, tags: [], hash: '0123456789abcdef' }]
+      const store = nnReview.createDraftStore(null, 'm')
+      const ctl = nnReview.createReviewController(document, { elements, store, meta: { modelId: 'ghostbusters' } })
+      ctl.enable()
+      card.querySelector('[data-nn-ctl="tag-add"]').dispatchEvent(new window.Event('click', { bubbles: true }))
+      const input = card.querySelector('[data-nn-ctl="tag-input"]')
+      input.value = 'half'
+      input.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      assert.ok(card.querySelector('[data-nn-ctl="tag-add"]'), 'the button is back')
+      assert.equal(card.querySelector('[data-nn-ctl="tag-input"]'), null)
+      assert.equal(store.drafts().length, 0)
+      ctl.disable()
+    })
+
     it('renders path footer, tag row and relation list', () => {
       const card = fullCard()
       document.body.appendChild(card)

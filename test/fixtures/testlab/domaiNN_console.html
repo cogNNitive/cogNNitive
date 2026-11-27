@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-x7Mw5NX3Shbf7uuA8FCzu1gzLLcLpdxFv5hsVgU8Gz8=' 'sha256-qsjLjnpwNES4Y0CM36eMiDfJELR1nScCKX3nlAuFDJI='; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; media-src 'self' file: blob:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-GvKgk94hYtdI4Lylp850nn3asNTK8dA4hEJd5j7rKEo=' 'sha256-qsjLjnpwNES4Y0CM36eMiDfJELR1nScCKX3nlAuFDJI='; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; media-src 'self' file: blob:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -7274,21 +7274,25 @@ button.btn-primary:hover:not(:disabled) {
   color: var(--nn-accent, #171717) !important;
 }
 #nn-rail details.collapse > summary.collapse-title {
-  padding: 8px 30px 8px 10px !important;
+  padding: 8px 10px 8px 30px !important;
   min-height: 2.25rem !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
   border-radius: 6px;
 }
+/* The toggle sits before the name, the way a tree draws it: a chevron pointing
+   right when closed and down when open. */
 #nn-rail .collapse-arrow > .collapse-title:after {
   top: 50% !important;
-  right: 10px !important;
-  transform: translateY(-50%) rotate(45deg) !important;
+  left: 12px !important;
+  right: auto !important;
+  inset-inline-end: auto !important;
+  transform: translateY(-50%) rotate(-45deg) !important;
   box-shadow: 1.5px 1.5px 0 0 var(--nn-muted, #666666) !important;
 }
 #nn-rail details.collapse[open] > .collapse-title:after {
-  transform: translateY(-50%) rotate(225deg) !important;
+  transform: translateY(-65%) rotate(45deg) !important;
 }
 
 /* P1.5: Document view heading brand color */
@@ -7918,18 +7922,26 @@ button.btn-primary:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.18);
   color: #ffffff;
 }
-/* Blueprint accordion sections (the rail's top level): the same black bar and
-   white text the design system already uses for a selected model, so a group
-   reads as a section header instead of another model row. The chevron is drawn
-   with box-shadow in a fixed colour, so it needs its own override. */
+/* Blueprint accordion sections (the rail's top level): a quiet section header,
+   not a bar. The black fill is reserved for the one selected model, so a group
+   no longer outweighs the rows it contains. The chevron is drawn with
+   box-shadow in a fixed colour, so it needs its own override. */
 #nn-rail details.collapse.nn-rail-blueprint > summary.collapse-title {
-  background: var(--nn-accent, #171717);
-  color: #ffffff;
-  border-color: var(--nn-accent, #171717);
-  font-weight: 600;
+  background: transparent;
+  color: var(--muted, #52525b);
+  border-color: transparent;
+  border-bottom-color: #e5e5e5;
+  border-radius: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+#nn-rail details.collapse.nn-rail-blueprint > summary.collapse-title:hover {
+  color: var(--text, #0a0a0a);
 }
 #nn-rail details.collapse.nn-rail-blueprint > summary.collapse-title:after {
-  box-shadow: 1.5px 1.5px 0 0 #ffffff !important;
+  box-shadow: 1.5px 1.5px 0 0 currentColor !important;
 }
 
 #nn-rail .menu ul {
@@ -7951,7 +7963,11 @@ button.btn-primary:hover:not(:disabled) {
     background 0.12s ease,
     border-color 0.12s ease;
 }
-#nn-rail .menu li > a[data-concept] .nn-ku {
+/* The concept badge, one look everywhere: the tinted pill the rail always had.
+   The card header and the "What to look at" list used a black outlined box
+   for the same thing. The rail sets --rail-concept-color; elsewhere the badge
+   carries data-concept-slot, which sets --concept-slot-fg. */
+.nn-ku[data-ku-kind='section'][data-ku-nature='container'] {
   color: var(--rail-concept-color, var(--concept-slot-fg, #0a0a0a));
   font-weight: 700;
   font-size: 0.78rem;
@@ -8431,7 +8447,7 @@ button.cite-icon,
   margin-bottom: 14px !important;
 }
 #nn-rail details.collapse > summary.collapse-title {
-  padding: 8px 12px !important;
+  padding: 8px 12px 8px 30px !important;
   border-radius: 8px !important;
   margin-bottom: 6px !important;
 }
@@ -8738,22 +8754,10 @@ select {
   color: #fecdd3 !important;
 }
 
-/* 11. Domain Navbar Info Popover & Borderless Button */
+/* 11. Domain Navbar Info Popover & Icon Button */
+/* Look comes from .nn-navbar-action-btn (ui-kit); this only squares it to the icon. */
 .nn-navbar-info-btn {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  color: var(--nn-muted) !important;
-  cursor: pointer !important;
-  padding: 2px 6px !important;
-  border-radius: 4px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  font-size: 12px !important;
-}
-.nn-navbar-info-btn:hover {
-  background: #f1f5f9 !important;
-  color: #0f172a !important;
+  padding: 5px 7px;
 }
 .nn-navbar-info-popover {
   position: absolute !important;
@@ -9749,14 +9753,22 @@ select {
   margin-top: 4px;
 }
 
-/* ---- Vocabulary legend (under the tabs) ---- */
+/* ---- Vocabulary legend (inside the header info popover) ---- */
 .nn-vocab-legend {
-  margin: -8px 0 14px;
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
   font-size: 0.78rem;
   color: var(--muted);
 }
 
+.nn-vocab-legend div {
+  display: flex;
+  gap: 6px;
+}
+
 .nn-vocab-legend strong {
+  flex: 0 0 5.5em;
   color: var(--text);
   font-weight: 700;
 }
@@ -9787,7 +9799,6 @@ select {
 
 .nn-summary-attention {
   border: 1px solid var(--border);
-  border-left: 4px solid #f59e0b;
   border-radius: var(--radius);
   background: var(--surface);
   padding: 12px 16px;
@@ -10182,7 +10193,7 @@ select {
 }
 
 .nn-pipeline-node:hover .nn-ku {
-  background: color-mix(in srgb, var(--primary) 8%, var(--surface-2));
+  background: var(--surface-2);
 }
 
 .nn-pipeline-node:focus-visible {
@@ -10190,15 +10201,17 @@ select {
   outline-offset: 2px;
 }
 
+/* Selected = a crisp 1px outline on a white badge. The old 2px translucent ring
+   over a tinted fill read as a grey smudge, because --primary is near black. */
 .nn-pipeline-node.nn-pipeline-highlight .nn-ku,
 .nn-pipeline-node.nn-pipeline-selected .nn-ku {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 40%, transparent);
-  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  box-shadow: 0 0 0 1px var(--primary);
+  background: var(--surface);
 }
 
 .nn-pipeline-node.nn-pipeline-connected .nn-ku {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 30%, transparent);
-  background: color-mix(in srgb, var(--primary) 6%, var(--surface-2));
+  background: var(--surface-2);
 }
 
 .nn-pipeline-node.dimmed {
@@ -10715,6 +10728,9 @@ button.proc-inbox-open:hover {
 .proc-runs {
   flex-wrap: wrap;
   row-gap: 8px;
+  /* The bar sits inside a bordered card: without side padding the "Runs" label
+     touched that border and read as clipped. 16px matches the card's other rows. */
+  padding: 0 16px;
 }
 .proc-run-filters,
 .proc-run-list {
@@ -10809,27 +10825,6 @@ button.proc-run.proc-run-unsent {
   font-weight: 700;
   fill: var(--muted);
 }
-/* The step list is the flow graph's text alternative: a disclosure, so it is in the tab
-   order at every width and opening or closing it never moves the graph under the pointer. */
-.proc-step-list {
-  list-style: none;
-  margin: 0;
-  padding: 8px;
-}
-.proc-step-list-box {
-  border-top: 1px solid var(--border);
-}
-.proc-step-list-summary {
-  cursor: pointer;
-  padding: 8px 13px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-}
-.proc-step-list-summary:focus-visible {
-  outline: 3px solid var(--primary);
-  outline-offset: -3px;
-}
 .dag-graph {
   position: relative;
   border-radius: var(--radius-sm);
@@ -10877,38 +10872,6 @@ button.proc-run.proc-run-unsent {
   .dag-node {
     transition: none;
   }
-}
-.proc-step-item + .proc-step-item {
-  margin-top: 6px;
-}
-button.proc-step-item-btn {
-  appearance: none;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-  text-align: left;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  padding: 8px 10px;
-  cursor: pointer;
-}
-.proc-step-item.done button.proc-step-item-btn {
-  border-color: var(--success);
-}
-.proc-step-item.current button.proc-step-item-btn {
-  border: 2px solid var(--primary);
-}
-.proc-step-item-name {
-  font-weight: 600;
-  font-size: 0.86rem;
-}
-.proc-step-item-meta {
-  font-size: 0.72rem;
-  color: var(--muted);
 }
 @media (max-width: 640px) {
   .exec-dag-view-native {
@@ -11128,6 +11091,18 @@ button.proc-step-item-btn {
 }
 .proc-nav .proc-runs {
   border-top: 1px solid var(--border);
+}
+/* Inside .proc-main the runs bar is a row of that card, not a second card: it
+   inherits the card's own border and shadow and spans its full width. */
+.proc-main > .proc-nav {
+  align-self: stretch;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.proc-main > .proc-nav .proc-runs {
+  border-top: 0;
 }
 
 .proc-main {
@@ -11617,6 +11592,198 @@ table.proc-artifacts-table tbody tr:hover {
   outline-offset: 2px;
   border-radius: var(--radius-sm, 6px);
 }
+
+/* ---- Procedures: runs bar, blueprint list and stepper (2026-11-27 feedback) ----
+   Later rules on purpose: the rules above are scattered across the file. */
+
+/* The runs bar: a head (label, filter, the one action) over the list of choices. */
+.proc-runs {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.proc-runs-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.proc-runs-head .proc-runs-label {
+  margin-right: 0;
+}
+/* The filter is one segmented control, quieter than the run chips it filters. */
+.proc-runs-head .proc-run-filters {
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.proc-runs-head button.proc-run-filter {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 3px 10px;
+}
+.proc-runs-head button.proc-run-filter + button.proc-run-filter {
+  border-left: 1px solid var(--border);
+}
+.proc-runs-head button.proc-run-filter.active {
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+}
+.proc-runs-head button.proc-start-run {
+  margin-left: auto;
+}
+button.proc-run {
+  font-weight: 500;
+}
+button.proc-run.active {
+  font-weight: 600;
+}
+
+/* The bluepriNNt's own procedures: a plain line, not a row of disabled pills. */
+.proc-blueprint-item {
+  font-weight: 500;
+}
+.proc-blueprint-item.is-orphan {
+  opacity: 1;
+  background: transparent;
+  border-style: dashed;
+  color: var(--muted);
+}
+
+/* The stepper: a light list. Name in regular weight, status as a small tag, the
+   number quiet; the weight of the page is carried by the open step's card. */
+.proc-step-toggle {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.proc-step-toggle .badge {
+  flex: 0 0 auto;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.proc-step-toggle .badge.done {
+  border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+  background: color-mix(in srgb, var(--success) 8%, var(--surface));
+  color: var(--success);
+}
+.proc-step-toggle .badge.waiting {
+  border-color: color-mix(in srgb, var(--warning) 40%, var(--border));
+  background: color-mix(in srgb, var(--warning) 10%, var(--surface));
+  color: var(--text);
+}
+.proc-step-toggle .badge.failed {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+  color: var(--danger);
+}
+.proc-timeline-number {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.proc-flow-note {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* ---- Details modal, inline tag input, Files sidebar, empty matrix cells (2026-11-27 feedback) ---- */
+
+/* The unit details list (View tab of the unit modal) was the browser's bare dt/dd. */
+.nn-ku-info-sub {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.nn-ku-info-list {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 20px;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.nn-ku-info-term {
+  color: var(--muted);
+  font-weight: 500;
+}
+.nn-ku-info-def {
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+/* "+ tag" becomes this input; it is as tall as the button it replaces. */
+.nn-tag-input {
+  width: 9em;
+  padding: 0.1em 0.55em;
+  border: 1px solid var(--border-strong, var(--border));
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+}
+.nn-tag-input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+/* Files sidebar: the same field, icons and quiet type as the rest of the console. */
+.nn-files-sidebar .nn-input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+}
+.nn-files-sidebar .nn-input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+.nn-category-header .chevron,
+.nn-file-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+}
+.nn-file-icon {
+  opacity: 1;
+}
+
+/* An empty matrix cell draws nothing and is itself the control. */
+.nn-matrix-cell-empty {
+  cursor: pointer;
+}
+.nn-matrix-cell-empty > * {
+  visibility: hidden;
+}
+.nn-matrix-cell-empty:hover,
+.nn-matrix-cell-empty:focus-visible {
+  background: var(--surface-2);
+}
+.nn-matrix-cell-empty:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+/* An element badge is never bold, even inside a table header, which is bold by default. */
+.nn-ku[data-ku-kind='element'] {
+  font-weight: 400;
+}
 </style>
     <style>
       :root,
@@ -11999,7 +12166,7 @@ table.proc-artifacts-table tbody tr:hover {
 {"concepts":[{"name":"Procedure Execution","type":"list","icon":"play-circle","color":"purple","weight":100,"storage":{"mode":"distributed","placement":"executions/{slug}/"},"fields":[{"name":"procedure","type":"address","scope":"concept","description":"Address of the Procedure or root Work this run executes (model@element or document@container).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"def_rev","type":"string","scope":"concept","description":"knowledge_version of the procedure model when the run started; the run follows that revision to the end.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"params","type":"string","scope":"concept","description":"Opaque parameters the run was started with (a JSON object of slot values).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"seq","type":"number","scope":"concept","description":"The run's write counter. Every runner changeset increments it with a from guard, so any concurrent write to the same run conflicts the whole changeset.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"state","type":"select","options":["open","paused","completed","failed","cancelled"],"scope":"concept","description":"The stored lifecycle of the run. The status the tools return is the fold's derived RunStatus, which reports paused when this is paused.","transitions":{"":["open"],"open":["paused","completed","failed","cancelled"],"paused":["open","completed","failed","cancelled"],"completed":[],"failed":[],"cancelled":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Step Run","type":"list","icon":"list-checks","color":"blue","weight":90,"description":"One row per step of the procedure. Its slug is the step slug. Mutable: the runner writes it as the step advances.","fields":[{"name":"status","type":"select","options":["pending","active","waiting","done","failed"],"scope":"concept","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed). Each row only takes the edges of its own lifecycle. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"attempt","type":"number","scope":"concept","description":"The attempt number of the current claim, 1 for the first try.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"outcome","type":"string","scope":"concept","description":"The answer the step recorded; for a decision step, the token its next conditions test.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"next","type":"string","scope":"concept","description":"The slug of the step this one moved to.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"inputs","type":"string","scope":"concept","description":"The input artifact revisions frozen at claim time: a JSON object mapping artifact slug to its rev.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"waiting_on","type":"string","scope":"concept","description":"What a waiting step waits on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"failure","type":"string","scope":"concept","description":"Why the step failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"claimed_at","type":"string","scope":"concept","description":"When the current attempt was claimed (ISO 8601).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"timeout_ms","type":"number","scope":"concept","description":"The budget of the current attempt. At most 300000.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"holder","type":"string","scope":"concept","description":"Who holds the claim, as pid@host. For an engine step it is the process that runs the command, not the server that reports it. A step whose holder is gone is a crash, derived from it; a claim that names neither a holder nor a claim time is broken, never a permanent holder.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"evidence","type":"string","scope":"concept","description":"The applied change ids a human step observed, such as the verdicts it waited on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Run Artifact","type":"list","icon":"package","color":"orange","weight":80,"description":"One row per artifact of the procedure. Its slug is the artifact slug. Mutable: verification and staleness move it.","fields":[{"name":"status","type":"select","options":["expected","produced","validated","rejected"],"scope":"concept","description":"The stored lifecycle of an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle.","transitions":{"":["expected"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"How the artifact is carried: a file, a model element, or a changeset of several elements.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Input","type":"list","icon":"log-in","color":"grey","weight":70,"description":"A computed or entered input the run recorded, with its revision. One row per input name.","fields":[{"name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Step Request","type":"list","icon":"inbox","color":"yellow","weight":60,"description":"One row per human request that an action be recorded on a step. Intent, never state: only the runner consumes it, and it never moves a Step Run row by itself.","fields":[{"name":"action","type":"select","options":["start","wait","complete","fail"],"scope":"concept","description":"The action the person asked the runner to record on the step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"step","type":"string","scope":"concept","description":"The slug of the step the request names.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"base_seq","type":"number","scope":"concept","description":"The run's header seq when the request was made. A consumer refuses the request when the run has advanced past it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"reason","type":"string","scope":"concept","description":"Why the request was rejected or found stale, as the runner reported it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"request_status","type":"select","options":["pending","done","stale","rejected"],"scope":"concept","description":"The life of a request: pending while nobody consumed it, then done, stale or rejected. A resolved request never returns to pending.","transitions":{"":["pending"],"pending":["done","stale","rejected"],"done":[],"stale":[],"rejected":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"requested_outcome","type":"string","scope":"concept","description":"The outcome the person asked for when the request names a branching step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"requested_value","type":"string","scope":"concept","description":"The value the person attached to the request, such as who a step waits on or why it failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"requested_outputs","type":"string","scope":"concept","description":"The deliverables a person wrote for the step's file outputs, as one line of JSON: artifact slug -> { \"name\"?: string, \"text\": string }. Valid only with action complete; each text is UTF-8 and at most 256 KiB.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Concept 1","type":"list","icon":"box","color":"blue","weight":100,"description":"Baseline domain concept holding the 1A/1B/1C element triangle. Concept 1 carries every field type and anchors the Concept 1-Concept 2 matrix.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"manual","type":"markdown_file","scope":"concept","description":"External markdown file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"photo","type":"image","scope":"concept","description":"Image attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"demo_video","type":"video","scope":"concept","description":"Downloaded video asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"voice_note","type":"audio","scope":"concept","description":"Downloaded and transcribed audio asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"sibling","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"Reference to an element of Concept 2.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"status","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"Lifecycle status of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Concept 2","type":"list","icon":"boxes","color":"green","weight":90,"description":"Owner concept holding the 2A/2B elements that reference Concept 1. Concept 2 closes the matrix crossings and proves bidirectional reference resolution.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"owner","type":"reference","target_concepts":["Concept 1"],"scope":"concept","description":"Reference back to an element of Concept 1.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Edge Cases","type":"list","icon":"flask-conical","color":"amber","weight":80,"description":"Quarantined stress probes with literal names describing the case under test: traceability probes, the very-long-description probe, the file probe, the artifact-as-source probe, the broken reference probe, and the sourceless probe.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"photo","type":"image","scope":"concept","description":"Image attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Modification Cases","type":"list","icon":"git-pull-request","color":"violet","weight":70,"description":"One field per Level-1 field type, so the review pass can exercise every kind of modification (a field of each type) with a self-describing name.","fields":[{"name":"string_field","type":"string","scope":"concept","description":"A string field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"number_field","type":"number","scope":"concept","description":"A number field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"boolean_field","type":"boolean","scope":"concept","description":"A boolean field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"select_field","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"A select field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"reference_field","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"A reference field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"image_field","type":"image","scope":"concept","description":"An image field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"file_field","type":"file","scope":"concept","description":"A file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"video_field","type":"video","scope":"concept","description":"A video field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"audio_field","type":"audio","scope":"concept","description":"An audio field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"url_field","type":"url","scope":"concept","description":"A URL field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"markdown_inline_field","type":"markdown_inline","scope":"concept","description":"A markdown_inline field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"markdown_file_field","type":"markdown_file","scope":"concept","description":"A markdown_file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"knowledge_field","type":"knowledge","target_blueprint":"TestLab","scope":"concept","description":"A knowledge field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"address_field","type":"address","scope":"concept","description":"An address field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"citation_field","type":"citation","scope":"concept","description":"A citation field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Procedure","type":"list","icon":"workflow","color":"teal","weight":110,"fields":[{"name":"category","type":"select","options":["ingestion","transformation","audit","reporting","custom"],"scope":"concept","description":"Functional classification of the procedure workflow.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"summary","type":"string","scope":"concept","description":"Mandatory concise summary of the workflow intent and transformation steps.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"inputs_required","type":"string","scope":"concept","description":"References to required Source or Model concepts consumed as inputs.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"outputs_expected","type":"string","scope":"concept","description":"References to expected Artifact concepts produced by the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"executed_by","type":"string","scope":"concept","description":"Reference to responsible agent or functional role executing the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"procedure_model","type":"knowledge","scope":"concept","description":"Link to concrete procedure definition or executable stepper model _NN.md.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"Work","type":"list","icon":"list-ordered","color":"blue","weight":100,"fields":[{"name":"step_type","type":"select","options":["task","decision","event"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"parent","type":"reference","target_concepts":["Work"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"next","type":"reference","target_concepts":["Work"],"scope":"concept","description":"Step or steps that may follow. A decision step lists several targets as an inline list (next:: [@approve, @decline], addresses like every reference field); the run records the one it took.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"condition","type":"string","scope":"concept","description":"Guard to enter the step. Evaluable forms are outcome == \u003ctoken> and [[artifact]] validated; anything else is prose the actor asserts.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"decision","type":"string","scope":"concept","description":"Question a decision step asks; its answer is the outcome the run records.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"command","type":"string","scope":"concept","description":"Shell command an engine step runs; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"produces","type":"string","scope":"concept","description":"Path or address the step produces; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"executor","type":"select","options":["human","agent","engine"],"scope":"concept","description":"Who performs the step. A step without executor is performed by an agent.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"input","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"output","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"output_status","type":"string","scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"tool","type":"reference","target_concepts":["Tools"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"Artifact","type":"list","icon":"package","color":"orange","weight":80,"fields":[{"name":"verify","type":"string","scope":"concept","description":"How the artifact is checked: file:\u003cglob>, element:\u003caddress>, command:\u003ccmd> or human.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"required","type":"boolean","scope":"concept","description":"Whether a run must produce the artifact when its producer is on the walked path (default true).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"Tools","type":"list","icon":"wrench","color":"orange","weight":70,"fields":[{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"Roles","type":"list","icon":"users","color":"green","weight":60,"fields":[{"name":"scope","type":"select","options":["internal","external"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"fields":[{"concept":"Procedure Execution","name":"procedure","type":"address","scope":"concept","description":"Address of the Procedure or root Work this run executes (model@element or document@container).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"def_rev","type":"string","scope":"concept","description":"knowledge_version of the procedure model when the run started; the run follows that revision to the end.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"params","type":"string","scope":"concept","description":"Opaque parameters the run was started with (a JSON object of slot values).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"seq","type":"number","scope":"concept","description":"The run's write counter. Every runner changeset increments it with a from guard, so any concurrent write to the same run conflicts the whole changeset.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"state","type":"select","options":["open","paused","completed","failed","cancelled"],"scope":"concept","description":"The stored lifecycle of the run. The status the tools return is the fold's derived RunStatus, which reports paused when this is paused.","transitions":{"":["open"],"open":["paused","completed","failed","cancelled"],"paused":["open","completed","failed","cancelled"],"completed":[],"failed":[],"cancelled":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"status","type":"select","options":["pending","active","waiting","done","failed"],"scope":"concept","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed). Each row only takes the edges of its own lifecycle. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"attempt","type":"number","scope":"concept","description":"The attempt number of the current claim, 1 for the first try.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"outcome","type":"string","scope":"concept","description":"The answer the step recorded; for a decision step, the token its next conditions test.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"next","type":"string","scope":"concept","description":"The slug of the step this one moved to.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"inputs","type":"string","scope":"concept","description":"The input artifact revisions frozen at claim time: a JSON object mapping artifact slug to its rev.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"waiting_on","type":"string","scope":"concept","description":"What a waiting step waits on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"failure","type":"string","scope":"concept","description":"Why the step failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"claimed_at","type":"string","scope":"concept","description":"When the current attempt was claimed (ISO 8601).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"timeout_ms","type":"number","scope":"concept","description":"The budget of the current attempt. At most 300000.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"holder","type":"string","scope":"concept","description":"Who holds the claim, as pid@host. For an engine step it is the process that runs the command, not the server that reports it. A step whose holder is gone is a crash, derived from it; a claim that names neither a holder nor a claim time is broken, never a permanent holder.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"evidence","type":"string","scope":"concept","description":"The applied change ids a human step observed, such as the verdicts it waited on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"status","type":"select","options":["expected","produced","validated","rejected"],"scope":"concept","description":"The stored lifecycle of an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle.","transitions":{"":["expected"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"How the artifact is carried: a file, a model element, or a changeset of several elements.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Input","name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Input","name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"action","type":"select","options":["start","wait","complete","fail"],"scope":"concept","description":"The action the person asked the runner to record on the step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"step","type":"string","scope":"concept","description":"The slug of the step the request names.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"base_seq","type":"number","scope":"concept","description":"The run's header seq when the request was made. A consumer refuses the request when the run has advanced past it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"reason","type":"string","scope":"concept","description":"Why the request was rejected or found stale, as the runner reported it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"request_status","type":"select","options":["pending","done","stale","rejected"],"scope":"concept","description":"The life of a request: pending while nobody consumed it, then done, stale or rejected. A resolved request never returns to pending.","transitions":{"":["pending"],"pending":["done","stale","rejected"],"done":[],"stale":[],"rejected":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"requested_outcome","type":"string","scope":"concept","description":"The outcome the person asked for when the request names a branching step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"requested_value","type":"string","scope":"concept","description":"The value the person attached to the request, such as who a step waits on or why it failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"requested_outputs","type":"string","scope":"concept","description":"The deliverables a person wrote for the step's file outputs, as one line of JSON: artifact slug -> { \"name\"?: string, \"text\": string }. Valid only with action complete; each text is UTF-8 and at most 256 KiB.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Concept 1","name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"manual","type":"markdown_file","scope":"concept","description":"External markdown file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"photo","type":"image","scope":"concept","description":"Image attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"demo_video","type":"video","scope":"concept","description":"Downloaded video asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"voice_note","type":"audio","scope":"concept","description":"Downloaded and transcribed audio asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"sibling","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"Reference to an element of Concept 2.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"status","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"Lifecycle status of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"owner","type":"reference","target_concepts":["Concept 1"],"scope":"concept","description":"Reference back to an element of Concept 1.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"summary","type":"string","scope":"concept","description":"One-line summary of the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"photo","type":"image","scope":"concept","description":"Image attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"string_field","type":"string","scope":"concept","description":"A string field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"number_field","type":"number","scope":"concept","description":"A number field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"boolean_field","type":"boolean","scope":"concept","description":"A boolean field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"select_field","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"A select field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"reference_field","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"A reference field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"image_field","type":"image","scope":"concept","description":"An image field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"file_field","type":"file","scope":"concept","description":"A file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"video_field","type":"video","scope":"concept","description":"A video field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"audio_field","type":"audio","scope":"concept","description":"An audio field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"url_field","type":"url","scope":"concept","description":"A URL field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"markdown_inline_field","type":"markdown_inline","scope":"concept","description":"A markdown_inline field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"markdown_file_field","type":"markdown_file","scope":"concept","description":"A markdown_file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"knowledge_field","type":"knowledge","target_blueprint":"TestLab","scope":"concept","description":"A knowledge field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"address_field","type":"address","scope":"concept","description":"An address field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"citation_field","type":"citation","scope":"concept","description":"A citation field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Procedure","name":"category","type":"select","options":["ingestion","transformation","audit","reporting","custom"],"scope":"concept","description":"Functional classification of the procedure workflow.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"summary","type":"string","scope":"concept","description":"Mandatory concise summary of the workflow intent and transformation steps.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"inputs_required","type":"string","scope":"concept","description":"References to required Source or Model concepts consumed as inputs.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"outputs_expected","type":"string","scope":"concept","description":"References to expected Artifact concepts produced by the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"executed_by","type":"string","scope":"concept","description":"Reference to responsible agent or functional role executing the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"procedure_model","type":"knowledge","scope":"concept","description":"Link to concrete procedure definition or executable stepper model _NN.md.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Procedure","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"step_type","type":"select","options":["task","decision","event"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"parent","type":"reference","target_concepts":["Work"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"next","type":"reference","target_concepts":["Work"],"scope":"concept","description":"Step or steps that may follow. A decision step lists several targets as an inline list (next:: [@approve, @decline], addresses like every reference field); the run records the one it took.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"condition","type":"string","scope":"concept","description":"Guard to enter the step. Evaluable forms are outcome == \u003ctoken> and [[artifact]] validated; anything else is prose the actor asserts.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"decision","type":"string","scope":"concept","description":"Question a decision step asks; its answer is the outcome the run records.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"command","type":"string","scope":"concept","description":"Shell command an engine step runs; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"produces","type":"string","scope":"concept","description":"Path or address the step produces; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"executor","type":"select","options":["human","agent","engine"],"scope":"concept","description":"Who performs the step. A step without executor is performed by an agent.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"input","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"output","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"output_status","type":"string","scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"tool","type":"reference","target_concepts":["Tools"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Work","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Artifact","name":"verify","type":"string","scope":"concept","description":"How the artifact is checked: file:\u003cglob>, element:\u003caddress>, command:\u003ccmd> or human.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Artifact","name":"required","type":"boolean","scope":"concept","description":"Whether a run must produce the artifact when its producer is on the walked path (default true).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Artifact","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Artifact","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Tools","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Tools","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Roles","name":"scope","type":"select","options":["internal","external"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Roles","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"concept":"Roles","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"markers":[],"matrices":[{"name":"Concept 1-Concept 2 Matrix","source":"Concept 1","target":"Concept 2","params":"","values":["relevant","archived"],"widgetType":"set","description":"Scores how relevant each Concept 1 element is to each Concept 2 element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"work-roles matrix","source":"Work","target":"Roles","params":"","values":["Responsible","Accountable","Consulted","Informed"],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"work-tools matrix","source":"Work","target":"Tools","params":"","values":["Uses"],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}},{"name":"work-artifacts matrix","source":"Work","target":"Artifact","params":"","values":["Creates","Modifies","Validates","Reviews"],"declaredBy":{"family":"procedures-app","version":"V_0-6-1"}}],"procedures":[{"id":"usage","name":"Getting started","path":"procedures/usage_procedures_NN.md","status":"selected"}]}
 </script>
     <script type="application/x-nn-deflate-base64" id="nn-model">
-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
+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
 </script>
     <script type="application/json" id="nn-procedure-core"></script>
     <script type="application/json" id="nn-drafts">
@@ -13537,18 +13704,18 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
     '.nn-card-fields>.nn-ku-unit,.nn-card-fields>.nn-ku{flex:1 1 16rem;min-width:0}',
     '.nn-card-fields>.nn-ku[data-field-wide=true],.nn-card-fields>.nn-ku-unit:has([data-field-wide=true]){flex-basis:100%}',
     '.nn-ku{position:relative;display:inline-flex;align-items:center;gap:.35em;font:inherit;font-size:.82rem;line-height:1.2;border:0;border-radius:var(--nn-radius-sm);padding:.12em .5em;background:var(--nn-surface-2);color:var(--nn-text);max-width:100%;--c:var(--nn-concept-1);--cb:var(--nn-concept-1-bg)}',
-    // Nature grammar (approved 2026-10-18): container = ONE border at 2x the line
-    // width (no double border); structure = SOLID concept-coloured border + mono
-    // (no dashed); content = NO border, the concept colour rides on the label and
-    // the concept icon.
-    '.nn-ku[data-ku-nature=container]{border:2px solid var(--nn-accent);background:var(--nn-surface)}',
-    '.nn-ku[data-ku-nature=structure]{border:1.5px solid var(--c);font-family:ui-monospace,monospace;color:var(--nn-muted);background:var(--nn-surface)}',
+    // Nature grammar (approved 2026-10-18, borders thinned 2026-11-27): container =
+    // ONE 1px border (no double border); structure = SOLID 1px concept-coloured
+    // border + mono (no dashed); content = NO border, the concept colour rides on
+    // the label and the concept icon.
+    '.nn-ku[data-ku-nature=container]{border:1px solid var(--nn-accent);background:var(--nn-surface)}',
+    '.nn-ku[data-ku-nature=structure]{border:1px solid var(--c);font-family:ui-monospace,monospace;color:var(--nn-muted);background:var(--nn-surface)}',
     '.nn-ku[data-ku-nature=content]{border:0;background:var(--nn-surface-2)}',
     '.nn-ku-wrap{display:inline-flex;align-items:center;gap:.2em;position:relative;vertical-align:middle;max-width:100%}',
     '.nn-ku[data-ku-kind=field],.nn-ku[data-ku-kind=cell]{background:var(--nn-surface-2)}',
-    // Element + concept/document badges read as card titles: slightly larger and
-    // semibold so they anchor the hierarchy above their muted field rows.
-    '.nn-ku[data-ku-kind=element],.nn-ku[data-ku-kind=concept],.nn-ku[data-ku-kind=document]{font-weight:600}',
+    // Element badges read as card titles by size alone (never bold: a page of
+    // them is heavy); concept/document badges stay semibold as the hierarchy above.
+    '.nn-ku[data-ku-kind=concept],.nn-ku[data-ku-kind=document]{font-weight:600}',
     '.nn-ku[data-ku-kind=element]{font-size:.9rem}',
     '.nn-ku .nn-ku-label{color:var(--nn-muted)}',
     '.nn-ku .nn-ku-value{color:var(--nn-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
@@ -19785,6 +19952,60 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
       return openEdit(Object.assign({}, anchorData, { info: true }))
     }
 
+    // Adding a tag is one word typed in place: the "+ tag" button turns into a small
+    // input. Enter (or leaving the field with a word in it) proposes the tag, Escape
+    // cancels. It used to open the element's modal, which has no list editor.
+    function startTagAdd(add, anchorData) {
+      closePopover()
+      lastAnchor = add
+      if (!add.parentNode) return
+      var input = makeEl(doc, 'input', 'nn-tag-input')
+      input.setAttribute('type', 'text')
+      input.setAttribute('aria-label', 'New tag')
+      input.setAttribute('placeholder', 'tag')
+      input.setAttribute('data-nn-ctl', 'tag-input')
+      input.setAttribute('data-nn-review-ctl', '1')
+      var done = false
+      function finish(commit) {
+        if (done) return
+        done = true
+        var text = String(input.value || '').trim()
+        if (commit && text) {
+          var elTag = resolveElement(anchorData.elementId, anchorData.modelId)
+          var cur = effectiveTagsOf(elTag)
+          var known = cur.some(function (t) {
+            return valueKeyOf(t) === valueKeyOf(text)
+          })
+          if (!known) {
+            // The draft re-renders the card, which drops this input with it.
+            saveDraft(anchorData, {
+              kind: 'correction',
+              field: 'tags',
+              original: cur,
+              proposed: cur.concat([text]),
+            })
+            return
+          }
+        }
+        if (input.parentNode) input.parentNode.replaceChild(add, input)
+      }
+      input.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter') {
+          if (ev.preventDefault) ev.preventDefault()
+          finish(true)
+        } else if (ev.key === 'Escape') {
+          if (ev.preventDefault) ev.preventDefault()
+          finish(false)
+          if (typeof add.focus === 'function') add.focus()
+        }
+      })
+      input.addEventListener('blur', function () {
+        finish(true)
+      })
+      add.parentNode.replaceChild(input, add)
+      if (typeof input.focus === 'function') input.focus()
+    }
+
     function openFor(anchor, anchorData) {
       closePopover()
       lastAnchor = anchor
@@ -20125,7 +20346,7 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
         add.setAttribute('type', 'button')
         add.setAttribute('aria-label', 'Propose a new tag')
         add.addEventListener('click', function () {
-          openFor(add, { elementId: elId, tagAdd: true })
+          startTagAdd(add, { elementId: elId, tagAdd: true })
         })
         row.appendChild(add)
       }
@@ -23565,13 +23786,17 @@ if (typeof window !== 'undefined') {
         parts.push('Generated ' + stamp + ' UTC')
       }
       host.textContent = ''
-      if (parts.length) {
+      // A scoped console shows one view, not the domaiNN, so it skips the glossary.
+      var showVocabulary = !consoleScopeOf(meta)
+      if (parts.length || showVocabulary) {
         var infoBtn = doc.createElement('button')
-        infoBtn.className = 'nn-navbar-info-btn'
+        // The same button as Save Snapshot and Copy AI Prompt, icon only, so the
+        // header reads as one family instead of a stray glyph beside the title.
+        infoBtn.className = 'nn-navbar-action-btn nn-navbar-info-btn'
         infoBtn.type = 'button'
         infoBtn.setAttribute('aria-label', 'Domain info')
-        infoBtn.innerHTML =
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+        infoBtn.setAttribute('title', 'About this domain: template, version and vocabulary')
+        infoBtn.innerHTML = '<span class="nn-btn-icon">' + UI.icon('info', 15) + '</span>'
 
         var popover = doc.createElement('div')
         popover.className = 'nn-navbar-info-popover'
@@ -23590,6 +23815,7 @@ if (typeof window !== 'undefined') {
             .trim()
           popoverLines.push('<div><strong>Generated:</strong> ' + stamp + ' UTC</div>')
         }
+        if (showVocabulary) popoverLines.push(vocabularyLegendHtml())
         popover.innerHTML = popoverLines.join('')
 
         infoBtn.addEventListener('click', function (ev) {
@@ -26453,6 +26679,31 @@ if (typeof window !== 'undefined') {
             var cellUnit = cellBadge.querySelector('[data-nn-component="ku-unit"]')
             if (!isEmpty && cellUnit) cellUnit.setAttribute('data-cell-value', value.toLowerCase())
             td.appendChild(cellBadge)
+            if (isEmpty) {
+              // An empty cell shows nothing; the cell itself is the control and does what
+              // the cell's edit anchor does (the edit modal), or opens the unit's details
+              // when there is no edit anchor (a console that is not in review mode).
+              td.setAttribute('role', 'button')
+              td.setAttribute('tabindex', '0')
+              td.setAttribute('aria-label', 'Set a value for ' + rowLabel + ' and ' + c)
+              var openEmptyCell = function () {
+                var anchor =
+                  td.querySelector('[data-nn-ctl="matrix-cell-anchor"]') ||
+                  td.querySelector('[data-ku-more]')
+                if (anchor && typeof anchor.click === 'function') anchor.click()
+              }
+              td.addEventListener('click', function (ev) {
+                // A visible control inside the cell handles its own click.
+                var inControl = ev && ev.target && ev.target.closest && ev.target.closest('button')
+                if (!inControl) openEmptyCell()
+              })
+              td.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                  if (ev.preventDefault) ev.preventDefault()
+                  openEmptyCell()
+                }
+              })
+            }
           }
           tr.appendChild(td)
         })
@@ -26738,7 +26989,8 @@ if (typeof window !== 'undefined') {
     })
   }
 
-  // One line under the tabs that translates the iNNfo vocabulary for a newcomer.
+  // Translates the iNNfo vocabulary for a newcomer. It lives in the header's info
+  // popover: a permanent line under the tabs cost every tab a row of chrome.
   var VOCABULARY_LEGEND = [
     ['bluepriNNt', 'the template a model follows'],
     ['concept', 'a type of card'],
@@ -26746,16 +26998,14 @@ if (typeof window !== 'undefined') {
     ['field', 'one piece of data on a card'],
   ]
 
-  function ensureVocabularyLegend(doc, nav) {
-    if (!nav || !nav.parentNode || doc.querySelector('.nn-vocab-legend')) return
-    var legend = el('p', 'nn-vocab-legend')
-    legend.setAttribute('aria-label', 'Vocabulary')
-    VOCABULARY_LEGEND.forEach(function (pair, i) {
-      if (i) legend.appendChild(doc.createTextNode(' · '))
-      legend.appendChild(el('strong', null, pair[0]))
-      legend.appendChild(doc.createTextNode(' = ' + pair[1]))
-    })
-    nav.parentNode.insertBefore(legend, nav.nextSibling)
+  function vocabularyLegendHtml() {
+    return (
+      '<div class="nn-vocab-legend" role="group" aria-label="Vocabulary">' +
+      VOCABULARY_LEGEND.map(function (pair) {
+        return '<div><strong>' + pair[0] + '</strong><span>' + pair[1] + '</span></div>'
+      }).join('') +
+      '</div>'
+    )
   }
 
   // Switches to the Knowledge tab with `token` (a facet such as `concept:Deal`) in
@@ -27079,7 +27329,6 @@ if (typeof window !== 'undefined') {
       if (firstPanel) shell.main.insertBefore(subnav, firstPanel)
       else nav.parentNode.insertBefore(subnav, nav.nextSibling)
     }
-    if (!scopedView) ensureVocabularyLegend(doc, nav)
     updateTabBadges(doc, opts.state)
 
     var current = ''
@@ -27437,6 +27686,16 @@ if (typeof window !== 'undefined') {
       }
     }
 
+    // True when the mounted view reacts to the global filter, so the bar is its control too.
+    function usesFilter(id) {
+      var m = mounted[id]
+      if (!m || m.failed) return false
+      return (
+        (Array.isArray(m.filterListeners) && m.filterListeners.length > 0) ||
+        (!!m.api && typeof m.api.onFilter === 'function')
+      )
+    }
+
     function notifyFilter(filteredElements, query) {
       tabs.forEach(function (t) {
         var m = mounted[t.id]
@@ -27518,6 +27777,14 @@ if (typeof window !== 'undefined') {
       if (next.external) {
         if (mounted[tabId]) hook(tabId, 'onShow')
         else mountView(next)
+      }
+      if (!scopedView && doc.querySelector) {
+        // The search/filter bar acts on the Knowledge explorer and on any view that
+        // subscribes to the global filter (ctx.filter.onChange / onFilter). On every
+        // other tab it is a control that does nothing, so it is not drawn there.
+        // Decided after the mount, because a view subscribes while it mounts.
+        var toolbar = doc.querySelector('.nn-toolbar')
+        if (toolbar) toolbar.style.display = tabId === 'explorer' || usesFilter(tabId) ? '' : 'none'
       }
       var nextHash = buildViewHash(tabId, opts.getQuery ? opts.getQuery() : '')
       if (!fromHash && doc.location && doc.location.hash !== nextHash) {
@@ -27700,6 +27967,18 @@ if (typeof window !== 'undefined') {
 
   function round1(n) {
     return Math.round(n * 10) / 10
+  }
+
+  // The console's own icon set, not a unicode square: an artifact is a package, a
+  // table reads as a table, a text document as a page, anything else as a file.
+  function filesIconName(entry) {
+    if (entry.category === 'artifact') return 'package'
+    var ext = String(entry.path || '')
+      .toLowerCase()
+      .replace(/^.*\./, '')
+    if (ext === 'csv' || ext === 'xlsx' || ext === 'tsv') return 'table'
+    if (ext === 'md' || ext === 'txt' || ext === 'pdf' || ext === 'docx') return 'file-text'
+    return 'file'
   }
 
   function filesBaseName(p) {
@@ -27918,7 +28197,8 @@ if (typeof window !== 'undefined') {
         head.setAttribute('tabindex', '0')
         head.setAttribute('aria-expanded', collapsed ? 'false' : 'true')
         var headMain = el('span', 'nn-category-header-main')
-        var chevron = el('span', 'chevron', collapsed ? '\u25B8' : '\u25BE')
+        var chevron = el('span', 'chevron')
+        chevron.innerHTML = UI.icon(collapsed ? 'chevron-right' : 'chevron-down', 14)
         chevron.setAttribute('aria-hidden', 'true')
         headMain.appendChild(chevron)
         headMain.appendChild(el('span', null, cat.title))
@@ -27945,11 +28225,8 @@ if (typeof window !== 'undefined') {
             row.setAttribute('tabindex', '0')
             row.setAttribute('data-path', entry.path)
             row.setAttribute('title', entry.path)
-            var icon = el(
-              'span',
-              'nn-file-icon',
-              entry.category === 'artifact' ? '\u25A0' : '\u25A1',
-            )
+            var icon = el('span', 'nn-file-icon')
+            icon.innerHTML = UI.icon(filesIconName(entry), 14)
             icon.setAttribute('aria-hidden', 'true')
             row.appendChild(icon)
             row.appendChild(el('span', 'nn-file-name', filesBaseName(entry.path)))
@@ -29550,6 +29827,14 @@ if (typeof window !== 'undefined') {
     return 'Published by cogNNitive'
   }
 
+  // The iNNfo spec files spell a version V_0-6-1; every release number is 0.6.1.
+  // Shown one way in the tab, the stored value is untouched.
+  var VERSION_COLUMNS = { Version: 1, Pinned: 1, Latest: 1 }
+  function versionText(raw) {
+    var m = /^V_(\d+)-(\d+)-(\d+)$/.exec(String(raw))
+    return m ? m[1] + '.' + m[2] + '.' + m[3] : String(raw)
+  }
+
   function versionsTable(cls, headers, rows) {
     var table = el('table', 'nn-versions-table ' + cls)
     // Software versions, not kNNowledge: no cell is an addressable unit.
@@ -29564,13 +29849,15 @@ if (typeof window !== 'undefined') {
     var tbody = el('tbody')
     rows.forEach(function (cells) {
       var tr = el('tr')
-      cells.forEach(function (cell) {
+      cells.forEach(function (cell, i) {
         if (cell && cell.nodeType) {
           var td = el('td')
           td.appendChild(cell)
           tr.appendChild(td)
         } else {
-          tr.appendChild(el('td', null, cell == null || cell === '' ? '—' : String(cell)))
+          var text = cell == null || cell === '' ? '—' : String(cell)
+          if (VERSION_COLUMNS[headers[i]]) text = versionText(text)
+          tr.appendChild(el('td', null, text))
         }
       })
       tbody.appendChild(tr)
@@ -30259,13 +30546,14 @@ if (typeof window !== 'undefined') {
                     y: n.y,
                     symbol: 'rect',
                     symbolSize: [SCHEMA_BOX_WIDTH, n.h],
-                    itemStyle: { color: '#ffffff', borderColor: color, borderWidth: 2 },
+                    itemStyle: { color: '#ffffff', borderColor: color, borderWidth: 1 },
                     label: {
                       show: true,
-                      position: [8, 8],
+                      // Inside the 1px border, so the header band is flush with the box.
+                      position: [1, 1],
                       align: 'left',
                       verticalAlign: 'top',
-                      width: SCHEMA_BOX_WIDTH - 16,
+                      width: SCHEMA_BOX_WIDTH - 2,
                       overflow: 'truncate',
                       formatter:
                         '{t|' +
@@ -30276,15 +30564,20 @@ if (typeof window !== 'undefined') {
                         lines.join('\n'),
                       rich: {
                         t: {
-                          width: SCHEMA_BOX_WIDTH - 16,
+                          // The 8px side padding adds to the width, so take it off here.
+                          width: SCHEMA_BOX_WIDTH - 2 - 16,
                           backgroundColor: color,
                           color: '#ffffff',
-                          fontWeight: 'bold',
+                          fontWeight: 600,
                           fontSize: 12,
-                          padding: [5, 6],
-                          borderRadius: 3,
+                          padding: [5, 8],
                         },
-                        f: { fontSize: 11, color: '#1f2937', lineHeight: SCHEMA_LINE },
+                        f: {
+                          fontSize: 11,
+                          color: '#1f2937',
+                          lineHeight: SCHEMA_LINE,
+                          padding: [0, 0, 0, 8],
+                        },
                         k: { fontSize: 10, color: '#6b7280', lineHeight: SCHEMA_LINE },
                       },
                     },
@@ -30309,16 +30602,19 @@ if (typeof window !== 'undefined') {
                   target: e.target,
                   lineStyle: {
                     type: e.kind === 'matrix' ? 'solid' : 'dashed',
-                    width: 1.5,
+                    width: 1,
                     color: '#64748b',
                   },
+                  // The name rides just above the line instead of cutting through it.
                   label: {
                     show: !!e.label,
                     formatter: e.label,
+                    position: 'middle',
+                    align: 'center',
+                    verticalAlign: 'bottom',
+                    distance: 4,
                     fontSize: 10,
-                    color: '#334155',
-                    backgroundColor: '#ffffff',
-                    padding: [1, 3],
+                    color: '#475569',
                   },
                 }
               }),
@@ -33746,8 +34042,15 @@ if (typeof window !== 'undefined') {
       return n + (Array.isArray(e.runs) ? e.runs.length : 0)
     }, 0)
     var strip = make('div', 'proc-structure-strip')
+    var plural = function (n, noun) {
+      return n + ' ' + noun + (n === 1 ? '' : 's')
+    }
     strip.appendChild(
-      make('div', 'proc-structure-summary', entries.length + ' procedures · ' + runCount + ' runs'),
+      make(
+        'div',
+        'proc-structure-summary',
+        plural(entries.length, 'procedure') + ' · ' + plural(runCount, 'run'),
+      ),
     )
     root.appendChild(strip)
     var defectsEl = make('div', 'proc-structure-defects')
@@ -33887,7 +34190,7 @@ if (typeof window !== 'undefined') {
       })
       var listEl = make('div', 'proc-blueprint-list')
       listEl.setAttribute('data-nn-procedures', 'blueprint')
-      listEl.appendChild(make('span', 'proc-blueprint-label', 'Procedures'))
+      listEl.appendChild(make('span', 'proc-blueprint-label', 'In the bluepriNNt'))
       list.forEach(function (p) {
         // A pill that looks selectable must select something: when this export carries the
         // definition document, clicking opens it; when it does not, the pill is a plain label
@@ -34277,7 +34580,10 @@ if (typeof window !== 'undefined') {
     function renderRunList(hostEl) {
       var runs = Array.isArray(active.runs) ? active.runs : []
       var bar = make('div', 'proc-runs')
-      bar.appendChild(make('span', 'proc-runs-label', 'Runs'))
+      // Three jobs, three places: the head holds the filter and the one action, the list below
+      // is the choice between the definition and a run. They used to wrap as one row of chips.
+      var head = make('div', 'proc-runs-head')
+      head.appendChild(make('span', 'proc-runs-label', 'Runs'))
       if (runs.length) {
         var filters = make('div', 'proc-run-filters')
         FILTERS.forEach(function (f) {
@@ -34293,8 +34599,9 @@ if (typeof window !== 'undefined') {
             ),
           )
         })
-        bar.appendChild(filters)
+        head.appendChild(filters)
       }
+      bar.appendChild(head)
       var list = make('div', 'proc-run-list')
       list.appendChild(
         button(
@@ -34353,7 +34660,7 @@ if (typeof window !== 'undefined') {
       }
       bar.appendChild(list)
       if (store && active.graph && !/^bluepriNNt:/.test(active.file)) {
-        bar.appendChild(
+        head.appendChild(
           button(
             'proc-start-run' + (startFormOpen ? ' active' : ''),
             'Start a run',
@@ -34929,8 +35236,9 @@ if (typeof window !== 'undefined') {
       var state = viewState()
       var w = geo.nodeW
       var h = geo.nodeH
+      // A faint wash, not a fill: a flow of green and amber slabs was the heaviest thing on the page.
       var tint = function (c) {
-        return blend(c, pal.surface, 0.14)
+        return blend(c, pal.surface, 0.07)
       }
       var data = Object.keys(graph.steps).map(function (slug) {
         var step = graph.steps[slug]
@@ -34940,7 +35248,7 @@ if (typeof window !== 'undefined') {
         var projected = isProjected(slug)
         var border = step.stepType === 'decision' ? pal.warning : pal.border
         var fill = pal.surface
-        var width = 1.5
+        var width = 1
         var type = 'solid'
         var opacity = 1
         if (status === 'done') {
@@ -34948,11 +35256,9 @@ if (typeof window !== 'undefined') {
           fill = tint(pal.success)
         } else if (status === 'failed') {
           border = pal.danger
-          width = 2
           fill = tint(pal.danger)
         } else if (status === 'waiting') {
           border = pal.warning
-          width = 2
           fill = tint(pal.warning)
         } else if (status === 'active') {
           border = pal.primary
@@ -34965,7 +35271,7 @@ if (typeof window !== 'undefined') {
         }
         if (isCurrent) {
           border = pal.primary
-          width = 3.5
+          width = 2
           type = 'solid'
         }
         if (projected) type = 'dotted'
@@ -35018,7 +35324,9 @@ if (typeof window !== 'undefined') {
           id: slug,
           name: step.name || slug,
           value: [geo.pos[slug].x, geo.pos[slug].y],
-          symbol: 'roundRect',
+          // 'roundRect' rounds by a fixed fraction of the box, which on these wide boxes
+          // made pills; a plain rectangle matches the metamodel boxes.
+          symbol: 'rect',
           symbolSize: [w, h],
           status: status,
           current: isCurrent,
@@ -35050,7 +35358,7 @@ if (typeof window !== 'undefined') {
                 fontSize: subSize,
                 lineHeight: 15,
                 color: isCurrent ? pal.primary : pal.muted,
-                fontWeight: 600,
+                fontWeight: 400,
               },
               title: {
                 width: inner,
@@ -35060,7 +35368,7 @@ if (typeof window !== 'undefined') {
                 fontSize: titleSize,
                 lineHeight: 18,
                 color: isCurrent ? pal.primary : pal.text,
-                fontWeight: isCurrent ? 700 : 600,
+                fontWeight: isCurrent ? 600 : 500,
               },
             },
           },
@@ -35091,7 +35399,7 @@ if (typeof window !== 'undefined') {
           var dashed = f.off || f.projected || f.status === 'waiting' || f.status === 'pending'
           var stroke = {
             color: color,
-            width: f.taken ? 3 : 1.5,
+            width: f.taken ? 2 : 1,
             type: dashed ? 'dashed' : 'solid',
             opacity: f.off ? 0.5 : 1,
           }
@@ -35116,7 +35424,7 @@ if (typeof window !== 'undefined') {
                   formatter: f.token.length > 24 ? f.token.substring(0, 22) + '…' : f.token,
                   color: f.taken ? pal.success : pal.muted,
                   fontSize: 11,
-                  fontWeight: 700,
+                  fontWeight: 500,
                   backgroundColor: pal.surface,
                   padding: [1, 4],
                   position: 'middle',
@@ -35156,7 +35464,7 @@ if (typeof window !== 'undefined') {
           coordinateSystem: 'cartesian2d',
           silent: true,
           z: 1,
-          symbol: 'roundRect',
+          symbol: 'rect',
           symbolSize: [w, h],
           showEffectOn: 'render',
           rippleEffect: { period: 3, scale: 1.2, brushType: 'stroke', color: pal.primary },
@@ -35170,9 +35478,9 @@ if (typeof window !== 'undefined') {
           coordinateSystem: 'cartesian2d',
           silent: true,
           z: 4,
-          symbol: 'roundRect',
+          symbol: 'rect',
           symbolSize: [w + 12, h + 12],
-          itemStyle: { color: 'rgba(0,0,0,0)', borderColor: pal.text, borderWidth: 3 },
+          itemStyle: { color: 'rgba(0,0,0,0)', borderColor: pal.text, borderWidth: 2 },
           data: [{ id: focusSlug, value: at(focusSlug) }],
         })
       }
@@ -35438,7 +35746,6 @@ if (typeof window !== 'undefined') {
       col.appendChild(head)
       var view = make('div', 'exec-dag-view graphbox')
       col.appendChild(view)
-      col.appendChild(stepList(lay, current))
       var hint = make(
         'div',
         'rail-hint hint',
@@ -35453,56 +35760,6 @@ if (typeof window !== 'undefined') {
         view.className += ' exec-dag-view-native'
         view.appendChild(buildNativeGraph(lay, current))
       }
-    }
-
-    /** The same walk as a vertical list: the graph's text alternative, with each status in words. */
-    var stepListOpen = null
-
-    function stepList(lay, current) {
-      var ol = make('ol', 'proc-step-list')
-      ol.setAttribute('data-proc-step-list', '')
-      lay.rows.forEach(function (row) {
-        row.forEach(function (slug) {
-          var step = active.graph.steps[slug]
-          var status = stepStatus(slug)
-          var li = make(
-            'li',
-            'proc-step-item ' +
-              status +
-              (slug === current ? ' current' : '') +
-              (slug === selectedStep ? ' selected' : ''),
-          )
-          li.setAttribute('data-step', slug)
-          var b = button('proc-step-item-btn', null, function () {
-            selectStep(slug)
-          })
-          b.appendChild(make('span', 'proc-step-item-name', step.name || slug))
-          var token = outcomeTokenOf(slug)
-          b.appendChild(
-            make(
-              'span',
-              'proc-step-item-meta',
-              (token ? 'if ' + token + ' · ' : '') +
-                (status === 'definition' ? step.executor || 'task' : status),
-            ),
-          )
-          li.appendChild(b)
-          ol.appendChild(li)
-        })
-      })
-      // A disclosure: in the tab order at every width, open by default only on a phone.
-      var box = make('details', 'proc-step-list-box')
-      var open =
-        stepListOpen === null
-          ? !!(host.matchMedia && host.matchMedia('(max-width: 640px)').matches)
-          : stepListOpen
-      if (open) box.setAttribute('open', '')
-      box.appendChild(make('summary', 'proc-step-list-summary', 'Steps as a list'))
-      box.addEventListener('toggle', function () {
-        stepListOpen = box.open
-      })
-      box.appendChild(ol)
-      return box
     }
 
     // ---- Step card ----
@@ -37431,7 +37688,7 @@ if (typeof window !== 'undefined') {
           ? 'The document as defined: each step with its instructions. No run state, no executed sequence.'
           : branches
             ? 'Steps in the order of progress. The branches and where each one leads are drawn in the flow graph.'
-            : 'A straight chain with no branches, in the order of progress. The flow graph shows the same steps.',
+            : 'A straight chain with no branches, in the order of progress.',
       )
       padFlow.appendChild(noteFlow)
 

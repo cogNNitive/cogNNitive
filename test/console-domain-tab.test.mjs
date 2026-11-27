@@ -204,13 +204,39 @@ describe('Domain tab', () => {
     assert.equal(document.getElementById('nn-search').value, 'model:pipeline')
   })
 
-  it('explains the vocabulary once, above the tabs', () => {
-    const { document } = boot()
+  it('explains the vocabulary once, in the header info popover and not under the tabs', () => {
+    const { document } = bootConsole({
+      model: MODEL,
+      schema: SCHEMA,
+      // The helper's minimal shell has no header; the real one carries the brand block.
+      before: (doc) =>
+        doc.body.insertAdjacentHTML(
+          'afterbegin',
+          '<header class="nn-navbar"><div class="nn-brand"><h1 id="nn-domain-title"></h1><div id="nn-navbar-extra"></div></div></header>',
+        ),
+    })
     const legends = document.querySelectorAll('.nn-vocab-legend')
     assert.equal(legends.length, 1)
+    assert.ok(legends[0].closest('.nn-navbar-info-popover'), 'legend lives in the popover')
+    assert.equal(
+      document.querySelector('.nn-navbar > .nn-vocab-legend, main .nn-vocab-legend'),
+      null,
+    )
     const text = legends[0].textContent
     for (const term of ['bluepriNNt', 'concept', 'element', 'field'])
       assert.ok(text.includes(term), term)
+  })
+
+  it('shows the search and filter bar only on Knowledge', () => {
+    const { document } = boot()
+    const toolbar = document.querySelector('.nn-toolbar')
+    const tab = (id) => document.querySelector(`.nn-view-tab[data-tab="${id}"]`)
+    tab('explorer').click()
+    assert.notEqual(toolbar.style.display, 'none')
+    tab('domain').click()
+    assert.equal(toolbar.style.display, 'none')
+    tab('explorer').click()
+    assert.notEqual(toolbar.style.display, 'none')
   })
 
   it('draws each model card as a stacked bar by concept when ECharts is loaded', () => {

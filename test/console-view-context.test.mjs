@@ -1,7 +1,14 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { nnConsole, bootConsole, MODEL } from './helpers/console-boot.mjs'
-import { openModals, topmostModal, wrapModal, submitEdit, submitComment, offersPropose } from './helpers/console-contract.mjs'
+import {
+  openModals,
+  topmostModal,
+  wrapModal,
+  submitEdit,
+  submitComment,
+  offersPropose,
+} from './helpers/console-contract.mjs'
 
 const def = (id, over = {}) => ({
   id,
@@ -29,9 +36,7 @@ function bootViews(defs, opts = {}) {
     })
   })
   const booted = bootConsole({ registry, ...opts })
-  defs.forEach((d) =>
-    booted.document.querySelector(`.nn-view-tab[data-tab="${d.id}"]`).click(),
-  )
+  defs.forEach((d) => booted.document.querySelector(`.nn-view-tab[data-tab="${d.id}"]`).click())
   const controller = booted.res.controller
   // Views no longer receive ctx.modal; the shared modal slot is the controller's.
   const editSlot = {
@@ -196,7 +201,7 @@ describe('S2b readonly views and sandboxed iframes', () => {
       assert.ok(!f.getAttribute('sandbox').split(' ').includes(bad), bad)
     }
     const csp =
-      '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; base-uri \'none\'; form-action \'none\'; img-src data: blob:; style-src \'unsafe-inline\'">'
+      "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; base-uri 'none'; form-action 'none'; img-src data: blob:; style-src 'unsafe-inline'\">"
     assert.ok(f.getAttribute('srcdoc').startsWith(csp), 'CSP meta leads the srcdoc')
     assert.ok(f.getAttribute('srcdoc').endsWith(html), 'view html follows unchanged')
   })
@@ -336,14 +341,24 @@ describe('S2b review follow-up: store.propose validates its input', () => {
 
   it('name and description corrections carry the original element value', () => {
     const { ctxs } = bootViews([def('alpha')])
-    ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'correction', field: 'name', proposed: 'Ecto-2' })
+    ctxs.alpha.store.propose({
+      elementId: 'ecto-1',
+      kind: 'correction',
+      field: 'name',
+      proposed: 'Ecto-2',
+    })
     ctxs.alpha.store.propose({
       elementId: 'ecto-1',
       kind: 'correction',
       field: 'description',
       proposed: 'Hearse.',
     })
-    ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'correction', field: 'role', proposed: 'Hearse' })
+    ctxs.alpha.store.propose({
+      elementId: 'ecto-1',
+      kind: 'correction',
+      field: 'role',
+      proposed: 'Hearse',
+    })
     const [name, description, role] = ctxs.alpha.store.drafts()
     assert.equal(name.original, 'Ecto-1')
     assert.equal(description.original, 'Car.')
@@ -355,7 +370,12 @@ describe('S2b review follow-up: store.propose validates its input', () => {
     model.elements[0].fields.asset = 'series/episodes/one/media/avatar.png'
     model.elements[0].rawFields = { asset: 'media/avatar.png' }
     const { ctxs } = bootViews([def('alpha')], { model })
-    ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'correction', field: 'asset', proposed: 'media/new.png' })
+    ctxs.alpha.store.propose({
+      elementId: 'ecto-1',
+      kind: 'correction',
+      field: 'asset',
+      proposed: 'media/new.png',
+    })
     assert.equal(ctxs.alpha.store.drafts()[0].original, 'media/avatar.png')
   })
 })
@@ -366,7 +386,8 @@ describe('S2b review follow-up: draft change listeners', () => {
     let calls = 0
     ctxs.alpha.store.onChange(() => {
       calls++
-      if (calls < 100) ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'again' })
+      if (calls < 100)
+        ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'again' })
     })
     ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'first' })
     assert.ok(calls <= 3, `listener ran ${calls} times`)
@@ -442,7 +463,7 @@ describe('S2b review follow-up: openEdit side effects and focus', () => {
     editSlot.edit({ elementId: 'ecto-1', field: 'role' })
     // The modal opens on the View tab, so the edit inputs are hidden: focus a
     // control that is visible in every tab.
-    ;topmostModal(document).querySelector('button[aria-label="Close"]').focus()
+    topmostModal(document).querySelector('button[aria-label="Close"]').focus()
     assert.notEqual(document.activeElement, opener)
     document.querySelector('.nn-edit-btn-cancel').click()
     assert.equal(openModals(document).length, 0)
@@ -634,20 +655,41 @@ describe('global filter and view reactivity', () => {
     assert.equal(hookCalls[0].q, 'ecto')
   })
 
-  it('keeps toolbar visible on tab switch and typing does not switch away from active tab', () => {
-    const { dom, document } = bootViews([def('alpha'), def('beta')])
-    const betaTab = document.querySelector('.nn-view-tab[data-tab="beta"]')
-    betaTab.click()
-
+  it('keeps the toolbar on a tab whose view subscribes to the filter, and typing does not switch tabs', () => {
+    const { dom, document } = bootViews([
+      def('alpha'),
+      def('beta', {
+        mount(ctx) {
+          ctx.filter.onChange(() => {})
+          return {}
+        },
+      }),
+      def('gamma', {
+        mount() {
+          return { onFilter() {} }
+        },
+      }),
+    ])
     const toolbar = document.querySelector('.nn-toolbar')
-    assert.notEqual(toolbar.style.display, 'none', 'toolbar is visible in beta tab')
+    for (const id of ['beta', 'gamma']) {
+      document.querySelector(`.nn-view-tab[data-tab="${id}"]`).click()
+      assert.notEqual(toolbar.style.display, 'none', `toolbar is visible in ${id}`)
 
-    const search = document.getElementById('nn-search')
-    search.value = 'role:Interceptor'
-    search.dispatchEvent(new dom.window.Event('input'))
+      const search = document.getElementById('nn-search')
+      search.value = 'role:Interceptor'
+      search.dispatchEvent(new dom.window.Event('input'))
 
-    const activeTab = document.querySelector('.nn-view-tab.active')
-    assert.equal(activeTab.dataset.tab, 'beta', 'typing in omnibar preserves the active tab')
+      const activeTab = document.querySelector('.nn-view-tab.active')
+      assert.equal(activeTab.dataset.tab, id, 'typing in omnibar preserves the active tab')
+    }
+  })
+
+  it('hides the toolbar on a tab whose view ignores the filter, and shows it again on Knowledge', () => {
+    const { document } = bootViews([def('alpha'), def('beta')])
+    const toolbar = document.querySelector('.nn-toolbar')
+    document.querySelector('.nn-view-tab[data-tab="beta"]').click()
+    assert.equal(toolbar.style.display, 'none', 'nothing on beta reads the filter')
+    document.querySelector('.nn-view-tab[data-tab="explorer"]').click()
+    assert.notEqual(toolbar.style.display, 'none', 'Knowledge is what the filter drives')
   })
 })
-
