@@ -7657,6 +7657,8 @@
         ;(byConcept[e.concept] = byConcept[e.concept] || []).push(e)
       })
       return {
+        id: m.id,
+        title: m.title || m.id,
         name: (m.title || m.id) + (m.blueprint ? ' · ' + m.blueprint : ''),
         children: Object.keys(byConcept).map(function (c) {
           var color = conceptMetaOf(schema && schema.concepts, c).hexColor
@@ -7677,32 +7679,160 @@
         }),
       }
     })
-    var chart = Studio.renderChart(host, {
-      animation: false,
-      tooltip: { formatter: '{b}: {c}' },
-      series: [
-        {
-          type: 'treemap',
-          name: domainTitle,
-          data: tree,
-          leafDepth: 2,
-          roam: false,
-          nodeClick: 'zoomToNode',
-          breadcrumb: { show: true, bottom: 6 },
-          upperLabel: { show: true, height: 24, color: '#111827', fontWeight: 'bold' },
-          label: { show: true, color: '#ffffff', fontSize: 11 },
-          levels: [
-            { itemStyle: { borderColor: '#e5e7eb', borderWidth: 4, gapWidth: 4 } },
-            { itemStyle: { borderColor: '#ffffff', borderWidth: 2, gapWidth: 2 } },
-            { itemStyle: { borderColor: '#ffffff', borderWidth: 1, gapWidth: 1 } },
-          ],
-        },
-      ],
-    })
-    if (chart) {
-      chart.on('click', function (params) {
-        if (params.data && params.data.elementId) onPick(params.data.elementId)
+
+    host.innerHTML = ''
+    var nav = el('div', 'nn-map-tree-nav')
+    var chartBox = el('div', 'nn-map-tree-box')
+    chartBox.style.minHeight = '360px'
+    host.appendChild(nav)
+    host.appendChild(chartBox)
+
+    var currentModelIdx = null
+    var currentConcept = null
+
+    function updateNav() {
+      nav.innerHTML = ''
+      var rootCrumb = el(
+        'button',
+        'nn-map-crumb' + (currentModelIdx === null ? ' current' : ''),
+        '🏠 ' + (domainTitle || 'All models'),
+      )
+      rootCrumb.addEventListener('click', function () {
+        if (currentModelIdx === null) return
+        currentModelIdx = null
+        currentConcept = null
+        renderLevel()
       })
+      nav.appendChild(rootCrumb)
+
+      if (currentModelIdx !== null) {
+        var sep1 = el('span', 'nn-map-sep', '/')
+        nav.appendChild(sep1)
+        var mNode = tree[currentModelIdx]
+        var modelCrumb = el(
+          'button',
+          'nn-map-crumb' + (currentConcept === null ? ' current' : ''),
+          mNode.title || mNode.name,
+        )
+        modelCrumb.addEventListener('click', function () {
+          if (currentConcept === null) return
+          currentConcept = null
+          renderLevel()
+        })
+        nav.appendChild(modelCrumb)
+      }
+
+      if (currentConcept !== null) {
+        var sep2 = el('span', 'nn-map-sep', '/')
+        nav.appendChild(sep2)
+        var conceptCrumb = el('span', 'nn-map-crumb current', currentConcept)
+        nav.appendChild(conceptCrumb)
+      }
+
+      var hint = el(
+        'span',
+        'nn-map-dive-hint',
+        currentModelIdx === null
+          ? 'Click a model box to dive in'
+          : currentConcept === null
+            ? 'Click a concept box to dive in'
+            : 'Viewing elements',
+      )
+      nav.appendChild(hint)
+    }
+
+    function renderLevel() {
+      updateNav()
+      var subTree = tree
+      var groups = ['l0', 'l1']
+
+      if (currentModelIdx !== null) {
+        var m = tree[currentModelIdx]
+        if (currentConcept !== null) {
+          var c = (m.children || []).find(function (child) {
+            return child.name === currentConcept
+          })
+          if (c) {
+            subTree = [
+              {
+                name: c.name,
+                children: c.children,
+              },
+            ]
+            groups = ['l1', 'name']
+          }
+        } else {
+          subTree = [m]
+          groups = ['l0', 'l1']
+        }
+      }
+
+      var chart = Studio.renderChart(chartBox, {
+        animation: false,
+        tooltip: { formatter: '{b}: {c}' },
+        series: [
+          {
+            type: 'treemap',
+            name: domainTitle,
+            data: subTree,
+            groups: groups,
+            leafDepth: 2,
+            roam: false,
+            nodeClick: 'zoomToNode',
+            breadcrumb: { show: true, bottom: 6 },
+            upperLabel: { show: true, height: 24, color: '#111827', fontWeight: 'bold' },
+            label: { show: true, color: '#ffffff', fontSize: 11 },
+          },
+        ],
+      })
+
+      if (chart) {
+        chart.on('click', function (params) {
+          var d = params.data || {}
+          if (d.elementId) {
+            onPick(d.elementId)
+            return
+          }
+          if (currentModelIdx === null) {
+            var mName = d.l0 || (d.raw && d.raw.l0) || d.name || ''
+            var idx = tree.findIndex(function (item) {
+              return (
+                item.name === mName ||
+                item.title === mName ||
+                (typeof mName === 'string' && mName.indexOf(item.title) !== -1)
+              )
+            })
+            if (idx >= 0) {
+              currentModelIdx = idx
+              currentConcept = null
+              renderLevel()
+              return
+            }
+          }
+          if (currentModelIdx !== null && currentConcept === null) {
+            var cName = d.l1 || (d.raw && d.raw.l1) || d.name
+            if (cName) {
+              currentConcept = cName
+              renderLevel()
+              return
+            }
+          }
+        })
+      }
+    }
+
+    renderLevel()
+
+    host.__chartInstance = chartBox.__chartInstance || {}
+    host.__chartInstance.getOption = function () {
+      return {
+        series: [
+          {
+            type: 'treemap',
+            data: tree,
+          },
+        ],
+      }
     }
   }
 

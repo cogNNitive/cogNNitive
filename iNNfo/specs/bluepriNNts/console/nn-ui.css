@@ -11022,6 +11022,43 @@ button.proc-run.proc-run-unsent {
 .dag-chart {
   width: 100%;
 }
+.nn-map-tree-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+}
+.nn-map-crumb {
+  background: none;
+  border: none;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  color: var(--primary, #2563eb);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.nn-map-crumb:hover {
+  background: var(--surface-hover, #f1f5f9);
+}
+.nn-map-crumb.current {
+  color: var(--text, #111827);
+  font-weight: 600;
+  cursor: default;
+}
+.nn-map-sep {
+  color: var(--muted, #64748b);
+}
+.nn-map-dive-hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted, #64748b);
+}
 .dag-live {
   position: absolute;
   width: 1px;

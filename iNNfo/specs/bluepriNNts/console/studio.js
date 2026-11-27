@@ -139,6 +139,33 @@
       console.warn('nn-console: Chart library unavailable — charts need the vendored console bundle')
   }
 
+  function flattenTreemapData(tree) {
+    var result = []
+    function walk(nodes, parentNames, parentColor) {
+      if (!Array.isArray(nodes)) return
+      nodes.forEach(function (n) {
+        if (!n) return
+        var color = (n.itemStyle && n.itemStyle.color) || parentColor
+        var levels = parentNames.concat([n.name || ''])
+        if (Array.isArray(n.children) && n.children.length > 0) {
+          walk(n.children, levels, color)
+        } else {
+          result.push({
+            l0: levels[0] || 'Domain',
+            l1: levels[1] || n.name || '',
+            l2: levels[2] || n.name || '',
+            name: n.name || '',
+            value: Number(n.value) || 1,
+            elementId: n.elementId || '',
+            color: color || CHART_PALETTE[0],
+          })
+        }
+      })
+    }
+    walk(tree, [], null)
+    return result
+  }
+
   function toChartJsConfig(option, o) {
     if (!option) return { type: 'line', data: { labels: [], datasets: [] } }
     if (option.type && (option.data || option.options)) return option
@@ -148,42 +175,40 @@
     var sType = firstSeries.type || 'line'
 
     if (sType === 'treemap') {
-      var treeData = firstSeries.data || []
+      var rawTree = firstSeries.data || []
+      var hasNested = Array.isArray(rawTree) && rawTree.some(function (d) {
+        return d && Array.isArray(d.children) && d.children.length > 0
+      })
+      var flat = hasNested ? flattenTreemapData(rawTree) : rawTree
+      var groups = firstSeries.groups || (hasNested ? ['l0', 'l1'] : ['name'])
       return {
         type: 'treemap',
         data: {
           datasets: [{
-            tree: treeData,
+            tree: flat,
             key: 'value',
-            groups: firstSeries.groups || ['name'],
+            groups: groups,
             backgroundColor: function (ctx) {
-              return (ctx.raw && ctx.raw.itemStyle && ctx.raw.itemStyle.color) ||
-                (ctx.raw && ctx.raw._data && ctx.raw._data.color) ||
-                CHART_PALETTE[0]
+              if (ctx.type !== 'data') return 'transparent'
+              var d = ctx.raw && (ctx.raw._data || ctx.raw)
+              return (d && (d.color || (d.itemStyle && d.itemStyle.color))) || CHART_PALETTE[0]
             },
             borderColor: '#ffffff',
-            borderWidth: 1,
+            borderWidth: 2,
+            spacing: 1,
+            labels: {
+              display: true,
+              formatter: function (ctx) {
+                var d = ctx.raw && (ctx.raw._data || ctx.raw)
+                return ctx.raw.g || (d && (d.name || d.label)) || ''
+              },
+              color: '#ffffff',
+              font: { size: 11, weight: 'bold' },
+            },
           }],
         },
         options: {
-          responsive: false,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-          },
-        },
-      }
-    }
-
-    if (sType === 'graph') {
-      return {
-        type: 'scatter',
-        data: {
-          datasets: [{
-            data: [],
-          }],
-        },
-        options: {
+          animation: false,
           responsive: false,
           maintainAspectRatio: false,
           plugins: {
@@ -243,12 +268,469 @@
     }
   }
 
+  function renderSvgGraph(host, option, opts) {
+    var o = opts || {}
+    var seriesList = (option && option.series) || []
+    var graph = seriesList.find(function (s) { return s.type === 'graph' }) || seriesList[0] || {}
+    var linesSeries = seriesList.find(function (s) { return s.type === 'lines' })
+    var scatterSeries = seriesList.filter(function (s) { return s.type === 'scatter' })
+
+    var doc = host.ownerDocument || document
+    host.innerHTML = ''
+
+    var autoW = o.width === undefined
+    var autoH = o.height === undefined
+    var width = autoW ? (graph.width || host.clientWidth || 960) : o.width
+    var height = autoH ? (graph.height || host.clientHeight || 450) : o.height
+    if (typeof width === 'string') width = parseInt(width, 10) || 960
+    if (typeof height === 'string') height = parseInt(height, 10) || 450
+    if (height < 200) height = 200
+
+    var isCircular = graph.layout === 'circular'
+    var rawNodes = graph.data || []
+
+    var xAxis = option.xAxis || {}
+    var yAxis = option.yAxis || {}
+    var hasCartesian = xAxis.min !== undefined && xAxis.max !== undefined && yAxis.min !== undefined && yAxis.max !== undefined
+    var xMin = Number(xAxis.min) || 0
+    var xMax = Number(xAxis.max) || 1
+    var yMin = Number(yAxis.min) || 0
+    var yMax = Number(yAxis.max) || 1
+
+    function posOf(val, defX, defY) {
+      if (hasCartesian && Array.isArray(val)) {
+        var rx = (val[0] - xMin) / (xMax - xMin)
+        var ry = (val[1] - yMin) / (yMax - yMin)
+        return { x: rx * width, y: ry * height }
+      }
+      return {
+        x: defX !== undefined ? defX : (Array.isArray(val) ? val[0] : 0),
+        y: defY !== undefined ? defY : (Array.isArray(val) ? val[1] : 0),
+      }
+    }
+
+    var nodePos = {}
+    if (isCircular) {
+      var cx = width / 2
+      var cy = height / 2
+      var centerNode = rawNodes.find(function (n) { return (n.symbolSize > 30) }) || rawNodes[0]
+      var centerId = centerNode ? (centerNode.id || centerNode.name) : null
+      var otherNodes = rawNodes.filter(function (n) { return (n.id || n.name) !== centerId })
+      var R = Math.max(60, Math.min(width, height) / 2 - 50)
+      if (centerId) nodePos[centerId] = { x: cx, y: cy, isCenter: true }
+      otherNodes.forEach(function (n, idx) {
+        var id = n.id || n.name
+        var angle = (2 * Math.PI * idx) / (otherNodes.length || 1) - Math.PI / 2
+        nodePos[id] = {
+          x: cx + R * Math.cos(angle),
+          y: cy + R * Math.sin(angle),
+          isCenter: false,
+        }
+      })
+    } else {
+      rawNodes.forEach(function (n) {
+        var id = n.id || n.name
+        nodePos[id] = posOf(n.value, n.x, n.y)
+      })
+    }
+
+    var svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    svg.setAttribute('width', String(width))
+    svg.setAttribute('height', String(height))
+    svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height)
+    svg.setAttribute('class', 'nn-svg-graph')
+    svg.style.display = 'block'
+    svg.style.width = '100%'
+    svg.style.height = '100%'
+    svg.style.overflow = 'visible'
+
+    var defs = doc.createElementNS('http://www.w3.org/2000/svg', 'defs')
+    defs.innerHTML =
+      '<marker id="nn-graph-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">' +
+      '<path d="M 0 1 L 10 5 L 0 9 z" fill="#64748b" />' +
+      '</marker>' +
+      '<marker id="nn-graph-arrow-active" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">' +
+      '<path d="M 0 1 L 10 5 L 0 9 z" fill="#2563eb" />' +
+      '</marker>'
+    svg.appendChild(defs)
+
+    var linksG = doc.createElementNS('http://www.w3.org/2000/svg', 'g')
+    linksG.setAttribute('class', 'nn-graph-links')
+
+    if (linesSeries && Array.isArray(linesSeries.data)) {
+      linesSeries.data.forEach(function (stroke) {
+        var p1 = posOf(stroke.coords[0])
+        var p2 = posOf(stroke.coords[1])
+        var path = doc.createElementNS('http://www.w3.org/2000/svg', 'path')
+        path.setAttribute('d', 'M ' + p1.x + ' ' + p1.y + ' L ' + p2.x + ' ' + p2.y)
+        var st = stroke.lineStyle || {}
+        path.setAttribute('stroke', st.color || '#64748b')
+        path.setAttribute('stroke-width', String(st.width || 1))
+        if (st.type === 'dashed') path.setAttribute('stroke-dasharray', '5,5')
+        if (st.opacity) path.setAttribute('opacity', String(st.opacity))
+        path.setAttribute('marker-end', 'url(#nn-graph-arrow)')
+        path.setAttribute('fill', 'none')
+        linksG.appendChild(path)
+      })
+    }
+
+    var links = graph.links || []
+    links.forEach(function (link) {
+      var sPos = nodePos[link.source]
+      var tPos = nodePos[link.target]
+      if (!sPos || !tPos) return
+
+      if (!linesSeries) {
+        var path = doc.createElementNS('http://www.w3.org/2000/svg', 'path')
+        var st = link.lineStyle || {}
+        var isDashed = st.type === 'dashed'
+        var curveness = st.curveness || 0
+        var d = ''
+        if (curveness) {
+          var mx = (sPos.x + tPos.x) / 2 - (tPos.y - sPos.y) * curveness
+          var my = (sPos.y + tPos.y) / 2 + (tPos.x - sPos.x) * curveness
+          d = 'M ' + sPos.x + ' ' + sPos.y + ' Q ' + mx + ' ' + my + ' ' + tPos.x + ' ' + tPos.y
+        } else {
+          d = 'M ' + sPos.x + ' ' + sPos.y + ' L ' + tPos.x + ' ' + tPos.y
+        }
+        path.setAttribute('d', d)
+        path.setAttribute('stroke', st.color || '#94a3b8')
+        path.setAttribute('stroke-width', String(st.width || 1.5))
+        if (isDashed) path.setAttribute('stroke-dasharray', '5,5')
+        path.setAttribute('fill', 'none')
+        path.setAttribute('marker-end', 'url(#nn-graph-arrow)')
+        linksG.appendChild(path)
+      }
+
+      var lbl = link.label
+      var labelText = (lbl && (lbl.formatter || lbl.text)) || ''
+      if (labelText && lbl.show !== false) {
+        var lmx = (sPos.x + tPos.x) / 2
+        var lmy = (sPos.y + tPos.y) / 2
+        var gLabel = doc.createElementNS('http://www.w3.org/2000/svg', 'g')
+        var textEl = doc.createElementNS('http://www.w3.org/2000/svg', 'text')
+        textEl.setAttribute('x', String(lmx))
+        textEl.setAttribute('y', String(lmy + 3))
+        textEl.setAttribute('font-size', '10')
+        textEl.setAttribute('font-weight', '500')
+        textEl.setAttribute('text-anchor', 'middle')
+        textEl.setAttribute('fill', lbl.color || '#475569')
+        textEl.textContent = labelText
+
+        var textLen = labelText.length * 6 + 12
+        var bg = doc.createElementNS('http://www.w3.org/2000/svg', 'rect')
+        bg.setAttribute('x', String(lmx - textLen / 2))
+        bg.setAttribute('y', String(lmy - 8))
+        bg.setAttribute('width', String(textLen))
+        bg.setAttribute('height', '16')
+        bg.setAttribute('rx', '4')
+        bg.setAttribute('fill', lbl.backgroundColor || '#ffffff')
+        bg.setAttribute('stroke', '#cbd5e1')
+        bg.setAttribute('stroke-width', '1')
+        gLabel.appendChild(bg)
+        gLabel.appendChild(textEl)
+        linksG.appendChild(gLabel)
+      }
+    })
+    svg.appendChild(linksG)
+
+    var nodesG = doc.createElementNS('http://www.w3.org/2000/svg', 'g')
+    nodesG.setAttribute('class', 'nn-graph-nodes')
+
+    var chartInstance = {
+      _isDisposed: false,
+      handlers: {},
+      on: function (event, handler) {
+        this.handlers[event] = handler
+      },
+      getOption: function () {
+        return option
+      },
+      setOption: function (newOpt) {
+        if (newOpt) option = newOpt
+        renderSvgGraph(host, option, o)
+      },
+      resize: function () {},
+      dispose: function () {
+        this._isDisposed = true
+        host.innerHTML = ''
+        if (host.__chartInstance === this) host.__chartInstance = null
+      },
+      destroy: function () {
+        this.dispose()
+      },
+      isDisposed: function () {
+        return this._isDisposed
+      },
+      getWidth: function () {
+        return width
+      },
+      getHeight: function () {
+        return height
+      },
+    }
+
+    rawNodes.forEach(function (node) {
+      if (node.name && node.name.startsWith('__nn-schema-anchor-')) return
+      var id = node.id || node.name
+      var p = nodePos[id]
+      if (!p) return
+
+      var g = doc.createElementNS('http://www.w3.org/2000/svg', 'g')
+      g.setAttribute('class', 'nn-node-g')
+      g.setAttribute('data-id', id)
+      g.setAttribute('data-name', node.name || id)
+      g.style.cursor = 'pointer'
+
+      var isRect = !isCircular && (node.symbol === 'rect' || Array.isArray(node.symbolSize))
+      var st = node.itemStyle || {}
+      var borderColor = st.borderColor || '#3b82f6'
+      var fill = st.color || '#ffffff'
+      var borderWidth = st.borderWidth !== undefined ? st.borderWidth : 1
+
+      if (isRect) {
+        var w = Array.isArray(node.symbolSize) ? node.symbolSize[0] : (node.symbolSize || 120)
+        var h = Array.isArray(node.symbolSize) ? node.symbolSize[1] : 40
+        var x = p.x - w / 2
+        var y = p.y - h / 2
+
+        var rect = doc.createElementNS('http://www.w3.org/2000/svg', 'rect')
+        rect.setAttribute('x', String(x))
+        rect.setAttribute('y', String(y))
+        rect.setAttribute('width', String(w))
+        rect.setAttribute('height', String(h))
+        rect.setAttribute('rx', '6')
+        rect.setAttribute('fill', fill)
+        rect.setAttribute('stroke', borderColor)
+        rect.setAttribute('stroke-width', String(borderWidth))
+        if (st.borderType === 'dashed') rect.setAttribute('stroke-dasharray', '5,5')
+        if (st.borderType === 'dotted') rect.setAttribute('stroke-dasharray', '2,2')
+        if (st.opacity) rect.setAttribute('opacity', String(st.opacity))
+        g.appendChild(rect)
+
+        var lbl = node.label || {}
+        var formatter = lbl.formatter || node.name || ''
+
+        if (typeof formatter === 'string' && formatter.indexOf('{t|') !== -1) {
+          var matchT = formatter.match(/\{t\|([^}]+)\}/)
+          var headerText = matchT ? matchT[1] : node.name
+          var headerBand = doc.createElementNS('http://www.w3.org/2000/svg', 'path')
+          headerBand.setAttribute('d',
+            'M ' + x + ' ' + (y + 6) + ' Q ' + x + ' ' + y + ' ' + (x + 6) + ' ' + y +
+            ' L ' + (x + w - 6) + ' ' + y + ' Q ' + (x + w) + ' ' + y + ' ' + (x + w) + ' ' + (y + 6) +
+            ' L ' + (x + w) + ' ' + (y + 26) + ' L ' + x + ' ' + (y + 26) + ' Z'
+          )
+          headerBand.setAttribute('fill', borderColor)
+          g.appendChild(headerBand)
+
+          var tHeader = doc.createElementNS('http://www.w3.org/2000/svg', 'text')
+          tHeader.setAttribute('x', String(x + 8))
+          tHeader.setAttribute('y', String(y + 17))
+          tHeader.setAttribute('font-size', '12')
+          tHeader.setAttribute('font-weight', '600')
+          tHeader.setAttribute('fill', '#ffffff')
+          tHeader.textContent = headerText
+          g.appendChild(tHeader)
+
+          var lines = formatter.split('\n').slice(1)
+          var tFields = doc.createElementNS('http://www.w3.org/2000/svg', 'text')
+          tFields.setAttribute('x', String(x + 8))
+          tFields.setAttribute('y', String(y + 42))
+          tFields.setAttribute('font-size', '11')
+          tFields.setAttribute('fill', '#374151')
+          lines.forEach(function (line, li) {
+            var clean = line.replace(/\{[a-z]\|([^}]+)\}/g, '$1')
+            var tspan = doc.createElementNS('http://www.w3.org/2000/svg', 'tspan')
+            tspan.setAttribute('x', String(x + 8))
+            tspan.setAttribute('dy', li === 0 ? '0' : '16')
+            tspan.textContent = clean
+            tFields.appendChild(tspan)
+          })
+          g.appendChild(tFields)
+        } else if (typeof formatter === 'string' && formatter.indexOf('{title|') !== -1) {
+          var titles = []
+          var subText = ''
+          formatter.split('\n').forEach(function (line) {
+            var mT = line.match(/\{title\|([^}]+)\}/)
+            var mS = line.match(/\{sub\|([^}]+)\}/)
+            if (mT) titles.push(mT[1])
+            if (mS) subText = mS[1]
+          })
+          var textG = doc.createElementNS('http://www.w3.org/2000/svg', 'text')
+          textG.setAttribute('x', String(x + 8))
+          textG.setAttribute('y', String(y + 18))
+          textG.setAttribute('font-size', '12')
+          textG.setAttribute('font-weight', '600')
+          textG.setAttribute('fill', '#111827')
+          titles.forEach(function (t, ti) {
+            var tspan = doc.createElementNS('http://www.w3.org/2000/svg', 'tspan')
+            tspan.setAttribute('x', String(x + 8))
+            tspan.setAttribute('dy', ti === 0 ? '0' : '15')
+            tspan.textContent = t
+            textG.appendChild(tspan)
+          })
+          if (subText) {
+            var tspanSub = doc.createElementNS('http://www.w3.org/2000/svg', 'tspan')
+            tspanSub.setAttribute('x', String(x + 8))
+            tspanSub.setAttribute('dy', '15')
+            tspanSub.setAttribute('font-size', '10')
+            tspanSub.setAttribute('font-weight', '400')
+            tspanSub.setAttribute('fill', '#6b7280')
+            tspanSub.textContent = subText
+            textG.appendChild(tspanSub)
+          }
+          g.appendChild(textG)
+        } else {
+          var textEl = doc.createElementNS('http://www.w3.org/2000/svg', 'text')
+          textEl.setAttribute('x', String(x + 8))
+          textEl.setAttribute('y', String(y + h / 2 + 4))
+          textEl.setAttribute('font-size', '12')
+          textEl.setAttribute('fill', '#1f2937')
+          textEl.textContent = formatter || node.name || id
+          g.appendChild(textEl)
+        }
+      } else {
+        var r = p.isCenter ? 24 : 15
+        var circle = doc.createElementNS('http://www.w3.org/2000/svg', 'circle')
+        circle.setAttribute('cx', String(p.x))
+        circle.setAttribute('cy', String(p.y))
+        circle.setAttribute('r', String(r))
+        circle.setAttribute('fill', fill)
+        circle.setAttribute('stroke', borderColor)
+        circle.setAttribute('stroke-width', String(borderWidth || (p.isCenter ? 3 : 1)))
+        g.appendChild(circle)
+
+        var labelText = node.name || id
+        var textNode = doc.createElementNS('http://www.w3.org/2000/svg', 'text')
+        textNode.setAttribute('x', String(p.x))
+        textNode.setAttribute('y', String(p.y + r + 14))
+        textNode.setAttribute('font-size', '11')
+        textNode.setAttribute('font-weight', p.isCenter ? '600' : '400')
+        textNode.setAttribute('text-anchor', 'middle')
+        textNode.setAttribute('fill', '#1f2937')
+        textNode.textContent = labelText
+        g.appendChild(textNode)
+      }
+
+      if (node.tooltipText || node.name || id) {
+        var titleEl = doc.createElementNS('http://www.w3.org/2000/svg', 'title')
+        titleEl.textContent = (node.tooltipText || node.name || id).replace(/<br\s*\/?>/g, ' ')
+        g.appendChild(titleEl)
+      }
+
+      if (node.selected || node.focused) {
+        g.setAttribute('data-selected', 'true')
+        var halo = doc.createElementNS('http://www.w3.org/2000/svg', 'rect')
+        halo.setAttribute('x', String(x - 4))
+        halo.setAttribute('y', String(y - 4))
+        halo.setAttribute('width', String(w + 8))
+        halo.setAttribute('height', String(h + 8))
+        halo.setAttribute('rx', '8')
+        halo.setAttribute('fill', 'none')
+        halo.setAttribute('stroke', '#2563eb')
+        halo.setAttribute('stroke-width', '2.5')
+        halo.style.pointerEvents = 'none'
+        g.appendChild(halo)
+      }
+
+      g.addEventListener('click', function (e) {
+        if (e && e.stopPropagation) e.stopPropagation()
+        if (chartInstance.handlers && chartInstance.handlers.click) {
+          chartInstance.handlers.click({ dataType: 'node', data: node, name: node.name || id, id: id })
+        }
+      })
+
+      nodesG.appendChild(g)
+    })
+    svg.appendChild(nodesG)
+
+    scatterSeries.forEach(function (sc) {
+      if (!Array.isArray(sc.data)) return
+      sc.data.forEach(function (item) {
+        var p = posOf(item.value)
+        var isHeadBadge = (sc.label && sc.label.formatter === 'HEAD') || item.id === 'head'
+
+        if (isHeadBadge) {
+          var gHead = doc.createElementNS('http://www.w3.org/2000/svg', 'g')
+          gHead.setAttribute('class', 'nn-graph-head-badge')
+          gHead.style.pointerEvents = 'none'
+
+          var sw = sc.symbolSize ? sc.symbolSize[0] : 38
+          var sh = sc.symbolSize ? sc.symbolSize[1] : 13
+          var offY = sc.symbolOffset ? sc.symbolOffset[1] : -22
+          var hx = p.x - sw / 2
+          var hy = p.y + offY - sh / 2
+          var hrect = doc.createElementNS('http://www.w3.org/2000/svg', 'rect')
+          hrect.setAttribute('x', String(hx))
+          hrect.setAttribute('y', String(hy))
+          hrect.setAttribute('width', String(sw))
+          hrect.setAttribute('height', String(sh))
+          hrect.setAttribute('rx', '3')
+          hrect.setAttribute('fill', (sc.itemStyle && sc.itemStyle.color) || '#2563eb')
+          gHead.appendChild(hrect)
+
+          var txt = doc.createElementNS('http://www.w3.org/2000/svg', 'text')
+          txt.setAttribute('x', String(p.x))
+          txt.setAttribute('y', String(hy + 9.5))
+          txt.setAttribute('font-size', '8')
+          txt.setAttribute('font-weight', '700')
+          txt.setAttribute('text-anchor', 'middle')
+          txt.setAttribute('fill', '#ffffff')
+          txt.textContent = 'HEAD'
+          gHead.appendChild(txt)
+          svg.appendChild(gHead)
+        } else {
+          var gFocus = doc.createElementNS('http://www.w3.org/2000/svg', 'g')
+          gFocus.setAttribute('class', 'nn-graph-focus-ring')
+          gFocus.style.pointerEvents = 'none'
+
+          var fw = sc.symbolSize ? sc.symbolSize[0] : 150
+          var fh = sc.symbolSize ? sc.symbolSize[1] : 50
+          var fx = p.x - fw / 2
+          var fy = p.y - fh / 2
+          var frect = doc.createElementNS('http://www.w3.org/2000/svg', 'rect')
+          frect.setAttribute('x', String(fx))
+          frect.setAttribute('y', String(fy))
+          frect.setAttribute('width', String(fw))
+          frect.setAttribute('height', String(fh))
+          frect.setAttribute('rx', '8')
+          frect.setAttribute('fill', 'none')
+          frect.setAttribute('stroke', (sc.itemStyle && sc.itemStyle.borderColor) || '#2563eb')
+          frect.setAttribute('stroke-width', String((sc.itemStyle && sc.itemStyle.borderWidth) || 2.5))
+          gFocus.appendChild(frect)
+          svg.appendChild(gFocus)
+        }
+      })
+    })
+
+    host.appendChild(svg)
+    host.__chartInstance = chartInstance
+    if (typeof window !== 'undefined') {
+      window.echarts = window.echarts || {}
+      window.echarts.getInstanceByDom = function (h) {
+        if (!h) return null
+        var c = h.tagName === 'CANVAS' ? h : h.querySelector('canvas')
+        return (c && c.__chartInstance) || h.__chartInstance || null
+      }
+    }
+    return chartInstance
+  }
+
   function renderChart(host, option, opts) {
     if (!host) return null
+    var o = opts || {}
+    var seriesList = (option && option.series) || []
+    var firstSeries = seriesList[0] || {}
+    var sType = firstSeries.type || 'line'
+
     var lib = chartLibrary()
     if (!lib) {
       warnChartLibraryMissing()
       return null
+    }
+
+    if (sType === 'graph' || seriesList.some(function (s) { return s.type === 'graph' })) {
+      return renderSvgGraph(host, option, o)
     }
     var o = opts || {}
 
@@ -326,10 +808,9 @@
               : []
             if (activeEls && activeEls.length) {
               var first = activeEls[0]
-              var raw =
-                chart.data.datasets[first.datasetIndex] &&
-                chart.data.datasets[first.datasetIndex].data[first.index]
-              handler({ data: raw, raw: raw })
+              var ds = chart.data.datasets[first.datasetIndex]
+              var raw = ds && ds.tree ? ds.tree[first.index] : (ds && ds.data && ds.data[first.index])
+              handler({ data: raw, raw: raw, seriesName: ds && ds.label })
             }
           })
         }
