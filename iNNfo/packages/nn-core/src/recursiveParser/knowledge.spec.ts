@@ -96,4 +96,83 @@ describe('normalizeSingleKnowledge — blueprint_version is required at load', (
     expect(Object.keys(nodes)).toHaveLength(0)
     expect(issues).toHaveLength(0)
   })
+
+  // D7 / P5 of the blueprints-distribution plan: unknown constructs are refused loudly at load
+  it('refuses a document with an unknown construct, naming the construct', () => {
+    const path = 'kNNowledge/test_NN.md'
+    const content = [
+      '---',
+      'level: 3',
+      'parent_spec:',
+      '  name: "coNNtent_V_0-32-4"',
+      '  url: "https://example.test/spec_NN.md"',
+      'blueprint_version: "V_0-32-4"',
+      'title: "Invalid Doc"',
+      '---',
+      '',
+      '# NN index',
+      '* [[Element]]',
+      '',
+      '# NN unknown_directive: some_value',
+      'field:: 123',
+    ].join('\n')
+
+    const { nodes, issues } = normalizeSingleKnowledge(content, path, 'test')
+    expect(Object.keys(nodes)).toHaveLength(0)
+    const issue = issues.find((i) => i.message.includes('unknown construct'))
+    expect(issue).toBeDefined()
+    expect(issue?.path).toBe(path)
+    expect(issue?.message).toContain('NN unknown_directive: some_value')
+    expect(issue?.message).toContain('refused')
+  })
+
+  it('refuses a document with a malformed NN element heading, naming the construct', () => {
+    const path = 'kNNowledge/test_el_NN.md'
+    const content = [
+      '---',
+      'level: 3',
+      'parent_spec:',
+      '  name: "coNNtent_V_0-32-4"',
+      '  url: "https://example.test/spec_NN.md"',
+      'blueprint_version: "V_0-32-4"',
+      'title: "Invalid Element Doc"',
+      '---',
+      '',
+      '# NN Stakeholders',
+      '## NN MalformedElementWithoutColon',
+      'description here',
+    ].join('\n')
+
+    const { nodes, issues } = normalizeSingleKnowledge(content, path, 'test_el')
+    expect(Object.keys(nodes)).toHaveLength(0)
+    const issue = issues.find((i) => i.message.includes('unknown construct'))
+    expect(issue).toBeDefined()
+    expect(issue?.message).toContain('NN MalformedElementWithoutColon')
+    expect(issue?.message).toContain('refused')
+  })
+
+  it('refuses a document with removed marker constructs, naming the construct', () => {
+    const path = 'kNNowledge/marker_doc_NN.md'
+    const content = [
+      '---',
+      'level: 3',
+      'parent_spec:',
+      '  name: "coNNtent_V_0-32-4"',
+      '  url: "https://example.test/spec_NN.md"',
+      'blueprint_version: "V_0-32-4"',
+      'title: "Legacy Marker Doc"',
+      '---',
+      '',
+      '# NN Marker Definition',
+      '## NN Marker Definition: priority',
+      'type:: scale',
+    ].join('\n')
+
+    const { nodes, issues } = normalizeSingleKnowledge(content, path, 'marker_doc')
+    expect(Object.keys(nodes)).toHaveLength(0)
+    const issue = issues.find((i) => i.message.includes('removed in iNNfo V_0-5-0'))
+    expect(issue).toBeDefined()
+    expect(issue?.message).toContain('Marker Definitions (priority)')
+    expect(issue?.message).toContain('refused')
+  })
 })

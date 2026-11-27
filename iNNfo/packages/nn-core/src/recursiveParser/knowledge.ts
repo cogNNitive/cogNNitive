@@ -6,6 +6,7 @@ import { resolveGraphEdgeTarget } from './paths.js'
 import { parseName } from '../naming/contract.js'
 import { nowIso, toLocalMetamodel, toFieldValues, normalizeElementsIntoGraph } from './normalize.js'
 import type { ParseContext, ParseIssue } from './types.js'
+import { checkRemovedMarkerConstructs } from '../validator/removed-constructs.js'
 
 /**
  * Parses a single model file and registers its root node and elements into ctx.
@@ -87,6 +88,32 @@ export function normalizeSingleKnowledge(
       severity: 'error',
       message: `missing required frontmatter field "blueprint_version" (level ${level} document) — refused`,
     })
+    return { nodes: ctx.nodes, issues: ctx.issues }
+  }
+
+  // P5: Compatibility contract at load time (D7).
+  // 1. Refuse removed marker constructs with construct named.
+  const removedConstructs = checkRemovedMarkerConstructs(parsed, refPath)
+  if (removedConstructs.length > 0) {
+    for (const rc of removedConstructs) {
+      ctx.issues.push({
+        path: refPath,
+        severity: 'error',
+        message: `${rc.message} — refused`,
+      })
+    }
+    return { nodes: ctx.nodes, issues: ctx.issues }
+  }
+
+  // 2. Refuse unknown constructs with construct named.
+  if (parsed.unknownConstructs && parsed.unknownConstructs.length > 0) {
+    for (const uc of parsed.unknownConstructs) {
+      ctx.issues.push({
+        path: refPath,
+        severity: 'error',
+        message: `unknown construct "${uc}" (level ${Number.isFinite(level) ? level : 3} document) — refused`,
+      })
+    }
     return { nodes: ctx.nodes, issues: ctx.issues }
   }
 
