@@ -126,7 +126,10 @@ export function resolveReferenceCatalog({ domainRoot = null } = {}) {
   if (domainRoot) candidates.push({ anchor: 'domaiNN', path: vendoredCatalogPath(domainRoot) })
   try {
     const pkg = findBlueprintPackage()
-    candidates.push({ anchor: 'blueprintPackage', path: path.join(pkg, 'catalog', REFERENCE_CATALOG_FILENAME) })
+    candidates.push({
+      anchor: 'blueprintPackage',
+      path: path.join(pkg, 'catalog', REFERENCE_CATALOG_FILENAME),
+    })
   } catch {}
   candidates.push({ anchor: 'package', path: REFERENCE_CATALOG })
   for (const candidate of candidates) {

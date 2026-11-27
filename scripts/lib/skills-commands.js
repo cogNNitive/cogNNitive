@@ -1792,7 +1792,7 @@ async function cmdInstallBlueprint(args) {
   let plan
   if (entry) {
     if (!entry.release_tag) {
-      if (!args.channel && !args.channelsPath && !process.env.COGNNITIVE_CHANNELS) {
+      if (!args.channelsPath && !process.env.COGNNITIVE_CHANNELS) {
         throw new Error(
           `blueprint '${name}' is not yet released (no matching blueprints-v* tag); update the catalog`,
         )
