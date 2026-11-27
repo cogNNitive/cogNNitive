@@ -7767,6 +7767,47 @@
         }
       }
 
+      // The deepest level is no longer a map: it is a handful of elements. Draw them as real
+      // buttons, so each one carries its badge and is reachable by keyboard, instead of areas
+      // whose only affordance is a pixel region.
+      if (currentModelIdx !== null && currentConcept !== null) {
+        var leafModel = tree[currentModelIdx]
+        var conceptNode = (leafModel.children || []).filter(function (child) {
+          return child.name === currentConcept
+        })[0]
+        var leaves = (conceptNode && conceptNode.children) || []
+        if (leaves.length) {
+          // Painting here would remove the canvas while its own click is still being
+          // dispatched, and the treemap plugin then reads a detached element and throws.
+          // One frame later the event is over and the swap is safe.
+          var paintLeaves = function () {
+            if (chartBox.__chartInstance && chartBox.__chartInstance.destroy) {
+              chartBox.__chartInstance.destroy()
+            }
+            chartBox.innerHTML = ''
+            var leafGrid = el('div', 'nn-map-leaves')
+            leaves.forEach(function (leaf) {
+              var leafBtn = el('button', 'nn-map-leaf')
+              leafBtn.setAttribute('type', 'button')
+              leafBtn.setAttribute('data-element', leaf.elementId || '')
+              leafBtn.appendChild(el('span', 'nn-badge', currentConcept))
+              leafBtn.appendChild(el('span', 'nn-map-leaf-name', leaf.name || leaf.elementId || ''))
+              leafBtn.addEventListener('click', function () {
+                if (leaf.elementId) onPick(leaf.elementId)
+              })
+              leafGrid.appendChild(leafBtn)
+            })
+            chartBox.appendChild(leafGrid)
+          }
+          if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(paintLeaves)
+          } else {
+            setTimeout(paintLeaves, 0)
+          }
+          return
+        }
+      }
+
       var chart = Studio.renderChart(chartBox, {
         animation: false,
         tooltip: { formatter: '{b}: {c}' },

@@ -9453,21 +9453,53 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         }
       }
       chart.on = function (event, handler) {
-        if (event === 'click') {
-          canvas.addEventListener('click', function (e) {
-            var activeEls = chart.getElementsAtEventForMode
-              ? chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false)
-              : []
-            if (activeEls && activeEls.length) {
-              var first = activeEls[0]
-              var ds = chart.data.datasets[first.datasetIndex]
-              var elem = first.element || (chart.getDatasetMeta && chart.getDatasetMeta(first.datasetIndex) && chart.getDatasetMeta(first.datasetIndex).data[first.index])
-              var elemRaw = elem && elem.$context ? elem.$context.raw : null
-              var raw = (elemRaw && elemRaw._data) || elemRaw || (ds && ds.data && ds.data[first.index] && ds.data[first.index]._data) || (ds && ds.data && ds.data[first.index]) || (ds && ds.tree && ds.tree[first.index])
-              handler({ data: raw, raw: raw, seriesName: ds && ds.label })
+        if (event !== 'click') return
+        canvas.addEventListener('click', function (e) {
+          var meta = chart.getDatasetMeta && chart.getDatasetMeta(0)
+          var els = (meta && meta.data) || []
+          var isTreemap = !!(chart.config && chart.config.type === 'treemap')
+          // The treemap plugin throws inside Chart.js hit-testing ("nearest" walks a null
+          // canvas), which swallows the click; the cells carry their own geometry, so the hit
+          // is resolved here instead and the deepest containing cell wins.
+          if (isTreemap && els.length) {
+            var box = canvas.getBoundingClientRect()
+            var px = e.clientX - box.left
+            var py = e.clientY - box.top
+            var found = null
+            for (var i = 0; i < els.length; i++) {
+              var cell = els[i]
+              if (!cell || typeof cell.x !== 'number' || typeof cell.width !== 'number') continue
+              if (px < cell.x || px > cell.x + cell.width) continue
+              if (py < cell.y || py > cell.y + cell.height) continue
+              if (!found || cell.width * cell.height < found.width * found.height) found = cell
             }
-          })
-        }
+            if (!found) return
+            var rawCell = found.$context ? found.$context.raw : null
+            if (rawCell && rawCell._data) rawCell = rawCell._data
+            handler({ data: rawCell, raw: rawCell, seriesName: null })
+            return
+          }
+          var activeEls = chart.getElementsAtEventForMode
+            ? chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false)
+            : []
+          if (activeEls && activeEls.length) {
+            var first = activeEls[0]
+            var ds = chart.data.datasets[first.datasetIndex]
+            var elem =
+              first.element ||
+              (chart.getDatasetMeta &&
+                chart.getDatasetMeta(first.datasetIndex) &&
+                chart.getDatasetMeta(first.datasetIndex).data[first.index])
+            var elemRaw = elem && elem.$context ? elem.$context.raw : null
+            var raw =
+              (elemRaw && elemRaw._data) ||
+              elemRaw ||
+              (ds && ds.data && ds.data[first.index] && ds.data[first.index]._data) ||
+              (ds && ds.data && ds.data[first.index]) ||
+              (ds && ds.tree && ds.tree[first.index])
+            handler({ data: raw, raw: raw, seriesName: ds && ds.label })
+          }
+        })
       }
       chart.getOption = function () {
         return {
@@ -19024,6 +19056,47 @@ if (typeof window !== 'undefined') {
         } else {
           subTree = [m]
           groups = ['l0', 'l1']
+        }
+      }
+
+      // The deepest level is no longer a map: it is a handful of elements. Draw them as real
+      // buttons, so each one carries its badge and is reachable by keyboard, instead of areas
+      // whose only affordance is a pixel region.
+      if (currentModelIdx !== null && currentConcept !== null) {
+        var leafModel = tree[currentModelIdx]
+        var conceptNode = (leafModel.children || []).filter(function (child) {
+          return child.name === currentConcept
+        })[0]
+        var leaves = (conceptNode && conceptNode.children) || []
+        if (leaves.length) {
+          // Painting here would remove the canvas while its own click is still being
+          // dispatched, and the treemap plugin then reads a detached element and throws.
+          // One frame later the event is over and the swap is safe.
+          var paintLeaves = function () {
+            if (chartBox.__chartInstance && chartBox.__chartInstance.destroy) {
+              chartBox.__chartInstance.destroy()
+            }
+            chartBox.innerHTML = ''
+            var leafGrid = el('div', 'nn-map-leaves')
+            leaves.forEach(function (leaf) {
+              var leafBtn = el('button', 'nn-map-leaf')
+              leafBtn.setAttribute('type', 'button')
+              leafBtn.setAttribute('data-element', leaf.elementId || '')
+              leafBtn.appendChild(el('span', 'nn-badge', currentConcept))
+              leafBtn.appendChild(el('span', 'nn-map-leaf-name', leaf.name || leaf.elementId || ''))
+              leafBtn.addEventListener('click', function () {
+                if (leaf.elementId) onPick(leaf.elementId)
+              })
+              leafGrid.appendChild(leafBtn)
+            })
+            chartBox.appendChild(leafGrid)
+          }
+          if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(paintLeaves)
+          } else {
+            setTimeout(paintLeaves, 0)
+          }
+          return
         }
       }
 

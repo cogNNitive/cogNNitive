@@ -12059,3 +12059,35 @@ button.proc-run.active {
 .nn-ku[data-ku-kind='element'] {
   font-weight: 400;
 }
+
+/* Map, deepest level: the elements of one concept, as buttons that carry their badge. */
+.nn-map-leaves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+}
+.nn-map-leaf {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.nn-map-leaf:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.nn-map-leaf:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.nn-map-leaf-name {
+  font-weight: 600;
+}
