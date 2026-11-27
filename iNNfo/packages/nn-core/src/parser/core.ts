@@ -232,7 +232,10 @@ export function parseKnowledge(content: string): ParsedKnowledge {
       // concepts (e.g. `text`) keep their free-form Markdown here. Empty
       // sections are skipped so ghost detection still flags no-content
       // concepts.
-      if (parsed.elements.length === 0 && (parsed.content || (!parsed.fields && bodyContent.trim()))) {
+      if (
+        parsed.elements.length === 0 &&
+        (parsed.content || (!parsed.fields && bodyContent.trim()))
+      ) {
         rawSections[name] = parsed.content ? parsed.content : bodyContent
       }
     } else if (type === 'matrix') {

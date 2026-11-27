@@ -416,7 +416,11 @@ test('assertBlueprintCompatibility refuses incompatible engine requirements', ()
   try {
     fs.writeFileSync(
       path.join(tmp, 'blueprint.json'),
-      JSON.stringify({ name: 'future-bp', requires: { engine: '>=99.0.0' }, format_version: 'V_0-5-0' }),
+      JSON.stringify({
+        name: 'future-bp',
+        requires: { engine: '>=99.0.0' },
+        format_version: 'V_0-5-0',
+      }),
     )
     assert.throws(
       () => assertBlueprintCompatibility('future-bp', tmp),
@@ -432,7 +436,11 @@ test('assertBlueprintCompatibility accepts compatible engine requirements', () =
   try {
     fs.writeFileSync(
       path.join(tmp, 'blueprint.json'),
-      JSON.stringify({ name: 'compat-bp', requires: { engine: '^0.60.0' }, format_version: 'V_0-5-0' }),
+      JSON.stringify({
+        name: 'compat-bp',
+        requires: { engine: '^0.60.0' },
+        format_version: 'V_0-5-0',
+      }),
     )
     assert.doesNotThrow(() => assertBlueprintCompatibility('compat-bp', tmp))
   } finally {
@@ -480,7 +488,11 @@ test('installBlueprintAtCommit refuses blueprint requiring incompatible engine b
     fs.mkdirSync(fakeSourceDir, { recursive: true })
     fs.writeFileSync(
       path.join(fakeSourceDir, 'blueprint.json'),
-      JSON.stringify({ name: 'future-bp', requires: { engine: '>=99.0.0' }, format_version: 'V_0-5-0' }),
+      JSON.stringify({
+        name: 'future-bp',
+        requires: { engine: '>=99.0.0' },
+        format_version: 'V_0-5-0',
+      }),
     )
     fs.writeFileSync(path.join(fakeSourceDir, 'spec_NN.md'), '# future-bp\n')
 

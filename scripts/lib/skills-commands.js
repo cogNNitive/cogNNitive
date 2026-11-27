@@ -103,9 +103,7 @@ function assertBlueprintCompatibility(blueprintName, srcPath) {
 
   let specContent = null
   if (fs.existsSync(srcPath)) {
-    const specPath = fs.statSync(srcPath).isDirectory()
-      ? path.join(srcPath, 'spec_NN.md')
-      : srcPath
+    const specPath = fs.statSync(srcPath).isDirectory() ? path.join(srcPath, 'spec_NN.md') : srcPath
     if (fs.existsSync(specPath) && !fs.statSync(specPath).isDirectory()) {
       try {
         specContent = fs.readFileSync(specPath, 'utf-8')

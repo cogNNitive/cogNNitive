@@ -61,8 +61,7 @@ export function normalizeSingleKnowledge(
   const hasParent = !!(fm.parent || fm.parent_spec)
 
   if (!hasSpecVersion && !hasLevel && !hasParent) {
-    const isNnNamed =
-      refName.toLowerCase().endsWith('_nn') || parseName(refPath).kind === 'nn'
+    const isNnNamed = refName.toLowerCase().endsWith('_nn') || parseName(refPath).kind === 'nn'
     if (isNnNamed) {
       ctx.issues.push({
         path: refPath,

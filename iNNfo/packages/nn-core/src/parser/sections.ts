@@ -161,7 +161,10 @@ export function parseConceptSection(conceptName: string, content: string): Parse
     }
 
     // Maintain heading stack: pop entries with depth >= current heading depth
-    while (headingStack.length > 0 && headingStack[headingStack.length - 1].depth >= heading.depth) {
+    while (
+      headingStack.length > 0 &&
+      headingStack[headingStack.length - 1].depth >= heading.depth
+    ) {
       headingStack.pop()
     }
 
@@ -235,7 +238,10 @@ export function parseConceptSection(conceptName: string, content: string): Parse
         if (prop[0] === 'slug') {
           current.slug = String(prop[1])
           current.slugExplicit = true
-          if (headingStack.length > 0 && headingStack[headingStack.length - 1].name === current.name) {
+          if (
+            headingStack.length > 0 &&
+            headingStack[headingStack.length - 1].name === current.name
+          ) {
             headingStack[headingStack.length - 1].slug = current.slug
           }
         } else {
