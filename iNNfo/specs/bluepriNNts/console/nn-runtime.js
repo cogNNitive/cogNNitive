@@ -7057,32 +7057,34 @@
       revealInKnowledge(doc, formatFacetToken('model', m.id))
     })
     card.appendChild(open)
-    if (concepts.length) {
-      var chart = Studio.renderChart(chartHost, {
-        animation: false,
-        grid: { left: 4, right: 4, top: 4, bottom: 4 },
-        tooltip: { trigger: 'item', formatter: '{a}: {c}' },
-        xAxis: { type: 'value', show: false, max: own.length },
-        yAxis: { type: 'category', show: false, data: [m.title || m.id] },
-        series: concepts.map(function (c) {
-          return {
-            type: 'bar',
-            name: c,
-            stack: 'elements',
-            barWidth: 18,
-            data: [byConcept[c]],
-            itemStyle: { color: conceptMetaOf(schema && schema.concepts, c).hexColor },
-          }
-        }),
-      })
-      if (chart) {
-        chart.on('click', function (params) {
+    if (concepts.length && own.length) {
+      chartHost.innerHTML = ''
+      var barWrap = el('div', 'nn-summary-bar-track')
+      barWrap.style.display = 'flex'
+      barWrap.style.height = '18px'
+      barWrap.style.borderRadius = '4px'
+      barWrap.style.overflow = 'hidden'
+      barWrap.style.margin = '4px 0'
+      concepts.forEach(function (c) {
+        var count = byConcept[c] || 0
+        if (!count) return
+        var pct = (count / own.length) * 100
+        var seg = el('span', 'nn-summary-bar-seg')
+        seg.style.width = pct + '%'
+        seg.style.height = '100%'
+        seg.style.background = conceptMetaOf(schema && schema.concepts, c).hexColor
+        seg.style.cursor = 'pointer'
+        seg.setAttribute('title', c + ': ' + count)
+        seg.setAttribute('data-concept', c)
+        seg.addEventListener('click', function () {
           var row = legend.querySelector(
-            'li[data-concept="' + String(params.seriesName).replace(/"/g, '') + '"]',
+            'li[data-concept="' + String(c).replace(/"/g, '') + '"]',
           )
           openConceptWindow(row)
         })
-      }
+        barWrap.appendChild(seg)
+      })
+      chartHost.appendChild(barWrap)
     }
     return card
   }

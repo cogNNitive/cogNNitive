@@ -11030,6 +11030,58 @@ button.proc-run.proc-run-unsent {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+/* Flow refs: the definition revision the run is pinned to, drawn where Git draws a tag. */
+.proc-flow-refs {
+  margin-left: auto;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-family: var(--mono, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+.proc-flow-refs.drifted {
+  border-color: var(--warning);
+  color: var(--warning);
+}
+/* The key to the flow, in the four marks the drawing actually uses. */
+.dag-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 2px 13px 8px;
+  font-size: 10.5px;
+  color: var(--faint);
+}
+.dag-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.dag-legend-swatch {
+  width: 14px;
+  border-top: 2px solid var(--success);
+}
+.dag-legend-swatch.off {
+  border-top-style: dashed;
+  border-top-color: var(--border-strong);
+}
+.dag-legend-swatch.join {
+  border-top-style: dotted;
+  border-top-color: var(--warning);
+}
+.dag-legend-swatch.ref {
+  width: 12px;
+  height: 9px;
+  border: 1px solid var(--primary);
+  border-radius: 3px;
+  background: var(--primary);
+}
 .dag-node:focus {
   outline: none;
 }

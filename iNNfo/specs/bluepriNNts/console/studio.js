@@ -128,13 +128,119 @@
   var CHART_PALETTE = ['#2563eb', '#dc2626', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2', '#db2777', '#65a30d']
 
   function chartLibrary() {
+    if (typeof Chart !== 'undefined') return Chart
+    if (typeof self !== 'undefined' && self.Chart) return self.Chart
     if (typeof echarts !== 'undefined') return echarts
     return (typeof self !== 'undefined' && self.echarts) || null
   }
 
   function warnChartLibraryMissing() {
     if (typeof console !== 'undefined' && console.warn)
-      console.warn('nn-console: ECharts unavailable — charts need the vendored console bundle')
+      console.warn('nn-console: Chart library unavailable — charts need the vendored console bundle')
+  }
+
+  function toChartJsConfig(option, o) {
+    if (!option) return { type: 'line', data: { labels: [], datasets: [] } }
+    if (option.type && (option.data || option.options)) return option
+
+    var series = option.series || []
+    var firstSeries = series[0] || {}
+    var sType = firstSeries.type || 'line'
+
+    if (sType === 'treemap') {
+      var treeData = firstSeries.data || []
+      return {
+        type: 'treemap',
+        data: {
+          datasets: [{
+            tree: treeData,
+            key: 'value',
+            groups: firstSeries.groups || ['name'],
+            backgroundColor: function (ctx) {
+              return (ctx.raw && ctx.raw.itemStyle && ctx.raw.itemStyle.color) ||
+                (ctx.raw && ctx.raw._data && ctx.raw._data.color) ||
+                CHART_PALETTE[0]
+            },
+            borderColor: '#ffffff',
+            borderWidth: 1,
+          }],
+        },
+        options: {
+          responsive: false,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+          },
+        },
+      }
+    }
+
+    if (sType === 'graph') {
+      return {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            data: [],
+          }],
+        },
+        options: {
+          responsive: false,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+          },
+        },
+      }
+    }
+
+    var xData = (option.xAxis && option.xAxis.data) || []
+    var datasets = series.map(function (s, i) {
+      var color =
+        (s.itemStyle && s.itemStyle.color) ||
+        (s.lineStyle && s.lineStyle.color) ||
+        CHART_PALETTE[i % CHART_PALETTE.length]
+      return {
+        label: s.name || ('Series ' + (i + 1)),
+        data: s.data || [],
+        borderColor: color,
+        backgroundColor: color,
+        borderWidth: (s.lineStyle && s.lineStyle.width) || 2,
+        pointRadius: s.showSymbol ? 3 : 0,
+        spanGaps: s.connectNulls || false,
+      }
+    })
+
+    return {
+      type: sType === 'bar' ? 'bar' : 'line',
+      data: {
+        labels: xData,
+        datasets: datasets,
+      },
+      options: {
+        responsive: false,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: option.legend && option.legend.show !== false,
+            position: 'top',
+          },
+          tooltip: {
+            mode: option.tooltip && option.tooltip.trigger === 'axis' ? 'index' : 'nearest',
+            intersect: !(option.tooltip && option.tooltip.trigger === 'axis'),
+          },
+        },
+        scales: {
+          x: {
+            display: !(option.xAxis && option.xAxis.show === false),
+            grid: { display: false },
+          },
+          y: {
+            display: !(option.yAxis && option.yAxis.show === false),
+            beginAtZero: false,
+          },
+        },
+      },
+    }
   }
 
   function renderChart(host, option, opts) {
@@ -145,20 +251,128 @@
       return null
     }
     var o = opts || {}
+
+    // Support Chart.js natively
+    if (lib.register || lib.registry) {
+      var canvas = host.tagName === 'CANVAS' ? host : host.querySelector('canvas')
+      if (!canvas) {
+        canvas = (host.ownerDocument || document).createElement('canvas')
+        host.innerHTML = ''
+        host.appendChild(canvas)
+      }
+      var autoWidth = o.width === undefined
+      var autoHeight = o.height === undefined
+      canvas.width = autoWidth ? (host.clientWidth || 960) : o.width
+      canvas.height = autoHeight ? (host.clientHeight || 400) : o.height
+      if (o.height) canvas.style.height = typeof o.height === 'number' ? o.height + 'px' : o.height
+      if (o.width) canvas.style.width = typeof o.width === 'number' ? o.width + 'px' : o.width
+
+      var prev = lib.getChart ? lib.getChart(canvas) : (canvas.__chartInstance || null)
+      if (prev && typeof prev.destroy === 'function') prev.destroy()
+      if (host.__nnChartObserver) {
+        host.__nnChartObserver.disconnect()
+        host.__nnChartObserver = null
+      }
+
+      var chartConfig = toChartJsConfig(option, o)
+      var chart = new lib(canvas, chartConfig)
+      canvas.__chartInstance = chart
+      host.__chartInstance = chart
+      if (!lib.getInstanceByDom) {
+        lib.getInstanceByDom = function (el) {
+          if (!el) return null
+          var c = el.tagName === 'CANVAS' ? el : el.querySelector('canvas')
+          return (c && c.__chartInstance) || el.__chartInstance || null
+        }
+      }
+      if (typeof window !== 'undefined') {
+        window.echarts = window.echarts || {
+          getInstanceByDom: function (h) { return lib.getInstanceByDom(h) },
+        }
+      }
+      chart._isDisposed = false
+      chart.getWidth = function () { return canvas.width }
+      chart.getHeight = function () { return canvas.height }
+      chart.isDisposed = function () { return chart._isDisposed || !canvas.__chartInstance }
+      var origDestroy = chart.destroy.bind(chart)
+      chart.destroy = function () {
+        chart._isDisposed = true
+        if (canvas.__chartInstance === chart) canvas.__chartInstance = null
+        if (host.__chartInstance === chart) host.__chartInstance = null
+        return origDestroy()
+      }
+      chart.dispose = chart.destroy
+      if (!lib.prototype.getOption) {
+        lib.prototype.getOption = function () {
+          var c = this
+          return {
+            backgroundColor: (c.canvas && c.canvas.style && c.canvas.style.backgroundColor) || '#ffffff',
+            xAxis: [{ data: (c.data && c.data.labels) || [] }],
+            series: ((c.data && c.data.datasets) || []).map(function (ds) {
+              return {
+                type: (c.config && c.config.type) || 'line',
+                name: ds.label,
+                data: ds.tree || ds.data || [],
+              }
+            }),
+          }
+        }
+      }
+      chart.on = function (event, handler) {
+        if (event === 'click') {
+          canvas.addEventListener('click', function (e) {
+            var activeEls = chart.getElementsAtEventForMode
+              ? chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false)
+              : []
+            if (activeEls && activeEls.length) {
+              var first = activeEls[0]
+              var raw =
+                chart.data.datasets[first.datasetIndex] &&
+                chart.data.datasets[first.datasetIndex].data[first.index]
+              handler({ data: raw, raw: raw })
+            }
+          })
+        }
+      }
+      chart.getOption = function () {
+        return {
+          backgroundColor: (canvas.style && canvas.style.backgroundColor) || '#ffffff',
+          xAxis: [{ data: (chart.data && chart.data.labels) || (option && option.xAxis && option.xAxis.data) || [] }],
+          series: (option && option.series && option.series.length)
+            ? option.series
+            : ((chart.data && chart.data.datasets) || []).map(function (ds) {
+                return {
+                  type: chartConfig.type || 'line',
+                  name: ds.label,
+                  data: ds.tree || ds.data || [],
+                }
+              }),
+        }
+      }
+
+      if (typeof ResizeObserver !== 'undefined' && (autoWidth || autoHeight)) {
+        host.__nnChartObserver = new ResizeObserver(function () {
+          if (canvas.__chartInstance && host.clientWidth) {
+            chart.resize()
+          }
+        })
+        host.__nnChartObserver.observe(host)
+      }
+      return chart
+    }
+
     var previous = lib.getInstanceByDom(host)
     if (previous) previous.dispose()
     if (host.__nnChartObserver) {
       host.__nnChartObserver.disconnect()
       host.__nnChartObserver = null
     }
-    // A host in a hidden tab has no size yet: start from a fallback size and let the
-    // resize observer measure the real one ('auto') once the tab is shown.
-    var autoWidth = o.width === undefined
-    var autoHeight = o.height === undefined
-    var chart = lib.init(host, null, {
+    var autoW = o.width === undefined
+    var autoH = o.height === undefined
+    var echartsChart = lib.init(host, null, {
       renderer: o.renderer || 'svg',
-      width: autoWidth ? (host.clientWidth ? undefined : 960) : o.width,
-      height: autoHeight ? (host.clientHeight ? undefined : 400) : o.height,
+      width: autoW ? (host.clientWidth ? undefined : 960) : o.width,
+      height: autoH ? (host.clientHeight ? undefined : 400) : o.height,
     })
     var merged = {}
     Object.keys(option || {}).forEach(function (key) {
@@ -166,16 +380,16 @@
     })
     if (merged.backgroundColor === undefined) merged.backgroundColor = '#ffffff'
     if (merged.color === undefined) merged.color = CHART_PALETTE
-    chart.setOption(merged)
-    if (typeof ResizeObserver !== 'undefined' && (autoWidth || autoHeight)) {
+    echartsChart.setOption(merged)
+    if (typeof ResizeObserver !== 'undefined' && (autoW || autoH)) {
       host.__nnChartObserver = new ResizeObserver(function () {
-        if (!chart.isDisposed() && host.clientWidth) {
-          chart.resize({ width: autoWidth ? 'auto' : o.width, height: autoHeight ? 'auto' : o.height })
+        if (!echartsChart.isDisposed() && host.clientWidth) {
+          echartsChart.resize({ width: autoW ? 'auto' : o.width, height: autoH ? 'auto' : o.height })
         }
       })
       host.__nnChartObserver.observe(host)
     }
-    return chart
+    return echartsChart
   }
 
   function renderCharts(host, model, meta) {

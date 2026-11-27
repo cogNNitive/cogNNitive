@@ -28,12 +28,12 @@ The console runtime does NOT compile JSX at runtime or during development.
 * Decode the model of an exported console in Node: `node -e "const h=require('fs').readFileSync(process.argv[1],'utf8');const b=/id=.nn-model.>([^<]*)</.exec(h)[1];console.log(require('zlib').inflateRawSync(Buffer.from(b.trim(),'base64')).toString())" domaiNN_console.html`
 
 ### Rule C: No Ad-Hoc NPM Runtime Dependencies
-* All runtime code must belong to the 12 canonical sources listed in `scripts/lib/console-bundle.js`.
+* All runtime code must belong to the 14 canonical sources listed in `scripts/lib/console-bundle.js`.
 * Adding a third-party library requires explicit maintainer approval and a standalone UMD vendor file placed under `iNNfo/specs/bluepriNNts/console/vendor/`.
 
-### Rule D: One Chart Library — ECharts Through `renderChart`
-* Every chart (built-in tabs and custom views) is an ECharts option drawn with `nnConsole.renderChart(host, option, opts?)`. It applies the console defaults (white background, palette) and returns the chart instance, or `null` with a warning when ECharts is missing.
-* Do not hand-draw charts with CSS or SVG, and do not add a second chart library. uPlot was removed on 2026-11-24.
+### Rule D: One Chart Library — Chart.js Through `renderChart`
+* Every quantitative chart (built-in tabs and custom views) is drawn with `nnConsole.renderChart(host, option, opts?)`. It delegates to vendored Chart.js (with the ChartTreemap plugin registered), applying console defaults, and returns the chart instance, or `null` with a warning when Chart.js is missing.
+* Procedural diagrams (procedure runner flow), summary card tracks, and structural ego graphs use pure DOM/SVG without external library overhead.
 * Never render a whole element graph: a force layout with ~2000 nodes blocks the page for ~18 s. Show concepts, or a one-hop neighbourhood of one element.
 
 ---
@@ -47,14 +47,15 @@ The console bundle is composed strictly in dependency order:
 3. `vendor/preact.umd.js` (`preact`) — Preact core
 4. `vendor/htm.umd.js` (`htm`) — Hyperscript Tagged Markup
 5. `nn-preact-init.js` (`nnPreact`) — Global `html` binding
-6. `vendor/echarts.min.js` (`echarts`) — Apache ECharts 6.1.0, the one chart library (see Rule D)
-7. `visuals.js` (`nnVisuals`) — Colour vocabulary and visual helpers
-8. `nn-icons.js` (`nnIcons`) — Inline SVG icon library
-9. `ui-kit.js` (`nnUI`) — UI primitives (badges, status tags, accordions)
-10. `review.js` (`nnReview`) — Interactive changeset review widgets
-11. `studio.js` (`nnStudio`) — Timeline grid calculations, formulas, charts, and studio analytics
-12. `nn-runtime.js` (`nnConsole`) — Application state, router, and view switcher
-13. `render-procedure-stepper.js` (`nnProcedureStepper`) — Interactive step-by-step procedure runner
+6. `vendor/chart.umd.min.js` (`Chart`) — Chart.js 4.4.7 (MIT), quantitative chart library
+7. `vendor/chartjs-chart-treemap.min.js` (`ChartTreemap`) — chartjs-chart-treemap 2.3.0 (MIT), hierarchical treemap plugin
+8. `visuals.js` (`nnVisuals`) — Colour vocabulary and visual helpers
+9. `nn-icons.js` (`nnIcons`) — Inline SVG icon library
+10. `ui-kit.js` (`nnUI`) — UI primitives (badges, status tags, accordions)
+11. `review.js` (`nnReview`) — Interactive changeset review widgets
+12. `studio.js` (`nnStudio`) — Timeline grid calculations, formulas, charts, and studio analytics
+13. `nn-runtime.js` (`nnConsole`) — Application state, router, and view switcher
+14. `render-procedure-stepper.js` (`nnProcedureStepper`) — Interactive step-by-step procedure runner
 
 ---
 
