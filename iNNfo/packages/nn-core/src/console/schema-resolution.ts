@@ -47,6 +47,7 @@ export interface ConsoleProcedure {
 export interface ConsoleCatalog {
   models: Record<string, any>
   voices: Record<string, any>
+  [concept: string]: Record<string, any> | undefined
 }
 
 export interface ConsoleSchemaResolution {
@@ -236,10 +237,20 @@ async function resolveCatalog(
       }
       return out
     }
-    return {
+    const catalog: ConsoleCatalog = {
       models: collect('Model'),
       voices: collect('Voice'),
     }
+    for (const concept of parsed.elements.keys()) {
+      const pluralKey = concept.toLowerCase() + 's'
+      if (!(pluralKey in catalog)) {
+        catalog[pluralKey] = collect(concept)
+      }
+      if (!(concept in catalog)) {
+        catalog[concept] = collect(concept)
+      }
+    }
+    return catalog
   } catch (err) {
     warnings.push(
       `Blueprint catalog '${catalogRel}' failed to parse: ${err instanceof Error ? err.message : String(err)}`,

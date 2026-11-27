@@ -17,6 +17,28 @@ describe('consoleOutputPath', () => {
     expect(() => consoleOutputPath({ model: '' })).toThrow(/model key/)
   })
 
+  it('supports explicit targetPath or outputPath without hardcoding blueprint conventions', () => {
+    expect(
+      consoleOutputPath({
+        targetPath: 'custom/delivery/report.html',
+      }),
+    ).toBe('custom/delivery/report.html')
+
+    expect(
+      consoleOutputPath({
+        delivery: {
+          targetPath: 'custom/output/view.html',
+        },
+      }),
+    ).toBe('custom/output/view.html')
+
+    expect(() =>
+      consoleOutputPath({
+        targetPath: '../escaped/root.html',
+      }),
+    ).toThrow(/cannot escape root/)
+  })
+
   it('builds the delivery console path for an episode version', () => {
     expect(
       consoleOutputPath({
