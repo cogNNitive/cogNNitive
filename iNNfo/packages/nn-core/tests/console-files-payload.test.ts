@@ -63,6 +63,7 @@ describe('Domain Console Files Payload Precomputation', () => {
     assert.equal(classifyFileCategory('assets/diagram.png'), 'asset')
     assert.equal(classifyFileCategory('evidence/survey.csv'), 'evidence')
     assert.equal(classifyFileCategory('artifacts/report.html'), 'artifact')
+    assert.equal(classifyFileCategory('entregables/client/doc.md'), 'artifact')
     assert.equal(classifyFileCategory('domaiNN_console.html'), 'artifact')
     // Mirrored models are sources.
     assert.equal(classifyFileCategory('sources/sync/org/organization_NN.md'), 'source')
@@ -87,8 +88,14 @@ describe('Domain Console Files Payload Precomputation', () => {
     const binary = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0xff, 0xfe, 0x00, 0x80])
     assert.equal(computeFileSha256(binary), createHash('sha256').update(binary).digest('hex'))
     // Guard against the lossy `Buffer -> utf8 string` round-trip.
-    assert.notEqual(computeFileSha256(binary), createHash('sha256').update(binary.toString('utf8')).digest('hex'))
-    assert.equal(computeFileSha256('hello world'), createHash('sha256').update('hello world').digest('hex'))
+    assert.notEqual(
+      computeFileSha256(binary),
+      createHash('sha256').update(binary.toString('utf8')).digest('hex'),
+    )
+    assert.equal(
+      computeFileSha256('hello world'),
+      createHash('sha256').update('hello world').digest('hex'),
+    )
   })
 
   it('recognises the canonical `<file>.<ext>_sidecar_NN.md` sidecar names', () => {
@@ -160,7 +167,9 @@ describe('Domain Console Files Payload Precomputation', () => {
     const changes = [
       {
         id: '2026-10-01-pricing',
-        changes: [{ id: 'ch-1', target: 'initiative-pricing', evidence: 'sources/market-survey.csv' }],
+        changes: [
+          { id: 'ch-1', target: 'initiative-pricing', evidence: 'sources/market-survey.csv' },
+        ],
       },
     ]
     const sources = [{ id: 'sources/market-survey.csv', path: 'sources/market-survey.csv' }]
@@ -227,7 +236,12 @@ describe('Domain Console Files Payload Precomputation', () => {
         excerptCount: 1,
         changesCount: 0,
         uncited: false,
-        sidecar: { path: 'sources/import/doc1.pdf_sidecar_NN.md', exists: true, valid: true, sha256Matches: true },
+        sidecar: {
+          path: 'sources/import/doc1.pdf_sidecar_NN.md',
+          exists: true,
+          valid: true,
+          sha256Matches: true,
+        },
       },
       {
         ...base,
@@ -238,7 +252,12 @@ describe('Domain Console Files Payload Precomputation', () => {
         citationsCount: 0,
         changesCount: 0,
         uncited: true,
-        sidecar: { path: 'sources/import/doc2.pdf_sidecar_NN.md', exists: true, valid: true, sha256Matches: false },
+        sidecar: {
+          path: 'sources/import/doc2.pdf_sidecar_NN.md',
+          exists: true,
+          valid: true,
+          sha256Matches: false,
+        },
       },
       {
         ...base,
@@ -249,7 +268,12 @@ describe('Domain Console Files Payload Precomputation', () => {
         citationsCount: 0,
         changesCount: 1,
         uncited: false,
-        sidecar: { path: 'sources/import/doc3.pdf_sidecar_NN.md', exists: true, valid: false, error: 'Missing source_file' },
+        sidecar: {
+          path: 'sources/import/doc3.pdf_sidecar_NN.md',
+          exists: true,
+          valid: false,
+          error: 'Missing source_file',
+        },
       },
       {
         ...base,
@@ -282,7 +306,11 @@ describe('Domain Console Files Payload Precomputation', () => {
         citationsCount: 1,
         changesCount: 0,
         uncited: false,
-        sidecar: { path: 'sources/sync/org/organization_NN.md_sidecar_NN.md', exists: false, valid: false },
+        sidecar: {
+          path: 'sources/sync/org/organization_NN.md_sidecar_NN.md',
+          exists: false,
+          valid: false,
+        },
       },
       {
         ...base,
@@ -358,11 +386,17 @@ describe('buildOrigins', () => {
     excerptCount: 0,
     changesCount: 0,
     uncited: false,
-    ...(sidecar ? { sidecar: { path: path + '_sidecar_NN.md', exists: true, valid: true, ...sidecar } } : {}),
+    ...(sidecar
+      ? { sidecar: { path: path + '_sidecar_NN.md', exists: true, valid: true, ...sidecar } }
+      : {}),
   })
 
   it('is empty without Synchronization elements or sidecar origin keys, whatever the folders are called', () => {
-    const inventory = [entry('sources/import/a.pdf', {}), entry('external/x.txt'), entry('sources/watch/y.txt')]
+    const inventory = [
+      entry('sources/import/a.pdf', {}),
+      entry('external/x.txt'),
+      entry('sources/watch/y.txt'),
+    ]
     assert.deepEqual(buildOrigins([], inventory), [])
   })
 
@@ -397,15 +431,32 @@ describe('buildOrigins', () => {
           'sources/sync/org/teams/team_NN.md',
         ],
       },
-      { id: 'idle', alias: 'idle', origin: '/shared/idle', kind: 'folder', state: 'paused', files: [] },
+      {
+        id: 'idle',
+        alias: 'idle',
+        origin: '/shared/idle',
+        kind: 'folder',
+        state: 'paused',
+        files: [],
+      },
     ])
   })
 
   it('turns sidecar origin keys without a Synchronization into adhoc origins', () => {
     const inventory = [
-      entry('sources/import/web/page.html', { originUri: 'https://example.com/page', originPath: 'page' }),
-      entry('sources/import/web/page2.html', { originUri: 'https://example.com/page', originPath: 'page2' }),
-      entry('sources/import/lost/a.txt', { synchronization: 'gone', originUri: '/old/place', originPath: 'a.txt' }),
+      entry('sources/import/web/page.html', {
+        originUri: 'https://example.com/page',
+        originPath: 'page',
+      }),
+      entry('sources/import/web/page2.html', {
+        originUri: 'https://example.com/page',
+        originPath: 'page2',
+      }),
+      entry('sources/import/lost/a.txt', {
+        synchronization: 'gone',
+        originUri: '/old/place',
+        originPath: 'a.txt',
+      }),
     ]
     assert.deepEqual(buildOrigins([], inventory), [
       {

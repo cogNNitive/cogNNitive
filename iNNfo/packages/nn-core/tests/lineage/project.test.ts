@@ -69,7 +69,10 @@ sources:
 # Market
 `,
     },
-    sidecar('artifacts/Market_20261002T101500Z.md', 'sources:\n  - "ignored/for/text-subjects.md"\n'),
+    sidecar(
+      'artifacts/Market_20261002T101500Z.md',
+      'sources:\n  - "ignored/for/text-subjects.md"\n',
+    ),
     // Sidecar whose source_file disagrees with the subject derived from its name.
     {
       path: 'sources/import/a.csv_sidecar_NN.md',
@@ -127,7 +130,10 @@ sources:
 <body></body>
 </html>`,
     },
-    { path: 'artifacts/summary.csv', content: `item,sources,count\nEnterprise,sources/import/interview.md@## Clients,42\n` },
+    {
+      path: 'artifacts/summary.csv',
+      content: `item,sources,count\nEnterprise,sources/import/interview.md@## Clients,42\n`,
+    },
     {
       path: 'artifacts/data.json',
       content: JSON.stringify([
@@ -177,10 +183,14 @@ sources:
     const pdf = sources.find((s) => s.raw_filename === 'sources/import/contract.pdf')
     expect(pdf?.normalized_by).toBe('nn-trannsform')
     expect(pdf?.source_format).toBe('pdf')
-    expect(pdf?.derived_from).toEqual(['kNNowledge/Strategy_business_NN.md@## NN Strategy: Positioning'])
+    expect(pdf?.derived_from).toEqual([
+      'kNNowledge/Strategy_business_NN.md@## NN Strategy: Positioning',
+    ])
 
     const market = sources.find((s) => s.raw_filename === 'artifacts/Market_20261002T101500Z.md')
-    expect(market?.derived_from).toEqual(['kNNowledge/Strategy_business_NN.md@## NN Strategy: Positioning'])
+    expect(market?.derived_from).toEqual([
+      'kNNowledge/Strategy_business_NN.md@## NN Strategy: Positioning',
+    ])
   })
 
   it('never emits the removed archive, status, curated and media fields', () => {
@@ -250,7 +260,36 @@ sources:
 
   it('does not project a Source twice as an artifact', () => {
     const { artifacts } = projectLineage(fixtureFiles)
-    expect(artifacts.some((a) => a.artifact_ref === 'artifacts/Market_20261002T101500Z.md')).toBe(false)
+    expect(artifacts.some((a) => a.artifact_ref === 'artifacts/Market_20261002T101500Z.md')).toBe(
+      false,
+    )
+  })
+
+  it('projects declared deliverables and execution run artifacts as artifact nodes', () => {
+    const files: FileSnapshot[] = [
+      {
+        path: 'entregables/acme/entregable-acme.md',
+        content: '# Entregable\nDeliverable content\n',
+      },
+      {
+        path: 'executions/entregable-acme/entregable-acme_executions_NN.md',
+        content: `---
+level: 3
+knowledge_version: "V_0-7-7"
+parent_spec:
+  name: "executions"
+---
+# NN Run Artifact
+## NN Run Artifact: Entregable
+slug:: entregable
+kind:: file
+status:: validated
+value:: entregables/acme/entregable-acme.md
+`,
+      },
+    ]
+    const { artifacts } = projectLineage(files)
+    expect(artifacts.map((a) => a.artifact_ref)).toEqual(['entregables/acme/entregable-acme.md'])
   })
 
   it('moves a file from Artifacts to Sources when its sidecar appears', () => {
@@ -289,12 +328,12 @@ describe('extractDeclaredCitations', () => {
     expect(
       extractDeclaredCitations({ path: 'a.md', content: '---\nsources: ["x.md@## A"]\n---\n' }),
     ).toEqual([{ value: 'x.md@## A', referringPath: 'a.md', field: 'sources' }])
-    expect(extractDeclaredCitations({ path: 'a.csv', content: 'k,sources\n1,x.md@## A\n' })).toEqual([
-      { value: 'x.md@## A', referringPath: 'a.csv', field: 'sources' },
-    ])
-    expect(extractDeclaredCitations({ path: 'a.json', content: '{"sources":["x.md@## A"]}' })).toEqual([
-      { value: 'x.md@## A', referringPath: 'a.json', field: 'sources' },
-    ])
+    expect(
+      extractDeclaredCitations({ path: 'a.csv', content: 'k,sources\n1,x.md@## A\n' }),
+    ).toEqual([{ value: 'x.md@## A', referringPath: 'a.csv', field: 'sources' }])
+    expect(
+      extractDeclaredCitations({ path: 'a.json', content: '{"sources":["x.md@## A"]}' }),
+    ).toEqual([{ value: 'x.md@## A', referringPath: 'a.json', field: 'sources' }])
     expect(extractDeclaredCitations({ path: 'a.txt', content: 'sources: x' })).toEqual([])
   })
 
@@ -306,7 +345,10 @@ describe('extractDeclaredCitations', () => {
         path: 'kNNowledge/K_business_NN.md',
         content: '---\nlevel: 3\nsources: ["z.md@## C"]\nparent_spec:\n  name: business\n---\n',
       },
-      { path: 'artifacts/staging/s_20261002T101500Z.md', content: '---\nsources: ["w.md@## D"]\n---\n' },
+      {
+        path: 'artifacts/staging/s_20261002T101500Z.md',
+        content: '---\nsources: ["w.md@## D"]\n---\n',
+      },
     ])
     expect(sites.map((s) => s.referringPath)).toEqual([
       'artifacts/r_20261002T101500Z.md',
