@@ -41,7 +41,7 @@
       "tier": "core",
       "access": "public",
       "when_to_use": null,
-      "release_tag": "blueprints-v0.104.0",
+      "release_tag": null,
       "embedded_skills": [],
       "versions": [
         {
@@ -162,7 +162,7 @@
       "tier": "core",
       "access": "public",
       "when_to_use": null,
-      "release_tag": "blueprints-v0.104.0",
+      "release_tag": null,
       "embedded_skills": [],
       "versions": [
         {
@@ -179,7 +179,7 @@
       "tier": "core",
       "access": "public",
       "when_to_use": "Level-2 blueprint recording runs of procedures as models with state: one instance model per run, holding its header, one row per step and one row per artifact; the history of the run is the change log of that model.",
-      "release_tag": "blueprints-v0.104.0",
+      "release_tag": null,
       "embedded_skills": [],
       "versions": [
         {
@@ -298,7 +298,7 @@
       "tier": "core",
       "access": "public",
       "when_to_use": null,
-      "release_tag": "blueprints-v0.104.0",
+      "release_tag": null,
       "embedded_skills": [],
       "versions": [
         {
