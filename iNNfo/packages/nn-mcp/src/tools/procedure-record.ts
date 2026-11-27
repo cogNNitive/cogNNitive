@@ -734,14 +734,71 @@ function plan(
             { artifact: field, address },
           )
       }
+      let fileRevValue: string | undefined
+      let effectiveValue = value
+      if (kind === 'file') {
+        const slots = slotValuesOf(f.run)
+        const declaredAt = substitute(f.graph.artifacts[field]!.at, slots)
+        const verify = substitute(f.graph.artifacts[field]!.verify, slots)
+        const verifyFile = verify?.startsWith('file:')
+          ? verify.slice('file:'.length).trim()
+          : undefined
+        const filePath = (value ?? (declaredAt?.trim() || undefined) ?? verifyFile)?.replace(
+          /\\/g,
+          '/',
+        )
+        if (filePath) {
+          if (status === 'validated') {
+            const actualRev = fileRev(root, filePath)
+            if (!actualRev) {
+              return fail(
+                'FILE_NOT_FOUND',
+                `Artifact "${field}" file "${filePath}" does not exist on disk; an unwritten file cannot be validated.`,
+                { artifact: field, path: filePath },
+              )
+            }
+            if (rev !== undefined && rev.trim() !== '' && rev.trim() !== actualRev) {
+              return fail(
+                'REV_MISMATCH',
+                `Artifact "${field}" rev mismatch: supplied "${rev}" does not match file sha256 "${actualRev}".`,
+                { artifact: field, path: filePath, supplied: rev, actual: actualRev },
+              )
+            }
+            fileRevValue = actualRev
+            effectiveValue = filePath
+          } else {
+            const actualRev = fileRev(root, filePath)
+            if (actualRev) {
+              if (rev !== undefined && rev.trim() !== '' && rev.trim() !== actualRev) {
+                return fail(
+                  'REV_MISMATCH',
+                  `Artifact "${field}" rev mismatch: supplied "${rev}" does not match file sha256 "${actualRev}".`,
+                  { artifact: field, path: filePath, supplied: rev, actual: actualRev },
+                )
+              }
+              fileRevValue = actualRev
+              effectiveValue = filePath
+            } else if (rev !== undefined && rev.trim() !== '') {
+              return fail(
+                'FILE_NOT_FOUND',
+                `Artifact "${field}" file "${filePath}" does not exist on disk; cannot supply rev for an unwritten file.`,
+                { artifact: field, path: filePath },
+              )
+            }
+          }
+        } else {
+          fileRevValue = rev
+        }
+      }
       return {
         step,
         changes: [
           artifactRowChange(run.id, field, {
             status,
-            ...(value !== undefined ? { value } : {}),
+            ...(effectiveValue !== undefined ? { value: effectiveValue } : {}),
             ...(kind === 'element' && elementRev !== undefined ? { rev: elementRev } : {}),
-            ...(kind !== 'element' && rev !== undefined ? { rev } : {}),
+            ...(kind === 'file' && fileRevValue !== undefined ? { rev: fileRevValue } : {}),
+            ...(kind !== 'element' && kind !== 'file' && rev !== undefined ? { rev } : {}),
             step,
           }),
         ],
@@ -957,6 +1014,55 @@ function plan(
       `Step "${step}" must record its required output${missing.length > 1 ? 's' : ''}: ${missing.map((m) => `"${m.name}" (${m.slug})`).join(', ')}.`,
       { step, missing },
     )
+  const stepOutputs = f.graph.steps[step]?.outputs ?? []
+  let stagedSlugs = new Set<string>()
+  if (args['outputs'] !== undefined) {
+    let raw = args['outputs']
+    if (typeof raw === 'string') {
+      try {
+        raw = JSON.parse(raw)
+      } catch {
+        // Ignored: downstream handles malformed payloads
+      }
+    }
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      stagedSlugs = new Set(Object.keys(raw))
+    }
+  }
+  for (const slug of stepOutputs) {
+    if (stagedSlugs.has(slug)) continue
+    const artDef = f.graph.artifacts[slug]
+    if (!artDef || artDef.kind !== 'file') continue
+    const artRow = f.run.artifacts[slug]
+    if (artRow?.status === 'validated') {
+      const slots = slotValuesOf(f.run)
+      const declaredAt = substitute(artDef.at, slots)
+      const verify = substitute(artDef.verify, slots)
+      const verifyFile = verify?.startsWith('file:')
+        ? verify.slice('file:'.length).trim()
+        : undefined
+      const filePath = (artRow.value ?? (declaredAt?.trim() || undefined) ?? verifyFile)?.replace(
+        /\\/g,
+        '/',
+      )
+      if (!filePath) continue
+      const actualRev = fileRev(root, filePath)
+      if (!actualRev) {
+        return fail(
+          'FILE_NOT_FOUND',
+          `Artifact "${slug}" file "${filePath}" does not exist on disk; an unwritten file cannot be validated.`,
+          { artifact: slug, path: filePath },
+        )
+      }
+      if (artRow.rev && artRow.rev.trim() !== '' && artRow.rev.trim() !== actualRev) {
+        return fail(
+          'REV_MISMATCH',
+          `Artifact "${slug}" rev mismatch: file sha256 "${actualRev}" does not match recorded "${artRow.rev}".`,
+          { artifact: slug, path: filePath, supplied: artRow.rev, actual: actualRev },
+        )
+      }
+    }
+  }
   const outcome = text(args['outcome'])
   const targets = state.allowedNext
   const chosen = chooseNext(targets, outcome, text(args['next']))
@@ -1212,9 +1318,14 @@ function planEngineRun(
     const missing: string[] = []
     const artifactChanges: Change[] = []
     for (const slug of def.outputs) {
+      const declaredAt = substitute(f.graph.artifacts[slug]?.at, slots)
       const verify = substitute(f.graph.artifacts[slug]?.verify, slots)
-      if (!verify?.startsWith('file:')) continue
-      const path = verify.slice('file:'.length).trim()
+      const path = verify?.startsWith('file:')
+        ? verify.slice('file:'.length).trim()
+        : f.graph.artifacts[slug]?.kind === 'file'
+          ? declaredAt?.trim()
+          : undefined
+      if (!path) continue
       const rev = fileRev(root, path)
       if (rev)
         artifactChanges.push({
@@ -1251,7 +1362,12 @@ function planEngineRun(
       ...missing,
       ...unrecordedRequiredOutputs(f, step)
         .filter(
-          (m) => !def.outputs.some((o) => f.graph.artifacts[o]?.verify?.trim().startsWith('file:')),
+          (m) =>
+            !def.outputs.some(
+              (o) =>
+                f.graph.artifacts[o]?.verify?.trim().startsWith('file:') ||
+                (f.graph.artifacts[o]?.kind === 'file' && f.graph.artifacts[o]?.at?.trim()),
+            ),
         )
         .map((m) => m.name),
     ]

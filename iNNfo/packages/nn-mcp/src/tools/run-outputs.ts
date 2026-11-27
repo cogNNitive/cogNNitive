@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type { ChangeItem } from '@cognnitive/nn-core'
-import { fail } from './procedure-state.js'
+import { fail, slotValuesOf, substitute } from './procedure-state.js'
 import type { FoldedRun, ToolError } from './procedure-state.js'
 
 /**
@@ -121,9 +121,15 @@ export function stageOutputs(
         `Output "${slug}" holds ${bytes.length} bytes; the limit is ${MAX_OUTPUT_BYTES}.`,
         { artifact: slug, bytes: bytes.length, limit: MAX_OUTPUT_BYTES },
       )
+    const declaredAt = f.graph.artifacts[slug]?.at
+    const atSubstituted = declaredAt ? substitute(declaredAt, slotValuesOf(f.run)) : undefined
+    const path =
+      atSubstituted && atSubstituted.trim() !== ''
+        ? atSubstituted.trim().replace(/\\/g, '/')
+        : `executions/${f.run.id}/outputs/${slug}/${outputFileName(slug, name)}`
     outputs.push({
       slug,
-      path: `executions/${f.run.id}/outputs/${slug}/${outputFileName(slug, name)}`,
+      path,
       bytes,
       rev: createHash('sha256').update(bytes).digest('hex'),
     })

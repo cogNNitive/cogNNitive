@@ -44,6 +44,14 @@ const EXECUTIONS_SPEC = join(
   'spec_NN.md',
 )
 
+const SPEC_CONTENT = '# Spec\n'
+const SPEC_REV = createHash('sha256').update(SPEC_CONTENT).digest('hex')
+const DRAFT_CONTENT = '# Draft\n'
+const DRAFT_REV = createHash('sha256').update(DRAFT_CONTENT).digest('hex')
+const DRAFT_REV_2 = createHash('sha256').update('# Draft 2\n').digest('hex')
+const REPORT_CONTENT = '# Report\n'
+const REPORT_REV = createHash('sha256').update(REPORT_CONTENT).digest('hex')
+
 let root: string
 
 /** A pid that is certainly not running: a child process that has already exited. */
@@ -60,6 +68,9 @@ beforeEach(() => {
   // The domain carries the executions bluepriNNt package, as procedure-execution.test.ts does.
   mkdirSync(join(root, 'specs', 'bluepriNNts', 'executions'), { recursive: true })
   cpSync(EXECUTIONS_SPEC, join(root, 'specs', 'bluepriNNts', 'executions', 'spec_NN.md'))
+  writeFileSync(join(root, 'spec.md'), SPEC_CONTENT, 'utf-8')
+  writeFileSync(join(root, 'draft.md'), DRAFT_CONTENT, 'utf-8')
+  writeFileSync(join(root, 'report.md'), REPORT_CONTENT, 'utf-8')
   process.env.INNFO_CACHE_DIR = join(root, '.cache')
   process.env.INNFO_GLOBAL_DIR = join(root, '.global')
   process.env.INNFO_SKILLS_DIR = join(root, '.skills')
@@ -393,7 +404,7 @@ describe('procedure_state', SLOW, () => {
         fact: 'validated',
         field: 'draft-doc',
         value: 'spec.md',
-        rev: 'd1',
+        rev: SPEC_REV,
       }),
     )
     ok(await procedureRecord(root, { run: 'r1', action: 'complete' }))
@@ -412,7 +423,7 @@ describe('procedure_state', SLOW, () => {
       slug: 'review',
       executor: 'human',
       decision: 'Approve spec?',
-      inputs: { 'draft-doc': { status: 'validated', rev: 'd1' } },
+      inputs: { 'draft-doc': { status: 'validated', rev: SPEC_REV } },
     })
     expect(s.allowedNext).toEqual([
       { to: 'publish', guard: { kind: 'outcome', token: 'approve' } },
@@ -431,7 +442,7 @@ describe('procedure_state', SLOW, () => {
         action: 'artifact',
         fact: 'validated',
         field: 'draft-doc',
-        rev: 'd1',
+        rev: SPEC_REV,
       }),
     ).toMatchObject({ ok: false, code: 'STEP_NOT_STARTED' })
     ok(await procedureRecord(root, { run: 'r1', action: 'start' }))
@@ -457,7 +468,7 @@ describe('procedure_record', SLOW, () => {
         fact: 'validated',
         field: 'draft-doc',
         value: 'spec.md',
-        rev: 'd1',
+        rev: SPEC_REV,
       }),
     )
     // A single target: next is recorded without being given.
@@ -543,7 +554,7 @@ describe('procedure_record', SLOW, () => {
         action: 'artifact',
         fact: 'validated',
         field: 'draft-doc',
-        rev: 'abc123',
+        rev: SPEC_REV,
       }),
     )
     // With the required output recorded, the step completes and the walk moves on.
@@ -730,7 +741,7 @@ describe('procedure_record', SLOW, () => {
         action: 'artifact',
         fact: 'validated',
         field: 'draft-doc',
-        rev: 'd1',
+        rev: SPEC_REV,
       }),
     ).toMatchObject({ ok: false, code: 'STEP_NOT_STARTED' })
     expect(await changesets()).toHaveLength(1)
@@ -743,11 +754,11 @@ describe('procedure_record', SLOW, () => {
         action: 'artifact',
         fact: 'validated',
         field: 'draft-doc',
-        rev: 'd1',
+        rev: SPEC_REV,
       }),
     )
     expect(r.state).toMatchObject({
-      artifacts: { 'draft-doc': { status: 'validated', rev: 'd1' } },
+      artifacts: { 'draft-doc': { status: 'validated', rev: SPEC_REV } },
     })
   })
 
@@ -770,7 +781,7 @@ describe('procedure_record', SLOW, () => {
         action: 'artifact',
         fact: 'validated',
         field: 'draft-doc',
-        rev: 'd1',
+        rev: SPEC_REV,
       }),
     ).toMatchObject({ ok: false, code: 'RUN_DRIFTED' })
   })
@@ -955,7 +966,8 @@ describe('bounded loops', SLOW, () => {
   const rec = (args: Record<string, unknown>) => procedureRecord(root, { run: 'l1', ...args })
 
   /** Drafts, validates the draft at `rev`, and stops at the review step, started. */
-  async function untilReview(rev: string): Promise<void> {
+  async function untilReview(rev = DRAFT_REV): Promise<void> {
+    writeFileSync(join(root, 'draft.md'), DRAFT_CONTENT, 'utf-8')
     ok(await startLoop())
     ok(await rec({ action: 'start' }))
     ok(await rec({ action: 'artifact', fact: 'validated', field: 'draft-doc', rev }))
@@ -970,7 +982,7 @@ describe('bounded loops', SLOW, () => {
   }
 
   it('the forward branch out of a loop completes the run like any decision', async () => {
-    await untilReview('d1')
+    await untilReview()
     const approved = ok(await rec({ action: 'complete', outcome: 'approve' }))
     expect(approved.state).toMatchObject({
       currentStep: 'publish',
@@ -982,14 +994,15 @@ describe('bounded loops', SLOW, () => {
   })
 
   it('a back-edge reopens its span in one changeset, and the target restarts at the next attempt', async () => {
-    await untilReview('d1')
+    await untilReview()
     await sendBack()
+    writeFileSync(join(root, 'draft.md'), '# Draft 2\n', 'utf-8')
     ok(
       await rec({
         action: 'artifact',
         fact: 'validated',
         field: 'draft-doc',
-        rev: 'd2',
+        rev: DRAFT_REV_2,
         step: 'redraft',
       }),
     )
@@ -1024,14 +1037,14 @@ describe('bounded loops', SLOW, () => {
     // loop is still open. Reopening a step is not an attempt: only a start is.
     const { attempts } = ok(await procedureState(root, { run: 'l1' })).state
     expect(attempts.review).toEqual([
-      { attempt: 1, inputs: { 'draft-doc': 'd1' }, actor: 'agent' },
-      { attempt: 2, inputs: { 'draft-doc': 'd2' }, actor: 'agent' },
+      { attempt: 1, inputs: { 'draft-doc': DRAFT_REV }, actor: 'agent' },
+      { attempt: 2, inputs: { 'draft-doc': DRAFT_REV_2 }, actor: 'agent' },
     ])
     expect(attempts.redraft).toEqual([{ attempt: 1, inputs: {}, actor: 'agent' }])
   })
 
   it('LOOP_LIMIT: the decision on its last attempt cannot choose the branch that only loops back', async () => {
-    await untilReview('d1')
+    await untilReview()
     await sendBack()
     ok(await rec({ action: 'complete' }))
     ok(await rec({ action: 'start' })) // review, attempt 2 of max_attempts:: 2
@@ -1057,7 +1070,7 @@ describe('bounded loops', SLOW, () => {
   })
 
   it('LOOP_LIMIT: a decision on its last attempt can still be failed', async () => {
-    await untilReview('d1')
+    await untilReview()
     await sendBack()
     ok(await rec({ action: 'complete' }))
     ok(await rec({ action: 'start' }))
@@ -1071,12 +1084,13 @@ describe('required outputs inside a loop', SLOW, () => {
   it('every pass of the revise step records its own output, the first pass included', async () => {
     ok(await procedureStart(root, { procedure: 'revise', run: 'v1' }))
     ok(await rec({ action: 'start' }))
-    ok(await rec({ action: 'artifact', fact: 'validated', field: 'report', rev: 'r1' }))
+    ok(await rec({ action: 'artifact', fact: 'validated', field: 'report', rev: REPORT_REV }))
     ok(await rec({ action: 'complete' }))
     ok(await rec({ action: 'start' }))
     ok(await rec({ action: 'complete', outcome: 'send-back' }))
 
-    for (const rev of ['r2', 'r3']) {
+    const reportRevs: Record<string, string> = { r1: REPORT_REV }
+    for (const r of ['r2', 'r3']) {
       ok(await rec({ action: 'start' })) // revise
       const before = await snapshot()
       // The report the build step validated is not the revise step's result.
@@ -1089,6 +1103,10 @@ describe('required outputs inside a loop', SLOW, () => {
       })
       expect(await snapshot()).toEqual(before)
 
+      writeFileSync(join(root, 'report.md'), `# Report ${r}\n`, 'utf-8')
+      const rev = createHash('sha256').update(`# Report ${r}\n`).digest('hex')
+      reportRevs[r] = rev
+
       // With no step named, the current step reports the output it declares.
       const recorded = ok(
         await rec({ action: 'artifact', fact: 'validated', field: 'report', rev }),
@@ -1097,12 +1115,15 @@ describe('required outputs inside a loop', SLOW, () => {
       const looped = ok(await rec({ action: 'complete' }))
       expect(looped.state.currentStep).toBe('check')
       ok(await rec({ action: 'start' }))
-      if (rev === 'r2') ok(await rec({ action: 'complete', outcome: 'send-back' }))
+      if (r === 'r2') ok(await rec({ action: 'complete', outcome: 'send-back' }))
     }
     // Once the loop exits, the last revised report stands: the run closes with it.
     const approved = ok(await rec({ action: 'complete', outcome: 'approve' }))
     expect(approved.state.currentStep).toBe('ship')
-    expect(approved.state.artifacts.report).toMatchObject({ status: 'validated', rev: 'r3' })
+    expect(approved.state.artifacts.report).toMatchObject({
+      status: 'validated',
+      rev: reportRevs['r3'],
+    })
     expect(approved.state.stale).toEqual([])
     ok(await rec({ action: 'start' }))
     ok(await rec({ action: 'complete' }))
