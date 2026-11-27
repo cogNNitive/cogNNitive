@@ -130,3 +130,16 @@ skills:
 2. **Workspace Flat Fallback**: `./bluepriNNts/<name>_V_<version>_NN.md` or `./specs/`
 3. **Global User Cache**: `~/.agents/bluepriNNts/<name>/<version>/`
 4. **Installed Skills Directory**: `~/.agents/skills/*/bluepriNNts/<name>/<version>/`
+
+## Local caches
+
+Both caches live under `defaultCacheDir()`: `<os temp>/innfo-specs`, or `$INNFO_CACHE_DIR`
+when it is set (tests point it at a temp folder). Nothing is written inside the domaiNN.
+
+- **Fetched specs and bluepriNNts**: the resolver's fetch-and-save tier.
+- **Changeset index** (`changeset-index/<root hash>-<format>.json`, one file per domaiNN
+  and index format): the parsed `*_changes_NN.md` documents, each keyed by file size, mtime
+  and ctime. Every read lists the folders it reads and stats each changeset; only new or
+  changed files are parsed, and entries of deleted files are dropped. A missing,
+  corrupt or older-format index is rebuilt silently. It is derived data: delete the file or
+  the folder whenever you like and the next tool call returns the same results.

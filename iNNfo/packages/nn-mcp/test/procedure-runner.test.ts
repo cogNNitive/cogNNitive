@@ -95,6 +95,9 @@ async function snapshot(dir = root, base = ''): Promise<Record<string, string>> 
   const out: Record<string, string> = {}
   for (const e of await readdir(dir, { withFileTypes: true })) {
     const rel = base ? `${base}/${e.name}` : e.name
+    // `.cache` is this file's INNFO_CACHE_DIR (the derived changeset index lives there),
+    // not part of the domaiNN.
+    if (rel === '.cache') continue
     if (e.isDirectory()) Object.assign(out, await snapshot(join(dir, e.name), rel))
     else out[rel] = await readFile(join(dir, e.name), 'utf-8')
   }

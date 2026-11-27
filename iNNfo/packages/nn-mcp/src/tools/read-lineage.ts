@@ -7,9 +7,7 @@
  * here depends on it.
  */
 import {
-  buildChangeLog,
   projectLineage,
-  readLineageSnapshot,
   type LineageArtifact,
   type LineageChangeset,
   type LineageDiagnostic,
@@ -18,6 +16,7 @@ import {
   type LineageSource,
   type LineageView,
 } from '@cognnitive/nn-core'
+import { readDomainLineage } from './domain-lineage.js'
 
 export interface ReadLineageInput {
   /** Substring filter applied to every section's refs (case-insensitive). */
@@ -48,9 +47,12 @@ export async function readLineageTool(
   rootDir: string,
   input: ReadLineageInput = {},
 ): Promise<ReadLineageResult> {
-  const files = readLineageSnapshot(rootDir)
-  const view: LineageView = projectLineage(files, buildChangeLog(files), {
+  // One snapshot, its change log and the parses both made: every file parsed once, and
+  // the changesets taken from the persistent changeset index.
+  const { files, log, parses } = readDomainLineage(rootDir)
+  const view: LineageView = projectLineage(files, log, {
     scope: input.scope ?? 'live',
+    parses,
   })
   const focus = input.focus
 

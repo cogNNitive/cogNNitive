@@ -14,8 +14,7 @@ import {
   validateWorkspaceReferences,
   validateWorkspaceSources,
   createFsSourceResolver,
-  readLineageSnapshot,
-  buildChangeLog,
+  loadChangeLog,
   checkProvenance,
   evidenceCitationSites,
   unitOf,
@@ -452,7 +451,7 @@ export async function collectDriftDiagnostics(
   rootDir: string,
   call: { index?: NodeDomainIndex } = {},
 ): Promise<ReferenceDiagnostic[]> {
-  const log = buildChangeLog(readLineageSnapshot(rootDir))
+  const log = loadChangeLog(rootDir)
   const models = await collectProvenanceModels(rootDir, log, call)
   const pathByModel = new Map(
     models
