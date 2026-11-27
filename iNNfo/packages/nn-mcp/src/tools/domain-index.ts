@@ -148,8 +148,11 @@ export interface DomainLayout {
  */
 export async function domainLayoutDiagnostics(
   rootDir: string,
-  opts: NodeDomainIndexOptions = {},
+  opts: NodeDomainIndexOptions & {
+    /** An index already built for `rootDir` in the same tool call, with the same `strict`. */
+    index?: NodeDomainIndex
+  } = {},
 ): Promise<DomainLayout> {
-  const nodeIndex = await buildNodeDomainIndex(rootDir, opts)
+  const nodeIndex = opts.index ?? (await buildNodeDomainIndex(rootDir, { strict: opts.strict }))
   return { diagnostics: [...nodeIndex.index.diagnostics], index: nodeIndex.index }
 }

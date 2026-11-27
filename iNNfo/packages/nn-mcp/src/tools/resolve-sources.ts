@@ -13,8 +13,7 @@ import {
   CHANGE_CONCEPT,
   KNOWN_AGENT_TOOL_IDS,
   createFsSourceResolver,
-  buildChangeLog,
-  readLineageSnapshot,
+  loadChangeLog,
   splitEvidence,
 } from '@cognnitive/nn-core'
 import type {
@@ -128,7 +127,7 @@ async function resolveTargetEvidence(
   model: string,
   target: string,
 ): Promise<ResolvedCitation[]> {
-  const log = buildChangeLog(readLineageSnapshot(rootDir))
+  const log = loadChangeLog(rootDir)
   const origin = log.origin(target)
   if (!origin) return []
 

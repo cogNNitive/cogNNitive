@@ -13,9 +13,7 @@
  * never answers more than an agent can read whatever the domain's size.
  */
 import {
-  buildChangeLog,
   projectLineage,
-  readLineageSnapshot,
   type LineageArtifact,
   type LineageChangeset,
   type LineageDiagnostic,
@@ -24,6 +22,7 @@ import {
   type LineageSource,
   type LineageView,
 } from '@cognnitive/nn-core'
+import { readDomainLineage } from './domain-lineage.js'
 
 export const LINEAGE_SECTIONS = [
   'sources',
@@ -110,9 +109,12 @@ export function lineageSections(
   rootDir: string,
   input: Pick<ReadLineageInput, 'focus' | 'scope'> = {},
 ): LineageSections {
-  const files = readLineageSnapshot(rootDir)
-  const view: LineageView = projectLineage(files, buildChangeLog(files), {
+  // One snapshot, its change log and the parses both made: every file parsed once, and
+  // the changesets taken from the persistent changeset index.
+  const { files, log, parses } = readDomainLineage(rootDir)
+  const view: LineageView = projectLineage(files, log, {
     scope: input.scope ?? 'live',
+    parses,
   })
   const focus = input.focus
 

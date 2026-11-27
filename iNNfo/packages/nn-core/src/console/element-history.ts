@@ -8,9 +8,8 @@
  * History is derived from the change log (`changelog/`), never from a field of
  * the model: it is every recorded change per unit, whatever its status.
  */
-import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { parseChangeset } from '../changeset/parser.js'
+import { readChangesDir } from '../changeset/changeset-index.js'
 import { isNNName, isSidecarName, parseName } from '../naming/contract.js'
 import type { ResolvedCitation } from './citations.js'
 import { buildChangeLogFromChangesets, changesetLikeOf, resolveChangeFacts, type ChangesetLike } from '../changelog/load.js'
@@ -171,27 +170,13 @@ function stripWrappingQuotes(value?: string): string | undefined {
  * UI lists them all (`changeLog().all`).
  */
 export async function loadChangesetRecords(rootDir: string): Promise<ChangesetRecord[]> {
-  const dir = join(rootDir, 'changes')
-  let names: string[]
-  try {
-    names = await readdir(dir)
-  } catch {
-    return []
-  }
+  // Through the persistent changeset index: only new or changed files are parsed.
+  const read = readChangesDir(join(rootDir, 'changes'), isChangesetFile).sort((a, b) =>
+    a.name < b.name ? -1 : a.name > b.name ? 1 : 0,
+  )
   const records: ChangesetRecord[] = []
-  for (const name of names.filter(isChangesetFile).sort()) {
-    let raw: string
-    try {
-      raw = await readFile(join(dir, name), 'utf-8')
-    } catch {
-      continue
-    }
-    let doc
-    try {
-      doc = parseChangeset(raw)
-    } catch {
-      continue
-    }
+  for (const { name, doc } of read) {
+    if (doc === null) continue
     const fm = doc.frontmatter as Record<string, unknown>
     // Execution facts are resolved here, once (own value, else the changeset's), so
     // the payload carries them per change and the browser never re-implements
