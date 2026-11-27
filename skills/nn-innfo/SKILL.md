@@ -901,12 +901,16 @@ run's recorded events.
    `procedure_record` actions allowed now. It writes nothing. The built-in `{run}`
    slot always reads as the run id, in the state, an engine `command` and an
    artifact `verify`; never pass it as a parameter.
-3. **Record each fact as it happens** with `procedure_record`, one call per fact:
-   `start` the step, do the work, record `input` values read, `artifact` facts
-   (`produced`, `validated`, `rejected`), then `complete` with the `outcome`
-   (a decision step's answer). When several transitions are allowed, the runner
+3. **Record each step in one call** with `procedure_record`: do the work, then
+   `complete` the step with its `outcome` (a decision step's answer) and its
+   artifact facts in `artifacts` (`[{ fact: validated, field: <artifact slug>,
+   value, rev }]`; `produced` and `rejected` too). A `complete` of a step that was
+   not started claims it in the same changeset, so no separate `start` is needed.
+   Record `input` values read as their own facts. The separate calls (`start`, then
+   `artifact`, then `complete`) still work and are equivalent, one changeset each. When several transitions are allowed, the runner
    refuses `AMBIGUOUS_TRANSITION` and lists them: ask the user and pass `next`.
-   Use `wait` when the step waits on a person, `fail` when it fails, `pause`/`resume`
+   Use `wait` when the step waits on a person (`start` the step first: `wait` needs
+   a started step), `fail` when it fails, `pause`/`resume`
    when the user stops and returns, `cancel` to abandon the run.
    **Loops.** A decision may send the run back (a redraft that returns to its
    review): completing a step whose `next` is a step already walked reopens that
@@ -930,9 +934,14 @@ run's recorded events.
 5. **Engine steps** (`executor: engine`) are run with `procedure_record action=run`,
    which executes the step's `command` and records its exit code and file revisions.
    Run one only after the user confirms the command.
-6. **Finish.** When the state reports `canComplete`, call `procedure_record`
-   `finish`; the terminal event closes the run (`close_model`), after which the run
-   is citable evidence (`<run>@<event>`).
+6. **Finish.** Pass `finish: completed` on the `complete` of the last step: the same
+   changeset closes the run (`close_model`), after which the run is citable evidence
+   (`<run>@<event>`). When that completion does not leave the run closable the whole
+   call is refused (`CANNOT_COMPLETE`) and nothing is written. A separate
+   `procedure_record` `finish` once the state reports `canComplete` still works.
+   A review run recorded this way is four changesets: `procedure_start`, then
+   `complete` of draft (with its artifact), review (with its outcome) and publish
+   (with `finish`).
 
 A refusal writes nothing; read its code, fix the cause and call again. If the
 procedure changed after the run started, the run is `drifted`: tell the user and

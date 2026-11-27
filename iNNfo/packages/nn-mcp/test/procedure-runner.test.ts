@@ -562,7 +562,8 @@ describe('procedure_record', SLOW, () => {
     await refuse({ action: 'jump' }, 'INVALID_ACTION')
     await refuse({ action: 'start', step: 'ghost' }, 'UNKNOWN_STEP')
     await refuse({ action: 'start', step: 'review' }, 'STEP_NOT_CURRENT')
-    await refuse({ action: 'complete' }, 'STEP_NOT_STARTED')
+    // A `complete` of the pending current step claims it (procedure-runner-compact.test.ts).
+    await refuse({ action: 'complete', step: 'review' }, 'STEP_NOT_CURRENT')
     await refuse({ action: 'finish' }, 'CANNOT_COMPLETE')
     await refuse({ action: 'rebase' }, 'NOT_DRIFTED')
     await refuse({ action: 'artifact', fact: 'validated', field: 'ghost' }, 'UNKNOWN_ARTIFACT')

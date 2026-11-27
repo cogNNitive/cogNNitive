@@ -1319,6 +1319,84 @@ async function rejectRequest(
   return refused
 }
 
+/* ── compact completion ──────────────────────────────────────── */
+
+/**
+ * The run as it would read with `changes` applied: every `set_fields` on a step row or an
+ * artifact row is merged into the in-memory model, so a later part of the same completion is
+ * planned against what the earlier parts record. Nothing is written.
+ */
+function overlayRun(f: FoldedRun, changes: Change[]): FoldedRun['run'] {
+  const steps = { ...f.run.steps }
+  const artifacts = { ...f.run.artifacts }
+  const prefix = `${f.run.id}@`
+  for (const c of changes) {
+    if (c.op !== 'set_fields' || typeof c.to !== 'string' || !c.target.startsWith(prefix)) continue
+    const slug = c.target.slice(prefix.length)
+    const to = JSON.parse(c.to) as Record<string, unknown>
+    const str = (v: unknown): string | undefined =>
+      v === '' || v === undefined ? undefined : String(v)
+    if (f.graph.steps[slug]) {
+      const row: StepRow = { ...rowOf({ ...f, run: { ...f.run, steps } }, slug) }
+      for (const [k, v] of Object.entries(to)) {
+        if (k === 'status') row.status = v as StepRow['status']
+        else if (k === 'attempt') row.attempt = Number(v)
+        else if (k === 'inputs')
+          row.inputs =
+            typeof v === 'string' ? (JSON.parse(v || '{}') as Record<string, string>) : {}
+        else if (k === 'timeout_ms') row.timeoutMs = Number(v)
+        else if (k === 'claimed_at') row.claimedAt = str(v)
+        else if (k === 'waiting_on') row.waitingOn = str(v)
+        else if (k === 'outcome' || k === 'next' || k === 'failure' || k === 'holder')
+          row[k] = str(v)
+      }
+      steps[slug] = row
+    } else if (f.graph.artifacts[slug]) {
+      artifacts[slug] = { ...artifacts[slug], ...(to as object) } as (typeof artifacts)[string]
+    }
+  }
+  return { ...f.run, steps, artifacts }
+}
+
+/** Refolds the run with `changes` overlaid; the plan of the next part reads this. */
+async function overlaid(
+  root: string,
+  f: FoldedRun,
+  changes: Change[],
+): Promise<{ ok: true; folded: FoldedRun } | ToolError> {
+  return changes.length === 0
+    ? { ok: true, folded: f }
+    : foldStoredRun(root, overlayRun(f, changes))
+}
+
+/** The `artifacts` argument: an array of `{ fact, field, value?, rev?, step? }`, or its JSON text. */
+function artifactsArg(raw: unknown): { list: Record<string, unknown>[] } | ToolError {
+  let value = raw
+  if (typeof raw === 'string') {
+    try {
+      value = JSON.parse(raw)
+    } catch {
+      value = undefined
+    }
+  }
+  if (
+    !Array.isArray(value) ||
+    value.some((e) => e === null || typeof e !== 'object' || Array.isArray(e))
+  )
+    return fail(
+      'INVALID_ARGUMENT',
+      'artifacts must be an array of { fact, field, value?, rev?, step? }.',
+    )
+  return { list: value as Record<string, unknown>[] }
+}
+
+/** The `finish` argument: `true` or `"completed"` closes the run completed, `"failed"` failed. */
+function finishArg(raw: unknown): { outcome: 'completed' | 'failed' } | ToolError {
+  if (raw === true || raw === 'completed') return { outcome: 'completed' }
+  if (raw === 'failed') return { outcome: 'failed' }
+  return fail('INVALID_ARGUMENT', 'finish is true, "completed" or "failed".')
+}
+
 export async function procedureRecord(
   root: string,
   args: Record<string, unknown>,
@@ -1334,6 +1412,23 @@ export async function procedureRecord(
     return fail('INVALID_ACTION', `action must be one of ${ACTIONS.join(', ')}.`)
   const runId = text(args['run'])
   if (!runId) return fail('INVALID_ARGUMENT', 'run must be a non-empty run id.')
+
+  // The compact form (S8): `artifacts` and `finish` ride on a direct `complete` only, so one
+  // completion writes the claim, the step's artifacts, the completion and the closing of the
+  // run in ONE atomic changeset. Both are checked before anything is read or written.
+  if (
+    (args['artifacts'] !== undefined || args['finish'] !== undefined) &&
+    (requestId !== undefined || action !== 'complete')
+  )
+    return fail(
+      'INVALID_ARGUMENT',
+      'artifacts and finish travel only with action complete, never with a request.',
+    )
+  const artifactList =
+    args['artifacts'] !== undefined ? artifactsArg(args['artifacts']) : { list: [] }
+  if ('ok' in artifactList) return artifactList
+  const finishWith = args['finish'] !== undefined ? finishArg(args['finish']) : undefined
+  if (finishWith !== undefined && 'ok' in finishWith) return finishWith
 
   const read = await readRun(root, runId)
   if (!read.ok) return read
@@ -1438,6 +1533,26 @@ export async function procedureRecord(
   // rows applied, so the MISSING_OUTPUT gate sees them as recorded by this step. A step the
   // planner will refuse anyway (not current, run closed) is left to its refusal.
   let target = folded.folded
+
+  // A direct `complete` on the current step that was not started claims it first, with the
+  // same plan (and the same refusals) as `start`. The claim is planned now and folded into the
+  // run the rest of the call reads, and it lands in the completion's changeset: the claim and
+  // the completion become ONE `set_fields` on the step row, guarded by the row as it stands.
+  // A request keeps its own staleness rules, so it never claims implicitly.
+  let claim: Planned | undefined
+  if (requestId === undefined && resolvedAction === 'complete') {
+    const located = stepFor(target, effectiveArgs)
+    const status = located.ok ? target.state.steps[located.step]!.status : undefined
+    if (status === 'pending' || status === 'failed' || status === 'reopened') {
+      const started = await plan(target, 'start', effectiveArgs, root)
+      if ('ok' in started) return started
+      const next = await overlaid(root, target, started.changes)
+      if (!next.ok) return next
+      target = next.folded
+      claim = started
+    }
+  }
+
   let staged: Exclude<ReturnType<typeof stageOutputs>, ToolError> | undefined
   if (effectiveArgs['outputs'] !== undefined) {
     if (resolvedAction !== 'complete')
@@ -1458,8 +1573,59 @@ export async function procedureRecord(
     }
   }
 
+  // The artifacts a completion carries are planned one by one exactly as `action=artifact`
+  // plans them, each against the run with the earlier ones applied, so the completion's
+  // MISSING_OUTPUT gate sees them. Any refusal refuses the whole call before anything lands.
+  const recorded: Change[] = []
+  for (const entry of artifactList.list) {
+    const one = await plan(target, 'artifact', entry, root)
+    if ('ok' in one) return one
+    const next = await overlaid(root, target, one.changes)
+    if (!next.ok) return next
+    target = next.folded
+    recorded.push(...one.changes)
+  }
+
   const planned = await plan(target, resolvedAction!, effectiveArgs, root)
   if ('ok' in planned) return rejectRequest(root, read, requestId, planned)
+
+  // `finish` closes the run in the same changeset, planned exactly as `action=finish` against
+  // the run as this completion leaves it. A run the completion does not make closable refuses
+  // the whole call (CANNOT_COMPLETE, MISSING_OUTPUT), so nothing is written.
+  if (finishWith !== undefined) {
+    const after = await overlaid(root, target, planned.changes)
+    if (!after.ok) return after
+    const closing = await plan(after.folded, 'finish', { outcome: finishWith.outcome }, root)
+    if ('ok' in closing) return closing
+    planned.changes = [...planned.changes, ...closing.changes]
+    planned.close = true
+  }
+
+  // The implicit claim and the completion are one `set_fields` on the step row: `from` is
+  // evaluated against the model as it stands, so the completion cannot guard the `active`
+  // status its claim writes in the same batch. The claim's guard fences the whole write.
+  // The claim's own resets (a loop pass's earlier outputs back to `produced`) go first, ahead
+  // of the outputs and artifacts this call records again.
+  let claimResets: Change[] = []
+  if (claim) {
+    const [claimRow, ...claimRest] = claim.changes as [Change, ...Change[]]
+    claimResets = claimRest
+    planned.changes = [
+      ...recorded,
+      ...planned.changes.map((c) =>
+        c.op === 'set_fields' && c.target === claimRow.target
+          ? {
+              ...c,
+              from: claimRow.from,
+              to: JSON.stringify({
+                ...(JSON.parse(claimRow.to as string) as object),
+                ...(JSON.parse(c.to as string) as object),
+              }),
+            }
+          : c,
+      ),
+    ]
+  } else planned.changes = [...recorded, ...planned.changes]
 
   const kind = planned.kind ?? 'agent'
   const actor = text(args['actor']) ?? kind
@@ -1470,7 +1636,12 @@ export async function procedureRecord(
     const fresh = await readRun(root, run)
     if (fresh.ok) seq = fresh.run.seq
   }
-  const changes: Change[] = [seqGuard(run, seq), ...(staged?.changes ?? []), ...planned.changes]
+  const changes: Change[] = [
+    seqGuard(run, seq),
+    ...claimResets,
+    ...(staged?.changes ?? []),
+    ...planned.changes,
+  ]
   if (requestMark) changes.push(requestMark)
   if (planned.close) changes.push({ op: 'close_model', target: run, evidence: 'decision' })
   // The output files land right before the commit that records them, and go away again when
