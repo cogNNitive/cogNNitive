@@ -9075,7 +9075,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       },
       setOption: function (newOpt) {
         if (newOpt) option = newOpt
-        renderSvgGraph(host, option, o)
+        // A rebuild makes a new instance and new DOM listeners: the handlers registered on
+        // the old one would be lost, which is how the flow graph kept redrawing itself dead
+        // to clicks after every focus or resize.
+        var carried = this.handlers
+        var next = renderSvgGraph(host, option, o)
+        if (next) next.handlers = carried
       },
       resize: function () {},
       dispose: function () {
@@ -9260,16 +9265,36 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         g.appendChild(halo)
       }
 
-      g.addEventListener('click', function (e) {
-        if (e && e.stopPropagation) e.stopPropagation()
-        if (chartInstance.handlers && chartInstance.handlers.click) {
-          chartInstance.handlers.click({ dataType: 'node', data: node, name: node.name || id, id: id })
-        }
-      })
+      g.setAttribute('data-node-id', String(id))
 
       nodesG.appendChild(g)
     })
     svg.appendChild(nodesG)
+
+    // One listener on the root, not one per node. A redraw rebuilds every group, and a
+    // listener bound to a group dies with it; delegating keeps the graph clickable across
+    // rebuilds and needs nothing from the node that was drawn.
+    svg.addEventListener('click', function (ev) {
+      var el = ev && ev.target
+      var group = el && el.closest ? el.closest('g[data-node-id]') : null
+      if (!group) return
+      var nodeId = group.getAttribute('data-node-id')
+      var handler = chartInstance.handlers && chartInstance.handlers.click
+      if (!handler) return
+      var item = null
+      for (var i = 0; i < rawNodes.length; i++) {
+        if (String(rawNodes[i].id || rawNodes[i].name) === nodeId) {
+          item = rawNodes[i]
+          break
+        }
+      }
+      handler({
+        dataType: 'node',
+        data: item || { id: nodeId },
+        name: item ? item.name || nodeId : nodeId,
+        id: nodeId,
+      })
+    })
 
     scatterSeries.forEach(function (sc) {
       if (!Array.isArray(sc.data)) return
