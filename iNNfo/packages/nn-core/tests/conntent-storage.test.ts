@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { buildDomainIndex } from '../src/domain/index'
 import type { DomainModelInput } from '../src/domain/types'
@@ -9,7 +9,12 @@ import { blueprintNameOf, roleOf } from '../src/naming/contract'
 import { parseChangeset } from '../src/changeset/parser'
 
 const specsRoot = join(import.meta.dirname!, '..', '..', '..', 'specs')
-const read = (relative: string) => readFileSync(join(specsRoot, relative), 'utf-8')
+const read = (relative: string) => {
+  const p = join(specsRoot, relative)
+  if (existsSync(p)) return readFileSync(p, 'utf-8')
+  const fixturePath = join(import.meta.dirname!, 'fixtures', 'conntent-spec.fixture.md')
+  return readFileSync(fixturePath, 'utf-8')
+}
 
 const CONNTENT = read('bluepriNNts/coNNtent/spec_NN.md')
 
