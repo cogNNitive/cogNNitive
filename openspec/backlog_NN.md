@@ -63,6 +63,18 @@ captured:: 2026-11-15
 ## NN Idea: Conditional field transitions (`requires`) - the deferred half of declared transitions (design §2.5). A Field Definition would declare `requires:: {"approved": "gate:script"}`, a condition an edge must satisfy. Deferred because, as specified in the 2026-11-21 review, it was unsatisfiable or wrong: the coNNtent script gate is per Scene element, not on the Video; the condition ignored the verdict (`approved | needs-change`), so a rejection satisfied it; the element hash covers every field including `status`, so a gated move rewrites the hash it was gated on; and the engine writes `approved` itself, so an autopilot domain with no gates would be blocked. Reopens only with a written subject rule (which elements, how they aggregate), the current affirmative verdict with supersession, a hash that excludes the gated field, and applicability bound to the gates configured for the model rather than merely declared by the bluepriNNt. Human-only approval stays where it is enforced today: `changeset/gates.ts` and the coNNtent gate resolver.
 captured:: 2026-11-21
 
+## NN Idea: A2UI (agent-to-UI) as host-side rendering of an edit descriptor - deferred by the 2026-11-27 four-provider review. It gets no role as a knowledge-unit definition format (the boundary is authority, not authorship), no renderer or live loop inside `nn-console.bundle.js` (offline, `file://`, zero network), and no catalog generated from `ui-kit.js` (the export block mixes constants, helpers and imperative DOM factories that take a `doc` and callbacks, `ui-kit.js:5276-5344`). It survives only as a rendering comparison over a plain JSON edit descriptor, in a named host that renders A2UI natively. This idea carries D4 step 2, D8, D10, D11 and D12 of that review. Reopens when a host exists, the descriptor round-trip has passed, and that host's own UI is demonstrably insufficient.
+captured:: 2026-11-27
+
+## NN Idea: Wrap the console's single-view export as an MCP App - `export-console.mjs --view <id>` already produces a self-contained HTML of one custom view, which is close to what MCP Apps wants (`ui://` resource, sandboxed iframe, JSON-RPC over `postMessage`). It would put a view like the coNNtent Pipeline inside Claude, ChatGPT or VS Code and remove the copy-paste of drafts to the agent. Deferred behind `openspec/changes/console-save-in-place` and the `import_console` requirement in `procedure-runner-ux`, which close the same loop with a file and no iframe. Also blocked by host support (Claude Code, Codex CLI and Gemini CLI do not render MCP Apps) and by reconciling the console's embedded CSP hashes with `_meta.ui.csp`. Reopens when those two changes have landed and the round trip still costs the person work.
+captured:: 2026-11-27
+
+## NN Idea: Draft intake validation and an actor stamp - `normalizeDraft` coerces an unknown `kind` to `comment` (`review.js:109`) and `initialDrafts` skips `addDraft` entirely (`review.js:244`); drafts carry no actor field, yet the same channel carries human-only kinds (`verdict`, `run_start`, `run_handoff`, `review.js:22`). Today the only producer is the console itself, so the exposure is theoretical. Deferred as high risk for the value it returns now: it becomes worth doing when a second producer exists (an agent-facing edit surface, or a second person writing changesets), and it must then answer whether a person may record a verdict through an agent channel and what user-activation evidence the server verifies.
+captured:: 2026-11-27
+
+## NN Idea: Version the draft record per kind and make draft ids collision-safe - the draft record already crosses a process boundary (the `_changes_NN.md` artifact, `import_console`, `initialDrafts`), but its tag and relation encodings are ad hoc and `nextDraftId` derives ids from the existing list. Deferred: with one producer and one writer there is nothing to collide with, and versioning a contract nobody else consumes is a dead map. Reopens with the first second producer, or with the first observed encoding collision.
+captured:: 2026-11-27
+
 # NN Item
 ## NN Item: okf-export-projector
 value:: M
@@ -174,6 +186,47 @@ verdict:: current
 evidence:: ON HOLD. `scripts/release/channel-drift.js`, shipped blocking in #884, asserts that every released manifest entry still resolves to the commit it records. It passes vacuously today because the committed snapshot carries no released pin; if pins become per-unit content shas the gate has to be rewritten, so relaxing it to advisory now would be undone.
 done_when:: the gate fails on a deliberately moved pin in a fixture, or the pin shape it reads is retired together with it.
 batch:: b6-on-hold-blueprints
+
+## NN Item: a2ui-d2-edit-projection
+value:: H
+effort:: M
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: `kuModalTarget` computes the whole edit projection (field definition, widget, options, precondition) but is trapped inside the console controller and guarded on `UI.EditModal` (`review.js:832-961`, guard at `review.js:835`). Every external edit option - the descriptor round-trip, an MCP App, A2UI - needs that projection as data, so it is the shared prerequisite. `connectionsFor` (`review.js:966-985`) is already a pure reduction a producer can precompute.
+done_when:: one exported pure function turns `(schema, model, anchor)` into an edit descriptor for every target variant (field, matrix cell, relation retarget, `__name`, `__description`), the console modal consumes it instead of recomputing it, and a test pins one case per variant.
+
+## NN Item: a2ui-d7-authority-boundary
+value:: M
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: The 2026-11-27 review restated the boundary: a knowledge unit's shape is owned by the bluepriNNt and validated through the schema (`fieldDefOf`, `review.js:56-71`), so the rule is authority, not authorship - a non-authoritative presentation of an edit form is allowed, an input to the model or its validator is not. Today that rule lives only in the review, where the next agent will not read it.
+done_when:: the rule appears where an agent reads before proposing a change (the console/MCP contract or the `apply_change` documentation) and names the boundary in one sentence.
+
+## NN Item: a2ui-d9-no-renderer-in-bundle
+value:: M
+effort:: S
+risk:: L
+status:: open
+lane:: light
+verdict:: current
+evidence:: Static A2UI JSON can ride a payload slot: the exporter already embeds export-time view data (`collectViewData`, `console-views.mjs:539`) and JSON data islands sit outside the executable-script set the CSP hashes (`console-views.mjs:688`). What the bundle cannot take is a renderer and a live loop: no official renderer is a classic-script Preact+htm UMD, view scripts must compile as classic scripts (`console-views.mjs:486-497`), and a `file://` page has no agent for the return channel. The size argument against it is stale - the budget is 30 MB warn / 100 MB fail (`console-views.mjs:819`), not 5/15.
+done_when:: the console invariants state that A2UI may arrive as inert JSON but never as a renderer or a live loop, and `npm run check:console-bundle` still passes.
+
+## NN Item: step-request-interactive-input
+value:: H
+effort:: M
+risk:: M
+status:: open
+lane:: light
+verdict:: current
+evidence:: `openspec/changes/step-request/specs/executions/spec.md` already defines a Step Request as a record the runner consumes, with a declared lifecycle, a `seq` precondition and a queue (`procedure_pending`) that an agent drains. What it does not have is a request kind the runner presents as an interactive control, so a procedure that offers choices still asks the person to type a letter. The console already renders `select` and `multiselect` in `render-procedure-stepper.js:64-65` with real buttons (`:375`), so the capability exists and only the contract is missing. This entry extends the open `step-request` change; it must not become a parallel spec.
+done_when:: `step-request` gains one request kind whose payload declares flat options, the console stepper renders it as a control instead of text, an agent can answer it over MCP, and the choice is recorded as that run's request outcome.
+ref:: openspec/changes/step-request
 
 # NN Batch
 ## NN Batch: b4e-okf-export
