@@ -118,6 +118,16 @@ describe('read_lineage', () => {
     const allTime = await readLineageTool(root, { scope: 'all-time' })
     expect(allTime.edges.length).toBeGreaterThanOrEqual(live.edges.length)
   })
+
+  it('indexes declared deliverables and execution run artifacts in artifacts', async () => {
+    const entregablesDir = join(root, 'entregables', 'acme')
+    await mkdir(entregablesDir, { recursive: true })
+    await writeFile(join(entregablesDir, 'entregable-acme.md'), '# Deliverable\n', 'utf-8')
+    const view = await readLineageTool(root, {})
+    expect(
+      view.artifacts.some((a) => a.artifact_ref === 'entregables/acme/entregable-acme.md'),
+    ).toBe(true)
+  })
 })
 
 describe('check_domain.provenance carries projection diagnostics', () => {
