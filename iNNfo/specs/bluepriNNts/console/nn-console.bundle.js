@@ -21916,7 +21916,7 @@ if (typeof window !== 'undefined') {
       })
       var listEl = make('div', 'proc-blueprint-list')
       listEl.setAttribute('data-nn-procedures', 'blueprint')
-      listEl.appendChild(make('span', 'proc-blueprint-label', 'Procedures'))
+      listEl.appendChild(make('span', 'proc-blueprint-label', 'In the bluepriNNt'))
       list.forEach(function (p) {
         // A pill that looks selectable must select something: when this export carries the
         // definition document, clicking opens it; when it does not, the pill is a plain label
@@ -22306,7 +22306,10 @@ if (typeof window !== 'undefined') {
     function renderRunList(hostEl) {
       var runs = Array.isArray(active.runs) ? active.runs : []
       var bar = make('div', 'proc-runs')
-      bar.appendChild(make('span', 'proc-runs-label', 'Runs'))
+      // Three jobs, three places: the head holds the filter and the one action, the list below
+      // is the choice between the definition and a run. They used to wrap as one row of chips.
+      var head = make('div', 'proc-runs-head')
+      head.appendChild(make('span', 'proc-runs-label', 'Runs'))
       if (runs.length) {
         var filters = make('div', 'proc-run-filters')
         FILTERS.forEach(function (f) {
@@ -22322,8 +22325,9 @@ if (typeof window !== 'undefined') {
             ),
           )
         })
-        bar.appendChild(filters)
+        head.appendChild(filters)
       }
+      bar.appendChild(head)
       var list = make('div', 'proc-run-list')
       list.appendChild(
         button(
@@ -22382,7 +22386,7 @@ if (typeof window !== 'undefined') {
       }
       bar.appendChild(list)
       if (store && active.graph && !/^bluepriNNt:/.test(active.file)) {
-        bar.appendChild(
+        head.appendChild(
           button(
             'proc-start-run' + (startFormOpen ? ' active' : ''),
             'Start a run',
@@ -23468,7 +23472,6 @@ if (typeof window !== 'undefined') {
       col.appendChild(head)
       var view = make('div', 'exec-dag-view graphbox')
       col.appendChild(view)
-      col.appendChild(stepList(lay, current))
       var hint = make(
         'div',
         'rail-hint hint',
@@ -23483,56 +23486,6 @@ if (typeof window !== 'undefined') {
         view.className += ' exec-dag-view-native'
         view.appendChild(buildNativeGraph(lay, current))
       }
-    }
-
-    /** The same walk as a vertical list: the graph's text alternative, with each status in words. */
-    var stepListOpen = null
-
-    function stepList(lay, current) {
-      var ol = make('ol', 'proc-step-list')
-      ol.setAttribute('data-proc-step-list', '')
-      lay.rows.forEach(function (row) {
-        row.forEach(function (slug) {
-          var step = active.graph.steps[slug]
-          var status = stepStatus(slug)
-          var li = make(
-            'li',
-            'proc-step-item ' +
-              status +
-              (slug === current ? ' current' : '') +
-              (slug === selectedStep ? ' selected' : ''),
-          )
-          li.setAttribute('data-step', slug)
-          var b = button('proc-step-item-btn', null, function () {
-            selectStep(slug)
-          })
-          b.appendChild(make('span', 'proc-step-item-name', step.name || slug))
-          var token = outcomeTokenOf(slug)
-          b.appendChild(
-            make(
-              'span',
-              'proc-step-item-meta',
-              (token ? 'if ' + token + ' · ' : '') +
-                (status === 'definition' ? step.executor || 'task' : status),
-            ),
-          )
-          li.appendChild(b)
-          ol.appendChild(li)
-        })
-      })
-      // A disclosure: in the tab order at every width, open by default only on a phone.
-      var box = make('details', 'proc-step-list-box')
-      var open =
-        stepListOpen === null
-          ? !!(host.matchMedia && host.matchMedia('(max-width: 640px)').matches)
-          : stepListOpen
-      if (open) box.setAttribute('open', '')
-      box.appendChild(make('summary', 'proc-step-list-summary', 'Steps as a list'))
-      box.addEventListener('toggle', function () {
-        stepListOpen = box.open
-      })
-      box.appendChild(ol)
-      return box
     }
 
     // ---- Step card ----

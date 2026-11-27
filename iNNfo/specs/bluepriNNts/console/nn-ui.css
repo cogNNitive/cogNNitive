@@ -11844,27 +11844,6 @@ button.proc-run.proc-run-unsent {
   font-weight: 700;
   fill: var(--muted);
 }
-/* The step list is the flow graph's text alternative: a disclosure, so it is in the tab
-   order at every width and opening or closing it never moves the graph under the pointer. */
-.proc-step-list {
-  list-style: none;
-  margin: 0;
-  padding: 8px;
-}
-.proc-step-list-box {
-  border-top: 1px solid var(--border);
-}
-.proc-step-list-summary {
-  cursor: pointer;
-  padding: 8px 13px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-}
-.proc-step-list-summary:focus-visible {
-  outline: 3px solid var(--primary);
-  outline-offset: -3px;
-}
 .dag-graph {
   position: relative;
   border-radius: var(--radius-sm);
@@ -11912,38 +11891,6 @@ button.proc-run.proc-run-unsent {
   .dag-node {
     transition: none;
   }
-}
-.proc-step-item + .proc-step-item {
-  margin-top: 6px;
-}
-button.proc-step-item-btn {
-  appearance: none;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-  text-align: left;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  padding: 8px 10px;
-  cursor: pointer;
-}
-.proc-step-item.done button.proc-step-item-btn {
-  border-color: var(--success);
-}
-.proc-step-item.current button.proc-step-item-btn {
-  border: 2px solid var(--primary);
-}
-.proc-step-item-name {
-  font-weight: 600;
-  font-size: 0.86rem;
-}
-.proc-step-item-meta {
-  font-size: 0.72rem;
-  color: var(--muted);
 }
 @media (max-width: 640px) {
   .exec-dag-view-native {
@@ -12663,4 +12610,109 @@ table.proc-artifacts-table tbody tr:hover {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
   border-radius: var(--radius-sm, 6px);
+}
+
+/* ---- Procedures: runs bar, blueprint list and stepper (2026-11-27 feedback) ----
+   Later rules on purpose: the rules above are scattered across the file. */
+
+/* The runs bar: a head (label, filter, the one action) over the list of choices. */
+.proc-runs {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.proc-runs-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.proc-runs-head .proc-runs-label {
+  margin-right: 0;
+}
+/* The filter is one segmented control, quieter than the run chips it filters. */
+.proc-runs-head .proc-run-filters {
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.proc-runs-head button.proc-run-filter {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 3px 10px;
+}
+.proc-runs-head button.proc-run-filter + button.proc-run-filter {
+  border-left: 1px solid var(--border);
+}
+.proc-runs-head button.proc-run-filter.active {
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+}
+.proc-runs-head button.proc-start-run {
+  margin-left: auto;
+}
+button.proc-run {
+  font-weight: 500;
+}
+button.proc-run.active {
+  font-weight: 600;
+}
+
+/* The bluepriNNt's own procedures: a plain line, not a row of disabled pills. */
+.proc-blueprint-item {
+  font-weight: 500;
+}
+.proc-blueprint-item.is-orphan {
+  opacity: 1;
+  background: transparent;
+  border-style: dashed;
+  color: var(--muted);
+}
+
+/* The stepper: a light list. Name in regular weight, status as a small tag, the
+   number quiet; the weight of the page is carried by the open step's card. */
+.proc-step-toggle {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.proc-step-toggle .badge {
+  flex: 0 0 auto;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.proc-step-toggle .badge.done {
+  border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+  background: color-mix(in srgb, var(--success) 8%, var(--surface));
+  color: var(--success);
+}
+.proc-step-toggle .badge.waiting {
+  border-color: color-mix(in srgb, var(--warning) 40%, var(--border));
+  background: color-mix(in srgb, var(--warning) 10%, var(--surface));
+  color: var(--text);
+}
+.proc-step-toggle .badge.failed {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+  color: var(--danger);
+}
+.proc-timeline-number {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+.proc-flow-note {
+  font-size: 0.8rem;
+  color: var(--muted);
 }
