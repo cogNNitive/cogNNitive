@@ -811,36 +811,11 @@ export function normalizeOperations(raw: unknown): {
     }
     const seed = source['seed']
     if (seed !== undefined && seed !== null) {
-      if (source['op'] !== 'add_matrix') {
-        errors.push({
-          path: `operations[${index}]`,
-          code: 'INVALID_OPERATION',
-          message: `operations[${index}].seed is valid only on add_matrix`,
-        })
-      } else if (typeof seed !== 'object' || Array.isArray(seed)) {
-        errors.push({
-          path: `operations[${index}]`,
-          code: 'INVALID_OPERATION',
-          message: `operations[${index}].seed must be an object {columns?, rows?}`,
-        })
-      } else {
-        const seedObj = seed as Record<string, unknown>
-        const asList = (value: unknown, key: string): string[] | undefined => {
-          if (value === undefined || value === null) return undefined
-          if (!Array.isArray(value)) {
-            errors.push({
-              path: `operations[${index}].seed.${key}`,
-              code: 'INVALID_OPERATION',
-              message: `operations[${index}].seed.${key} must be an array of strings`,
-            })
-            return undefined
-          }
-          return value.map((v) => String(v))
-        }
-        const columns = asList(seedObj.columns, 'columns')
-        const rows = asList(seedObj.rows, 'rows')
-        item['seed'] = { ...(columns ? { columns } : {}), ...(rows ? { rows } : {}) }
-      }
+      errors.push({
+        path: `operations[${index}].seed`,
+        code: 'INVALID_OPERATION',
+        message: `operations[${index}].seed is a retired argument; columns and rows are derived from the axis concepts' elements`,
+      })
     }
     operations.push(item as unknown as ChangeItem)
   })

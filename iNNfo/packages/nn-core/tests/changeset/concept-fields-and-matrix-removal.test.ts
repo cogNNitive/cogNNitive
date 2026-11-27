@@ -84,7 +84,10 @@ author:: agent-writer
   })
 
   describe('conflicts & preconditions (partitionChangeset)', () => {
-    const mockModel = (options?: { conceptFields?: Record<string, unknown>; matrices?: Array<{ name: string; cells: any[] }> }) => {
+    const mockModel = (options?: {
+      conceptFields?: Record<string, unknown>
+      matrices?: Array<{ name: string; cells: any[] }>
+    }) => {
       const m = parseKnowledge(`---
 spec_version: "V_0-4-0"
 level: 3
@@ -313,7 +316,7 @@ title: "Strategy"
       expect(serialized).not.toContain('item-markers matrix')
     })
 
-    it('add_matrix creates a new table, seeding rows/columns from the axis concepts (cogNNitive-web#19)', () => {
+    it('add_matrix creates a new table without seeding rows/columns (matrix-sparse-storage)', () => {
       const model = parseKnowledge(`---
 spec_version: "V_0-4-0"
 level: 3
@@ -339,15 +342,11 @@ title: "Targets"
       expect(matrix).toBeDefined()
       expect(matrix!.source).toBe('Dianas')
       expect(matrix!.target).toBe('Resultados')
-      // rows = Dianas elements, cols = Resultados elements: a full seeded grid.
-      const rows = new Set(matrix!.cells.map((c) => c.row))
-      const cols = new Set(matrix!.cells.map((c) => c.col))
-      expect([...rows].sort()).toEqual(['Cut churn', 'Grow revenue'])
-      expect([...cols].sort()).toEqual(['ARR up', 'Logo retention'])
+      expect(matrix!.cells).toEqual([])
 
       const serialized = serializeKnowledge(model)
       expect(serialized).toContain('# NN matrices: Dianas x Resultados')
-      expect(serialized).toContain('| Dianas \\ Resultados | ARR up | Logo retention |')
+      expect(serialized).not.toMatch(/\|\s*-\s*\|/)
     })
 
     it('add_matrix rejects a matrix that already exists', () => {
@@ -363,7 +362,11 @@ title: "Targets"
 | :--- | :---: |
 | Admin | allow |
 `)
-      const res = applyMutation(model, 'add_matrix', { matrixName: 'Access Matrix', source: 'Role', targetConcept: 'Permission' })
+      const res = applyMutation(model, 'add_matrix', {
+        matrixName: 'Access Matrix',
+        source: 'Role',
+        targetConcept: 'Permission',
+      })
       expect(res.success).toBe(false)
       expect(res.errors?.[0].message).toMatch(/already exists/i)
     })
@@ -382,7 +385,11 @@ parent_spec:
 
 # NN index
 `)
-      const res = applyMutation(model, 'add_matrix', { matrixName: 'X', source: 'A', targetConcept: 'B' })
+      const res = applyMutation(model, 'add_matrix', {
+        matrixName: 'X',
+        source: 'A',
+        targetConcept: 'B',
+      })
       expect(res.success).toBe(false)
       expect(res.errors?.[0].message).toMatch(/level-3/i)
     })

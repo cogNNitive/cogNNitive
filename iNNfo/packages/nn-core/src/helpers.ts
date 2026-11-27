@@ -6,7 +6,11 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 import { parseFrontmatter, parseKnowledge } from './parser/index.js'
-import { buildDomainIndex, type DomainModelInput, type StorageDeclarationsResolver } from './domain/index.js'
+import {
+  buildDomainIndex,
+  type DomainModelInput,
+  type StorageDeclarationsResolver,
+} from './domain/index.js'
 import { isModelCandidate, isExcludedPath, parseName } from './naming/contract.js'
 import { isDomainRoot } from './scope/root.js'
 
@@ -88,7 +92,22 @@ function elementsOf(content: string): DomainModelInput['elements'] {
   }
 }
 
-async function collectModels(dir: string, rootDir: string, candidates: RawModelCandidate[]): Promise<void> {
+function matricesOf(content: string): DomainModelInput['matrices'] {
+  try {
+    return parseKnowledge(content).matrices.map((m) => ({
+      name: m.name,
+      cells: m.cells.map((c) => ({ row: c.row, col: c.col, value: c.value })),
+    }))
+  } catch {
+    return []
+  }
+}
+
+async function collectModels(
+  dir: string,
+  rootDir: string,
+  candidates: RawModelCandidate[],
+): Promise<void> {
   const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
   for (const entry of entries) {
     if (entry.isDirectory()) {
@@ -127,7 +146,17 @@ async function collectModels(dir: string, rootDir: string, candidates: RawModelC
 
     const version = resolveKnowledgeVersion(frontmatter)
 
-    candidates.push({ relPath, path: filePath, version, input: { path: relPath, frontmatter, elements: elementsOf(content) } })
+    candidates.push({
+      relPath,
+      path: filePath,
+      version,
+      input: {
+        path: relPath,
+        frontmatter,
+        elements: elementsOf(content),
+        matrices: matricesOf(content),
+      },
+    })
   }
 }
 

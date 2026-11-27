@@ -1453,13 +1453,13 @@ export async function executeChangesetApply(
         )
       }
     }
-    // `seed` is the matrix header payload: valid only on add_matrix.
+    // `seed` is a retired argument: add_matrix derives its axis universe from concept elements.
     for (const change of csDoc.changes) {
-      if (change.seed !== undefined && change.op !== 'add_matrix') {
+      if (change.seed !== undefined) {
         return rejectProposal(
           'INVALID_OPERATION',
           change.target,
-          `change "${change.id}": seed is valid only on add_matrix`,
+          `change "${change.id}": seed is a retired argument; columns and rows are derived from the axis concepts' elements`,
           change.id,
         )
       }
@@ -3203,20 +3203,20 @@ async function synthesizeAndExecuteChangeset(
   }
 
   const isAddMatrix = op === 'add_matrix'
-  // add_matrix seeds its headers through the sealed `seed`, never `fields`.
-  const asSeedList = (value: unknown): string[] =>
-    Array.isArray(value)
-      ? value.map((v) => String(v).trim()).filter(Boolean)
-      : String(value)
-          .split(',')
-          .map((v) => v.trim())
-          .filter(Boolean)
-  const matrixSeed: { columns?: string[]; rows?: string[] } | undefined = isAddMatrix
-    ? {
-        ...(opArgs.columns !== undefined ? { columns: asSeedList(opArgs.columns) } : {}),
-        ...(opArgs.rows !== undefined ? { rows: asSeedList(opArgs.rows) } : {}),
-      }
-    : undefined
+  if (isAddMatrix && (opArgs.columns !== undefined || opArgs.rows !== undefined)) {
+    return {
+      success: false,
+      errors: [
+        {
+          path: 'columns',
+          code: 'INVALID_OPERATION',
+          message:
+            'MUTATION_FAILED: columns and rows are retired arguments; the axis universe is derived from the source and targetConcept concepts',
+        },
+      ],
+    }
+  }
+  const matrixSeed = undefined
 
   // `fields` is not a change key: add_element carries its initial fields in `to`.
   if (!isAddMatrix && op === 'add_element' && opArgs.fields !== undefined) {

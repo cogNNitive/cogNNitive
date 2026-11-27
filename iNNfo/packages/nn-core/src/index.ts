@@ -108,6 +108,7 @@ export type { Address, AddressError, AddressErrorCode, ModelId, Unit } from './a
 export {
   buildDomainIndex,
   fileLocalDiagnostics,
+  matrixHygieneDiagnostics,
   placementForDeclarations,
   versionSkew,
 } from './domain/index.js'

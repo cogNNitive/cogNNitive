@@ -5,7 +5,12 @@
  */
 
 import { HEAD_RE, SLUG_RE } from '../address/grammar.js'
-import { blueprintNameOf, checkInstanceName, formatNNName, instanceFileName } from '../naming/contract.js'
+import {
+  blueprintNameOf,
+  checkInstanceName,
+  formatNNName,
+  instanceFileName,
+} from '../naming/contract.js'
 import { parsePlacement, type ConceptStorage, type PlacementSegment } from '../schema/storage.js'
 import { classifyModel, idOf, parentSpecOf, type Classification } from './classify.js'
 import type { DomainModelInput, LayoutCode, LayoutDiagnostic } from './types.js'
@@ -36,10 +41,15 @@ export function layoutDiagnostic(
 }
 
 export function buildRules(declarations: ReadonlyMap<string, ConceptStorage>): PlacementRules {
-  const parsed = new Map<string, { name: string; container?: string; segments: PlacementSegment[]; slugIndex: number }>()
+  const parsed = new Map<
+    string,
+    { name: string; container?: string; segments: PlacementSegment[]; slugIndex: number }
+  >()
   for (const [name, storage] of declarations) {
     if (storage.mode !== 'distributed' || storage.placement === undefined) continue
-    const result = parsePlacement(storage.placement, { hasContainer: storage.container !== undefined })
+    const result = parsePlacement(storage.placement, {
+      hasContainer: storage.container !== undefined,
+    })
     if (result.ok) {
       const { segments, slugIndex } = result
       parsed.set(name.toLowerCase(), { name, container: storage.container, segments, slugIndex })
@@ -55,12 +65,17 @@ export function buildRules(declarations: ReadonlyMap<string, ConceptStorage>): P
     const { segments, slugIndex } = own
     let rule: PlacementRule
     if (segments[0].kind === 'container') {
-      const parent = own.container ? expand(own.container.toLowerCase(), new Set([...seen, key])) : null
+      const parent = own.container
+        ? expand(own.container.toLowerCase(), new Set([...seen, key]))
+        : null
       if (!parent) return null
       rule = {
         concept: own.name,
         container: parent.concept,
-        folder: [...parent.folder.slice(0, parent.slugIndex + 1), ...(segments.slice(1) as FolderSegment[])],
+        folder: [
+          ...parent.folder.slice(0, parent.slugIndex + 1),
+          ...(segments.slice(1) as FolderSegment[]),
+        ],
         slugIndex: parent.slugIndex + slugIndex,
       }
     } else {
@@ -73,7 +88,8 @@ export function buildRules(declarations: ReadonlyMap<string, ConceptStorage>): P
   return rules
 }
 
-const slugCount = (rule: PlacementRule): number => rule.folder.filter((s) => s.kind === 'slug').length
+const slugCount = (rule: PlacementRule): number =>
+  rule.folder.filter((s) => s.kind === 'slug').length
 
 /**
  * Folder of `rule` with the `{slug}` positions filled from `slugs`, aligned to the end so the
@@ -82,7 +98,9 @@ const slugCount = (rule: PlacementRule): number => rule.folder.filter((s) => s.k
 export function expectedFolder(rule: PlacementRule, slugs: readonly string[]): string {
   const unknown = slugCount(rule) - slugs.length
   let position = 0
-  const parts = rule.folder.map((s) => (s.kind === 'literal' ? s.value : (slugs[position++ - unknown] ?? '{slug}')))
+  const parts = rule.folder.map((s) =>
+    s.kind === 'literal' ? s.value : (slugs[position++ - unknown] ?? '{slug}'),
+  )
   return `${parts.join('/')}/`
 }
 
@@ -103,7 +121,8 @@ export function placementFor(
   const segments = id.split('/')
 
   if (!rule) {
-    if (declared?.[1].mode === 'distributed') return invalid(`${concept} is distributed but declares no valid placement`)
+    if (declared?.[1].mode === 'distributed')
+      return invalid(`${concept} is distributed but declares no valid placement`)
     if (segments.length > 1) return invalid(`${concept} is compact, so its id has no "/"`)
     if (!HEAD_RE.test(id)) return invalid('it is not a valid model id')
     return { folder: 'kNNowledge/', file: formatNNName(id, blueprint) }
@@ -118,17 +137,28 @@ export function placementFor(
   if (bad !== undefined) return invalid(`segment "${bad}" is not a lowercase slug`)
   // The file name derives from the version-less bluepriNNt name, exactly as
   // `checkInstanceName` expects it (`localDiagnostics` compares the two).
-  return { folder: expectedFolder(rule, segments), file: instanceFileName(segments[depth - 1], blueprintNameOf(blueprint)) }
+  return {
+    folder: expectedFolder(rule, segments),
+    file: instanceFileName(segments[depth - 1], blueprintNameOf(blueprint)),
+  }
 }
 
-type Registry = Extract<NonNullable<Extract<Classification, { kind: 'compact' }>['problem']>, { type: 'registry' }>
+type Registry = Extract<
+  NonNullable<Extract<Classification, { kind: 'compact' }>['problem']>,
+  { type: 'registry' }
+>
 
 /** A distributed concept stored inside a compact model (a registry, or two roots in one model). */
-export function registryDiagnostic(path: string, problem: Registry, alsoStoredAt: readonly string[]): LayoutDiagnostic {
+export function registryDiagnostic(
+  path: string,
+  problem: Registry,
+  alsoStoredAt: readonly string[],
+): LayoutDiagnostic {
   const { concept, slugs, rule } = problem
   const would = slugs.map((s) => (rule.container ? `<${rule.container.toLowerCase()}>/${s}` : s))
   const plural = slugs.length > 1 ? 's' : ''
-  const also = alsoStoredAt.length > 0 ? ` (also stored as instance model ${alsoStoredAt.join(', ')})` : ''
+  const also =
+    alsoStoredAt.length > 0 ? ` (also stored as instance model ${alsoStoredAt.join(', ')})` : ''
   return layoutDiagnostic(
     'DISTRIBUTED_CONCEPT_IN_COMPACT_MODEL',
     `${path} - ${concept} is distributed but this model holds ${slugs.length} ${concept} element${plural} (${slugs.join(', ')}), which would be instance${plural} ${would.join(', ')}${also}; run extract_instance for each or remove_element`,
@@ -205,11 +235,51 @@ export function localDiagnostics(
   return out
 }
 
+function countToWords(n: number): string {
+  const words = [
+    'zero',
+    'one',
+    'two',
+    'three',
+    'four',
+    'five',
+    'six',
+    'seven',
+    'eight',
+    'nine',
+    'ten',
+  ]
+  return words[n] ?? String(n)
+}
+
+export function matrixHygieneDiagnostics(input: DomainModelInput): LayoutDiagnostic[] {
+  const out: LayoutDiagnostic[] = []
+  for (const matrix of input.matrices ?? []) {
+    const emptyCount = (matrix.cells ?? []).filter(
+      (c) => !c.value || c.value.trim() === '' || c.value.trim() === '-',
+    ).length
+    if (emptyCount > 0) {
+      out.push(
+        layoutDiagnostic(
+          'PERSISTED_EMPTY_MATRIX_CELLS',
+          `${input.path} - matrix "${matrix.name}" persists ${countToWords(emptyCount)} cells with no value`,
+          [input.path],
+          { severity: 'warning', meta: { matrix: matrix.name, emptyCount } },
+        ),
+      )
+    }
+  }
+  return out
+}
+
 /** File-local layout findings of one model, with no domaiNN needed (`validate_knowledge` on one file). */
 export function fileLocalDiagnostics(
   input: DomainModelInput,
   declarations: ReadonlyMap<string, ConceptStorage>,
 ): LayoutDiagnostic[] {
   const rules = buildRules(declarations)
-  return localDiagnostics(input, classifyModel(input, rules), rules)
+  return [
+    ...localDiagnostics(input, classifyModel(input, rules), rules),
+    ...matrixHygieneDiagnostics(input),
+  ]
 }
