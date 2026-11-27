@@ -16,13 +16,11 @@ import { readFileSync } from 'node:fs'
 import { existsSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import {
-  buildChangeLog,
   buildWorkspaceIntegrityReport,
   summarizeWorkspaceIntegrity,
   parseFrontmatter,
   SpecResolutionError,
   projectLineage,
-  readLineageSnapshot,
   type TemplateCatalog,
   type WorkspaceIntegrityPorts,
   type WorkspaceModelRef,
@@ -37,6 +35,7 @@ import type { SpecCache } from '@cognnitive/nn-core'
 import { checkDomainProvenance } from './provenance-strict.js'
 import { listKnowledge } from './list-read.js'
 import { buildNodeDomainIndex, domainLayoutDiagnostics, type NodeDomainIndex } from './domain-index.js'
+import { readDomainLineage, type DomainLineage } from './domain-lineage.js'
 import { deriveNameFromUrl } from './spec.js'
 import {
   collectWorkspaceDiagnostics,
@@ -82,11 +81,22 @@ interface CheckContext {
    * bluepriNNt package whose declared storage changes the ids. Never outlives the call.
    */
   index?: Promise<NodeDomainIndex>
+  /**
+   * The domain's lineage snapshot and change log of this call, read once after self-heal
+   * and shared by the workspace pass, evidence, provenance (fold and strict) and the
+   * artifact projection. Never outlives the call.
+   */
+  lineage?: DomainLineage
 }
 
 /** The call's post-self-heal domain index, built on first use. */
 function domainIndexOf(ctx: CheckContext): Promise<NodeDomainIndex> {
   return (ctx.index ??= buildNodeDomainIndex(ctx.rootDir))
+}
+
+/** The call's lineage snapshot and change log, read on first use. */
+function domainLineageOf(ctx: CheckContext): DomainLineage {
+  return (ctx.lineage ??= readDomainLineage(ctx.rootDir))
 }
 
 function errorMessage(err: unknown): string {
@@ -278,7 +288,10 @@ async function validateAll(
 
   // AD-5 step 3: ONE workspace parse over the merged cache.
   const index = await domainIndexOf(ctx)
-  const workspaceDiags = await collectWorkspaceDiagnostics(ctx.rootDir, ctx.mergedCache, { index })
+  const workspaceDiags = await collectWorkspaceDiagnostics(ctx.rootDir, ctx.mergedCache, {
+    index,
+    lineage: domainLineageOf(ctx),
+  })
 
   const out = new Map<string, { errors: IntegrityDiagnostic[]; warnings: IntegrityDiagnostic[] }>()
   for (const model of models) {
@@ -346,10 +359,10 @@ async function provenanceWithArtifacts(
   rootDir: string,
   strict: boolean,
   index: NodeDomainIndex,
+  lineage: DomainLineage,
 ): Promise<ProvenanceReport> {
-  const provenance = await checkDomainProvenance(rootDir, { strict, index })
-  const files = readLineageSnapshot(rootDir)
-  const projection = projectLineage(files, buildChangeLog(files))
+  const provenance = await checkDomainProvenance(rootDir, { strict, index, lineage })
+  const projection = projectLineage(lineage.files, lineage.log, { parses: lineage.parses })
   const artifactDiagnostics = projection.diagnostics
     .filter((diagnostic) => diagnostic.code === 'ARTIFACT_WITHOUT_RECORD')
     .map((diagnostic) => ({
@@ -400,7 +413,7 @@ export async function checkWorkspace(
   }
   const base = await buildWorkspaceIntegrityReport(buildCheckWorkspacePorts(ctx))
   const index = await domainIndexOf(ctx)
-  const provenance = await provenanceWithArtifacts(rootDir, options.strict === true, index)
+  const provenance = await provenanceWithArtifacts(rootDir, options.strict === true, index, domainLineageOf(ctx))
   const layoutDiagnostics = (await domainLayoutDiagnostics(rootDir, { index })).diagnostics
   const report = {
     ...base,

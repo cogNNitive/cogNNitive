@@ -19,9 +19,8 @@ import {
   buildChangeLog,
   canonicalUnitModelId,
   checkProvenance,
-  parseChangeset,
   parseKnowledge,
-  readLineageSnapshot,
+  parsedChangesetOf,
   replayMutations,
   resolveBlueprintSchema,
   scaffoldKnowledgeDocument,
@@ -37,12 +36,14 @@ import {
   type ProvenanceDiagnostic,
   type ProvenanceModel,
   type ProvenanceReport,
+  type SnapshotParses,
 } from '@cognnitive/nn-core'
 import { listKnowledge } from './list-read.js'
 import { resolveBlueprintWithCache } from './spec.js'
 import { mutationArgsForChange, parseTargetAddress } from './change-args.js'
 import { collectProvenanceModels } from './provenance-models.js'
 import type { NodeDomainIndex } from './domain-index.js'
+import { readDomainLineage, type DomainLineage } from './domain-lineage.js'
 
 export interface StrictProvenanceOptions {
   strict?: boolean
@@ -50,6 +51,8 @@ export interface StrictProvenanceOptions {
   index?: NodeDomainIndex
   /** Current sha256 of a cited file, for `EVIDENCE_SOURCE_CHANGED`. */
   sha256?: (path: string) => string | undefined
+  /** The domain's lineage already read in the same tool call (see `readDomainLineage`). */
+  lineage?: DomainLineage
 }
 
 /**
@@ -93,17 +96,19 @@ function firstDifference(expected: string, actual: string): { expected: string; 
   return { expected: '', actual: '' }
 }
 
-/** `changes/<file>` -> the canonical model ids the apply recorded for it. */
-function creationModelsByChangeset(files: ReadonlyArray<FileSnapshot>): Map<string, Set<string>> {
+/**
+ * `changes/<file>` -> the canonical model ids the apply recorded for it. A changeset the
+ * change log already parsed is reused from `parses`.
+ */
+function creationModelsByChangeset(
+  files: ReadonlyArray<FileSnapshot>,
+  parses: SnapshotParses,
+): Map<string, Set<string>> {
   const out = new Map<string, Set<string>>()
   for (const file of files) {
     if (!file.path.endsWith('.md')) continue
-    let doc
-    try {
-      doc = parseChangeset(file.content)
-    } catch {
-      continue
-    }
+    const doc = parsedChangesetOf(parses, file.path, file.content)
+    if (doc === null) continue
     const models = doc.frontmatter.models
     if (!models) continue
     out.set(file.path, new Set(Object.keys(models).map((id) => canonicalUnitModelId(id))))
@@ -265,8 +270,7 @@ export async function checkDomainProvenance(
   rootDir: string,
   options: StrictProvenanceOptions = {},
 ): Promise<ProvenanceReport> {
-  const files = readLineageSnapshot(rootDir)
-  const log = buildChangeLog(files)
+  const { files, log, parses } = options.lineage ?? readDomainLineage(rootDir)
   const models = await collectProvenanceModels(rootDir, log, { index: options.index })
 
   if (options.strict !== true) {
@@ -278,7 +282,7 @@ export async function checkDomainProvenance(
     ...(options.sha256 ? { sha256: options.sha256 } : {}),
   })
   const diagnostics: ProvenanceDiagnostic[] = fold.diagnostics.filter((d) => EVIDENCE_CODES.has(d.code))
-  const createdIds = creationModelsByChangeset(files)
+  const createdIds = creationModelsByChangeset(files, parses)
 
   for (const entry of models) {
     const creation = creationOf(log, createdIds, entry.modelId)

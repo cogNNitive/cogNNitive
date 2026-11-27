@@ -12,3 +12,9 @@ export {
   type LineageProjection,
   type LineageView,
 } from './project.js'
+export {
+  createSnapshotParses,
+  parsedKnowledgeOf,
+  parsedChangesetOf,
+  type SnapshotParses,
+} from './snapshot-parses.js'

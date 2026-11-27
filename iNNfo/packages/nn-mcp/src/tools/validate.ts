@@ -54,6 +54,7 @@ import type {
   ModelId,
 } from '@cognnitive/nn-core'
 import { buildNodeDomainIndex, domainLayoutDiagnostics, loadDeclarations, type NodeDomainIndex } from './domain-index.js'
+import { readDomainLineage, type DomainLineage } from './domain-lineage.js'
 import { resolveBlueprintWithCache, findKnowledgeFile, deriveNameFromUrl, getSpec, ModelIdError } from './spec.js'
 import { buildIncludeContentMap } from './resolver-node.js'
 import type { FreshnessResult } from './resolver-node.js'
@@ -277,9 +278,11 @@ export function createNodeDirectoryHandle(
  * `decision` is a legitimate evidence and never warns. The diagnostic is filed
  * against the model document the change targets, so per-model views carry it.
  */
-export function collectEvidenceDiagnostics(rootDir: string): ReferenceDiagnostic[] {
-  const files = readLineageSnapshot(rootDir)
-  const log = buildChangeLog(files)
+export function collectEvidenceDiagnostics(
+  rootDir: string,
+  lineage: DomainLineage = readDomainLineage(rootDir),
+): ReferenceDiagnostic[] {
+  const { files, log } = lineage
   const knowledgePaths = files
     .filter((file) => {
       const name = file.path.split('/').pop() ?? ''
@@ -327,14 +330,15 @@ export function collectEvidenceDiagnostics(rootDir: string): ReferenceDiagnostic
 export async function collectWorkspaceDiagnostics(
   rootDir: string,
   cache: SpecCache | null,
-  call: { index?: NodeDomainIndex } = {},
+  call: { index?: NodeDomainIndex; lineage?: DomainLineage } = {},
 ): Promise<ReferenceDiagnostic[]> {
   const resolveSchema: BlueprintSchemaResolver = buildBlueprintSchemaResolverFromCache(cache)
   const rootHandle = createNodeDirectoryHandle(rootDir, DEFAULT_WORKSPACE_IGNORE)
-  const snapshot = readLineageSnapshot(rootDir)
+  const lineage = call.lineage ?? readDomainLineage(rootDir)
+  const { files: snapshot, log } = lineage
   const result = await recursiveParse(rootHandle, undefined, {
     resolveBlueprintSchema: resolveSchema,
-    changeLog: buildChangeLog(snapshot),
+    changeLog: log,
   })
   const index = buildWorkspaceIndex(result)
 
@@ -342,7 +346,6 @@ export async function collectWorkspaceDiagnostics(
   // the latter resolved against real files under the workspace root. One read
   // per file: content backs headings AND the unit checks (rows/columns/fields).
   const resolveSource: SourceResolver = createFsSourceResolver(rootDir)
-  const log = buildChangeLog(snapshot)
   // Parse-level errors name an element the graph DROPPED (today only a repeated
   // slug). A host that reads the graph must report the loss: silent omission is
   // the failure mode this pass exists to prevent. Warnings and info stay with
@@ -372,7 +375,7 @@ export async function collectWorkspaceDiagnostics(
     ),
     ...collectSynchronizationDiagnostics(rootDir),
     ...validateWorkspaceSources(result, resolveSource, snapshot, evidenceCitationSites(log)),
-    ...collectEvidenceDiagnostics(rootDir),
+    ...collectEvidenceDiagnostics(rootDir, lineage),
   ]
 }
 
