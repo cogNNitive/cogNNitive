@@ -32,7 +32,7 @@ const FILE = 'kNNowledge/review_procedures_NN.md'
 const REVIEW = `---
 level: 3
 parent_spec:
-  name: "procedures_V_0-6-1"
+  name: "procedures_V_0-7-0"
   url: "https://example.invalid/procedures/spec_NN.md"
 knowledge_version: "V_1-0-0"
 title: "Review"
