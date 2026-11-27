@@ -1516,7 +1516,16 @@ describe('procedure flow graph through the shared chart API', () => {
     )
     assert.equal(container.querySelector('[data-proc-graph]').getAttribute('data-pulse'), 'off')
     const current = graphOf(still).data.find((d) => d.id === 'review')
-    assert.ok(current.itemStyle.borderWidth >= 3, 'the active step is still marked, without motion')
+    const others = graphOf(still).data.filter((d) => d.id !== 'review' && d.itemStyle)
+    assert.ok(
+      others.every((d) => current.itemStyle.borderWidth > d.itemStyle.borderWidth),
+      'the active step is still marked, without motion: its border is the heaviest one',
+    )
+    assert.ok(
+      others.every((d) => d.itemStyle.borderWidth <= 1.5),
+      'every other node keeps a hairline border',
+    )
+    assert.equal(current.symbol, 'rect', 'boxes are plain rectangles, not pills')
   })
 
   it('lays the flow out for the width it has: wide nodes on a wide host, narrow ones on a phone', () => {
@@ -1573,18 +1582,20 @@ describe('procedure flow graph through the shared chart API', () => {
     assert.equal(cardStep(), 'review', 'Space selects too')
   })
 
-  it('keeps the same steps as a keyboard-reachable list with the status written out', () => {
+  it('keeps the same steps reachable by keyboard in the timeline, with the status written out', () => {
     stepper.mount(container, payload([runOf('r1', WAITING_REVIEW)]), storeSpy().ctx)
-    const items = [...container.querySelectorAll('[data-proc-step-list] .proc-step-item')]
-    assert.equal(items.length, 4)
-    const box = container.querySelector('details.proc-step-list-box')
-    assert.ok(box.querySelector('summary'), 'a disclosure with a visible summary')
-    assert.equal(box.hasAttribute('open'), false, 'wide: closed until asked for')
-    const review = items.find((li) => li.getAttribute('data-step') === 'review')
+    assert.equal(
+      container.querySelector('[data-proc-step-list], .proc-step-list-box'),
+      null,
+      'the graph has no second list under it: the timeline is the list',
+    )
+    const rows = [...container.querySelectorAll('[data-proc-step-toggle]')]
+    assert.equal(rows.length, 4)
+    const review = rows.find((b) => b.getAttribute('data-proc-step-toggle') === 'review')
     assert.match(review.textContent, /waiting/)
-    const btn = review.querySelector('button')
-    assert.equal(btn.getAttribute('tabindex'), null, 'in the tab order')
-    click(items.find((li) => li.getAttribute('data-step') === 'transcribe').querySelector('button'))
+    assert.equal(review.tagName, 'BUTTON', 'a real button, in the tab order')
+    assert.equal(review.getAttribute('tabindex'), null)
+    click(rows.find((b) => b.getAttribute('data-proc-step-toggle') === 'transcribe'))
     assert.equal(cardStep(), 'transcribe')
   })
 
@@ -1600,13 +1611,14 @@ describe('procedure flow graph through the shared chart API', () => {
     )
     assert.deepEqual(loop.model.procedureGraphs[0].graph.steps.discard.next, ['review'])
     stepper.mount(container, loop, storeSpy().ctx)
-    const order = [...container.querySelectorAll('[data-proc-step-list] .proc-step-item')].map(
-      (li) => li.getAttribute('data-step'),
-    )
-    assert.equal(order.length, 4)
-    assert.ok(order.indexOf('review') < order.indexOf('normalize'), order.join(' > '))
-    assert.ok(order.indexOf('review') < order.indexOf('discard'), order.join(' > '))
-    assert.equal(order[0], 'transcribe')
+    // The row a node is drawn on is its layer: the chart's own data is the order.
+    const nodes = graphOf(lastCall()).data
+    assert.equal(nodes.length, 4)
+    const rowOf = (slug) => nodes.find((d) => d.id === slug).value[1]
+    const order = ['transcribe', 'review', 'normalize', 'discard'].map((s) => s + '@' + rowOf(s))
+    assert.ok(rowOf('review') < rowOf('normalize'), order.join(' > '))
+    assert.ok(rowOf('review') < rowOf('discard'), order.join(' > '))
+    assert.equal(rowOf('transcribe'), Math.min(...nodes.map((d) => d.value[1])))
   })
 
   it('filters the run list, and drops a selection the filter hides', () => {
@@ -1749,9 +1761,6 @@ describe('procedure flow graph through the shared chart API', () => {
         'native pulse is switched off for ' + selector,
       )
     assert.ok(/@keyframes dag-pulse/.test(css), 'and exists to be switched off')
-    const rule = css.match(/\n\.proc-step-list\s*\{[^}]*\}/)
-    assert.ok(rule, 'base rule')
-    assert.doesNotMatch(rule[0], /display:\s*none|clip/, 'never hidden or clipped')
     assert.match(css, /\.dag-graph:focus-visible/, 'a visible focus style')
   })
 })

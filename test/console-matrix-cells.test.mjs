@@ -76,6 +76,27 @@ describe('console matrix cell review editing', () => {
     assert.match(changeset.value, /to:: "NEW VALUE"/)
   })
 
+  it('an empty cell draws nothing and the cell itself opens the edit modal', () => {
+    const { document, dom } = bootConsole({
+      model: {
+        ...MATRIX_MODEL,
+        matrices: [{ name: 'Coverage', rows: ['r1'], cols: ['c1', 'c2'], cells: { r1: { c1: 'old' } } }],
+      },
+      schema: { concepts: [{ name: 'Fleet' }] },
+      config: { needs: ['feedback-export', 'matrix-grids'] },
+    })
+    document.dispatchEvent(
+      new dom.window.Event('nn:rendered', { detail: { root: document.getElementById('nn-content') || document } }),
+    )
+    const empty = document.querySelector('td.nn-matrix-cell-empty')
+    assert.ok(empty, 'the c2 cell is empty')
+    assert.equal(empty.getAttribute('role'), 'button')
+    assert.equal(empty.getAttribute('tabindex'), '0')
+    assert.equal(document.querySelector('[data-nn-component="edit-modal"]'), null, 'nothing is open yet')
+    empty.click()
+    assert.ok(document.querySelector('[data-nn-component="edit-modal"]'), 'a click on the cell opens the modal')
+  })
+
   it('targets the model that owns the matrix, not the domain id', () => {
     const env = bootConsole({
       model: {

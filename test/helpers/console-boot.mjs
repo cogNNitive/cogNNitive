@@ -130,15 +130,15 @@ export function bootConsoleFromShell() {
   return { dom, document: dom.window.document, res }
 }
 
-// Records a draft through the unit editor. The tag-proposal popover was retired when
-// editing was unified into the KU modal, so the anchor now opens that modal: switch to
-// its Edit tab, fill the value, save. (The modal still has no list-valued editor, so a
-// tag is proposed as a plain value until the ChipEditor lands — issue #490.)
+// Records a draft by proposing a tag in place: "+ tag" turns into a small input, the
+// word is typed and Enter proposes it as a correction of the element's `tags`.
 export function addCommentDraft(document) {
   const Ev = document.defaultView.Event
   document.querySelector('[data-nn-ctl="tag-add"]').dispatchEvent(new Ev('click', { bubbles: true }))
-  const modal = topmostModal(document)
-  if (!modal) throw new Error('addCommentDraft: the unit editor did not open')
-  submitEdit(modal, 'looks wrong')
+  // "+ tag" turns into an inline input: type the tag and press Enter.
+  const input = document.querySelector('[data-nn-ctl="tag-input"]')
+  if (!input) throw new Error('addCommentDraft: the inline tag input did not open')
+  input.value = 'looks-wrong'
+  input.dispatchEvent(new document.defaultView.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
 }
 
