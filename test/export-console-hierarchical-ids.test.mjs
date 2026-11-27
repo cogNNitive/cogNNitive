@@ -27,7 +27,10 @@ const PARENT = `parent_spec:
 
 function domain() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-console-ids-'))
-  fs.writeFileSync(path.join(root, 'domaiNN_NN.md'), '---\nname: "Probe"\nworkspace_id: "probe"\n---\n\n# NN DomaiNN\n')
+  fs.writeFileSync(
+    path.join(root, 'domaiNN_NN.md'),
+    '---\nname: "Probe"\nworkspace_id: "probe"\n---\n\n# NN DomaiNN\n',
+  )
   // The workspace package tier, so the storage declarations resolve offline.
   const pkg = path.join(root, 'specs', 'bluepriNNts', 'coNNtent')
   fs.mkdirSync(path.join(pkg, 'V_0-18-0'), { recursive: true })
@@ -65,11 +68,38 @@ test('a distributed episode is addressed by its hierarchical id, not its filenam
     const series = model.elements.find((el) => el.concept === 'Series')
     assert.equal(series.modelId, 'ingenieria-oculta', 'a distributed series is its slug id')
     for (const el of model.elements) {
-      assert.doesNotMatch(String(el.modelId), /_coNNtent$/, `${el.id} must not carry a filename stem`)
+      assert.doesNotMatch(
+        String(el.modelId),
+        /_coNNtent$/,
+        `${el.id} must not carry a filename stem`,
+      )
     }
 
+    // #947: modelSummaries carries storage classification from domainIndex
+    const episodeSummary = model.meta.models.find(
+      (m) => m.id === 'ingenieria-oculta/e01-alcantarillas',
+    )
+    assert.ok(episodeSummary, 'episode summary present in meta.models')
+    assert.deepEqual(episodeSummary.storage, {
+      kind: 'instance',
+      concept: 'Video',
+      container: 'ingenieria-oculta',
+      slug: 'e01-alcantarillas',
+    })
+    const seriesSummary = model.meta.models.find((m) => m.id === 'ingenieria-oculta')
+    assert.ok(seriesSummary, 'series summary present in meta.models')
+    assert.deepEqual(seriesSummary.storage, {
+      kind: 'instance',
+      concept: 'Series',
+      container: null,
+      slug: 'ingenieria-oculta',
+    })
+
     // A verdict drafted on that scene exports a target `produce` and apply_change accept.
-    const booted = bootConsole({ model, schema: { concepts: [{ name: 'Scene' }, { name: 'Video' }, { name: 'Series' }] } })
+    const booted = bootConsole({
+      model,
+      schema: { concepts: [{ name: 'Scene' }, { name: 'Video' }, { name: 'Series' }] },
+    })
     booted.res.state.store.addDraft({
       kind: 'verdict',
       knowledge_id: scene.modelId,
@@ -106,6 +136,11 @@ test('a compact model keeps its stem id', async () => {
     assert.ok(note, 'the compact model is exported')
     assert.equal(note.modelId, 'notes')
     assert.equal(note.id, 'notes@' + note.id.split('@').pop())
+
+    // #947: compact model carries storage: { kind: 'compact' }
+    const noteSummary = model.meta.models.find((m) => m.id === 'notes')
+    assert.ok(noteSummary, 'compact model summary present in meta.models')
+    assert.deepEqual(noteSummary.storage, { kind: 'compact' })
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
@@ -116,14 +151,18 @@ test('the coNNtent view addresses scenes with the same ids the payload carries',
   try {
     const model = await exportedModel(root)
     const payloadIds = new Set(model.elements.map((el) => el.id))
-    const { collect } = await import('../iNNfo/specs/bluepriNNts/coNNtent/assets/console-view-conntent.data.mjs')
+    const { collect } =
+      await import('../iNNfo/specs/bluepriNNts/coNNtent/assets/console-view-conntent.data.mjs')
     const data = await collect({ rootDir: root })
     const episodes = (data.tree?.series || []).flatMap((s) => s.episodes || [])
     assert.equal(episodes.length, 1, 'the view lists the episode')
     const [episode] = episodes
     assert.equal(episode.knowledgeId, 'ingenieria-oculta/e01-alcantarillas')
     for (const scene of episode.scenes || []) {
-      assert.ok(payloadIds.has(scene.elementId), `view scene ${scene.elementId} must be a payload element id`)
+      assert.ok(
+        payloadIds.has(scene.elementId),
+        `view scene ${scene.elementId} must be a payload element id`,
+      )
     }
     assert.ok((episode.scenes || []).length > 0, 'the view lists scenes')
   } finally {

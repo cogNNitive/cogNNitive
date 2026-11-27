@@ -116,7 +116,9 @@ describe('produce_artifact', () => {
     const result = await propose([{ ...artifactChange, target: 'artifacts/ghost.md' }])
     expect(result.success).toBe(false)
     expect(result.errors?.[0].code).toBe('ARTIFACT_NOT_FOUND')
-    expect(result.errors?.[0].message).toContain('"artifacts/ghost.md" does not exist in this domain')
+    expect(result.errors?.[0].message).toContain(
+      '"artifacts/ghost.md" does not exist in this domain',
+    )
     expect(result.errors?.[0].message).toContain('no artifact registry')
     expect(result.errors?.[0].message).toContain('Write the file first')
     expect(await files()).toEqual([])
@@ -127,7 +129,9 @@ describe('produce_artifact', () => {
     const result = await propose([{ ...artifactChange, target: 'artifacts/bundle' }])
     expect(result.success).toBe(false)
     expect(result.errors?.[0].code).toBe('ARTIFACT_NOT_A_FILE')
-    expect(result.errors?.[0].message).toContain('"artifacts/bundle" is a directory; produce_artifact records one file')
+    expect(result.errors?.[0].message).toContain(
+      '"artifacts/bundle" is a directory; produce_artifact records one file',
+    )
     expect(await files()).toEqual([])
   })
 
@@ -166,8 +170,8 @@ describe('produce_artifact', () => {
   })
 })
 
-describe('matrix seed', () => {
-  it('seeds headers and empty cells and seals the seed', async () => {
+describe('matrix sparse storage', () => {
+  it('creates an unseeded sparse matrix and rejects seed argument', async () => {
     const result = await propose([
       {
         op: 'add_matrix',
@@ -175,19 +179,33 @@ describe('matrix seed', () => {
         name: 'SWOT',
         concept: 'Work',
         to: 'Work',
-        seed: { columns: ['Q1', 'Q2'], rows: ['Vision'] },
         evidence: 'decision',
       },
     ])
     expect(result.success).toBe(true)
-    const doc = parseChangeset(await readFile(join(root, result.changeset!), 'utf-8'))
-    expect(doc.changes[0].seed).toEqual({ columns: ['Q1', 'Q2'], rows: ['Vision'] })
-
     const applied = await applyChange(root, result.changeset!)
     expect(applied.success).toBe(true)
     const content = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
     expect(content).toContain('SWOT')
-    expect(content).toContain('Q2')
+    expect(content).not.toMatch(/\|\s*-\s*\|/)
+
+    const seedRejected = await propose([
+      {
+        op: 'add_matrix',
+        target: 'strategy@matrix:SWOT2',
+        name: 'SWOT2',
+        concept: 'Work',
+        to: 'Work',
+        seed: { columns: ['Q1', 'Q2'], rows: ['Vision'] },
+        evidence: 'decision',
+      },
+    ])
+    expect(seedRejected.success).toBe(false)
+    expect(
+      seedRejected.errors?.some(
+        (e) => e.code === 'INVALID_OPERATION' && /seed|columns|rows/i.test(e.message),
+      ),
+    ).toBe(true)
   })
 
   it('rejects seed on any other op', async () => {
@@ -201,6 +219,8 @@ describe('matrix seed', () => {
       },
     ])
     expect(result.success).toBe(false)
-    expect(result.errors?.some((e) => e.code === 'INVALID_OPERATION' && /seed/.test(e.message))).toBe(true)
+    expect(
+      result.errors?.some((e) => e.code === 'INVALID_OPERATION' && /seed/.test(e.message)),
+    ).toBe(true)
   })
 })

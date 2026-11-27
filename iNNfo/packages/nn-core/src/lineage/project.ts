@@ -8,7 +8,6 @@
  * member or declares upstream `sources`.
  */
 import { parseFrontmatter } from '../parser/yaml.js'
-import { parseKnowledge } from '../parser/core.js'
 import { splitSourceFieldValue } from '../sourceRef.js'
 import type { CitationSite } from '../validator/workspaceSources.js'
 import type { FileSnapshot } from '../queryUnits.js'
@@ -25,6 +24,7 @@ import {
   roleOf,
 } from '../naming/contract.js'
 import { buildChangeLog } from '../changelog/load.js'
+import { parsedKnowledgeOf, type SnapshotParses } from './snapshot-parses.js'
 import { canonicalUnitModelId } from '../changeset/resolved-target.js'
 import type { ChangeLog } from '../changelog/index.js'
 
@@ -255,7 +255,11 @@ export function evidenceCitationSites(
 export function projectLineage(
   files: FileSnapshot[],
   log: ChangeLog = buildChangeLog(files),
-  options: { scope?: 'live' | 'all-time' } = {},
+  options: {
+    scope?: 'live' | 'all-time'
+    /** The parses of `files` already made for this snapshot (`readLineageSnapshot`). */
+    parses?: SnapshotParses
+  } = {},
 ): LineageView {
   const live = files
     .map((f) => ({ path: posixPath(f.path), content: f.content }))
@@ -332,7 +336,7 @@ export function projectLineage(
   for (const kf of live) {
     const parsedName = parseName(getBasename(kf.path))
     if (parsedName.kind !== 'nn' || parsedName.sidecarOf !== undefined) continue
-    const parsed = parseKnowledge(kf.content)
+    const parsed = parsedKnowledgeOf(options.parses, kf.path, kf.content)
     if (!isModelCandidate({ path: kf.path, frontmatter: (parsed.frontmatter ?? {}) as Record<string, unknown> })) {
       continue
     }
@@ -379,7 +383,7 @@ export function projectLineage(
   for (const cf of live) {
     const parsedName = parseName(getBasename(cf.path))
     if (parsedName.kind !== 'nn' || parsedName.sidecarOf !== undefined) continue
-    const parsed = parseKnowledge(cf.content)
+    const parsed = parsedKnowledgeOf(options.parses, cf.path, cf.content)
     const fm = (parsed.frontmatter ?? {}) as Record<string, unknown>
     if (roleOf({ path: cf.path, parentSpecName: parentSpecNameOf(fm) }) !== 'changeset') continue
     changesets.push({

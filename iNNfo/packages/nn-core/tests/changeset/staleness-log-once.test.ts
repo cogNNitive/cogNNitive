@@ -5,14 +5,16 @@ import { tmpdir } from 'node:os'
 
 const reads = vi.hoisted(() => ({ paths: [] as string[] }))
 
-vi.mock('node:fs/promises', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs/promises')>()
+// The applied log is read through the persistent changeset index (changes-ledger-scaling
+// S7), which reads files synchronously: count every changeset read it makes.
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>()
   return {
     ...actual,
-    readFile: (async (path: unknown, ...rest: unknown[]) => {
-      reads.paths.push(String(path))
-      return (actual.readFile as (...a: unknown[]) => unknown)(path, ...rest)
-    }) as typeof actual.readFile,
+    readFileSync: ((path: unknown, ...rest: unknown[]) => {
+      if (String(path).endsWith('_NN.md')) reads.paths.push(String(path))
+      return (actual.readFileSync as (...a: unknown[]) => unknown)(path, ...rest)
+    }) as typeof actual.readFileSync,
   }
 })
 
@@ -25,14 +27,21 @@ import type { ParsedKnowledge } from '../../src/types/parser.js'
 
 describe('Staleness reads the whole applied log once per apply (changeset-apply-engine)', () => {
   let dir: string
+  let cache: string
+  const originalCache = process.env.INNFO_CACHE_DIR
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), 'nn-staleness-'))
+    cache = await mkdtemp(join(tmpdir(), 'nn-staleness-cache-'))
+    process.env.INNFO_CACHE_DIR = cache
     reads.paths.length = 0
   })
 
   afterEach(async () => {
+    if (originalCache === undefined) delete process.env.INNFO_CACHE_DIR
+    else process.env.INNFO_CACHE_DIR = originalCache
     await rm(dir, { recursive: true, force: true })
+    await rm(cache, { recursive: true, force: true })
   })
 
   async function writeApplied(filename: string, changes: ChangeItem[]): Promise<void> {

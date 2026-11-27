@@ -102,6 +102,7 @@ describe('Domain tab', () => {
     const { document } = boot()
     assert.deepEqual(kpis(document), {
       Models: '2',
+      Instances: '0',
       Concepts: '3',
       Elements: '4',
       Sources: '4',
@@ -338,5 +339,452 @@ describe('Domain tab', () => {
     const html = readFileSync(join(here, 'fixtures', 'testlab', 'domaiNN_console.html'), 'utf8')
     const config = JSON.parse(/id="nn-config">([\s\S]*?)<\/script>/.exec(html)[1])
     assert.equal(config.defaultView, 'domain')
+  })
+
+  it('splits Models and Instances in the KPI row and counts content accurately (#947)', () => {
+    const model = {
+      meta: {
+        title: 'Content Domain',
+        modelId: 'domain',
+        models: [
+          {
+            id: 'video-defaults',
+            title: 'Video Defaults',
+            blueprint: 'conntent',
+            storage: { kind: 'compact' },
+            elementCount: 5,
+          },
+          {
+            id: 'model-catalog',
+            title: 'Model Catalog',
+            blueprint: 'conntent',
+            storage: { kind: 'compact' },
+            elementCount: 3,
+          },
+          {
+            id: 'series-1',
+            title: 'Series 1',
+            blueprint: 'conntent',
+            storage: { kind: 'instance', concept: 'Series', container: null, slug: 'series-1' },
+            elementCount: 7,
+          },
+          {
+            id: 'series-1/ep-1',
+            title: 'Ep 1',
+            blueprint: 'conntent',
+            storage: { kind: 'instance', concept: 'Video', container: 'series-1', slug: 'ep-1' },
+            elementCount: 13,
+          },
+          {
+            id: 'series-1/ep-2',
+            title: 'Ep 2',
+            blueprint: 'conntent',
+            storage: { kind: 'instance', concept: 'Video', container: 'series-1', slug: 'ep-2' },
+            elementCount: 10,
+          },
+          {
+            id: 'exec-1',
+            title: 'Exec 1',
+            blueprint: 'executions',
+            storage: {
+              kind: 'instance',
+              concept: 'Procedure Execution',
+              container: null,
+              slug: 'exec-1',
+            },
+            elementCount: 2,
+          },
+        ],
+      },
+      elements: [
+        {
+          id: 'series-1@series-1',
+          modelId: 'series-1',
+          concept: 'Series',
+          slug: 'series-1',
+          name: 'Series 1',
+          status: 'published',
+        },
+        {
+          id: 'series-1/ep-1@ep-1',
+          modelId: 'series-1/ep-1',
+          concept: 'Video',
+          slug: 'ep-1',
+          name: 'Ep 1',
+          status: 'delivered',
+        },
+        {
+          id: 'series-1/ep-2@ep-2',
+          modelId: 'series-1/ep-2',
+          concept: 'Video',
+          slug: 'ep-2',
+          name: 'Ep 2',
+          status: 'draft',
+        },
+        {
+          id: 'exec-1@exec-1',
+          modelId: 'exec-1',
+          concept: 'Procedure Execution',
+          slug: 'exec-1',
+          name: 'Exec 1',
+          fields: { state: 'completed' },
+        },
+      ],
+      changes: [],
+    }
+    const schema = {
+      concepts: [
+        {
+          name: 'Series',
+          storage: { mode: 'distributed', placement: 'series/{slug}/' },
+          declaredBy: { family: 'conntent', name: 'coNNtent_V_0-32-7' },
+        },
+        {
+          name: 'Video',
+          storage: {
+            mode: 'distributed',
+            container: 'Series',
+            placement: 'series/{container}/episodes/{slug}/',
+          },
+          declaredBy: { family: 'conntent', name: 'coNNtent_V_0-32-7' },
+        },
+        {
+          name: 'Procedure Execution',
+          storage: { mode: 'distributed', placement: 'executions/{slug}/' },
+          declaredBy: { family: 'executions', name: 'executions_V_0-7-2' },
+        },
+      ],
+    }
+    const { document } = bootConsole({ model, schema })
+    const kpiElements = kpis(document)
+    assert.equal(kpiElements.Models, '2')
+    assert.equal(kpiElements.Instances, '4')
+
+    // Subtitle checks
+    const modelCard = [...document.querySelectorAll('#nn-tab-domain .nn-kpi-card')].find(
+      (c) => c.querySelector('.kpi-label').textContent === 'Models',
+    )
+    assert.equal(modelCard.querySelector('.kpi-sub').textContent, 'structural documents')
+
+    const instCard = [...document.querySelectorAll('#nn-tab-domain .nn-kpi-card')].find(
+      (c) => c.querySelector('.kpi-label').textContent === 'Instances',
+    )
+    assert.equal(
+      instCard.querySelector('.kpi-sub').textContent,
+      'Series 1 · Video 2 · Procedure Execution 1',
+    )
+
+    // Section headers
+    const sectionHeads = [
+      ...document.querySelectorAll('#nn-tab-domain .nn-summary-section-head'),
+    ].map((h) => [
+      h.querySelector('.nn-summary-section').textContent,
+      h.querySelector('.nn-summary-section-meta').textContent,
+    ])
+    assert.deepEqual(sectionHeads, [
+      ['Models', '2 structural documents'],
+      ['Instance Models', '4 documents · 3 distributed concepts'],
+    ])
+
+    // Instances grouping and nesting
+    const rootGroups = [
+      ...document.querySelectorAll(
+        '#nn-tab-domain .nn-summary-instances > .nn-summary-instance-group',
+      ),
+    ]
+    assert.equal(rootGroups.length, 2, 'Series and Procedure Execution root groups')
+
+    // Series group
+    const seriesGroup = rootGroups[0]
+    assert.equal(seriesGroup.querySelector('.nn-summary-group-title').textContent, 'Series')
+    assert.equal(seriesGroup.querySelector('.nn-summary-group-count').textContent, '1 instance')
+    assert.equal(
+      seriesGroup.querySelector('.nn-summary-group-blueprint').textContent,
+      'coNNtent_V_0-32-7',
+    )
+
+    // Series instance row
+    const seriesRow = seriesGroup.querySelector('.nn-summary-instance-row[data-model="series-1"]')
+    assert.ok(seriesRow, 'series-1 row exists')
+    assert.equal(seriesRow.querySelector('.nn-summary-instance-id').textContent, 'series-1')
+    assert.equal(seriesRow.querySelector('.nn-summary-instance-elements').textContent, '1 element')
+    assert.equal(seriesRow.querySelector('.nn-summary-instance-status').textContent, 'published')
+    assert.equal(
+      seriesRow.querySelector('.nn-summary-instance-link').getAttribute('href'),
+      'artifacts/series-1_console/series-1_console.html',
+    )
+
+    // Nested Video group inside series-1
+    const nestedVideoGroup = seriesGroup.querySelector('.nn-summary-instance-group--nested')
+    assert.ok(nestedVideoGroup, 'nested video group exists inside series')
+    assert.equal(nestedVideoGroup.querySelector('.nn-summary-group-title').textContent, 'Video')
+    assert.equal(
+      nestedVideoGroup.querySelector('.nn-summary-group-container').textContent,
+      'container: Series',
+    )
+    assert.equal(
+      nestedVideoGroup.querySelector('.nn-summary-group-count').textContent,
+      '2 instances',
+    )
+
+    // Video instance rows
+    const ep1Row = nestedVideoGroup.querySelector(
+      '.nn-summary-instance-row[data-model="series-1/ep-1"]',
+    )
+    assert.ok(ep1Row, 'ep1 row exists')
+    assert.equal(ep1Row.querySelector('.nn-summary-instance-id').textContent, 'series-1/ep-1')
+    assert.equal(ep1Row.querySelector('.nn-summary-instance-status').textContent, 'delivered')
+
+    const ep2Row = nestedVideoGroup.querySelector(
+      '.nn-summary-instance-row[data-model="series-1/ep-2"]',
+    )
+    assert.ok(ep2Row, 'ep2 row exists')
+    assert.equal(ep2Row.querySelector('.nn-summary-instance-status').textContent, 'draft')
+  })
+
+  it('handles edge case 1: distributed blueprint with 0 instances renders collapsed group (#947)', () => {
+    const model = {
+      meta: {
+        title: 'Empty Domain',
+        modelId: 'domain',
+        models: [
+          {
+            id: 'settings',
+            title: 'Settings',
+            blueprint: 'base',
+            storage: { kind: 'compact' },
+            elementCount: 1,
+          },
+        ],
+      },
+      elements: [
+        { id: 'settings@cfg', modelId: 'settings', concept: 'Setting', slug: 'cfg', name: 'Cfg' },
+      ],
+      changes: [],
+    }
+    const schema = {
+      concepts: [
+        { name: 'Setting' },
+        {
+          name: 'CustomInstance',
+          storage: { mode: 'distributed', placement: 'custom/{slug}/' },
+          declaredBy: { family: 'custom', name: 'custom_V_1-0-0' },
+        },
+      ],
+    }
+    const { document } = bootConsole({ model, schema })
+    const group = document.querySelector('#nn-tab-domain .nn-summary-instance-group')
+    assert.ok(group, 'group exists')
+    assert.equal(group.hasAttribute('open'), false, 'group with 0 instances is collapsed')
+    assert.equal(group.querySelector('.nn-summary-group-title').textContent, 'CustomInstance')
+    assert.equal(group.querySelector('.nn-summary-group-count').textContent, '0 instances')
+    assert.equal(group.querySelector('.nn-summary-group-blueprint').textContent, 'custom_V_1-0-0')
+  })
+
+  it('handles edge case 2: PLACEMENT_MISMATCH renders in Unplaced instances group with a warning (#947)', () => {
+    const model = {
+      meta: {
+        title: 'Misplaced Domain',
+        modelId: 'domain',
+        models: [
+          {
+            id: 'cfg',
+            title: 'Cfg',
+            blueprint: 'base',
+            storage: { kind: 'compact' },
+            elementCount: 1,
+          },
+          {
+            id: 'lost-ep',
+            title: 'Lost Ep',
+            blueprint: 'conntent',
+            storage: {
+              kind: 'instance',
+              concept: 'Video',
+              container: null,
+              slug: 'lost-ep',
+              placement: 'PLACEMENT_MISMATCH',
+            },
+            elementCount: 3,
+          },
+        ],
+      },
+      elements: [
+        {
+          id: 'lost-ep@lost-ep',
+          modelId: 'lost-ep',
+          concept: 'Video',
+          slug: 'lost-ep',
+          name: 'Lost Ep',
+          status: 'draft',
+        },
+      ],
+      changes: [],
+    }
+    const schema = {
+      concepts: [
+        {
+          name: 'Series',
+          storage: { mode: 'distributed', placement: 'series/{slug}/' },
+          declaredBy: { family: 'conntent' },
+        },
+        {
+          name: 'Video',
+          storage: {
+            mode: 'distributed',
+            container: 'Series',
+            placement: 'series/{container}/episodes/{slug}/',
+          },
+          declaredBy: { family: 'conntent' },
+        },
+      ],
+    }
+    const { document } = bootConsole({ model, schema })
+    const warnGroup = document.querySelector('#nn-tab-domain .nn-summary-instance-group--warning')
+    assert.ok(warnGroup, 'unplaced warning group exists')
+    assert.ok(warnGroup.hasAttribute('open'), 'warning group is open')
+    assert.equal(
+      warnGroup.querySelector('.nn-summary-group-title').textContent,
+      'Unplaced instances',
+    )
+    assert.equal(warnGroup.querySelector('.nn-summary-group-count').textContent, '1 instance')
+    const row = warnGroup.querySelector('.nn-summary-instance-row[data-model="lost-ep"]')
+    assert.ok(row, 'lost-ep row is in unplaced group')
+    assert.ok(
+      row.querySelector('.nn-summary-instance-warning-badge'),
+      'row carries placement mismatch badge',
+    )
+  })
+
+  it('handles edge case 3: compact model holding distributed elements renders warning (#947)', () => {
+    const model = {
+      meta: {
+        title: 'Mixed Domain',
+        modelId: 'domain',
+        models: [
+          {
+            id: 'mixed-model',
+            title: 'Mixed Model',
+            blueprint: 'base',
+            conceptNames: ['Video'],
+            storage: { kind: 'compact', problem: 'mixed' },
+            elementCount: 2,
+          },
+        ],
+      },
+      elements: [
+        { id: 'mixed-model@v1', modelId: 'mixed-model', concept: 'Video', slug: 'v1', name: 'V1' },
+      ],
+      changes: [],
+    }
+    const schema = {
+      concepts: [{ name: 'Video', storage: { mode: 'distributed', placement: 'videos/{slug}/' } }],
+    }
+    const { document } = bootConsole({ model, schema })
+    const card = document.querySelector(
+      '#nn-tab-domain .nn-summary-model[data-model="mixed-model"]',
+    )
+    assert.ok(card, 'mixed-model card exists')
+    const warn = card.querySelector('.nn-summary-model-warning')
+    assert.ok(warn, 'card carries mixed storage warning')
+    assert.match(warn.textContent, /Holds distributed elements \(mixed storage\)/)
+  })
+
+  it('handles edge case 4: console scoped to a model shows single group with no section headers (#947)', () => {
+    const model = {
+      meta: {
+        title: 'Scoped Domain',
+        modelId: 'domain',
+        consoleScope: { models: ['crm'] },
+        models: [
+          {
+            id: 'crm',
+            title: 'CRM',
+            blueprint: 'business',
+            storage: { kind: 'compact' },
+            elementCount: 3,
+          },
+          {
+            id: 'series-1',
+            title: 'Series 1',
+            blueprint: 'conntent',
+            storage: { kind: 'instance', concept: 'Series', slug: 'series-1' },
+            elementCount: 5,
+          },
+        ],
+      },
+      elements: [{ id: 'crm@c1', modelId: 'crm', concept: 'Client', slug: 'c1', name: 'C1' }],
+      changes: [],
+    }
+    const schema = {
+      concepts: [{ name: 'Client' }, { name: 'Series', storage: { mode: 'distributed' } }],
+    }
+    const { document } = bootConsole({ model, schema })
+    const sectionHeads = document.querySelectorAll('#nn-tab-domain .nn-summary-section-head')
+    assert.equal(sectionHeads.length, 0, 'no section headers when scoped to a single model')
+    const card = document.querySelector('#nn-tab-domain .nn-summary-model[data-model="crm"]')
+    assert.ok(card, 'scoped model card renders directly')
+  })
+
+  it('secondary defect: conceptHome resolves to blueprint rather than an instance (#947)', () => {
+    const model = {
+      meta: {
+        title: 'Content Domain',
+        modelId: 'domain',
+        models: [
+          // Instance model comes first
+          {
+            id: 'series/e01',
+            title: 'E01',
+            blueprint: 'conntent',
+            declaredConcepts: ['Series', 'Video'],
+            conceptNames: ['Video'],
+            storage: { kind: 'instance', concept: 'Video', slug: 'e01' },
+          },
+          {
+            id: 'settings',
+            title: 'Settings',
+            blueprint: 'admin',
+            declaredConcepts: ['Config'],
+            conceptNames: ['Config'],
+            storage: { kind: 'compact' },
+          },
+        ],
+      },
+      elements: [
+        { id: 'series/e01@e01', modelId: 'series/e01', concept: 'Video', slug: 'e01', name: 'E01' },
+      ],
+      changes: [{ path: 'changes/c1.md', status: 'proposed', changes: [] }],
+    }
+    const schema = {
+      concepts: [
+        {
+          name: 'Video',
+          storage: { mode: 'distributed' },
+          declaredBy: { family: 'conntent', name: 'coNNtent_V_0-32-7' },
+        },
+        {
+          name: 'Series',
+          storage: { mode: 'distributed' },
+          declaredBy: { family: 'conntent', name: 'coNNtent_V_0-32-7' },
+        },
+        { name: 'Config', declaredBy: { family: 'admin', name: 'admin_V_1-0-0' } },
+      ],
+    }
+    const { document } = bootConsole({ model, schema })
+    // Attention hint for empty concept 'Series': should target specs/conntent, never series/e01
+    const seriesRef = document.querySelector(
+      '#nn-tab-domain .nn-summary-attention [data-concept="Series"] .nn-ku',
+    )
+    assert.ok(seriesRef, 'Series badge in attention exists')
+    seriesRef.click()
+    const dialog = document.querySelector('dialog.nn-ku-info-panel')
+    assert.ok(dialog, 'dialog opened')
+    const addr = dialog.getAttribute('data-nn-address')
+    assert.ok(!addr.startsWith('series/e01'), `address "${addr}" must not target the instance`)
+    assert.ok(
+      addr.includes('specs/conntent') || addr.includes('specs/coNNtent'),
+      `address "${addr}" targets the blueprint`,
+    )
   })
 })

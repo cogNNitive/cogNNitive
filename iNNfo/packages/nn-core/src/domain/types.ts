@@ -10,6 +10,10 @@ export interface DomainModelInput {
   path: string
   frontmatter: Record<string, unknown>
   elements: ReadonlyArray<{ concept: string; slug: string }>
+  matrices?: ReadonlyArray<{
+    name: string
+    cells: ReadonlyArray<{ row: string; col: string; value: string }>
+  }>
 }
 
 /** Declared concept storage of the bluepriNNt a model pins, or null when it cannot be resolved. */
@@ -31,6 +35,7 @@ export type LayoutCode =
   | 'MODEL_ID_INVALID'
   | 'INSTANCE_SHADOWS_ELEMENT_ASSETS'
   | 'BLUEPRINT_VERSION_SKEW'
+  | 'PERSISTED_EMPTY_MATRIX_CELLS'
 
 /** Message shape: `<CODE>: <subject> - <what is wrong>; <fix>`. */
 export interface LayoutDiagnostic {

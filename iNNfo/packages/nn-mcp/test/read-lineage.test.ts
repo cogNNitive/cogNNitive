@@ -80,8 +80,20 @@ describe('read_lineage', () => {
     const before = await readFile(join(knowledgeDir, 'goal_NN.md'), 'utf-8')
     const view = await readLineageTool(root, {})
 
+    // The overview: every section's first page, plus totals and cursors.
     expect(Object.keys(view).sort()).toEqual(
-      ['artifacts', 'changes', 'diagnostics', 'edges', 'models', 'sources'].sort(),
+      [
+        'artifacts',
+        'changes',
+        'diagnostics',
+        'edges',
+        'limit',
+        'models',
+        'next_cursor',
+        'scope',
+        'sources',
+        'totals',
+      ].sort(),
     )
     expect(view.models.map((m) => m.model_ref)).toEqual(['kNNowledge/goal_NN.md'])
     expect(view.changes.map((c) => c.changeset_ref)).toEqual([
@@ -111,7 +123,9 @@ describe('read_lineage', () => {
 describe('check_domain.provenance carries projection diagnostics', () => {
   it('reports ARTIFACT_WITHOUT_RECORD as a warning', async () => {
     const report = await checkDomain(root, { offline: true })
-    const artifact = report.provenance.diagnostics.filter((d) => d.code === 'ARTIFACT_WITHOUT_RECORD')
+    const artifact = report.provenance.diagnostics.filter(
+      (d) => d.code === 'ARTIFACT_WITHOUT_RECORD',
+    )
     expect(artifact).toHaveLength(1)
     expect(artifact[0].severity).toBe('warning')
   })

@@ -6,7 +6,11 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 import { parseFrontmatter, parseKnowledge } from './parser/index.js'
-import { buildDomainIndex, type DomainModelInput, type StorageDeclarationsResolver } from './domain/index.js'
+import {
+  buildDomainIndex,
+  type DomainModelInput,
+  type StorageDeclarationsResolver,
+} from './domain/index.js'
 import { isModelCandidate, isExcludedPath, parseName } from './naming/contract.js'
 import { isDomainRoot } from './scope/root.js'
 
@@ -43,6 +47,20 @@ function isIgnoredDir(name: string): boolean {
 }
 
 /**
+ * The domaiNN's change ledger folder. It holds only changesets (changes spec: a changeset
+ * "lives in the changes/ directory at the domain root"), never a model, so discovery prunes
+ * it before reading anything: thousands of changesets must not cost a model lookup. Only the
+ * walked root's own folder is pruned; a deeper folder that happens to be named `changes` is
+ * ordinary content, and a nested domaiNN is skipped whole anyway.
+ */
+export const DOMAIN_CHANGES_DIR = 'changes'
+
+/** True when `name`, a direct child of the domain root, is its change ledger folder. */
+export function isDomainChangesDir(name: string): boolean {
+  return name.toLowerCase() === DOMAIN_CHANGES_DIR
+}
+
+/**
  * `collectModels()` and `isReconcilableModel()` share ONE discoverable-model
  * predicate (`isModelCandidate`, `naming/contract.ts`) instead of two
  * divergent ones (H6). Walk-level directory pruning stays here: it walks
@@ -74,11 +92,27 @@ function elementsOf(content: string): DomainModelInput['elements'] {
   }
 }
 
-async function collectModels(dir: string, rootDir: string, candidates: RawModelCandidate[]): Promise<void> {
+function matricesOf(content: string): DomainModelInput['matrices'] {
+  try {
+    return parseKnowledge(content).matrices.map((m) => ({
+      name: m.name,
+      cells: m.cells.map((c) => ({ row: c.row, col: c.col, value: c.value })),
+    }))
+  } catch {
+    return []
+  }
+}
+
+async function collectModels(
+  dir: string,
+  rootDir: string,
+  candidates: RawModelCandidate[],
+): Promise<void> {
   const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
   for (const entry of entries) {
     if (entry.isDirectory()) {
       if (isIgnoredDir(entry.name)) continue
+      if (dir === rootDir && isDomainChangesDir(entry.name)) continue
       const child = join(dir, entry.name)
       // A nested domaiNN is its own root: its models are not the outer domaiNN's.
       if (isDomainRoot(child)) continue
@@ -112,7 +146,17 @@ async function collectModels(dir: string, rootDir: string, candidates: RawModelC
 
     const version = resolveKnowledgeVersion(frontmatter)
 
-    candidates.push({ relPath, path: filePath, version, input: { path: relPath, frontmatter, elements: elementsOf(content) } })
+    candidates.push({
+      relPath,
+      path: filePath,
+      version,
+      input: {
+        path: relPath,
+        frontmatter,
+        elements: elementsOf(content),
+        matrices: matricesOf(content),
+      },
+    })
   }
 }
 
@@ -125,8 +169,8 @@ export interface DiscoveredDomainModel {
 
 /**
  * Walk a domaiNN and describe every discoverable model as domain-index input
- * (skips `backups`, `archive`, `specs`, `node_modules`, `.git`, dot-directories
- * and nested domaiNNs). Discovery is path-agnostic: a misplaced instance is
+ * (skips `backups`, `archive`, `specs`, `node_modules`, `.git`, dot-directories,
+ * the root's `changes/` ledger and nested domaiNNs). Discovery is path-agnostic: a misplaced instance is
  * still listed.
  */
 export async function discoverDomainModels(rootDir: string): Promise<DiscoveredDomainModel[]> {

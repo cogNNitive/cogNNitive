@@ -56,13 +56,26 @@ import {
 } from './tools/console-regeneration.js'
 import { proposeChangeset } from './tools/propose-changeset.js'
 import { initDomain } from './tools/init-domain.js'
-import { readLineageTool } from './tools/read-lineage.js'
+import {
+  LineagePageError,
+  LINEAGE_SECTIONS,
+  MAX_LIMIT as LINEAGE_MAX_LIMIT,
+  OVERVIEW_LIMIT as LINEAGE_OVERVIEW_LIMIT,
+  SECTION_LIMIT as LINEAGE_SECTION_LIMIT,
+  readLineageTool,
+} from './tools/read-lineage.js'
 import { explainEffective, resolveEffective } from './tools/resolve-effective.js'
 import { procedureState } from './tools/procedure-state.js'
 import { procedurePending } from './tools/procedure-pending.js'
 import { procedureRecord, procedureStart } from './tools/procedure-record.js'
 import { importConsole } from './tools/import-console.js'
-import { envelope, envelopeList, findDomainRoot, isDomainRoot } from '@cognnitive/nn-core'
+import {
+  envelope,
+  envelopeList,
+  envelopeVersion,
+  findDomainRoot,
+  isDomainRoot,
+} from '@cognnitive/nn-core'
 
 /**
  * Resolves the domaiNN root: `INNFO_DOMAIN_DIR` wins, else the nearest
@@ -344,7 +357,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           args: {
             type: 'object',
             description:
-              'Operation-specific arguments for bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For add_element: { conceptName, elementName, slug?, to? } (to: the initial fields {field: value}, validated like set_fields). For update_concept_field: { conceptName, fieldName, value, from }. For remove_matrix: { matrixName }. For add_matrix: { matrixName, source, targetConcept, columns?, rows? } (source/targetConcept are the row/column axis concepts; columns/rows seed the grid and default to the axis concepts elements). For move_model: { to } (the new instance model id; the call id is the old one). For generate_index: { taxonomy? }. For bump_version: { bump: "major" | "minor" | "patch" } (default patch). freeze_slugs takes no args. add_concept and add_field are refused on a Level-3 model (SCHEMA_OP_ON_LEVEL3).',
+              'Operation-specific arguments for bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For add_element: { conceptName, elementName, slug?, to? } (to: the initial fields {field: value}, validated like set_fields). For update_concept_field: { conceptName, fieldName, value, from }. For remove_matrix: { matrixName }. For add_matrix: { matrixName, source, targetConcept } (source/targetConcept are the row/column axis concepts; columns/rows are retired, axis universe is derived from concept elements). For move_model: { to } (the new instance model id; the call id is the old one). For generate_index: { taxonomy? }. For bump_version: { bump: "major" | "minor" | "patch" } (default patch). freeze_slugs takes no args. add_concept and add_field are refused on a Level-3 model (SCHEMA_OP_ON_LEVEL3).',
           },
           open: {
             type: 'boolean',
@@ -725,7 +738,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'read_lineage',
       annotations: { readOnlyHint: true },
       description:
-        'Read-only computed lineage view of the domain: {sources, models, artifacts, changes, edges, diagnostics}. Inventory comes from the filesystem; edges come from the applied changes (evidence: cited file -> model/artifact, target: unit -> owner, produced: artifact -> changeset). `scope` selects live evidence (the last applied change of each unit, default) or all-time evidence; `focus` narrows every section to refs containing it. A non-regenerable artifact with no produce_artifact change is ARTIFACT_WITHOUT_RECORD. Never writes files.',
+        'Read-only computed lineage view of the domain: {sources, models, artifacts, changes, edges, diagnostics}. Inventory comes from the filesystem; edges come from the applied changes (evidence: cited file -> model/artifact, target: unit -> owner, produced: artifact -> changeset). `scope` selects live evidence (the last applied change of each unit, default) or all-time evidence; `focus` narrows every section to refs containing it. A non-regenerable artifact with no produce_artifact change is ARTIFACT_WITHOUT_RECORD. Paginated: without `section` it returns `totals` for every section, the first page of each (`limit`, default 25) and `next_cursor` per section (null when that page holds the rest). To read more, call again with `section` and the `next_cursor` of that section as `cursor` (`limit` default 200, max 1000) until `next_cursor` is null. A page also stops early at a byte budget, so it can hold fewer than `limit` items. Order is deterministic, so cursors are stable while the domain is unchanged. Never writes files.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -737,6 +750,23 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
             type: 'string',
             enum: ['live', 'all-time'],
             description: 'Evidence scope: live (default) or all-time',
+          },
+          section: {
+            type: 'string',
+            enum: [...LINEAGE_SECTIONS],
+            description:
+              'Optional: page through one section. Omitted, the overview returns totals and the first page of every section',
+          },
+          limit: {
+            type: 'integer',
+            minimum: 1,
+            maximum: LINEAGE_MAX_LIMIT,
+            description: `Optional items per page: default ${LINEAGE_OVERVIEW_LIMIT} per section in the overview, ${LINEAGE_SECTION_LIMIT} with a section; at most ${LINEAGE_MAX_LIMIT}`,
+          },
+          cursor: {
+            type: 'string',
+            description:
+              "Optional: the previous page's next_cursor for the same section, passed unchanged (requires section)",
           },
           domain: {
             type: 'string',
@@ -989,10 +1019,11 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'procedure_record',
       annotations: { readOnlyHint: false, destructiveHint: false },
       description:
-        'Record one fact of a procedure run as ONE changeset applied through apply_change (author_kind agent; engine for action run). Actions: start (step_started, attempt and frozen input revs computed), wait (value), complete (outcome; next is taken when one transition holds, else AMBIGUOUS_TRANSITION with the allowed transitions), fail (value), artifact (fact produced|validated|rejected, field = artifact slug, value, rev; only from a step that already started), input (field, value, rev), pause, resume, rebase (accept the current definition revision), cancel, finish (outcome completed, only when the walk can complete, or failed), and run (execute the engine step command with slots substituted, verify its file: artifacts by sha256, record the exit code). ' +
+        'Record one fact of a procedure run as ONE changeset applied through apply_change (author_kind agent; engine for action run). Actions: start (step_started, attempt and frozen input revs computed), wait (value; only from a started step), complete (outcome; next is taken when one transition holds, else AMBIGUOUS_TRANSITION with the allowed transitions; a current step that is pending, failed or reopened is claimed first, with the same checks and claim facts as start, in the same changeset), fail (value), artifact (fact produced|validated|rejected, field = artifact slug, value, rev; only from a step that already started), input (field, value, rev), pause, resume, rebase (accept the current definition revision), cancel, finish (outcome completed, only when the walk can complete, or failed), and run (execute the engine step command with slots substituted, verify its file: artifacts by sha256, record the exit code). ' +
         'The call holds the run write lock across the fold and the apply, so two callers cannot both fold the same state and append the same fact: a second caller is refused with RUN_BUSY and writes nothing. ' +
         'A Step Request a person recorded in the console (see procedure_pending) is consumed by giving its id as request instead of an action: the request names the action, step, outcome or value, and the same changeset that records the action marks it done. A complete request may carry requested_outputs, the same map as the outputs argument; outputs given together with a request are refused (INVALID_ARGUMENT), since the deliverable of a request is the one the person attached. A request made at an older base_seq whose step moved since is marked stale, and one the planner refuses is marked rejected with the reason; both marks are their own changeset and record nothing else. ' +
         'A complete may carry outputs, the private deliverables of the step: { "<artifact slug>": { "name"?: string, "text": string } }, as an object or its JSON text. Every slug must be a file output of the step being completed and every text a string of at most 256 KiB of UTF-8, else INVALID_OUTPUT, checked before anything is written. Each text is written to executions/<run>/outputs/<slug>/<name> (name reduced to a basename of A-Z a-z 0-9 . _ -, default <slug>.md) right before the commit and removed if it does not apply, and the same atomic changeset records the artifact validated with that path as value, its sha256 as rev and the step, so the MISSING_OUTPUT gate counts it. Nothing is written outside executions/<run>/ and changes/. ' +
+        'Compact form (recommended): a run needs no separate start, artifact or finish call. complete claims a step that was not started; complete may carry artifacts, an array of { fact, field, value?, rev?, step? } planned exactly as action artifact (UNKNOWN_ARTIFACT, INVALID_ARGUMENT, STEP_NOT_STARTED and the rest refuse the whole call) and recorded before the completion so MISSING_OUTPUT sees them; and the last complete may carry finish (true or completed, or failed), which closes the run in the same changeset and refuses the whole call with CANNOT_COMPLETE or MISSING_OUTPUT when that completion does not leave the run closable. artifacts and finish travel only with a direct complete (INVALID_ARGUMENT with any other action or a request). A review run is then procedure_start, complete(draft, artifacts), complete(review, outcome), complete(publish, finish): four changesets. The separate start, artifact and finish calls keep working unchanged. ' +
         'A terminal event and close_model go in the same changeset. Refusals write nothing: INVALID_ACTION, INVALID_ARGUMENT, RUN_NOT_FOUND, REQUEST_NOT_FOUND, REQUEST_NOT_PENDING, REQUEST_STALE, RUN_BUSY, RUN_CLOSED, RUN_DRIFTED, RUN_PAUSED, NOT_PAUSED, NOT_DRIFTED, UNKNOWN_STEP, STEP_NOT_CURRENT, STEP_NOT_STARTED, STEP_ALREADY_STARTED, UNKNOWN_ARTIFACT, INVALID_TRANSITION, AMBIGUOUS_TRANSITION, CANNOT_COMPLETE, MISSING_OUTPUT, INVALID_OUTPUT, NOT_ENGINE_STEP; APPLY_FAILED reports an apply refusal. Returns what was recorded and the new state.',
       inputSchema: {
         type: 'object',
@@ -1046,6 +1077,17 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
             type: 'object',
             description:
               'complete: the step file outputs a person wrote, { "<artifact slug>": { "name"?: string, "text": string } } (its JSON text is accepted too); each text at most 256 KiB, kept private under executions/<run>/outputs/',
+          },
+          artifacts: {
+            type: 'array',
+            items: { type: 'object' },
+            description:
+              'complete: artifact facts recorded in the same changeset before the completion, each { fact: produced|validated|rejected, field: artifact slug, value?, rev?, step? } with the same checks as action artifact (its JSON text is accepted too)',
+          },
+          finish: {
+            description:
+              'complete: close the run in the same changeset; true or "completed" (only when this completion lets the walk complete, else CANNOT_COMPLETE and nothing is written) or "failed"',
+            oneOf: [{ type: 'boolean' }, { type: 'string', enum: ['completed', 'failed'] }],
           },
           actor: {
             type: 'string',
@@ -1490,11 +1532,23 @@ async function handleCognitivize(args: Record<string, unknown>): Promise<CallToo
 
 async function handleReadLineage(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const result = await readLineageTool(root, {
-    focus: args.focus as string | undefined,
-    scope: args.scope === 'all-time' ? 'all-time' : 'live',
-  })
-  return textResult(JSON.stringify(envelope('innfo-read-lineage', result), null, 2))
+  let result
+  try {
+    result = await readLineageTool(root, {
+      focus: args.focus as string | undefined,
+      scope: args.scope === 'all-time' ? 'all-time' : 'live',
+      section: args.section,
+      limit: args.limit,
+      cursor: args.cursor,
+    })
+  } catch (err) {
+    if (!(err instanceof LineagePageError)) throw err
+    return errorResult(JSON.stringify({ ok: false, code: err.code, message: err.message }, null, 2))
+  }
+  // Major 2: the arrays are pages, no longer the whole view (see the envelope rule above).
+  return textResult(
+    JSON.stringify({ version: envelopeVersion('innfo-read-lineage', 2), ...result }, null, 2),
+  )
 }
 
 async function handleResolveSources(args: Record<string, unknown>): Promise<CallToolResult> {
