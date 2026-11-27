@@ -6859,11 +6859,18 @@
     var holder = el('span', 'nn-summary-concept-ref')
     holder.setAttribute('data-concept', concept)
     var meta = conceptMetaOf(schema && schema.concepts, concept)
-    var badge = UI.Ku(
-      'section',
-      { model: modelId, concept: concept, label: concept, index: meta.index, color: meta.color },
-      { doc: doc },
-    )
+    var isBlueprint = modelId && modelId.startsWith('specs/')
+    var kind = isBlueprint ? 'concept' : 'section'
+    var ref = isBlueprint
+      ? {
+          family: modelId.slice(6),
+          concept: concept,
+          label: concept,
+          index: meta.index,
+          color: meta.color,
+        }
+      : { model: modelId, concept: concept, label: concept, index: meta.index, color: meta.color }
+    var badge = UI.Ku(kind, ref, { doc: doc })
     holder.appendChild(badge)
     var unit = holder.querySelector('.nn-ku')
     if (unit) {
