@@ -56,13 +56,26 @@ import {
 } from './tools/console-regeneration.js'
 import { proposeChangeset } from './tools/propose-changeset.js'
 import { initDomain } from './tools/init-domain.js'
-import { readLineageTool } from './tools/read-lineage.js'
+import {
+  LineagePageError,
+  LINEAGE_SECTIONS,
+  MAX_LIMIT as LINEAGE_MAX_LIMIT,
+  OVERVIEW_LIMIT as LINEAGE_OVERVIEW_LIMIT,
+  SECTION_LIMIT as LINEAGE_SECTION_LIMIT,
+  readLineageTool,
+} from './tools/read-lineage.js'
 import { explainEffective, resolveEffective } from './tools/resolve-effective.js'
 import { procedureState } from './tools/procedure-state.js'
 import { procedurePending } from './tools/procedure-pending.js'
 import { procedureRecord, procedureStart } from './tools/procedure-record.js'
 import { importConsole } from './tools/import-console.js'
-import { envelope, envelopeList, findDomainRoot, isDomainRoot } from '@cognnitive/nn-core'
+import {
+  envelope,
+  envelopeList,
+  envelopeVersion,
+  findDomainRoot,
+  isDomainRoot,
+} from '@cognnitive/nn-core'
 
 /**
  * Resolves the domaiNN root: `INNFO_DOMAIN_DIR` wins, else the nearest
@@ -725,7 +738,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'read_lineage',
       annotations: { readOnlyHint: true },
       description:
-        'Read-only computed lineage view of the domain: {sources, models, artifacts, changes, edges, diagnostics}. Inventory comes from the filesystem; edges come from the applied changes (evidence: cited file -> model/artifact, target: unit -> owner, produced: artifact -> changeset). `scope` selects live evidence (the last applied change of each unit, default) or all-time evidence; `focus` narrows every section to refs containing it. A non-regenerable artifact with no produce_artifact change is ARTIFACT_WITHOUT_RECORD. Never writes files.',
+        'Read-only computed lineage view of the domain: {sources, models, artifacts, changes, edges, diagnostics}. Inventory comes from the filesystem; edges come from the applied changes (evidence: cited file -> model/artifact, target: unit -> owner, produced: artifact -> changeset). `scope` selects live evidence (the last applied change of each unit, default) or all-time evidence; `focus` narrows every section to refs containing it. A non-regenerable artifact with no produce_artifact change is ARTIFACT_WITHOUT_RECORD. Paginated: without `section` it returns `totals` for every section, the first page of each (`limit`, default 25) and `next_cursor` per section (null when that page holds the rest). To read more, call again with `section` and the `next_cursor` of that section as `cursor` (`limit` default 200, max 1000) until `next_cursor` is null. A page also stops early at a byte budget, so it can hold fewer than `limit` items. Order is deterministic, so cursors are stable while the domain is unchanged. Never writes files.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -737,6 +750,23 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
             type: 'string',
             enum: ['live', 'all-time'],
             description: 'Evidence scope: live (default) or all-time',
+          },
+          section: {
+            type: 'string',
+            enum: [...LINEAGE_SECTIONS],
+            description:
+              'Optional: page through one section. Omitted, the overview returns totals and the first page of every section',
+          },
+          limit: {
+            type: 'integer',
+            minimum: 1,
+            maximum: LINEAGE_MAX_LIMIT,
+            description: `Optional items per page: default ${LINEAGE_OVERVIEW_LIMIT} per section in the overview, ${LINEAGE_SECTION_LIMIT} with a section; at most ${LINEAGE_MAX_LIMIT}`,
+          },
+          cursor: {
+            type: 'string',
+            description:
+              "Optional: the previous page's next_cursor for the same section, passed unchanged (requires section)",
           },
           domain: {
             type: 'string',
@@ -1490,11 +1520,23 @@ async function handleCognitivize(args: Record<string, unknown>): Promise<CallToo
 
 async function handleReadLineage(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const result = await readLineageTool(root, {
-    focus: args.focus as string | undefined,
-    scope: args.scope === 'all-time' ? 'all-time' : 'live',
-  })
-  return textResult(JSON.stringify(envelope('innfo-read-lineage', result), null, 2))
+  let result
+  try {
+    result = await readLineageTool(root, {
+      focus: args.focus as string | undefined,
+      scope: args.scope === 'all-time' ? 'all-time' : 'live',
+      section: args.section,
+      limit: args.limit,
+      cursor: args.cursor,
+    })
+  } catch (err) {
+    if (!(err instanceof LineagePageError)) throw err
+    return errorResult(JSON.stringify({ ok: false, code: err.code, message: err.message }, null, 2))
+  }
+  // Major 2: the arrays are pages, no longer the whole view (see the envelope rule above).
+  return textResult(
+    JSON.stringify({ version: envelopeVersion('innfo-read-lineage', 2), ...result }, null, 2),
+  )
 }
 
 async function handleResolveSources(args: Record<string, unknown>): Promise<CallToolResult> {
