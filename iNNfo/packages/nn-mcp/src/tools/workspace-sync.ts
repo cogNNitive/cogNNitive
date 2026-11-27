@@ -8,6 +8,7 @@ import {
   parseFrontmatter,
   parentSpecNameOf,
   displayStem,
+  isDomainChangesDir,
 } from '@cognnitive/nn-core'
 import type { DiscoveredCatalog, DiscoveredModel, ManifestChange, CandidateFile } from '@cognnitive/nn-core'
 import { buildNodeDomainIndex, duplicateIdCollisions, type ModelIdCollisionDiagnostic } from './domain-index.js'
@@ -40,7 +41,11 @@ function toRelative(root: string, filePath: string): string {
   return relative(root, filePath).replace(/\\/g, '/')
 }
 
-async function walkMarkdownFiles(dir: string, out: string[] = []): Promise<string[]> {
+/**
+ * Every `.md` under `dir`. The root's `changes/` ledger is pruned before it is read: it holds
+ * only changesets, which are neither models nor catalogs.
+ */
+async function walkMarkdownFiles(dir: string, out: string[] = [], root = dir): Promise<string[]> {
   let entries
   try {
     entries = await readdir(dir, { withFileTypes: true })
@@ -56,10 +61,11 @@ async function walkMarkdownFiles(dir: string, out: string[] = []): Promise<strin
   for (const entry of entries) {
     if (entry.isDirectory()) {
       if (SKIP_DIR_NAMES.has(entry.name)) continue
+      if (dir === root && isDomainChangesDir(entry.name)) continue
       const child = join(dir, entry.name)
       // A nested domaiNN is its own root: the outer manifest does not absorb it.
       if (await hasEntrypoint(child)) continue
-      await walkMarkdownFiles(child, out)
+      await walkMarkdownFiles(child, out, root)
     } else if (entry.isFile() && /\.md$/i.test(entry.name)) {
       out.push(join(dir, entry.name))
     }

@@ -1,5 +1,6 @@
 import { fail, foldStoredRun, readRun } from './procedure-state.js'
 import type { ToolError } from './procedure-state.js'
+import { buildNodeDomainIndex } from './domain-index.js'
 import type { StepRequestRow } from '@cognnitive/nn-core'
 
 /**
@@ -31,8 +32,10 @@ export async function procedurePending(
 
   const runs = runArg === undefined ? await listRuns(root) : [String(runArg).trim()]
   const requests: Array<PendingRequest & { run: string }> = []
+  // One domain index for the whole sweep: this tool only reads, so nothing moves under it.
+  const index = runs.length > 0 ? await buildNodeDomainIndex(root) : undefined
   for (const run of runs) {
-    const read = await readRun(root, run)
+    const read = await readRun(root, run, { index })
     // A named run that does not exist is an error; a sweep over the domaiNN skips what it
     // cannot read rather than failing the whole queue.
     if (!read.ok) {

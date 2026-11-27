@@ -205,7 +205,13 @@ export type {
   FreshnessField,
   TemplateResolution,
 } from './workspace/integrity/report.js'
-export { listKnowledge, discoverDomainModels, resolveKnowledgeVersion } from './helpers.js'
+export {
+  listKnowledge,
+  discoverDomainModels,
+  resolveKnowledgeVersion,
+  isDomainChangesDir,
+  DOMAIN_CHANGES_DIR,
+} from './helpers.js'
 export type { KnowledgeInfo, DiscoveredDomainModel } from './helpers.js'
 export {
   applyMutation,

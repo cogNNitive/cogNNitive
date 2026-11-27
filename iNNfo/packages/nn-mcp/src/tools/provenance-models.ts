@@ -17,6 +17,7 @@ import {
 } from '@cognnitive/nn-core'
 import { listKnowledge } from './list-read.js'
 import { findKnowledgeFile } from './spec.js'
+import type { NodeDomainIndex } from './domain-index.js'
 
 async function parseLevel3(path: string): Promise<ParsedKnowledge | null> {
   try {
@@ -35,13 +36,17 @@ async function parseLevel3(path: string): Promise<ParsedKnowledge | null> {
  * `procedure` or a `catalog` (#637). With the change log, each id it touched that the
  * listing does not cover is looked up with the same resolver `apply_change` used to
  * write it, so a file that exists is never reported as missing.
+ *
+ * `call.index` is a domain index already built for `rootDir` in the same tool
+ * call; the listing and every lookup then share it.
  */
 export async function collectProvenanceModels(
   rootDir: string,
   log?: ChangeLog,
+  call: { index?: NodeDomainIndex } = {},
 ): Promise<ProvenanceModel[]> {
   const models: ProvenanceModel[] = []
-  for (const info of await listKnowledge(rootDir)) {
+  for (const info of await listKnowledge(rootDir, {}, call)) {
     const parsed = await parseLevel3(info.path)
     if (!parsed) continue
     // `listKnowledge` ids come from the domain index and never carry `_NN`.
@@ -53,7 +58,9 @@ export async function collectProvenanceModels(
     const listed = new Set(models.map((entry) => entry.modelId))
     for (const modelId of touchedModels(log).keys()) {
       if (listed.has(modelId)) continue
-      const path = await findKnowledgeFile(rootDir, modelId).catch(() => null)
+      const path = await findKnowledgeFile(rootDir, modelId, { index: call.index }).catch(
+        () => null,
+      )
       if (!path) continue
       const parsed = await parseLevel3(path)
       if (parsed) models.push({ modelId, model: parsed, path })

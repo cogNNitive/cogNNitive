@@ -42,9 +42,12 @@ import { listKnowledge } from './list-read.js'
 import { resolveBlueprintWithCache } from './spec.js'
 import { mutationArgsForChange, parseTargetAddress } from './change-args.js'
 import { collectProvenanceModels } from './provenance-models.js'
+import type { NodeDomainIndex } from './domain-index.js'
 
 export interface StrictProvenanceOptions {
   strict?: boolean
+  /** A domain index already built for this root in the same tool call (see `findKnowledgeFile`). */
+  index?: NodeDomainIndex
   /** Current sha256 of a cited file, for `EVIDENCE_SOURCE_CHANGED`. */
   sha256?: (path: string) => string | undefined
 }
@@ -264,7 +267,7 @@ export async function checkDomainProvenance(
 ): Promise<ProvenanceReport> {
   const files = readLineageSnapshot(rootDir)
   const log = buildChangeLog(files)
-  const models = await collectProvenanceModels(rootDir, log)
+  const models = await collectProvenanceModels(rootDir, log, { index: options.index })
 
   if (options.strict !== true) {
     return checkProvenance(log, models, options.sha256 ? { sha256: options.sha256 } : {})

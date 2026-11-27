@@ -36,7 +36,7 @@ import {
 import type { SpecCache } from '@cognnitive/nn-core'
 import { checkDomainProvenance } from './provenance-strict.js'
 import { listKnowledge } from './list-read.js'
-import { domainLayoutDiagnostics } from './domain-index.js'
+import { buildNodeDomainIndex, domainLayoutDiagnostics, type NodeDomainIndex } from './domain-index.js'
 import { deriveNameFromUrl } from './spec.js'
 import {
   collectWorkspaceDiagnostics,
@@ -75,6 +75,18 @@ interface CheckContext {
   mergedCache: SpecCache
   /** Workspace-relative forward-slashed model path → absolute file path. */
   absByPath: Map<string, string>
+  /**
+   * The domain index of this call, built once after every model's bluepriNNt was
+   * self-healed and shared by the workspace pass, each model's validation, provenance
+   * and layout. Discovery builds its own before self-heal: hydration may add a
+   * bluepriNNt package whose declared storage changes the ids. Never outlives the call.
+   */
+  index?: Promise<NodeDomainIndex>
+}
+
+/** The call's post-self-heal domain index, built on first use. */
+function domainIndexOf(ctx: CheckContext): Promise<NodeDomainIndex> {
+  return (ctx.index ??= buildNodeDomainIndex(ctx.rootDir))
 }
 
 function errorMessage(err: unknown): string {
@@ -265,7 +277,8 @@ async function validateAll(
   }
 
   // AD-5 step 3: ONE workspace parse over the merged cache.
-  const workspaceDiags = await collectWorkspaceDiagnostics(ctx.rootDir, ctx.mergedCache)
+  const index = await domainIndexOf(ctx)
+  const workspaceDiags = await collectWorkspaceDiagnostics(ctx.rootDir, ctx.mergedCache, { index })
 
   const out = new Map<string, { errors: IntegrityDiagnostic[]; warnings: IntegrityDiagnostic[] }>()
   for (const model of models) {
@@ -282,6 +295,7 @@ async function validateAll(
       try {
         const result = await validateKnowledge(ctx.rootDir, model.id, undefined, undefined, false, {
           checkFreshness: false,
+          index,
         })
         fileErrors = toIntegrityDiagnostics(result.errors)
         fileWarnings = toIntegrityDiagnostics(result.warnings)
@@ -328,8 +342,12 @@ export function buildCheckWorkspacePorts(ctx: CheckContext): WorkspaceIntegrityP
  * with no `produce_artifact` change is `ARTIFACT_WITHOUT_RECORD` (a warning in
  * both modes; it is not a body drift).
  */
-async function provenanceWithArtifacts(rootDir: string, strict: boolean): Promise<ProvenanceReport> {
-  const provenance = await checkDomainProvenance(rootDir, { strict })
+async function provenanceWithArtifacts(
+  rootDir: string,
+  strict: boolean,
+  index: NodeDomainIndex,
+): Promise<ProvenanceReport> {
+  const provenance = await checkDomainProvenance(rootDir, { strict, index })
   const files = readLineageSnapshot(rootDir)
   const projection = projectLineage(files, buildChangeLog(files))
   const artifactDiagnostics = projection.diagnostics
@@ -381,8 +399,9 @@ export async function checkWorkspace(
     absByPath: new Map(),
   }
   const base = await buildWorkspaceIntegrityReport(buildCheckWorkspacePorts(ctx))
-  const provenance = await provenanceWithArtifacts(rootDir, options.strict === true)
-  const layoutDiagnostics = (await domainLayoutDiagnostics(rootDir)).diagnostics
+  const index = await domainIndexOf(ctx)
+  const provenance = await provenanceWithArtifacts(rootDir, options.strict === true, index)
+  const layoutDiagnostics = (await domainLayoutDiagnostics(rootDir, { index })).diagnostics
   const report = {
     ...base,
     provenance,
