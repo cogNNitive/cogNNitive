@@ -241,7 +241,7 @@ order:: 54
 lane:: heavy
 items:: coNNtent-procedures
 risk:: M
-state:: in-review
+state:: in-progress
 
 
 ## NN Batch: b6-on-hold-blueprints
