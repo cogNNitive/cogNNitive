@@ -1661,6 +1661,9 @@ agent-bootstrap:
           blueprint: 'organization',
           catalogPath: unreleasedPath,
           repo: 'o/r',
+          // No `.agents/channels.json` under this home: the refusal must not depend on the
+          // machine's own operator channels file.
+          home: tmpDir,
           blueprintsDir,
           skillsDir,
           stateFile,
@@ -2188,6 +2191,149 @@ agent-bootstrap:
       assert.strictEqual(lock.blueprints[NAME].distribution_url, `${CURATED}/${NAME}`)
       console.log('ok a blueprint in a second channel installs by name at its verified commit (P2)')
     } finally {
+      require(githubClientPath).downloadFile = realDownload
+      require(atomicFsPath).extractTarball = realExtract
+      delete require.cache[commandsPath]
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+    }
+  }
+
+  // 21. An entry the catalog lists as unreleased (`release_tag: null`) installs when a
+  //     channels file is configured in the user's home. The refusal used to come before
+  //     any channel was consulted, so an operator with `~/.agents/channels.json` could
+  //     not install a unit the channel publishes while the catalog still says null.
+  {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-home-channel-'))
+    const githubClientPath = require.resolve('./lib/github-client.js')
+    const commandsPath = require.resolve('./lib/skills-commands.js')
+    const atomicFsPath = require.resolve('./lib/atomic-fs.js')
+    const realExtract = require(atomicFsPath).extractTarball
+    const realDownload = require(githubClientPath).downloadFile
+
+    const COMMIT = '7777777777777777777777777777777777777777'
+    const OFFICIAL = 'https://channels.test/home/b/main/iNNfo/specs/bluepriNNts'
+    const NAME = 'unreleased-but-published'
+
+    const home = path.join(tmpDir, 'home')
+    fs.mkdirSync(path.join(home, '.agents'), { recursive: true })
+    fs.writeFileSync(
+      path.join(home, '.agents', 'channels.json'),
+      JSON.stringify({ channels: [{ name: 'official', distribution_url: OFFICIAL }] }),
+      'utf-8',
+    )
+
+    const fixtureRoot = path.join(tmpDir, 'repo-home')
+    const pkg = path.join(fixtureRoot, 'repo', 'iNNfo', 'specs', 'bluepriNNts', NAME)
+    fs.mkdirSync(path.join(pkg, 'skills'), { recursive: true })
+    fs.writeFileSync(
+      path.join(pkg, 'spec_NN.md'),
+      '---\nblueprint_version: "V_0-6-0"\nlevel: 2\n---\n# x',
+      'utf-8',
+    )
+    fs.writeFileSync(
+      path.join(pkg, 'blueprint.json'),
+      JSON.stringify({
+        name: NAME,
+        version: 'V_0-6-0',
+        format_version: 'V_0-5-0',
+        distribution_url: `${OFFICIAL}/${NAME}`,
+      }),
+      'utf-8',
+    )
+
+    // The catalog knows the name and still marks it unreleased: no release tag exists.
+    const catalogPath = path.join(tmpDir, 'catalog.json')
+    fs.writeFileSync(
+      catalogPath,
+      JSON.stringify({
+        blueprints: {
+          [NAME]: {
+            name: NAME,
+            adopted: 'V_0-6-0',
+            tier: 'free',
+            access: 'public',
+            when_to_use: null,
+            release_tag: null,
+            embedded_skills: [],
+            versions: [
+              {
+                blueprint_version: 'V_0-6-0',
+                spec_version: 'V_0-5-0',
+                title: 'x',
+                url: `${OFFICIAL}/${NAME}`,
+              },
+            ],
+          },
+        },
+      }),
+      'utf-8',
+    )
+
+    const asked = []
+    const fakeFetch = async (url) => {
+      asked.push(url)
+      if (url === `${OFFICIAL}/${NAME}/versions.json`) {
+        return JSON.stringify({
+          versions: [{ version: 'V_0-6-0', tag: 'bp-v0.6.0', commit: COMMIT }],
+        })
+      }
+      if (
+        url ===
+        `https://channels.test/home/b/${COMMIT}/iNNfo/specs/bluepriNNts/${NAME}/blueprint.json`
+      ) {
+        return JSON.stringify({ name: NAME, version: 'V_0-6-0', format_version: 'V_0-5-0' })
+      }
+      throw new Error(`unexpected fetch ${url}`)
+    }
+
+    require(githubClientPath).downloadFile = async (url, dest) => {
+      fs.writeFileSync(dest, 'fake-tarball', 'utf-8')
+    }
+    require(atomicFsPath).extractTarball = (tarFile, destDir) => {
+      fs.cpSync(fixtureRoot, destDir, { recursive: true })
+    }
+    delete require.cache[commandsPath]
+    const { cmdInstallBlueprint } = require('./lib/skills-commands.js')
+
+    const savedChannelsEnv = process.env.COGNNITIVE_CHANNELS
+    delete process.env.COGNNITIVE_CHANNELS
+    try {
+      const blueprintsDir = path.join(tmpDir, 'out', 'bluepriNNts')
+      const skillsDir = path.join(tmpDir, 'out', 'skills')
+      const stateFile = path.join(tmpDir, 'out', 'state.json')
+      fs.mkdirSync(path.join(tmpDir, 'out'), { recursive: true })
+
+      await cmdInstallBlueprint({
+        blueprint: NAME,
+        catalogPath,
+        home,
+        fetchString: fakeFetch,
+        blueprintsDir,
+        skillsDir,
+        stateFile,
+        yes: true,
+      })
+
+      assert.ok(
+        fs.existsSync(path.join(blueprintsDir, NAME, 'spec_NN.md')),
+        'an unreleased catalog entry must install from the channels file in the user home',
+      )
+      assert.ok(
+        asked.some((u) => u.startsWith(OFFICIAL)),
+        'the home channels file must be consulted',
+      )
+      const lock = JSON.parse(
+        fs.readFileSync(path.join(blueprintsDir, '.blueprint-lock.json'), 'utf-8'),
+      )
+      assert.strictEqual(
+        lock.blueprints[NAME].commit,
+        COMMIT,
+        'the verified commit must be recorded',
+      )
+      console.log('ok an unreleased catalog entry installs through a channels file in the home')
+    } finally {
+      if (savedChannelsEnv === undefined) delete process.env.COGNNITIVE_CHANNELS
+      else process.env.COGNNITIVE_CHANNELS = savedChannelsEnv
       require(githubClientPath).downloadFile = realDownload
       require(atomicFsPath).extractTarball = realExtract
       delete require.cache[commandsPath]

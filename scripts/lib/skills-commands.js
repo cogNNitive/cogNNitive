@@ -49,7 +49,11 @@ const {
   blueprintVerdict,
 } = require('./blueprint-provenance.js')
 
-const { loadChannels, resolveBlueprintInChannels } = require('./blueprint-channels.js')
+const {
+  loadChannels,
+  resolveBlueprintInChannels,
+  defaultChannelsFile,
+} = require('./blueprint-channels.js')
 const { satisfiesRange } = require('./node-engine-check.js')
 
 const SUPPORTED_FORMAT_VERSIONS = [
@@ -1765,7 +1769,7 @@ async function describeBlueprintPackage(template) {
  * (`skills-manager.js install --blueprint <name>`) from its catalog release pin
  * into the blueprints directory, projecting any embedded `<name>/skills/*` into
  * the skills directory. Consent-gated.
- * @param {{ blueprintsDir?: string, skillsDir?: string, stateFile: string, blueprint: string, repo?: string, catalogPath?: string, channelsPath?: string, fetchString?: (url: string) => Promise<string>, yes?: boolean, agent?: string, scope?: string }} args
+ * @param {{ blueprintsDir?: string, skillsDir?: string, stateFile: string, blueprint: string, repo?: string, catalogPath?: string, channelsPath?: string, home?: string, fetchString?: (url: string) => Promise<string>, yes?: boolean, agent?: string, scope?: string }} args
  * @returns {Promise<void>}
  */
 async function cmdInstallBlueprint(args) {
@@ -1792,7 +1796,17 @@ async function cmdInstallBlueprint(args) {
   let plan
   if (entry) {
     if (!entry.release_tag) {
-      if (!args.channelsPath && !process.env.COGNNITIVE_CHANNELS) {
+      // A channel may carry what the catalog still marks unreleased. Refuse before
+      // consulting them only when nobody configured a source: an explicit path, the
+      // environment, or the operator's own `~/.agents/channels.json` all count — the home
+      // file was ignored here, which is why `install --blueprint` refused a unit the
+      // channel publishes while the catalog still says `release_tag: null`.
+      const hasChannelSource = Boolean(
+        args.channelsPath ||
+        process.env.COGNNITIVE_CHANNELS ||
+        fs.existsSync(defaultChannelsFile(args.home)),
+      )
+      if (!hasChannelSource) {
         throw new Error(
           `blueprint '${name}' is not yet released (no matching blueprints-v* tag); update the catalog`,
         )
@@ -1839,7 +1853,11 @@ async function cmdInstallBlueprint(args) {
     // commit comes from the publisher's own versions.json and is verified by reading
     // that commit's blueprint.json (C3), so the install fetches an immutable tree and
     // never a branch or a tag list.
-    const loaded = await loadChannels({ file: args.channelsPath, env: process.env })
+    const loaded = await loadChannels({
+      file: args.channelsPath,
+      home: args.home,
+      env: process.env,
+    })
     const resolved = await resolveBlueprintInChannels(
       { name, channels: loaded.channels },
       { fetchString: args.fetchString },
