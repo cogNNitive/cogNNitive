@@ -11,11 +11,11 @@ const ARTIFACTS_SPEC_PATH = path.join(REPO_ROOT, 'iNNfo/specs/bluepriNNts/artifa
 
 describe('Lineage single-edge bluepriNNt schemas and contracts (S6)', () => {
 
-  it('asserts domaiNN bluepriNNt has no kNNowledge.derived_from and blueprint_version V_0-4-1', () => {
+  it('asserts domaiNN bluepriNNt has no kNNowledge.derived_from and blueprint_version V_0-4-2', () => {
     const content = fs.readFileSync(DOMAINN_SPEC_PATH, 'utf-8')
     const parsed = parseKnowledge(content)
 
-    expect((parsed.frontmatter as any)?.blueprint_version).toBe('V_0-4-1')
+    expect((parsed.frontmatter as any)?.blueprint_version).toBe('V_0-4-2')
 
     const fieldNodes =
       parsed.elements.get('NN Field Definition') ||

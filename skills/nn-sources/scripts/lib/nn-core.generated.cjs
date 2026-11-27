@@ -7382,6 +7382,7 @@ __export(trannsformPrimitives_exports, {
   IGNORED_DIRECTORIES: () => IGNORED_DIRECTORIES,
   SIDECAR_BLUEPRINT: () => SIDECAR_BLUEPRINT,
   SIDECAR_SPEC_URL: () => SIDECAR_SPEC_URL,
+  SOURCES_CATALOG_FILE: () => SOURCES_CATALOG_FILE,
   SPEC_FILENAME: () => SPEC_FILENAME,
   TEXT_NATIVE_FORMATS: () => TEXT_NATIVE_FORMATS,
   WriteOnceError: () => WriteOnceError,
@@ -11930,6 +11931,7 @@ async function removeOrphanMirrors(root, aliases) {
 }
 
 // iNNfo/packages/nn-core/src/sync/declarations.ts
+var SOURCES_CATALOG_FILE = "sources/sources_NN.md";
 var CONCEPT2 = "Synchronization";
 var text = (value) => typeof value === "string" ? value.trim() : "";
 function readSynchronizations(catalog) {
@@ -11976,6 +11978,7 @@ function readSynchronizations(catalog) {
   IGNORED_DIRECTORIES,
   SIDECAR_BLUEPRINT,
   SIDECAR_SPEC_URL,
+  SOURCES_CATALOG_FILE,
   SPEC_FILENAME,
   TEXT_NATIVE_FORMATS,
   WriteOnceError,
