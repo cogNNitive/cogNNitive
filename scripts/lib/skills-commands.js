@@ -1792,45 +1792,49 @@ async function cmdInstallBlueprint(args) {
   let plan
   if (entry) {
     if (!entry.release_tag) {
-      throw new Error(
-        `blueprint '${name}' is not yet released (no matching blueprints-v* tag); update the catalog`,
-      )
-    }
-    const repo = args.repo || DEFAULT_BLUEPRINT_REPO
-    const ref = entry.release_tag
-    const version = entry.adopted
-    const entryName = entry.name || name
+      if (!args.channel && !args.channelsPath && !process.env.COGNNITIVE_CHANNELS) {
+        throw new Error(
+          `blueprint '${name}' is not yet released (no matching blueprints-v* tag); update the catalog`,
+        )
+      }
+    } else {
+      const repo = args.repo || DEFAULT_BLUEPRINT_REPO
+      const ref = entry.release_tag
+      const version = entry.adopted
+      const entryName = entry.name || name
 
-    // codeload accepts a tag as the archive ref; reuse the (repo, ref) tarball
-    // cache and the standard blueprint install path for extraction + projection.
-    // A tag is not a commit, so resolve it: provenance must name an immutable tree
-    // (S3). When resolution fails the tag is still recorded, and the lock records
-    // `commit: null` rather than a tag in a commit field.
-    let resolvedCommit = ref
-    try {
-      const resolved = await resolveRef(repo, ref)
-      if (resolved && 'sha' in resolved && resolved.sha) resolvedCommit = resolved.sha
-    } catch (_) {
-      /* offline or rate-limited: the tag still fetches the archive */
-    }
+      // codeload accepts a tag as the archive ref; reuse the (repo, ref) tarball
+      // cache and the standard blueprint install path for extraction + projection.
+      // A tag is not a commit, so resolve it: provenance must name an immutable tree
+      // (S3). When resolution fails the tag is still recorded, and the lock records
+      // `commit: null` rather than a tag in a commit field.
+      let resolvedCommit = ref
+      try {
+        const resolved = await resolveRef(repo, ref)
+        if (resolved && 'sha' in resolved && resolved.sha) resolvedCommit = resolved.sha
+      } catch (_) {
+        /* offline or rate-limited: the tag still fetches the archive */
+      }
 
-    plan = {
-      template: {
-        name: entryName,
-        repo,
-        path: `iNNfo/specs/bluepriNNts/${entryName}/spec_NN.md`,
-        version,
-        tag: ref,
-        ref,
-        commit: resolvedCommit,
-      },
-      header: [
-        'Optional catalog blueprint (on demand):',
-        `  - ${entryName} (${version}) from ${repo} @ ${ref}`,
-        `  tier: ${entry.tier || 'free'} · access: ${entry.access || 'public'}`,
-      ],
+      plan = {
+        template: {
+          name: entryName,
+          repo,
+          path: `iNNfo/specs/bluepriNNts/${entryName}/spec_NN.md`,
+          version,
+          tag: ref,
+          ref,
+          commit: resolvedCommit,
+        },
+        header: [
+          'Optional catalog blueprint (on demand):',
+          `  - ${entryName} (${version}) from ${repo} @ ${ref}`,
+          `  tier: ${entry.tier || 'free'} · access: ${entry.access || 'public'}`,
+        ],
+      }
     }
-  } else {
+  }
+  if (!plan) {
     // A channel answers "does someone publish this name, and at which commit". The
     // commit comes from the publisher's own versions.json and is verified by reading
     // that commit's blueprint.json (C3), so the install fetches an immutable tree and
@@ -1841,6 +1845,11 @@ async function cmdInstallBlueprint(args) {
       { fetchString: args.fetchString },
     )
     if (!resolved.ok) {
+      if (entry && !entry.release_tag) {
+        throw new Error(
+          `blueprint '${name}' is not yet released (no matching blueprints-v* tag); update the catalog`,
+        )
+      }
       const tried = resolved.tried.map((t) => `${t.channel}: ${t.reason}`).join('; ')
       throw new Error(
         `blueprint '${name}' is not in the catalog ` +
