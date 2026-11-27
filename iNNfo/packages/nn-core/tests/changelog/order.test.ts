@@ -35,6 +35,13 @@ describe('compareChanges', () => {
     expect([stampLate, stampEarly].sort(compareChanges)).toEqual([stampEarly, stampLate])
   })
 
+  it('orders same-second changesets of one author by their numeric -seq suffix', () => {
+    const first = key('changes/acme_bot_20261010T120000Z_changes_NN.md', 0)
+    const second = key('changes/acme_bot_20261010T120000Z-2_changes_NN.md', 0)
+    const tenth = key('changes/acme_bot_20261010T120000Z-10_changes_NN.md', 0)
+    expect([tenth, second, first].sort(compareChanges)).toEqual([first, second, tenth])
+  })
+
   it('breaks a stamp tie by filename, then by document index', () => {
     const b = key('changes/b_agent_20261010T120000Z_changes_NN.md', 0)
     const a = key('changes/a_agent_20261010T120000Z_changes_NN.md', 2)

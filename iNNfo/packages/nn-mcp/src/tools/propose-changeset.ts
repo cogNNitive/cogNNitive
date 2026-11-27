@@ -201,10 +201,12 @@ export async function writeProposedChangeset(
 
   const changesDir = join(rootDir, 'changes')
   await mkdir(changesDir, { recursive: true })
-  const base = input.now ?? new Date()
-  for (let attempt = 0; attempt < 60; attempt++) {
-    const stamp = formatUtcStamp(new Date(base.getTime() + attempt * 1000))
-    const fileName = `${fileSegment(workspaceId, 'domain')}_${fileSegment(author, 'agent')}_${stamp}_changes_NN.md`
+  const stamp = formatUtcStamp(input.now ?? new Date())
+  const prefix = `${fileSegment(workspaceId, 'domain')}_${fileSegment(author, 'agent')}_${stamp}`
+  // A second already taken by this author gets the naming contract's `-<seq>` suffix
+  // (`_<stamp>-2_changes_NN.md`), never a shifted second: the stamp stays the real time.
+  for (let seq = 1; seq <= MAX_CHANGESETS_PER_SECOND; seq++) {
+    const fileName = `${prefix}${seq > 1 ? `-${seq}` : ''}_changes_NN.md`
     const absolutePath = join(changesDir, fileName)
     try {
       // 'wx': never overwrite a changeset written in the same second.
@@ -216,6 +218,9 @@ export async function writeProposedChangeset(
   }
   throw new Error('Could not allocate a unique changeset file name in changes/')
 }
+
+/** Sanity bound on one author's changesets within one UTC second. */
+const MAX_CHANGESETS_PER_SECOND = 10_000
 
 export interface ProposalError {
   path: string

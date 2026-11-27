@@ -311,6 +311,17 @@ describe('single proposed-changeset writer', () => {
     const b = await writeProposedChangeset(root, input)
     expect(a.path).not.toBe(b.path)
   })
+
+  it('a burst past 60 proposals in one second keeps the real stamp and numbers them', async () => {
+    const now = new Date('2026-10-14T12:00:00Z')
+    const input = { changes: [{ id: 'x', op: 'comment' as const, target: 'strategy@Vision', notes: 'n' }], now }
+    const paths: string[] = []
+    for (let i = 0; i < 75; i++) paths.push((await writeProposedChangeset(root, input)).path)
+    expect(new Set(paths).size).toBe(75)
+    expect(paths[0]).toMatch(/_20261014T120000Z_changes_NN\.md$/)
+    expect(paths[1]).toMatch(/_20261014T120000Z-2_changes_NN\.md$/)
+    expect(paths[74]).toMatch(/_20261014T120000Z-75_changes_NN\.md$/)
+  })
 })
 
 describe('proposal next_steps', () => {
