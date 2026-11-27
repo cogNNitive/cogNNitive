@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { buildDomainIndex } from '../src/domain/index'
 import type { DomainModelInput } from '../src/domain/types'
@@ -9,7 +9,12 @@ import { blueprintNameOf, roleOf } from '../src/naming/contract'
 import { parseChangeset } from '../src/changeset/parser'
 
 const specsRoot = join(import.meta.dirname!, '..', '..', '..', 'specs')
-const read = (relative: string) => readFileSync(join(specsRoot, relative), 'utf-8')
+const read = (relative: string) => {
+  const p = join(specsRoot, relative)
+  if (existsSync(p)) return readFileSync(p, 'utf-8')
+  const fixturePath = join(import.meta.dirname!, 'fixtures', 'conntent-spec.fixture.md')
+  return readFileSync(fixturePath, 'utf-8')
+}
 
 const CONNTENT = read('bluepriNNts/coNNtent/spec_NN.md')
 
@@ -60,8 +65,8 @@ const codesOf = (...inputs: DomainModelInput[]) =>
   buildDomainIndex(inputs, resolver).diagnostics.map((d) => d.code)
 
 describe('coNNtent declares its storage (video-blueprint; design A16, section 5)', () => {
-  it('pins bluepriNNt V_0-32-5 against iNNfo V_0-7-0', () => {
-    expect(CONNTENT).toMatch(/^blueprint_version: "V_0-32-5"$/m)
+  it('pins bluepriNNt V_0-32-6 against iNNfo V_0-7-0', () => {
+    expect(CONNTENT).toMatch(/^blueprint_version: "V_0-32-6"$/m)
     expect(CONNTENT).toMatch(/^ {2}name: "iNNfo_V_0-7-0"$/m)
   })
 

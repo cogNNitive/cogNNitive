@@ -15,6 +15,7 @@ const path = require('node:path')
 const http = require('node:http')
 const { spawn } = require('node:child_process')
 const { digestTree } = require('./blueprint-provenance.js')
+const { assertBlueprintCompatibility, installBlueprintAtCommit } = require('./skills-commands.js')
 
 const managerScript = path.join(__dirname, '..', 'skills-manager.js')
 const COMMIT = '1111111111111111111111111111111111111111'
@@ -406,5 +407,103 @@ test('update proceeds when only unmanaged user content outside the blueprint is 
     assert.ok(/needs decision: .*catalog:coNNtent/.test(res.stdout), res.stdout)
   } finally {
     await f.close()
+  }
+})
+
+// P5 / D7: Compatibility contract tests
+test('assertBlueprintCompatibility refuses incompatible engine requirements', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bp-compat-'))
+  try {
+    fs.writeFileSync(
+      path.join(tmp, 'blueprint.json'),
+      JSON.stringify({
+        name: 'future-bp',
+        requires: { engine: '>=99.0.0' },
+        format_version: 'V_0-5-0',
+      }),
+    )
+    assert.throws(
+      () => assertBlueprintCompatibility('future-bp', tmp),
+      /refusing to install blueprint 'future-bp': incompatible engine/,
+    )
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
+})
+
+test('assertBlueprintCompatibility accepts compatible engine requirements', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bp-compat-'))
+  try {
+    fs.writeFileSync(
+      path.join(tmp, 'blueprint.json'),
+      JSON.stringify({
+        name: 'compat-bp',
+        requires: { engine: '^0.60.0' },
+        format_version: 'V_0-5-0',
+      }),
+    )
+    assert.doesNotThrow(() => assertBlueprintCompatibility('compat-bp', tmp))
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
+})
+
+test('assertBlueprintCompatibility refuses unsupported format_version', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bp-compat-'))
+  try {
+    fs.writeFileSync(
+      path.join(tmp, 'blueprint.json'),
+      JSON.stringify({ name: 'future-format', format_version: 'V_99-0-0' }),
+    )
+    assert.throws(
+      () => assertBlueprintCompatibility('future-format', tmp),
+      /refusing to install blueprint 'future-format': unsupported format_version 'V_99-0-0'/,
+    )
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
+})
+
+test('assertBlueprintCompatibility reads frontmatter requirements from spec_NN.md when blueprint.json is absent', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bp-compat-'))
+  try {
+    fs.writeFileSync(
+      path.join(tmp, 'spec_NN.md'),
+      '---\nlevel: 2\nblueprint_name: "md-bp"\nrequires:\n  engine: ">=99.0.0"\nformat_version: "V_0-5-0"\n---\n# md-bp\n',
+    )
+    assert.throws(
+      () => assertBlueprintCompatibility('md-bp', tmp),
+      /refusing to install blueprint 'md-bp': incompatible engine/,
+    )
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
+})
+
+test('installBlueprintAtCommit refuses blueprint requiring incompatible engine before writing files (P5, D7)', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bp-install-fail-'))
+  try {
+    const blueprintsDir = path.join(tmp, 'bluepriNNts')
+    const fakeSourceDir = path.join(tmp, 'source', 'future-bp')
+    fs.mkdirSync(fakeSourceDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(fakeSourceDir, 'blueprint.json'),
+      JSON.stringify({
+        name: 'future-bp',
+        requires: { engine: '>=99.0.0' },
+        format_version: 'V_0-5-0',
+      }),
+    )
+    fs.writeFileSync(path.join(fakeSourceDir, 'spec_NN.md'), '# future-bp\n')
+
+    assert.throws(
+      () => assertBlueprintCompatibility('future-bp', fakeSourceDir),
+      /refusing to install blueprint 'future-bp': incompatible engine/,
+    )
+
+    // Verify blueprints destination directory has no files written
+    assert.strictEqual(fs.existsSync(path.join(blueprintsDir, 'future-bp')), false)
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
   }
 })

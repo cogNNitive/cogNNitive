@@ -50,6 +50,115 @@ const {
 } = require('./blueprint-provenance.js')
 
 const { loadChannels, resolveBlueprintInChannels } = require('./blueprint-channels.js')
+const { satisfiesRange } = require('./node-engine-check.js')
+
+const SUPPORTED_FORMAT_VERSIONS = [
+  'V_0-2-0',
+  'V_0-2-1',
+  'V_0-2-2',
+  'V_0-3-0',
+  'V_0-4-0',
+  'V_0-5-0',
+  'V_0-7-0',
+  'V_0-8-0',
+  'V_0-9-0',
+]
+
+/**
+ * Reads engine version from core package.json, falling back to 0.60.0.
+ * @returns {string}
+ */
+function getEngineVersion() {
+  try {
+    const corePkgPath = path.resolve(__dirname, '../../iNNfo/packages/nn-core/package.json')
+    if (fs.existsSync(corePkgPath)) {
+      return JSON.parse(fs.readFileSync(corePkgPath, 'utf-8')).version
+    }
+  } catch {}
+  return '0.60.0'
+}
+
+/**
+ * P5: Compatibility contract (D7).
+ * Enforces `requires.engine` and `format_version` before any files are written to disk.
+ *
+ * @param {string} blueprintName
+ * @param {string} srcPath - path to extracted source folder or file
+ */
+function assertBlueprintCompatibility(blueprintName, srcPath) {
+  let manifest = null
+  let manifestPath = null
+  if (fs.existsSync(srcPath)) {
+    manifestPath = fs.statSync(srcPath).isDirectory()
+      ? path.join(srcPath, 'blueprint.json')
+      : path.join(path.dirname(srcPath), 'blueprint.json')
+    if (fs.existsSync(manifestPath)) {
+      try {
+        manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
+      } catch (err) {
+        throw new Error(`malformed blueprint.json in blueprint '${blueprintName}': ${err.message}`)
+      }
+    }
+  }
+
+  let specContent = null
+  if (fs.existsSync(srcPath)) {
+    const specPath = fs.statSync(srcPath).isDirectory() ? path.join(srcPath, 'spec_NN.md') : srcPath
+    if (fs.existsSync(specPath) && !fs.statSync(specPath).isDirectory()) {
+      try {
+        specContent = fs.readFileSync(specPath, 'utf-8')
+      } catch {}
+    }
+  }
+
+  let fm = null
+  if (specContent) {
+    try {
+      fm = parseFocusedYaml(parseFrontmatter(specContent))
+    } catch {}
+  }
+
+  // 1. Engine requirement (requires.engine)
+  let engineRange = null
+  if (manifest && manifest.requires) {
+    if (typeof manifest.requires === 'object' && manifest.requires.engine) {
+      engineRange = String(manifest.requires.engine).trim()
+    } else if (typeof manifest.requires === 'string') {
+      engineRange = manifest.requires.trim()
+    }
+  } else if (fm && fm.requires) {
+    if (typeof fm.requires === 'object' && fm.requires.engine) {
+      engineRange = String(fm.requires.engine).trim()
+    } else if (typeof fm.requires === 'string') {
+      engineRange = fm.requires.trim()
+    }
+  } else if (fm && fm.engine) {
+    engineRange = String(fm.engine).trim()
+  }
+
+  if (engineRange) {
+    if (engineRange.toLowerCase().startsWith('engine ')) {
+      engineRange = engineRange.slice(7).trim()
+    }
+    const currentEngine = getEngineVersion()
+    if (!satisfiesRange(currentEngine, engineRange)) {
+      throw new Error(
+        `refusing to install blueprint '${blueprintName}': incompatible engine. Blueprint requires engine '${engineRange}', but current engine is ${currentEngine}. Upgrade engine to install.`,
+      )
+    }
+  }
+
+  // 2. Format version (format_version / spec_version)
+  const formatVersion = manifest?.format_version ?? fm?.format_version ?? fm?.spec_version
+  if (formatVersion) {
+    const norm = String(formatVersion).trim()
+    if (!SUPPORTED_FORMAT_VERSIONS.includes(norm)) {
+      throw new Error(
+        `refusing to install blueprint '${blueprintName}': unsupported format_version '${norm}'. Supported versions are: ${SUPPORTED_FORMAT_VERSIONS.join(', ')}.`,
+      )
+    }
+  }
+}
 
 const DEFAULT_MANIFEST_URL = 'https://cognnitive.com/use/manifest.md'
 const FALLBACK_MANIFEST_URL =
@@ -704,6 +813,9 @@ async function installBlueprintAtCommit(template, blueprintsDir, state, skillsDi
       )
     }
 
+    // P5 Compatibility Check (D7): evaluate requires and format_version before writing any files
+    assertBlueprintCompatibility(template.name, src)
+
     if (fs.statSync(src).isDirectory()) {
       if (fs.existsSync(pkgDestPath)) replaceDirAtomic(src, pkgDestPath)
       else copyDirAtomic(src, pkgDestPath)
@@ -728,7 +840,10 @@ async function installBlueprintAtCommit(template, blueprintsDir, state, skillsDi
   } catch (err) {
     if (isMdFile) {
       const rawUrl = `https://raw.githubusercontent.com/${template.repo}/${template.commit}/${template.path}`
-      await downloadFile(rawUrl, flatDestPath)
+      const tmpFlat = path.join(tmpRoot, 'flat.md')
+      await downloadFile(rawUrl, tmpFlat)
+      assertBlueprintCompatibility(template.name, tmpFlat)
+      fs.copyFileSync(tmpFlat, flatDestPath)
       recordedPath = flatDestPath
     } else {
       throw err
@@ -2677,6 +2792,8 @@ module.exports = {
   resetTarballCache,
   installSkillAtCommit,
   installBlueprintAtCommit,
+  assertBlueprintCompatibility,
+  getEngineVersion,
   installEmbeddedSkills,
   ensureSkillNodeModules,
   recordCliDeliveredSkills,

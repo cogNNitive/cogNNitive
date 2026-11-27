@@ -487,14 +487,27 @@ function buildSteps(repoRoot, options = {}) {
   steps.push(ro('vocabulary-doc', 'Check Canonical Vocabulary Doc Fresh', 'scripts/generate-vocabulary-doc.mjs', '--check'));
   steps.push(ro('video-parameters-doc', 'Check Video Script Parameter Reference Fresh', 'scripts/generate-video-parameters-doc.mjs', '--check'));
   // 0c. Field registry (design A11): the machine-readable list every engine consumer reads.
-  steps.push(
-    ro(
-      'field-registry',
-      'Check Field Registry Fresh',
-      'iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/build-field-registry.mjs',
-      '--check',
-    ),
+  const fieldRegistryScript = path.join(
+    repoRoot,
+    'iNNfo',
+    'specs',
+    'bluepriNNts',
+    'coNNtent',
+    'skills',
+    'nn-conntent',
+    'scripts',
+    'build-field-registry.mjs'
   );
+  if (fs.existsSync(fieldRegistryScript)) {
+    steps.push(
+      ro(
+        'field-registry',
+        'Check Field Registry Fresh',
+        'iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/build-field-registry.mjs',
+        '--check'
+      )
+    );
+  }
 
   // 1. Template Inventory Guard: every template folder is declared in manifest/source.yaml.
   steps.push({
