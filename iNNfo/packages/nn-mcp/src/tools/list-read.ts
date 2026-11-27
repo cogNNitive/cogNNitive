@@ -9,7 +9,7 @@
 
 import { readFile } from 'node:fs/promises'
 import { parseKnowledge, ElementsMap } from '@cognnitive/nn-core'
-import { buildNodeDomainIndex } from './domain-index.js'
+import { buildNodeDomainIndex, type NodeDomainIndex } from './domain-index.js'
 import type { KnowledgeInfo, ParsedKnowledge } from '@cognnitive/nn-core'
 
 /**
@@ -80,12 +80,16 @@ export interface ListKnowledgeOptions {
  * Scan a directory for iNNfo knowledge documents. Ids come from the domain
  * index: hierarchical, never a path, unchanged when a same-stem file is added
  * elsewhere. A model with no id (unaddressable) is not listed.
+ *
+ * `call.index` is a domain index already built for `rootDir` in the same tool
+ * call (see `findKnowledgeFile`); without it the index is built here.
  */
 export async function listKnowledge(
   rootDir: string,
   options: ListKnowledgeOptions = {},
+  call: { index?: NodeDomainIndex } = {},
 ): Promise<ListedKnowledgeInfo[]> {
-  const { index, discovered } = await buildNodeDomainIndex(rootDir)
+  const { index, discovered } = call.index ?? (await buildNodeDomainIndex(rootDir))
   const byRel = new Map(discovered.map((d) => [d.input.path, d]))
 
   // A misplaced instance is still discoverable (discovery is path-agnostic);

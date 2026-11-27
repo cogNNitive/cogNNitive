@@ -53,7 +53,7 @@ import type {
   LayoutDiagnostic,
   ModelId,
 } from '@cognnitive/nn-core'
-import { buildNodeDomainIndex, domainLayoutDiagnostics, loadDeclarations } from './domain-index.js'
+import { buildNodeDomainIndex, domainLayoutDiagnostics, loadDeclarations, type NodeDomainIndex } from './domain-index.js'
 import { resolveBlueprintWithCache, findKnowledgeFile, deriveNameFromUrl, getSpec, ModelIdError } from './spec.js'
 import { buildIncludeContentMap } from './resolver-node.js'
 import type { FreshnessResult } from './resolver-node.js'
@@ -327,6 +327,7 @@ export function collectEvidenceDiagnostics(rootDir: string): ReferenceDiagnostic
 export async function collectWorkspaceDiagnostics(
   rootDir: string,
   cache: SpecCache | null,
+  call: { index?: NodeDomainIndex } = {},
 ): Promise<ReferenceDiagnostic[]> {
   const resolveSchema: BlueprintSchemaResolver = buildBlueprintSchemaResolverFromCache(cache)
   const rootHandle = createNodeDirectoryHandle(rootDir, DEFAULT_WORKSPACE_IGNORE)
@@ -361,7 +362,7 @@ export async function collectWorkspaceDiagnostics(
     ...validateWorkspaceReferences(
       result,
       index,
-      (await buildNodeDomainIndex(rootDir)).index,
+      (call.index ?? (await buildNodeDomainIndex(rootDir))).index,
       (id) => log.successorOf(id as ModelId),
       await buildMirrorLookup(rootDir),
       (id) => {
@@ -444,9 +445,12 @@ export function filterDiagnosticsForModel(
  * Filed against the model file each diagnostic belongs to, so a per-model
  * `validate_knowledge` pass carries only its own drift.
  */
-export async function collectDriftDiagnostics(rootDir: string): Promise<ReferenceDiagnostic[]> {
+export async function collectDriftDiagnostics(
+  rootDir: string,
+  call: { index?: NodeDomainIndex } = {},
+): Promise<ReferenceDiagnostic[]> {
   const log = buildChangeLog(readLineageSnapshot(rootDir))
-  const models = await collectProvenanceModels(rootDir, log)
+  const models = await collectProvenanceModels(rootDir, log, call)
   const pathByModel = new Map(
     models
       .filter((model) => typeof model.path === 'string')
@@ -472,15 +476,16 @@ async function runWorkspaceValidation(
   rootDir: string,
   resolvedModelPath: string,
   cache: SpecCache | null,
+  call: { index?: NodeDomainIndex },
 ): Promise<ReferenceDiagnostic[]> {
   const diagnostics = filterDiagnosticsForModel(
-    await collectWorkspaceDiagnostics(rootDir, cache),
+    await collectWorkspaceDiagnostics(rootDir, cache, call),
     rootDir,
     resolvedModelPath,
   )
   // Drift needs the workspace root: a document validated in isolation emits
   // none, and a workspace pass reports only the diagnostics filed against it.
-  const drift = filterDiagnosticsForModel(await collectDriftDiagnostics(rootDir), rootDir, resolvedModelPath)
+  const drift = filterDiagnosticsForModel(await collectDriftDiagnostics(rootDir, call), rootDir, resolvedModelPath)
   return [...diagnostics, ...drift]
 }
 
@@ -705,6 +710,11 @@ export async function validateKnowledge(
     baselinePath?: string
     cacheDir?: string
     inPlace?: boolean
+    /**
+     * A domain index the caller built for `rootDir` in the same tool call, after any
+     * blueprint hydration (`check_domain` passes one for every model). Never a cross-call cache.
+     */
+    index?: NodeDomainIndex
   } = {},
 ): Promise<{
   valid: boolean
@@ -719,12 +729,20 @@ export async function validateKnowledge(
   const checkFreshness = options.checkFreshness ?? true
   let model: ParsedKnowledge
 
+  // One domain index per call. The id lookups share one; the workspace pass builds its own
+  // after schema resolution, which may hydrate a bluepriNNt package (`inPlace`) whose declared
+  // storage changes the index. A caller-supplied index serves both.
+  let lookupIndex = options.index
+  const lookup = async () => (lookupIndex ??= await buildNodeDomainIndex(rootDir))
+  let workspaceIndex = options.index
+  const domainIndex = async () => (workspaceIndex ??= await buildNodeDomainIndex(rootDir))
+
   if (content) {
     model = parseKnowledge(content)
   } else if (id) {
     let filePath: string | null = null
     try {
-      filePath = await findKnowledgeFile(rootDir, id)
+      filePath = await findKnowledgeFile(rootDir, id, { index: await lookup() })
     } catch (err) {
       if (err instanceof ModelIdError) {
         return {
@@ -771,7 +789,7 @@ export async function validateKnowledge(
 
   // With inline `content`, `id` is only a label (often a file name); a path is not an id to resolve.
   const resolvedModelPath = id
-    ? await findKnowledgeFile(rootDir, id).catch((err: unknown) => {
+    ? await findKnowledgeFile(rootDir, id, { index: await lookup() }).catch((err: unknown) => {
         if (err instanceof ModelIdError && err.code === 'MODEL_ADDRESSED_BY_PATH') return null
         throw err
       })
@@ -991,7 +1009,7 @@ export async function validateKnowledge(
     : null
   const layoutDiagnostics =
     workspace && id && modelPath !== 'inline'
-      ? (await domainLayoutDiagnostics(rootDir)).diagnostics.filter((d) =>
+      ? (await domainLayoutDiagnostics(rootDir, { index: await domainIndex() })).diagnostics.filter((d) =>
           relModelPath ? d.paths.includes(relModelPath) : false,
         )
       : relModelPath
@@ -1014,7 +1032,9 @@ export async function validateKnowledge(
   }
 
   if (workspace && id && modelPath !== 'inline') {
-    const workspaceDiagnostics = await runWorkspaceValidation(rootDir, modelPath, specCache)
+    const workspaceDiagnostics = await runWorkspaceValidation(rootDir, modelPath, specCache, {
+      index: await domainIndex(),
+    })
     for (const diag of workspaceDiagnostics) {
       const decorated = {
         path: diag.path,
