@@ -834,7 +834,9 @@
             if (activeEls && activeEls.length) {
               var first = activeEls[0]
               var ds = chart.data.datasets[first.datasetIndex]
-              var raw = ds && ds.tree ? ds.tree[first.index] : (ds && ds.data && ds.data[first.index])
+              var elem = first.element || (chart.getDatasetMeta && chart.getDatasetMeta(first.datasetIndex) && chart.getDatasetMeta(first.datasetIndex).data[first.index])
+              var elemRaw = elem && elem.$context ? elem.$context.raw : null
+              var raw = (elemRaw && elemRaw._data) || elemRaw || (ds && ds.data && ds.data[first.index] && ds.data[first.index]._data) || (ds && ds.data && ds.data[first.index]) || (ds && ds.tree && ds.tree[first.index])
               handler({ data: raw, raw: raw, seriesName: ds && ds.label })
             }
           })
