@@ -7,6 +7,9 @@ import { SLUG_RE } from '../address/grammar.js'
 import { parseKnowledge } from '../parser/index.js'
 import type { ReferenceDiagnostic } from '../validator/references.js'
 
+/** Canonical path of the sources catalog where Synchronization elements are declared. */
+export const SOURCES_CATALOG_FILE = 'sources/sources_NN.md'
+
 export interface Synchronization {
   alias: string
   origin: string

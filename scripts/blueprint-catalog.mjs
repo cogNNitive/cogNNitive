@@ -62,7 +62,7 @@ const SKIP_DIRS = new Set([
 const FROZEN_NAMES = ['workspace']
 
 /**
- * The 7 Core `bluepriNNts` that remain bundled in `manifest/source.yaml` and the
+ * The Core `bluepriNNts` that remain bundled in `manifest/source.yaml` and the
  * offline canonical registry. Every other catalog entry is an optional vertical
  * hydrated on demand (`tier: 'free'`).
  */

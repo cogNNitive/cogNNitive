@@ -1,4 +1,5 @@
 import { slugify } from '../parser/slug.js'
+import { SOURCES_CATALOG_FILE } from '../sync/declarations.js'
 
 /**
  * The pure plan of an empty, conformant domaiNN container. One plan feeds every
@@ -26,7 +27,7 @@ export const DOMAIN_DIRS = [
 export const DOMAIN_MANIFEST_FILE = 'domaiNN_NN.md'
 
 /** The sources catalog: where Synchronization elements are declared. */
-export const SOURCES_CATALOG_FILE = 'sources/sources_NN.md'
+export { SOURCES_CATALOG_FILE }
 
 const SOURCES_BLUEPRINT_URL =
   'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/sources/spec_NN.md'
