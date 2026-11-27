@@ -61,7 +61,11 @@ beforeEach(async () => {
     '---\nspec_version: "V_0-3-0"\nlevel: 1\ntitle: "iNNfo"\nparent_spec:\n  name: "defiNNition_V_0-1-0"\n  url: "specs/defiNNition_V_0-1-0_NN.md"\n---\n',
     'utf-8',
   )
-  await writeFile(join(specsDir, 'defiNNition_V_0-1-0_NN.md'), '---\nspec_version: "V_0-1-0"\nlevel: 0\ntitle: "defiNNition"\n---\n', 'utf-8')
+  await writeFile(
+    join(specsDir, 'defiNNition_V_0-1-0_NN.md'),
+    '---\nspec_version: "V_0-1-0"\nlevel: 0\ntitle: "defiNNition"\n---\n',
+    'utf-8',
+  )
   await writeFile(join(specsDir, 'strategy_V_0-2-0_NN.md'), BLUEPRINT, 'utf-8')
   await writeFile(join(knowledgeDir, 'strategy_NN.md'), MODEL, 'utf-8')
   await writeFile(join(knowledgeDir, 'tpl_NN.md'), BLUEPRINT, 'utf-8')
@@ -136,15 +140,23 @@ describe('Level-3 maintenance operations are changesets', () => {
       matrixName: 'Work Impact',
       source: 'Work',
       targetConcept: 'Work',
-      columns: 'Outcome',
-      rows: 'Vision',
     })
     expect(res.errors ?? []).toEqual([])
     expect(res.success).toBe(true)
     const out = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
     expect(out).toContain('# NN matrices: Work Impact')
-    expect(out).toContain('| Work \\ Work | Outcome |')
-    expect(out).toContain('| Vision | - |')
+    expect(out).toContain('| Work \\ Work |')
+  })
+
+  it('add_matrix rejects columns and rows arguments', async () => {
+    const res = await applyChange(root, 'strategy', 'add_matrix', {
+      matrixName: 'Work Impact Invalid',
+      source: 'Work',
+      targetConcept: 'Work',
+      columns: 'Outcome',
+    })
+    expect(res.success).toBe(false)
+    expect(res.errors?.[0]?.message ?? '').toMatch(/columns|rows/i)
   })
 
   it('add_matrix is refused on a Level-2 bluepriNNt', async () => {
@@ -159,7 +171,13 @@ describe('Level-3 maintenance operations are changesets', () => {
   it('propose_changeset accepts the new operations and rejects a bad level', async () => {
     const ok = await proposeChangeset(
       root,
-      { operations: [{ op: 'bump_version', target: 'strategy', to: 'minor' }, { op: 'freeze_slugs', target: 'strategy' }], open: false },
+      {
+        operations: [
+          { op: 'bump_version', target: 'strategy', to: 'minor' },
+          { op: 'freeze_slugs', target: 'strategy' },
+        ],
+        open: false,
+      },
       { open: false },
     )
     expect(ok.errors ?? []).toEqual([])
@@ -168,7 +186,13 @@ describe('Level-3 maintenance operations are changesets', () => {
       root,
       {
         operations: [
-          { op: 'add_matrix', target: 'strategy@matrix:Work Impact', name: 'Work Impact', concept: 'Work', to: 'Work' },
+          {
+            op: 'add_matrix',
+            target: 'strategy@matrix:Work Impact',
+            name: 'Work Impact',
+            concept: 'Work',
+            to: 'Work',
+          },
         ],
         open: false,
       },
@@ -299,7 +323,11 @@ A summary.
 describe('apply_change tool call without args (#560 C)', () => {
   it('runs freeze_slugs, which takes no args, when the args key is omitted', async () => {
     const { dispatchTool } = await import('../src/server.js')
-    const res = await dispatchTool('apply_change', { domain: root, id: 'strategy', op: 'freeze_slugs' })
+    const res = await dispatchTool('apply_change', {
+      domain: root,
+      id: 'strategy',
+      op: 'freeze_slugs',
+    })
     const text = (res.content[0] as { text: string }).text
     expect(text).not.toContain('Missing required arguments')
     expect(res.isError ?? false).toBe(false)
@@ -308,15 +336,25 @@ describe('apply_change tool call without args (#560 C)', () => {
 
   it('runs bump_version as a patch when the args key is omitted', async () => {
     const { dispatchTool } = await import('../src/server.js')
-    const res = await dispatchTool('apply_change', { domain: root, id: 'strategy', op: 'bump_version' })
+    const res = await dispatchTool('apply_change', {
+      domain: root,
+      id: 'strategy',
+      op: 'bump_version',
+    })
     expect(res.isError ?? false).toBe(false)
     expect(await versionOf('strategy')).toBe('V_0-1-1')
   })
 
   it('still refuses an op that needs args when the args key is omitted', async () => {
     const { dispatchTool } = await import('../src/server.js')
-    const res = await dispatchTool('apply_change', { domain: root, id: 'strategy', op: 'update_field' })
+    const res = await dispatchTool('apply_change', {
+      domain: root,
+      id: 'strategy',
+      op: 'update_field',
+    })
     expect(res.isError).toBe(true)
-    expect((res.content[0] as { text: string }).text).toContain('Missing required arguments: id, op, args')
+    expect((res.content[0] as { text: string }).text).toContain(
+      'Missing required arguments: id, op, args',
+    )
   })
 })
