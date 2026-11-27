@@ -1133,7 +1133,7 @@ describe('procedure runner UX (standalone console)', () => {
 })
 
 describe('collectProcedureRuns carries what the standalone console needs', () => {
-  const runDoc = (artifactValue) => `---
+  const runDoc = (artifactValue, rev = REV) => `---
 level: 3
 parent_spec:
   name: "executions"
@@ -1170,7 +1170,7 @@ slug:: raw-transcript
 kind:: file
 status:: validated
 value:: ${artifactValue}
-rev:: ${REV}
+rev:: ${rev}
 step:: transcribe
 
 # NN Step Request
@@ -1183,8 +1183,9 @@ base_seq:: 3
 reason:: moved
 `
 
-  async function exportOf(context, artifactValue, files) {
+  async function exportOf(context, artifactValue, files, customRev) {
     const { mkdtempSync, rmSync, mkdirSync, writeFileSync } = await import('node:fs')
+    const { createHash } = await import('node:crypto')
     const { tmpdir } = await import('node:os')
     const { collectProcedureRuns } = await import('../scripts/export-console.mjs')
     const root = mkdtempSync(join(tmpdir(), 'nn-proc-ux-'))
@@ -1198,8 +1199,12 @@ reason:: moved
       content,
       fm: payloadCore.parseFrontmatter(content),
     })
+    const fileContent = files[artifactValue]
+    const rev =
+      customRev ??
+      (fileContent != null ? createHash('sha256').update(fileContent).digest('hex') : REV)
     const procedure = model(FILE, INGEST)
-    const run = model('executions/r1/r1_executions_NN.md', runDoc(artifactValue))
+    const run = model('executions/r1/r1_executions_NN.md', runDoc(artifactValue, rev))
     return collectProcedureRuns({
       root,
       models: [procedure, run],

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { readFile, readdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -27,6 +28,9 @@ const EXECUTIONS_SPEC = join(
   'spec_NN.md',
 )
 
+const SPEC_CONTENT = '# Spec\n'
+const SPEC_REV = createHash('sha256').update(SPEC_CONTENT).digest('hex')
+
 let root: string
 
 beforeEach(() => {
@@ -34,6 +38,7 @@ beforeEach(() => {
   cpSync(FIXTURE, root, { recursive: true })
   mkdirSync(join(root, 'specs', 'bluepriNNts', 'executions'), { recursive: true })
   cpSync(EXECUTIONS_SPEC, join(root, 'specs', 'bluepriNNts', 'executions', 'spec_NN.md'))
+  writeFileSync(join(root, 'spec.md'), SPEC_CONTENT, 'utf-8')
   process.env.INNFO_CACHE_DIR = join(root, '.cache')
   process.env.INNFO_GLOBAL_DIR = join(root, '.global')
   process.env.INNFO_SKILLS_DIR = join(root, '.skills')
@@ -93,7 +98,7 @@ describe('a run request row carries its step', () => {
         fact: 'validated',
         field: 'draft-doc',
         value: 'spec.md',
-        rev: 'd1',
+        rev: SPEC_REV,
       }),
     )
     const s = ok(await procedureState(root, { run: 'r1' }))

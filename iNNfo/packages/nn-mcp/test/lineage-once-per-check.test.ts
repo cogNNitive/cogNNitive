@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { createHash } from 'node:crypto'
 import {
   cpSync,
   mkdirSync,
@@ -7,6 +8,7 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
+  writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -120,6 +122,10 @@ function ok<T extends Result>(r: T): T {
 
 /** A completed `review` run: the runner writes several changesets into `changes/`. */
 async function completeRun(): Promise<void> {
+  const specContent = '# Spec\nDraft content'
+  const specPath = join(root, 'spec.md')
+  writeFileSync(specPath, specContent, 'utf-8')
+  const specRev = createHash('sha256').update(specContent).digest('hex')
   ok(
     await procedureStart(root, {
       procedure: 'review',
@@ -136,7 +142,7 @@ async function completeRun(): Promise<void> {
       fact: 'validated',
       field: 'draft-doc',
       value: 'spec.md',
-      rev: 'd1',
+      rev: specRev,
     }),
   )
   ok(await procedureRecord(root, { run: 'r1', action: 'complete' }))
