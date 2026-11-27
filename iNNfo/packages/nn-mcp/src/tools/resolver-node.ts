@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { join, isAbsolute, relative, sep } from 'node:path'
 import { isInsideRoot, isDriveQualified, isDriveContained } from './path-guard.js'
 import { fileURLToPath } from 'node:url'
-import { homedir, tmpdir } from 'node:os'
+import { homedir } from 'node:os'
 import {
   parseFrontmatter,
   SpecResolutionError,
@@ -15,6 +15,7 @@ import {
   parseSpecName,
   findLocalSpec,
   versionFromFrontmatter,
+  defaultCacheDir,
 } from '@cognnitive/nn-core'
 import type { SpecCache, SpecDocument, ResolverOptions } from '@cognnitive/nn-core'
 
@@ -53,16 +54,13 @@ export type ResolverOptionsWithFreshness = ResolverOptions & {
 }
 
 /**
- * Default on-disk location for fetched specs/bluepriNNts:
- * `join(os.tmpdir(), 'innfo-specs')`. Resolver *writes* (never reads alone)
- * go here by default so a default run creates no cache artifacts inside the
- * workspace or repository tree. Restored in-tree only via `inPlace: true`.
- * `INNFO_CACHE_DIR` overrides the location (test seam, mirroring
- * `INNFO_GLOBAL_DIR` / `INNFO_SKILLS_DIR`).
+ * Default on-disk location for fetched specs/bluepriNNts (`os.tmpdir()/innfo-specs`,
+ * `INNFO_CACHE_DIR` overrides it). Resolver *writes* go here by default so a default
+ * run creates no cache artifacts inside the workspace or repository tree. Restored
+ * in-tree only via `inPlace: true`. The one definition lives in nn-core, which also
+ * keeps the changeset index under it.
  */
-export function defaultCacheDir(): string {
-  return process.env.INNFO_CACHE_DIR ?? join(tmpdir(), 'innfo-specs')
-}
+export { defaultCacheDir }
 
 export type ResolvedCache = SpecCache & { freshness?: Map<string, FreshnessResult> }
 
