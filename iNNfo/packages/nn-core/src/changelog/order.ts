@@ -29,13 +29,18 @@ export function changeStamp(changeset: string): string {
   return changesetStampOf(String(changeset ?? ''))?.stamp ?? ''
 }
 
+/** The `-<seq>` a changeset filename carries within its second, `1` when none. */
+function changeSeq(changeset: string): number {
+  return changesetStampOf(String(changeset ?? ''))?.seq ?? 1
+}
+
 /** Lexicographic comparison, never `localeCompare` (locale-dependent order). */
 function compareStrings(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0
 }
 
 /**
- * Total order: `applied_at`, then the filename UTC stamp, then the changeset
+ * Total order: `applied_at`, then the filename UTC stamp and its `-<seq>`, then the changeset
  * filename, then the document index, then the unit position inside an expanded
  * change. Two distinct log entries never compare equal.
  */
@@ -45,6 +50,10 @@ export function compareChanges(a: ChangeOrderKey, b: ChangeOrderKey): number {
 
   const byStamp = compareStrings(changeStamp(a.changeset), changeStamp(b.changeset))
   if (byStamp !== 0) return byStamp
+
+  // Same second: the `-<seq>` suffix orders numerically (`-10` after `-2`, bare after none).
+  const bySeq = changeSeq(a.changeset) - changeSeq(b.changeset)
+  if (bySeq !== 0) return bySeq
 
   const byFile = compareStrings(a.changeset, b.changeset)
   if (byFile !== 0) return byFile
