@@ -209,4 +209,49 @@ command:: run {voice}
     expect(Object.keys(g.steps)).toEqual(['a'])
     expect(g.start).toBe('a')
   })
+
+  it('defaults verify from kind and at when verify is omitted', () => {
+    const g = procedureGraph(
+      parse(`---
+level: 3
+knowledge_version: "V_0-1-0"
+title: "defaults"
+---
+
+# NN Work
+## NN Work: S1
+slug:: s1
+output:: @f1, @e1, @c1
+
+# NN Artifact
+## NN Artifact: File Art
+slug:: f1
+kind:: file
+at:: staging/{slug}.md
+
+## NN Artifact: Element Art
+slug:: e1
+kind:: element
+at:: @model:element
+
+## NN Artifact: Changeset Art
+slug:: c1
+kind:: changeset
+`),
+    )
+    expect(g.artifacts['f1']).toMatchObject({
+      kind: 'file',
+      at: 'staging/{slug}.md',
+      verify: 'file:staging/{slug}.md',
+    })
+    expect(g.artifacts['e1']).toMatchObject({
+      kind: 'element',
+      at: '@model:element',
+      verify: 'element:@model:element',
+    })
+    expect(g.artifacts['c1']).toMatchObject({
+      kind: 'changeset',
+      verify: 'applied',
+    })
+  })
 })

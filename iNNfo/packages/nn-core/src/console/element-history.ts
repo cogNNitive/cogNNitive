@@ -12,7 +12,12 @@ import { join } from 'node:path'
 import { readChangesDir } from '../changeset/changeset-index.js'
 import { isNNName, isSidecarName, parseName } from '../naming/contract.js'
 import type { ResolvedCitation } from './citations.js'
-import { buildChangeLogFromChangesets, changesetLikeOf, resolveChangeFacts, type ChangesetLike } from '../changelog/load.js'
+import {
+  buildChangeLogFromChangesets,
+  changesetLikeOf,
+  resolveChangeFacts,
+  type ChangesetLike,
+} from '../changelog/load.js'
 import type { ChangeLog, LoggedChange } from '../changelog/index.js'
 import { unitOf } from '../changelog/index.js'
 
@@ -216,7 +221,10 @@ export async function loadChangesetRecords(rootDir: string): Promise<ChangesetRe
   return records
 }
 
-function historyItem(change: LoggedChange, resolveEvidence?: (evidence: string) => ResolvedCitation): ElementHistoryItem {
+function historyItem(
+  change: LoggedChange,
+  resolveEvidence?: (evidence: string) => ResolvedCitation,
+): ElementHistoryItem {
   return {
     id: change.id,
     op: change.op,
@@ -227,7 +235,9 @@ function historyItem(change: LoggedChange, resolveEvidence?: (evidence: string) 
     notes: stripWrappingQuotes(change.notes),
     status: change.status,
     evidence: change.evidence,
-    ...(change.evidence && resolveEvidence ? { evidenceCitation: resolveEvidence(change.evidence) } : {}),
+    ...(change.evidence && resolveEvidence
+      ? { evidenceCitation: resolveEvidence(change.evidence) }
+      : {}),
     from: change.from,
     to: change.to,
     concept: change.concept,
@@ -258,6 +268,7 @@ export function attachChangesetHistory(
   changesets: ChangesetRecord[] | undefined,
   resolveEvidence?: (evidence: string) => ResolvedCitation,
   prebuiltLog?: ChangeLog,
+  modelFilter?: Set<string> | string[] | ((modelPart: string) => boolean),
 ): void {
   if (!Array.isArray(changesets) || changesets.length === 0) return
   const log = prebuiltLog ?? buildChangeLogFromChangesets(changesets as unknown as ChangesetLike[])
@@ -272,8 +283,17 @@ export function attachChangesetHistory(
     if (keys.size === 0) continue
 
     for (const change of log.all) {
-      const { elementPart } = parseChangesetTarget(unitOf(change))
+      const { modelPart, elementPart } = parseChangesetTarget(unitOf(change))
       if (!elementPart || !keys.has(elementPart.toLowerCase())) continue
+      if (modelFilter && modelPart) {
+        const matchesModel =
+          typeof modelFilter === 'function'
+            ? modelFilter(modelPart)
+            : modelFilter instanceof Set
+              ? modelFilter.has(modelPart.toLowerCase())
+              : modelFilter.some((k) => k.toLowerCase() === modelPart.toLowerCase())
+        if (!matchesModel) continue
+      }
       if (!el.history) el.history = []
       el.history.push(historyItem(change, resolveEvidence))
     }

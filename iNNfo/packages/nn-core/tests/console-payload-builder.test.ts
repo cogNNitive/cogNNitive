@@ -88,7 +88,10 @@ price:: 5000
 
   it('preserves stable modelId and element hashes across version bumps when content is otherwise unchanged', () => {
     const version1 = sampleMarkdown
-    const version2 = sampleMarkdown.replace('knowledge_version: "V_1-0-0"', 'knowledge_version: "V_1-0-1"')
+    const version2 = sampleMarkdown.replace(
+      'knowledge_version: "V_1-0-0"',
+      'knowledge_version: "V_1-0-1"',
+    )
 
     const payload1 = buildConsolePayload({
       content: version1,
@@ -156,12 +159,20 @@ knowledge_version: "V_1-0-0"
 ---
 
 # NN Service
-${tagLines.concept ? `tags:: ${tagLines.concept}
-` : ''}
+${
+  tagLines.concept
+    ? `tags:: ${tagLines.concept}
+`
+    : ''
+}
 ## NN Service: Ghost Capture
 slug:: ghost-capture
-${tagLines.element ? `tags:: ${tagLines.element}
-` : ''}price:: 5000
+${
+  tagLines.element
+    ? `tags:: ${tagLines.element}
+`
+    : ''
+}price:: 5000
 `
 
   it('carries the element tags in fields', () => {
@@ -171,8 +182,11 @@ ${tagLines.element ? `tags:: ${tagLines.element}
   })
 
   it('keeps hash equal to hashParsedElement', () => {
-    const tagged = buildConsolePayload({ content: doc({ concept: '[core]', element: '[ai]' }) }).model.elements[0]
-    const node = parseKnowledge(doc({ concept: '[core]', element: '[ai]' })).elements.get('Service')![0]
+    const tagged = buildConsolePayload({ content: doc({ concept: '[core]', element: '[ai]' }) })
+      .model.elements[0]
+    const node = parseKnowledge(doc({ concept: '[core]', element: '[ai]' })).elements.get(
+      'Service',
+    )![0]
     expect(tagged.hash).toBe(hashParsedElement('Service', node))
   })
 })
@@ -346,5 +360,25 @@ slug:: expand
       health: 'warning',
     })
   })
-})
 
+  it('preserves relative path in meta.sources for distributed models without prefixing kNNowledge/', () => {
+    const doc = `---
+title: "Alice Character"
+knowledge_version: "V_1-0-0"
+parent_spec:
+  name: "characters"
+  url: "https://example.com/characters.md"
+---
+
+# NN Character
+## NN Character: Alice
+slug:: alice
+`
+    const payload = buildConsolePayload({
+      content: doc,
+      path: 'characters/alice_NN.md',
+    })
+
+    expect(payload.model.meta.sources).toEqual(['characters/alice_NN.md'])
+  })
+})

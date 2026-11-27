@@ -164,7 +164,7 @@ export function procedureGraph(model: ParsedKnowledge, container?: string): Proc
       name: n.name,
       kind,
       ...(at !== undefined ? { at } : {}),
-      verify: verifyOf(str(n.fields['verify']), kind),
+      verify: verifyOf(str(n.fields['verify']), kind, at),
       required: !(required === false || required === 'false'),
       producers: Object.values(steps)
         .filter((s) => s.outputs.includes(slug))
@@ -290,9 +290,13 @@ function exitCodesOf(v: unknown): Record<string, string> | undefined {
 function verifyOf(
   declared: string | undefined,
   kind: ProcedureArtifact['kind'],
+  at?: string,
 ): string | undefined {
   if (declared) return declared
-  return kind === 'changeset' ? 'applied' : undefined
+  if (kind === 'changeset') return 'applied'
+  if (kind === 'file' && at) return `file:${at}`
+  if (kind === 'element' && at) return `element:${at}`
+  return undefined
 }
 
 /** A positive integer `max_attempts`, or undefined. */

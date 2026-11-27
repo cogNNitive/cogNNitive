@@ -12869,7 +12869,7 @@ function procedureGraph(model, container) {
       name: n.name,
       kind,
       ...at !== void 0 ? { at } : {},
-      verify: verifyOf(str2(n.fields["verify"]), kind),
+      verify: verifyOf(str2(n.fields["verify"]), kind, at),
       required: !(required === false || required === "false"),
       producers: Object.values(steps).filter((s) => s.outputs.includes(slug)).map((s) => s.slug)
     };
@@ -12950,9 +12950,12 @@ function exitCodesOf(v) {
     Object.entries(value).map(([k, val]) => [k, String(val)])
   );
 }
-function verifyOf(declared, kind) {
+function verifyOf(declared, kind, at) {
   if (declared) return declared;
-  return kind === "changeset" ? "applied" : void 0;
+  if (kind === "changeset") return "applied";
+  if (kind === "file" && at) return `file:${at}`;
+  if (kind === "element" && at) return `element:${at}`;
+  return void 0;
 }
 function maxAttemptsOf(v) {
   const n = Number(str2(v));
@@ -13627,7 +13630,7 @@ function historyItem(change, resolveEvidence) {
   };
 }
 var CONSOLE_HISTORY_LIMIT = 12;
-function attachChangesetHistory(elements, changesets, resolveEvidence, prebuiltLog) {
+function attachChangesetHistory(elements, changesets, resolveEvidence, prebuiltLog, modelFilter) {
   if (!Array.isArray(changesets) || changesets.length === 0) return;
   const log = prebuiltLog ?? buildChangeLogFromChangesets(changesets);
   if (log.all.length === 0) return;
@@ -13637,8 +13640,12 @@ function attachChangesetHistory(elements, changesets, resolveEvidence, prebuiltL
     );
     if (keys.size === 0) continue;
     for (const change of log.all) {
-      const { elementPart } = parseChangesetTarget(unitOf(change));
+      const { modelPart, elementPart } = parseChangesetTarget(unitOf(change));
       if (!elementPart || !keys.has(elementPart.toLowerCase())) continue;
+      if (modelFilter && modelPart) {
+        const matchesModel = typeof modelFilter === "function" ? modelFilter(modelPart) : modelFilter instanceof Set ? modelFilter.has(modelPart.toLowerCase()) : modelFilter.some((k) => k.toLowerCase() === modelPart.toLowerCase());
+        if (!matchesModel) continue;
+      }
       if (!el.history) el.history = [];
       el.history.push(historyItem(change, resolveEvidence));
     }
@@ -13661,7 +13668,8 @@ function isMirrorFile(relPath) {
 }
 function classifyFileCategory(relPath) {
   const norm = relPath.replace(/\\/g, "/").replace(/^\/+/, "");
-  if (norm.startsWith("artifacts/") || norm === "domaiNN_console.html") return "artifact";
+  if (norm.startsWith("artifacts/") || norm.startsWith("entregables/") || norm === "domaiNN_console.html")
+    return "artifact";
   if (norm.startsWith("assets/") || norm.startsWith("sources/assets/")) return "asset";
   if (norm.startsWith("evidence/") || norm.startsWith("sources/evidence/")) return "evidence";
   if (norm.startsWith("sources/") || norm.startsWith("conversations/")) return "source";
@@ -13677,7 +13685,8 @@ function mimeTypeFromPath(filePath) {
   if (lower.endsWith(".json")) return "application/json";
   if (lower.endsWith(".html") || lower.endsWith(".htm")) return "text/html";
   if (lower.endsWith(".css")) return "text/css";
-  if (lower.endsWith(".js") || lower.endsWith(".mjs") || lower.endsWith(".cjs")) return "text/javascript";
+  if (lower.endsWith(".js") || lower.endsWith(".mjs") || lower.endsWith(".cjs"))
+    return "text/javascript";
   if (lower.endsWith(".ts")) return "text/typescript";
   if (lower.endsWith(".png")) return "image/png";
   if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
@@ -13769,7 +13778,8 @@ function resolveArtifactReverseLineage(artifacts, elements, changes, sources) {
     if (Array.isArray(cs.changes)) {
       for (const c of cs.changes) {
         if (c.target) {
-          if (!changeTargetToChangeset.has(c.target)) changeTargetToChangeset.set(c.target, /* @__PURE__ */ new Set());
+          if (!changeTargetToChangeset.has(c.target))
+            changeTargetToChangeset.set(c.target, /* @__PURE__ */ new Set());
           if (csId) changeTargetToChangeset.get(c.target).add(csId);
         }
         if (c.evidence && csId) changesetToEvidence.get(csId).add(normalizePosix(c.evidence));
@@ -13781,7 +13791,10 @@ function resolveArtifactReverseLineage(artifacts, elements, changes, sources) {
     const unitIdSet = /* @__PURE__ */ new Set();
     for (const u of art.unitIds || []) unitIdSet.add(u);
     if (art.content) {
-      const patterns = [/\[\[([a-zA-Z0-9_\-:]+)\]\]/g, /(?:data-nn-unit|data-unit)=["']([a-zA-Z0-9_\-:]+)["']/g];
+      const patterns = [
+        /\[\[([a-zA-Z0-9_\-:]+)\]\]/g,
+        /(?:data-nn-unit|data-unit)=["']([a-zA-Z0-9_\-:]+)["']/g
+      ];
       for (const re of patterns) {
         let m;
         while ((m = re.exec(art.content)) !== null) {
@@ -14200,6 +14213,24 @@ function buildConsolePayload(options) {
   const template = fm.target_blueprint || fm.blueprint || fm.template || void 0;
   const modelVersion = fm.knowledge_version || fm.version || "V_0-1-0";
   const modelId = options.modelId || standaloneModelId(modelPath, title);
+  const modelKeys = options.modelKeys ? options.modelKeys instanceof Set ? options.modelKeys : new Set(options.modelKeys.map((k) => String(k).toLowerCase())) : options.modelFilter ? options.modelFilter : options.modelId ? /* @__PURE__ */ new Set([
+    options.modelId.toLowerCase(),
+    options.modelId.replace(/_V_[0-9].*$/i, "").toLowerCase(),
+    ...options.modelId.includes("/") ? [
+      options.modelId.split("/").pop().toLowerCase(),
+      options.modelId.split("/").pop().replace(/_V_[0-9].*$/i, "").toLowerCase()
+    ] : [],
+    ...title ? [title.toLowerCase(), slugify(title).toLowerCase()] : [],
+    ...modelPath ? [
+      modelPath.replace(/\\/g, "/").toLowerCase(),
+      (modelPath.split(/[/\\]/).pop() ?? "").replace(/(_NN)?\.[^.]+$/, "").toLowerCase(),
+      (modelPath.split(/[/\\]/).pop() ?? "").replace(/(_NN)?\.[^.]+$/, "").replace(/_V_[0-9].*$/i, "").toLowerCase(),
+      (modelPath.split(/[/\\]/).pop() ?? "").replace(/\.[^.]+$/, "").toLowerCase(),
+      (modelPath.split(/[/\\]/).pop() ?? "").replace(/\.[^.]+$/, "").replace(/_V_[0-9].*$/i, "").toLowerCase()
+    ] : [],
+    ...fm.id ? [String(fm.id).toLowerCase()] : [],
+    ...fm.modelId ? [String(fm.modelId).toLowerCase()] : []
+  ]) : void 0;
   const changeLog = Array.isArray(changesets) && changesets.length > 0 ? buildChangeLogFromChangesets(changesets) : void 0;
   const rawElements = [];
   const elementsByName = /* @__PURE__ */ new Map();
@@ -14349,11 +14380,12 @@ function buildConsolePayload(options) {
     elements,
     changesets,
     resolver2 ? (evidence) => resolveEvidenceCitation(evidence, resolver2, modelPath || "") : void 0,
-    changeLog
+    changeLog,
+    modelKeys
   );
   const genTime = generated || (/* @__PURE__ */ new Date()).toISOString();
   const normalizedSource = modelPath ? modelPath.split("\\").join("/").replace(/^models\//i, "kNNowledge/").replace(/^.*?\/(kNNowledge\/)/i, "$1") : fm.title ? `kNNowledge/${slugify(fm.title)}_NN.md` : "kNNowledge/Model_NN.md";
-  const sourceFile = normalizedSource.startsWith("kNNowledge/") ? normalizedSource : `kNNowledge/${normalizedSource}`;
+  const sourceFile = modelPath && (modelPath.includes("/") || modelPath.includes("\\")) ? normalizedSource : normalizedSource.startsWith("kNNowledge/") ? normalizedSource : `kNNowledge/${normalizedSource}`;
   const ownership = natureOfBlueprint(coreBlueprintKey(parentSpecNameOf(fm)))?.ownership ?? "authored";
   const meta = {
     modelId,

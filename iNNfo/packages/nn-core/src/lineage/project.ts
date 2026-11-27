@@ -171,13 +171,21 @@ export function extractDeclaredCitations(file: FileSnapshot): CitationSite[] {
     return sites
   } else if (ext === 'csv') {
     const lines = file.content.split(/\r?\n/)
-    const header = lines[0].split(',').map((h) => h.trim().toLowerCase().replace(/^["']|["']$/g, ''))
+    const header = lines[0].split(',').map((h) =>
+      h
+        .trim()
+        .toLowerCase()
+        .replace(/^["']|["']$/g, ''),
+    )
     const sourcesIdx = header.indexOf('sources')
     if (sourcesIdx !== -1) {
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim()
         if (!line) continue
-        const cell = line.split(',')[sourcesIdx]?.trim().replace(/^["']|["']$/g, '')
+        const cell = line
+          .split(',')
+          [sourcesIdx]?.trim()
+          .replace(/^["']|["']$/g, '')
         if (cell) push(cell, 'sources')
       }
     }
@@ -274,7 +282,8 @@ export function projectLineage(
     const subject = rawPathOfSidecar(sidecar.path)
     if (subject === null) continue
     const fm = frontmatterOf(sidecar.content)
-    const declared = typeof fm.source_file === 'string' ? posixPath(fm.source_file.trim()) : undefined
+    const declared =
+      typeof fm.source_file === 'string' ? posixPath(fm.source_file.trim()) : undefined
     if (declared !== subject) {
       diagnostics.push({
         code: 'SIDECAR_SUBJECT_MISMATCH',
@@ -337,7 +346,12 @@ export function projectLineage(
     const parsedName = parseName(getBasename(kf.path))
     if (parsedName.kind !== 'nn' || parsedName.sidecarOf !== undefined) continue
     const parsed = parsedKnowledgeOf(options.parses, kf.path, kf.content)
-    if (!isModelCandidate({ path: kf.path, frontmatter: (parsed.frontmatter ?? {}) as Record<string, unknown> })) {
+    if (
+      !isModelCandidate({
+        path: kf.path,
+        frontmatter: (parsed.frontmatter ?? {}) as Record<string, unknown>,
+      })
+    ) {
       continue
     }
 
@@ -357,7 +371,12 @@ export function projectLineage(
           const lower = fieldName.toLowerCase()
           if (lower !== 'sources' && lower !== 'source') continue
           for (const raw of splitSourceFieldValue(val)) {
-            citations.push({ value: raw, referringPath: kf.path, element: el.name, field: fieldName })
+            citations.push({
+              value: raw,
+              referringPath: kf.path,
+              element: el.name,
+              field: fieldName,
+            })
           }
         }
       }
@@ -394,12 +413,31 @@ export function projectLineage(
     })
   }
 
-  // 3. Artifacts: plain files that are not Sources and are family members or declare upstream.
+  // 3. Artifacts: plain files that are not Sources and are family members or declare upstream,
+  // or live under artifacts/ or entregables/, or are referenced by execution Run Artifact elements.
   const sourcePaths = new Set(subjects.map((s) => s.subject))
   const familySizes = new Map<string, number>()
   for (const f of live) {
     const key = familyKey(f.path)
     if (key !== null) familySizes.set(key, (familySizes.get(key) ?? 0) + 1)
+  }
+
+  const executionArtifactPaths = new Set<string>()
+  for (const kf of live) {
+    const parsedName = parseName(getBasename(kf.path))
+    if (parsedName.kind !== 'nn' || parsedName.sidecarOf !== undefined) continue
+    const parsed = parsedKnowledgeOf(options.parses, kf.path, kf.content)
+    for (const [concept, elements] of parsed.elements.entries()) {
+      const c = concept.toLowerCase().replace(/[\s_]+/g, '')
+      if (c === 'runartifact') {
+        for (const el of elements) {
+          const val = el.fields.value
+          if (typeof val === 'string' && val.trim()) {
+            executionArtifactPaths.add(posixPath(val.trim()).replace(/^\.\//, ''))
+          }
+        }
+      }
+    }
   }
 
   const artifacts: LineageArtifact[] = []
@@ -409,15 +447,33 @@ export function projectLineage(
     const ext = getExtension(af.path)
     if (!ARTIFACT_EXTENSIONS.has(ext)) continue
 
+    const baseName = getBasename(af.path)
+    if (/_console(\.html|\/|$)/i.test(baseName) || baseName === 'domaiNN_console.html') continue
+
     const citations = extractDeclaredCitations(af)
-    const isFamilyMember = parsedName.stamp !== undefined || (familySizes.get(familyKey(af.path)!) ?? 0) > 1
-    if (!isFamilyMember && citations.length === 0) continue
+    const isFamilyMember =
+      parsedName.stamp !== undefined || (familySizes.get(familyKey(af.path)!) ?? 0) > 1
+    const isDeliverable = af.path.startsWith('entregables/')
+    const isExecutionArtifact = executionArtifactPaths.has(af.path)
+
+    if (!isFamilyMember && citations.length === 0 && !isDeliverable && !isExecutionArtifact)
+      continue
 
     let format: LineageArtifact['artifact_format'] = 'document'
     if (ext === 'md') {
       const fm = frontmatterOf(af.content)
-      const declared = typeof fm.format === 'string' ? fm.format : typeof fm.type === 'string' ? fm.type : undefined
-      if (declared === 'report' || declared === 'board' || declared === 'dataset' || declared === 'document') {
+      const declared =
+        typeof fm.format === 'string'
+          ? fm.format
+          : typeof fm.type === 'string'
+            ? fm.type
+            : undefined
+      if (
+        declared === 'report' ||
+        declared === 'board' ||
+        declared === 'dataset' ||
+        declared === 'document'
+      ) {
         format = declared
       }
     } else if (ext === 'html' || ext === 'htm') {
@@ -466,7 +522,8 @@ export function projectLineage(
       for (const site of sites) {
         const owner = ownerOf(site.unit)
         push({ from: citation, to: owner, kind: 'evidence', change: site.changeId })
-        if (site.unit.includes('@')) push({ from: site.unit, to: owner, kind: 'target', change: site.changeId })
+        if (site.unit.includes('@'))
+          push({ from: site.unit, to: owner, kind: 'target', change: site.changeId })
       }
     }
 
@@ -487,7 +544,13 @@ export function projectLineage(
         .map((change) => change.resolvedTarget ?? change.target),
     )
     for (const artifact of artifacts) {
-      if (recorded.has(artifact.artifact_ref) || isRegenerableView(artifact.artifact_ref)) continue
+      if (
+        recorded.has(artifact.artifact_ref) ||
+        isRegenerableView(artifact.artifact_ref) ||
+        executionArtifactPaths.has(artifact.artifact_ref) ||
+        artifact.artifact_ref.startsWith('entregables/')
+      )
+        continue
       diagnostics.push({
         code: 'ARTIFACT_WITHOUT_RECORD',
         path: artifact.artifact_ref,
@@ -495,6 +558,12 @@ export function projectLineage(
       })
     }
 
-    return edges.sort((a, b) => compareStrings(a.from, b.from) || compareStrings(a.to, b.to) || compareStrings(a.kind, b.kind) || compareStrings(a.change, b.change))
+    return edges.sort(
+      (a, b) =>
+        compareStrings(a.from, b.from) ||
+        compareStrings(a.to, b.to) ||
+        compareStrings(a.kind, b.kind) ||
+        compareStrings(a.change, b.change),
+    )
   }
 }

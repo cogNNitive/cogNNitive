@@ -37,7 +37,14 @@
  */
 
 import { readdir, readFile, writeFile, mkdir, rename, rm, stat, open } from 'node:fs/promises'
-import { createReadStream, existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import {
+  createReadStream,
+  existsSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { join, relative, basename, resolve, dirname, isAbsolute } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createHash } from 'node:crypto'
@@ -1924,7 +1931,7 @@ export async function collectWorkspaceFiles(workspaceRoot, options = {}) {
   // The export's warning channel by default; a caller (or a test) may pass its own.
   const onWarning = options.onWarning ?? writeExportWarning
 
-  const scanDirs = ['sources', 'assets', 'evidence', 'artifacts', 'conversations']
+  const scanDirs = ['sources', 'assets', 'evidence', 'artifacts', 'conversations', 'entregables']
   const inventory = []
   const artifactsList = []
   const sourceFilesList = []
@@ -1959,6 +1966,33 @@ export async function collectWorkspaceFiles(workspaceRoot, options = {}) {
     const p = join(root, d)
     const files = await walk(p)
     for (const f of files) allFilePaths.add(f)
+  }
+
+  // Sweep file paths recorded in NN Run Artifact or declared in NN Artifact
+  const declaredArtifactPaths = new Set()
+  for (const el of elements) {
+    if (!el || !el.concept) continue
+    const c = el.concept.toLowerCase().replace(/[\s_]+/g, '')
+    if (c === 'runartifact' || c === 'artifact') {
+      const f = el.fields || {}
+      const candidates = [f.value, f.at, el.value, el.at]
+      for (const cand of candidates) {
+        if (typeof cand === 'string' && cand.trim() && !cand.includes('{')) {
+          const norm = cand.trim().replace(/\\/g, '/').replace(/^\/+/, '')
+          const full = join(root, norm)
+          if (existsSync(full)) {
+            try {
+              if (statSync(full).isFile()) {
+                allFilePaths.add(full)
+                declaredArtifactPaths.add(norm)
+              }
+            } catch {
+              // ignore stat error on sweep
+            }
+          }
+        }
+      }
+    }
   }
 
   const domainConsole = join(root, 'domaiNN_console.html')
@@ -2074,10 +2108,14 @@ export async function collectWorkspaceFiles(workspaceRoot, options = {}) {
         ? payloadHelper.mimeTypeFromPath(rel)
         : 'application/octet-stream'
 
-    const category =
+    let category =
       payloadHelper && payloadHelper.classifyFileCategory
         ? payloadHelper.classifyFileCategory(rel)
         : 'source'
+
+    if (category === 'unclassified' && declaredArtifactPaths.has(rel)) {
+      category = 'artifact'
+    }
 
     const isSourceLike =
       payloadHelper && payloadHelper.isSourceLike
@@ -2552,6 +2590,37 @@ export async function writeConsole(opts = {}) {
       Object.assign(blueprintCatalog.models, modelSchemaResolution.catalog.models || {})
       Object.assign(blueprintCatalog.voices, modelSchemaResolution.catalog.voices || {})
     }
+    const indexModelId = domainIndex.byPath(relPath)?.id
+    const stem = payloadHelper.displayStem(fileName)
+    const mTitle = m.fm && (m.fm.title || m.fm.name)
+    const baseStem = (stem || modelStem).replace(/_V_[0-9].*$/i, '')
+    const modelKeys = new Set(
+      [
+        baseStem,
+        stem,
+        mTitle,
+        fileName,
+        modelStem,
+        modelStem.replace(/_NN$/i, ''),
+        modelStem.replace(/_NN$/i, '').replace(/_V_[0-9].*$/i, ''),
+        relPath,
+        relPath.replace(/\.[^/.]+$/, ''),
+        relPath.replace(/(_NN)?\.[^/.]+$/, ''),
+        relPath.replace(/(_NN)?\.[^/.]+$/, '').replace(/_V_[0-9].*$/i, ''),
+        indexModelId,
+        indexModelId && indexModelId.includes('/') ? indexModelId.split('/').pop() : null,
+        indexModelId && indexModelId.includes('/')
+          ? indexModelId
+              .split('/')
+              .pop()
+              .replace(/_V_[0-9].*$/i, '')
+          : null,
+      ]
+        .filter(Boolean)
+        .map(function (v) {
+          return String(v).toLowerCase()
+        }),
+    )
     const payload = payloadHelper.buildConsolePayload({
       content: m.content,
       path: relPath,
@@ -2561,7 +2630,8 @@ export async function writeConsole(opts = {}) {
       procedures: modelSchemaResolution.procedures,
       // The domain index id: `<container>/<slug>` for a distributed instance, the stem
       // for a compact model. A model the index cannot address keeps the stem (#606).
-      modelId: domainIndex.byPath(relPath)?.id,
+      modelId: indexModelId,
+      modelKeys,
     })
     if (payload && payload.model) {
       changesBlueprintVersion =

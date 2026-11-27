@@ -120,7 +120,12 @@ export function isMirrorFile(relPath: string): boolean {
  */
 export function classifyFileCategory(relPath: string): FileCategory {
   const norm = relPath.replace(/\\/g, '/').replace(/^\/+/, '')
-  if (norm.startsWith('artifacts/') || norm === 'domaiNN_console.html') return 'artifact'
+  if (
+    norm.startsWith('artifacts/') ||
+    norm.startsWith('entregables/') ||
+    norm === 'domaiNN_console.html'
+  )
+    return 'artifact'
   if (norm.startsWith('assets/') || norm.startsWith('sources/assets/')) return 'asset'
   if (norm.startsWith('evidence/') || norm.startsWith('sources/evidence/')) return 'evidence'
   if (norm.startsWith('sources/') || norm.startsWith('conversations/')) return 'source'
@@ -143,7 +148,8 @@ export function mimeTypeFromPath(filePath: string): string {
   if (lower.endsWith('.json')) return 'application/json'
   if (lower.endsWith('.html') || lower.endsWith('.htm')) return 'text/html'
   if (lower.endsWith('.css')) return 'text/css'
-  if (lower.endsWith('.js') || lower.endsWith('.mjs') || lower.endsWith('.cjs')) return 'text/javascript'
+  if (lower.endsWith('.js') || lower.endsWith('.mjs') || lower.endsWith('.cjs'))
+    return 'text/javascript'
   if (lower.endsWith('.ts')) return 'text/typescript'
   if (lower.endsWith('.png')) return 'image/png'
   if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg'
@@ -288,13 +294,21 @@ export function resolveArtifactReverseLineage(
   const changesetToEvidence = new Map<string, Set<string>>()
   for (const cs of changes || []) {
     const csId =
-      cs.id || (cs.path ? cs.path.split(/[/\\]/).pop()?.replace(/\.[^/.]+$/, '') : '') || ''
+      cs.id ||
+      (cs.path
+        ? cs.path
+            .split(/[/\\]/)
+            .pop()
+            ?.replace(/\.[^/.]+$/, '')
+        : '') ||
+      ''
     if (!changesetToEvidence.has(csId)) changesetToEvidence.set(csId, new Set())
     if (cs.evidence) changesetToEvidence.get(csId)!.add(normalizePosix(cs.evidence))
     if (Array.isArray(cs.changes)) {
       for (const c of cs.changes) {
         if (c.target) {
-          if (!changeTargetToChangeset.has(c.target)) changeTargetToChangeset.set(c.target, new Set())
+          if (!changeTargetToChangeset.has(c.target))
+            changeTargetToChangeset.set(c.target, new Set())
           if (csId) changeTargetToChangeset.get(c.target)!.add(csId)
         }
         if (c.evidence && csId) changesetToEvidence.get(csId)!.add(normalizePosix(c.evidence))
@@ -307,7 +321,10 @@ export function resolveArtifactReverseLineage(
     const unitIdSet = new Set<string>()
     for (const u of art.unitIds || []) unitIdSet.add(u)
     if (art.content) {
-      const patterns = [/\[\[([a-zA-Z0-9_\-:]+)\]\]/g, /(?:data-nn-unit|data-unit)=["']([a-zA-Z0-9_\-:]+)["']/g]
+      const patterns = [
+        /\[\[([a-zA-Z0-9_\-:]+)\]\]/g,
+        /(?:data-nn-unit|data-unit)=["']([a-zA-Z0-9_\-:]+)["']/g,
+      ]
       for (const re of patterns) {
         let m: RegExpExecArray | null
         while ((m = re.exec(art.content)) !== null) {
@@ -328,7 +345,8 @@ export function resolveArtifactReverseLineage(
         const csId = h.changesetId || h.changeset || h.changeId
         if (csId) changesetIdSet.add(csId)
       }
-      const targets = changeTargetToChangeset.get(el.id) || changeTargetToChangeset.get(el.slug || '')
+      const targets =
+        changeTargetToChangeset.get(el.id) || changeTargetToChangeset.get(el.slug || '')
       if (targets) for (const csId of targets) changesetIdSet.add(csId)
       for (const fieldCits of Object.values(el.citations || {})) {
         if (!Array.isArray(fieldCits)) continue
@@ -364,7 +382,12 @@ export function resolveArtifactReverseLineage(
  * known only from sidecar origin keys (`adhoc`). A folder name never makes one.
  */
 export function buildOrigins(
-  synchronizations: Array<{ alias: string; origin: string; kind: 'file' | 'folder'; state: 'active' | 'paused' }>,
+  synchronizations: Array<{
+    alias: string
+    origin: string
+    kind: 'file' | 'folder'
+    state: 'active' | 'paused'
+  }>,
   inventory: FileInventoryEntry[],
 ): OriginDescriptor[] {
   const declared = new Set(synchronizations.map((s) => s.alias))

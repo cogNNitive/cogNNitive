@@ -71,7 +71,10 @@ describe('console element history (changeset lineage)', () => {
       modelPart: 'M',
       elementPart: 'element-1a',
     })
-    expect(parseChangesetTarget('M@element-1a')).toEqual({ modelPart: 'M', elementPart: 'element-1a' })
+    expect(parseChangesetTarget('M@element-1a')).toEqual({
+      modelPart: 'M',
+      elementPart: 'element-1a',
+    })
     expect(parseChangesetTarget('no-at-sign')).toEqual({ modelPart: '', elementPart: '' })
   })
 
@@ -88,8 +91,18 @@ describe('console element history (changeset lineage)', () => {
         author: 'lucas',
         appliedAt: '2026-10-10T17:20:19.500Z',
         changes: [
-          { id: 'c-01', op: 'comment', target: 'Domain@concept-1-element-1a&__description', notes: '"A comment"' },
-          { id: 'c-02', op: 'update_field', target: 'Domain@Element 2A&summary', notes: 'no quotes' },
+          {
+            id: 'c-01',
+            op: 'comment',
+            target: 'Domain@concept-1-element-1a&__description',
+            notes: '"A comment"',
+          },
+          {
+            id: 'c-02',
+            op: 'update_field',
+            target: 'Domain@Element 2A&summary',
+            notes: 'no quotes',
+          },
           { id: 'c-03', op: 'update_field', target: 'Domain@ghost&summary' },
         ],
       },
@@ -235,9 +248,29 @@ fields:: {"owner":"ana"}
           author: 'lucas',
           appliedAt: 'T',
           changes: [
-            { id: 'c-01', op: 'update_field', target: 'TestLab@element-1a&summary', to: 'One', evidence: 'sources/a.md', status: 'applied' },
-            { id: 'c-02', op: 'update_field', target: 'TestLab@element-1a&summary', to: 'Two', status: 'conflict' },
-            { id: 'c-03', op: 'update_field', target: 'TestLab@element-1a&summary', to: 'Three', evidence: 'sources/c.md', status: 'applied' },
+            {
+              id: 'c-01',
+              op: 'update_field',
+              target: 'TestLab@element-1a&summary',
+              to: 'One',
+              evidence: 'sources/a.md',
+              status: 'applied',
+            },
+            {
+              id: 'c-02',
+              op: 'update_field',
+              target: 'TestLab@element-1a&summary',
+              to: 'Two',
+              status: 'conflict',
+            },
+            {
+              id: 'c-03',
+              op: 'update_field',
+              target: 'TestLab@element-1a&summary',
+              to: 'Three',
+              evidence: 'sources/c.md',
+              status: 'applied',
+            },
           ],
         } as any,
       ],
@@ -271,5 +304,74 @@ fields:: {"owner":"ana"}
     expect(elements[0].history?.[0].id).toBe('c-01')
     expect(elements[1].history).toHaveLength(1)
     expect(elements[1].history?.[0].id).toBe('c-02')
+  })
+
+  it('does not bleed element history across different models with same element slug', () => {
+    const docAcme = `---
+title: "Entregable Acme"
+knowledge_version: "V_1-0-0"
+---
+
+# NN Deliverable
+## NN Deliverable: Plantilla
+slug:: plantilla
+`
+    const docGlobex = `---
+title: "Entregable Globex"
+knowledge_version: "V_1-0-0"
+---
+
+# NN Deliverable
+## NN Deliverable: Plantilla
+slug:: plantilla
+`
+    const changesets = [
+      {
+        path: 'changes/dom_run1_changes_NN.md',
+        status: 'applied',
+        author: 'runner',
+        changes: [
+          {
+            id: 'c-acme-01',
+            op: 'comment',
+            target: 'entregable-acme@plantilla&status',
+            notes: 'Acme note',
+          },
+        ],
+      },
+      {
+        path: 'changes/dom_run2_changes_NN.md',
+        status: 'applied',
+        author: 'runner',
+        changes: [
+          {
+            id: 'c-globex-01',
+            op: 'comment',
+            target: 'entregable-globex@plantilla&status',
+            notes: 'Globex note',
+          },
+        ],
+      },
+    ] as any
+
+    const payloadAcme = buildConsolePayload({
+      content: docAcme,
+      modelId: 'entregable-acme',
+      path: 'executions/run-1/outputs/entregable-acme_NN.md',
+      changesets,
+    })
+
+    const payloadGlobex = buildConsolePayload({
+      content: docGlobex,
+      modelId: 'entregable-globex',
+      path: 'executions/run-2/outputs/entregable-globex_NN.md',
+      changesets,
+    })
+
+    const elAcme = payloadAcme.model.elements.find((e) => e.slug === 'plantilla')!
+    const elGlobex = payloadGlobex.model.elements.find((e) => e.slug === 'plantilla')!
+
+    expect(elAcme.history?.map((h) => h.id)).toEqual(['c-acme-01'])
+    expect(elGlobex.history?.map((h) => h.id)).toEqual(['c-globex-01'])
   })
 })

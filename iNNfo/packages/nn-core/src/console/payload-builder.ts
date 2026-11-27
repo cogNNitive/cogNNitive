@@ -2,12 +2,7 @@
  * Console Payload Builder.
  * THE single payload builder shared by the CLI exporter and compile procedures.
  */
-import {
-  parseFrontmatter,
-  parseKnowledge,
-  slugify,
-  splitSourceFieldValue,
-} from '../index.js'
+import { parseFrontmatter, parseKnowledge, slugify, splitSourceFieldValue } from '../index.js'
 import { computeSha256 } from '../validator/crypto.js'
 import { findCanonicalBlueprint } from '../schema/canonical-registry.js'
 import { natureOfBlueprint } from '../schema/nature.js'
@@ -179,6 +174,9 @@ export interface BuildConsolePayloadOptions {
   procedures?: ConsoleProcedureSlot[]
   /** `collection(Concept)` member addresses, resolved by the caller from the index. */
   collections?: Record<string, string[]>
+  /** Model identifiers (or filter predicate) to restrict which changeset targets attach history. */
+  modelKeys?: Set<string> | string[]
+  modelFilter?: Set<string> | string[] | ((modelPart: string) => boolean)
 }
 
 const WIKILINK_TARGET_RE = /\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g
@@ -228,10 +226,57 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
   const parsed = parseKnowledge(content)
   const fm = (parsed.frontmatter || parseFrontmatter(content) || {}) as Record<string, any>
 
-  const title = fm.title || fm.name || (modelPath ? displayStem(modelPath.split(/[/\\]/).pop() ?? '') : 'Model') || 'Model'
+  const title =
+    fm.title ||
+    fm.name ||
+    (modelPath ? displayStem(modelPath.split(/[/\\]/).pop() ?? '') : 'Model') ||
+    'Model'
   const template = fm.target_blueprint || fm.blueprint || fm.template || undefined
   const modelVersion = fm.knowledge_version || fm.version || 'V_0-1-0'
   const modelId = options.modelId || standaloneModelId(modelPath, title)
+
+  const modelKeys = options.modelKeys
+    ? options.modelKeys instanceof Set
+      ? options.modelKeys
+      : new Set(options.modelKeys.map((k) => String(k).toLowerCase()))
+    : options.modelFilter
+      ? options.modelFilter
+      : options.modelId
+        ? new Set([
+            options.modelId.toLowerCase(),
+            options.modelId.replace(/_V_[0-9].*$/i, '').toLowerCase(),
+            ...(options.modelId.includes('/')
+              ? [
+                  options.modelId.split('/').pop()!.toLowerCase(),
+                  options.modelId
+                    .split('/')
+                    .pop()!
+                    .replace(/_V_[0-9].*$/i, '')
+                    .toLowerCase(),
+                ]
+              : []),
+            ...(title ? [title.toLowerCase(), slugify(title).toLowerCase()] : []),
+            ...(modelPath
+              ? [
+                  modelPath.replace(/\\/g, '/').toLowerCase(),
+                  (modelPath.split(/[/\\]/).pop() ?? '')
+                    .replace(/(_NN)?\.[^.]+$/, '')
+                    .toLowerCase(),
+                  (modelPath.split(/[/\\]/).pop() ?? '')
+                    .replace(/(_NN)?\.[^.]+$/, '')
+                    .replace(/_V_[0-9].*$/i, '')
+                    .toLowerCase(),
+                  (modelPath.split(/[/\\]/).pop() ?? '').replace(/\.[^.]+$/, '').toLowerCase(),
+                  (modelPath.split(/[/\\]/).pop() ?? '')
+                    .replace(/\.[^.]+$/, '')
+                    .replace(/_V_[0-9].*$/i, '')
+                    .toLowerCase(),
+                ]
+              : []),
+            ...(fm.id ? [String(fm.id).toLowerCase()] : []),
+            ...(fm.modelId ? [String(fm.modelId).toLowerCase()] : []),
+          ])
+        : undefined
 
   // One log for the whole payload: the element history reads it (built once, never
   // per element).
@@ -250,9 +295,10 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
   const elementsById = new Map<string, ConsolePayloadElement>()
   const unfrozen: string[] = []
 
-  const resolvedBlueprintSchema = typeof inputSchema === 'string'
-    ? resolveBlueprintSchema(inputSchema).schema
-    : (inputSchema as any)
+  const resolvedBlueprintSchema =
+    typeof inputSchema === 'string'
+      ? resolveBlueprintSchema(inputSchema).schema
+      : (inputSchema as any)
 
   for (const [conceptName, nodes] of parsed.elements.entries()) {
     for (const node of nodes) {
@@ -271,7 +317,7 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
       delete fields.name
 
       const markers: Record<string, unknown> = { ...(node.markers || {}) }
-      const description = (node.description || (fields.description as string) || '')
+      const description = node.description || (fields.description as string) || ''
       if (fields.description) delete fields.description
 
       const hash = computeElementHash({
@@ -284,8 +330,10 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
 
       // Compute inherited field values delta
       const conceptDefs = resolvedBlueprintSchema?.concepts
-        ? (Array.isArray(resolvedBlueprintSchema.concepts) ? resolvedBlueprintSchema.concepts : Object.values(resolvedBlueprintSchema.concepts))
-            .find((c: any) => c?.name?.toLowerCase() === concept.toLowerCase())?.fields
+        ? (Array.isArray(resolvedBlueprintSchema.concepts)
+            ? resolvedBlueprintSchema.concepts
+            : Object.values(resolvedBlueprintSchema.concepts)
+          ).find((c: any) => c?.name?.toLowerCase() === concept.toLowerCase())?.fields
         : undefined
       const conceptVals = parsed.conceptFields?.[concept]
       const inheritedDelta = inheritConceptValues(fields, conceptVals, conceptDefs, concept)
@@ -438,15 +486,28 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
       ? (evidence: string) => resolveEvidenceCitation(evidence, resolver, modelPath || '')
       : undefined,
     changeLog,
+    modelKeys,
   )
   const genTime = generated || new Date().toISOString()
 
   const normalizedSource = modelPath
-    ? modelPath.split('\\').join('/').replace(/^models\//i, 'kNNowledge/').replace(/^.*?\/(kNNowledge\/)/i, '$1')
-    : (fm.title ? `kNNowledge/${slugify(fm.title)}_NN.md` : 'kNNowledge/Model_NN.md')
-  const sourceFile = normalizedSource.startsWith('kNNowledge/') ? normalizedSource : `kNNowledge/${normalizedSource}`
+    ? modelPath
+        .split('\\')
+        .join('/')
+        .replace(/^models\//i, 'kNNowledge/')
+        .replace(/^.*?\/(kNNowledge\/)/i, '$1')
+    : fm.title
+      ? `kNNowledge/${slugify(fm.title)}_NN.md`
+      : 'kNNowledge/Model_NN.md'
+  const sourceFile =
+    modelPath && (modelPath.includes('/') || modelPath.includes('\\'))
+      ? normalizedSource
+      : normalizedSource.startsWith('kNNowledge/')
+        ? normalizedSource
+        : `kNNowledge/${normalizedSource}`
 
-  const ownership = natureOfBlueprint(coreBlueprintKey(parentSpecNameOf(fm)))?.ownership ?? 'authored'
+  const ownership =
+    natureOfBlueprint(coreBlueprintKey(parentSpecNameOf(fm)))?.ownership ?? 'authored'
   const meta: ConsolePayloadMeta = {
     modelId,
     title,
