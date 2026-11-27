@@ -81,7 +81,7 @@ describe('console-review-popover (annotation)', () => {
     vi.restoreAllMocks()
   })
 
-  it('cards expose no annotate anchor; a tag proposal opens the one KU modal', () => {
+  it('cards expose no annotate anchor; a tag proposal edits in place, not in the modal', () => {
     enableReview()
     const card = env.document.querySelector('[data-nn-component="element-card"]') as HTMLElement
     // The card-level annotate anchor was retired: element edits/comments go
@@ -91,11 +91,30 @@ describe('console-review-popover (annotation)', () => {
     expect(anchor).not.toBeNull()
     anchor.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
-    // The annotation popover is retired: every edit, tag add included, opens the
-    // unified element modal. (The chip editor it still lacks is issue #490.)
+    // A tag is one word typed in place: the button becomes an input, and neither the
+    // retired annotation popover nor the modal opens — the modal has no list editor.
     expect(env.document.querySelector('[data-nn-component="annotation-popover"]')).toBeNull()
-    const modal = env.document.querySelector('[data-nn-component="edit-modal"]') as HTMLElement
-    expect(modal).not.toBeNull()
+    expect(env.document.querySelector('[data-nn-component="edit-modal"]')).toBeNull()
+    const input = env.document.querySelector('[data-nn-ctl="tag-input"]') as HTMLInputElement
+    expect(input).not.toBeNull()
+    expect(input.getAttribute('aria-label')).toBe('New tag')
+  })
+
+  it('Enter on the inline tag input proposes the tag as a draft', () => {
+    enableReview()
+    const card = env.document.querySelector('[data-nn-component="element-card"]') as HTMLElement
+    const anchor = card.querySelector('[data-nn-ctl="tag-add"]') as HTMLElement
+    anchor.dispatchEvent(new env.window.Event('click', { bubbles: true }))
+
+    const input = env.document.querySelector('[data-nn-ctl="tag-input"]') as HTMLInputElement
+    input.value = 'urgent'
+    input.dispatchEvent(new env.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+
+    const raw = JSON.parse(env.localStorage.getItem('nn-console:v4:ghostbusters-model') || '{}')
+    expect(raw.drafts).toHaveLength(1)
+    expect(raw.drafts[0].element_id).toBe('threat-slimer')
+    expect(raw.drafts[0].field).toBe('tags')
+    expect(raw.drafts[0].proposed).toEqual(['urgent'])
   })
 
   it('field row anchor opens the unified edit modal, prefilled with the payload value', () => {
@@ -119,13 +138,10 @@ describe('console-review-popover (annotation)', () => {
     expect(env.document.querySelector('[data-nn-component="annotation-popover"]')).toBeNull()
     const modal = env.document.querySelector('[data-nn-component="edit-modal"]')!
     expect(modal).not.toBeNull()
-    const modes = Array.from(modal.querySelectorAll('.nn-edit-mode-btn')).map((b) =>
-      b.textContent,
-    )
+    const modes = Array.from(modal.querySelectorAll('.nn-edit-mode-btn')).map((b) => b.textContent)
     expect(modes).toEqual(['Propose value', 'Comment'])
     const input = modal.querySelector('.nn-edit-fields input, .nn-edit-fields textarea') as
-      | HTMLInputElement
-      | HTMLTextAreaElement
+      HTMLInputElement | HTMLTextAreaElement
     expect(input.value).toBe('A')
   })
 
@@ -186,7 +202,7 @@ describe('console-review-popover (annotation)', () => {
     expect(raw.drafts[0].comment).toBe('looks fine')
   })
 
-  it('Escape closes the modal without saving and restores focus to the anchor', () => {
+  it('Escape cancels the inline tag input, writes no draft, and restores the button and focus', () => {
     enableReview()
     const card = env.document.querySelector('[data-nn-component="element-card"]') as HTMLElement
     // The tag row lives in the card body, which starts collapsed; expand it so
@@ -197,24 +213,29 @@ describe('console-review-popover (annotation)', () => {
     anchor.focus()
     anchor.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
-    const modal = env.document.querySelector('[data-nn-component="edit-modal"]') as HTMLElement
-    expect(modal).not.toBeNull()
-    // Escape on a <dialog> fires `cancel`; the kit intercepts it, closes and
-    // returns focus. Dispatching the event is the jsdom-equivalent of the key.
-    modal.dispatchEvent(new env.window.Event('cancel', { bubbles: false }))
+    const input = env.document.querySelector('[data-nn-ctl="tag-input"]') as HTMLInputElement
+    expect(input).not.toBeNull()
+    input.value = 'abandoned'
+    input.dispatchEvent(new env.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
 
-    expect(env.document.querySelector('[data-nn-component="edit-modal"]')).toBeNull()
+    // The input is gone, the button that opened it is back, and focus returned to it.
+    expect(env.document.querySelector('[data-nn-ctl="tag-input"]')).toBeNull()
+    expect(env.document.querySelector('[data-nn-ctl="tag-add"]')).toBe(anchor)
     expect(env.document.activeElement).toBe(anchor)
     const raw = JSON.parse(env.localStorage.getItem('nn-console:v4:ghostbusters-model') || '{}')
     expect(raw.drafts || []).toHaveLength(0)
   })
 
   it('source scan finds no prompt( and no review status select across console sources', () => {
-    const files = readdirSync(consoleDir).filter((f) => f.endsWith('.js') && f !== 'nn-console.bundle.js')
+    const files = readdirSync(consoleDir).filter(
+      (f) => f.endsWith('.js') && f !== 'nn-console.bundle.js',
+    )
     files.forEach((f) => {
       const src = readFileSync(join(consoleDir, f), 'utf8')
       expect(src.includes('prompt('), `${f} must not call prompt(`).toBe(false)
-      expect(src.includes('nn-review-status-select'), `${f} must not render a status select`).toBe(false)
+      expect(src.includes('nn-review-status-select'), `${f} must not render a status select`).toBe(
+        false,
+      )
     })
   })
 })
