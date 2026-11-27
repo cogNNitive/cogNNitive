@@ -17,7 +17,7 @@ const SOURCES = [
   ['vendor/htm.umd.js', 'htm'],
   ['nn-preact-init.js', 'nnPreact'],
   ['vendor/chart.umd.min.js', 'Chart'],
-  ['vendor/chartjs-chart-treemap.min.js', 'ChartTreemap'],
+  ['vendor/chartjs-chart-treemap.min.js', 'chartjs-chart-treemap'],
   ['visuals.js', 'nnVisuals'],
   ['nn-icons.js', 'nnIcons'],
   ['ui-kit.js', 'nnUI'],
