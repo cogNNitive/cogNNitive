@@ -7077,9 +7077,7 @@
         seg.setAttribute('title', c + ': ' + count)
         seg.setAttribute('data-concept', c)
         seg.addEventListener('click', function () {
-          var row = legend.querySelector(
-            'li[data-concept="' + String(c).replace(/"/g, '') + '"]',
-          )
+          var row = legend.querySelector('li[data-concept="' + String(c).replace(/"/g, '') + '"]')
           openConceptWindow(row)
         })
         barWrap.appendChild(seg)

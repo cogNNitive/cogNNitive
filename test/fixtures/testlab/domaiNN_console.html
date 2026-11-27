@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-dJfDQJAGkkJaeDPYQIKqTaQPEHqywEqf5n25EX2xxh4=' 'sha256-qsjLjnpwNES4Y0CM36eMiDfJELR1nScCKX3nlAuFDJI='; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; media-src 'self' file: blob:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-A8tTYKtYTqVQxSCdWvMejA4dUCQWbrYWv7KL+VRLF9c=' 'sha256-qsjLjnpwNES4Y0CM36eMiDfJELR1nScCKX3nlAuFDJI='; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; media-src 'self' file: blob:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -12505,7 +12505,7 @@ button.proc-run.active {
 {"concepts":[{"name":"Procedure Execution","type":"list","icon":"play-circle","color":"purple","weight":100,"storage":{"mode":"distributed","placement":"executions/{slug}/"},"fields":[{"name":"procedure","type":"address","scope":"concept","description":"Address of the Procedure or root Work this run executes (model@element or document@container).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"def_rev","type":"string","scope":"concept","description":"knowledge_version of the procedure model when the run started; the run follows that revision to the end.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"params","type":"string","scope":"concept","description":"Opaque parameters the run was started with (a JSON object of slot values).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"seq","type":"number","scope":"concept","description":"The run's write counter. Every runner changeset increments it with a from guard, so any concurrent write to the same run conflicts the whole changeset.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"state","type":"select","options":["open","paused","completed","failed","cancelled"],"scope":"concept","description":"The stored lifecycle of the run. The status the tools return is the fold's derived RunStatus, which reports paused when this is paused.","transitions":{"":["open"],"open":["paused","completed","failed","cancelled"],"paused":["open","completed","failed","cancelled"],"completed":[],"failed":[],"cancelled":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Step Run","type":"list","icon":"list-checks","color":"blue","weight":90,"description":"One row per step of the procedure. Its slug is the step slug. Mutable: the runner writes it as the step advances.","fields":[{"name":"status","type":"select","options":["pending","active","waiting","done","failed"],"scope":"concept","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed). Each row only takes the edges of its own lifecycle. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"attempt","type":"number","scope":"concept","description":"The attempt number of the current claim, 1 for the first try.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"outcome","type":"string","scope":"concept","description":"The answer the step recorded; for a decision step, the token its next conditions test.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"next","type":"string","scope":"concept","description":"The slug of the step this one moved to.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"inputs","type":"string","scope":"concept","description":"The input artifact revisions frozen at claim time: a JSON object mapping artifact slug to its rev.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"waiting_on","type":"string","scope":"concept","description":"What a waiting step waits on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"failure","type":"string","scope":"concept","description":"Why the step failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"claimed_at","type":"string","scope":"concept","description":"When the current attempt was claimed (ISO 8601).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"timeout_ms","type":"number","scope":"concept","description":"The budget of the current attempt. At most 300000.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"holder","type":"string","scope":"concept","description":"Who holds the claim, as pid@host. For an engine step it is the process that runs the command, not the server that reports it. A step whose holder is gone is a crash, derived from it; a claim that names neither a holder nor a claim time is broken, never a permanent holder.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"evidence","type":"string","scope":"concept","description":"The applied change ids a human step observed, such as the verdicts it waited on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Run Artifact","type":"list","icon":"package","color":"orange","weight":80,"description":"One row per artifact of the procedure. Its slug is the artifact slug. Mutable: verification and staleness move it.","fields":[{"name":"status","type":"select","options":["expected","produced","validated","rejected"],"scope":"concept","description":"The stored lifecycle of an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle.","transitions":{"":["expected"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"How the artifact is carried: a file, a model element, or a changeset of several elements.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Input","type":"list","icon":"log-in","color":"grey","weight":70,"description":"A computed or entered input the run recorded, with its revision. One row per input name.","fields":[{"name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Step Request","type":"list","icon":"inbox","color":"yellow","weight":60,"description":"One row per human request that an action be recorded on a step. Intent, never state: only the runner consumes it, and it never moves a Step Run row by itself.","fields":[{"name":"action","type":"select","options":["start","wait","complete","fail"],"scope":"concept","description":"The action the person asked the runner to record on the step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"step","type":"string","scope":"concept","description":"The slug of the step the request names.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"base_seq","type":"number","scope":"concept","description":"The run's header seq when the request was made. A consumer refuses the request when the run has advanced past it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"reason","type":"string","scope":"concept","description":"Why the request was rejected or found stale, as the runner reported it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"request_status","type":"select","options":["pending","done","stale","rejected"],"scope":"concept","description":"The life of a request: pending while nobody consumed it, then done, stale or rejected. A resolved request never returns to pending.","transitions":{"":["pending"],"pending":["done","stale","rejected"],"done":[],"stale":[],"rejected":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"requested_outcome","type":"string","scope":"concept","description":"The outcome the person asked for when the request names a branching step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"requested_value","type":"string","scope":"concept","description":"The value the person attached to the request, such as who a step waits on or why it failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"requested_outputs","type":"string","scope":"concept","description":"The deliverables a person wrote for the step's file outputs, as one line of JSON: artifact slug -> { \"name\"?: string, \"text\": string }. Valid only with action complete; each text is UTF-8 and at most 256 KiB.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Procedure","type":"list","icon":"workflow","color":"teal","weight":110,"fields":[{"name":"category","type":"select","options":["ingestion","transformation","audit","reporting","custom"],"scope":"concept","description":"Functional classification of the procedure workflow.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"summary","type":"string","scope":"concept","description":"Mandatory concise summary of the workflow intent and transformation steps.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"inputs_required","type":"string","scope":"concept","description":"References to required Source or Model concepts consumed as inputs.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"outputs_expected","type":"string","scope":"concept","description":"References to expected Artifact concepts produced by the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"executed_by","type":"string","scope":"concept","description":"Reference to responsible agent or functional role executing the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"procedure_model","type":"knowledge","scope":"concept","description":"Link to concrete procedure definition or executable stepper model _NN.md.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}}],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Work","type":"list","icon":"list-ordered","color":"blue","weight":100,"fields":[{"name":"step_type","type":"select","options":["task","decision","event"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"parent","type":"reference","target_concepts":["Work"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"next","type":"reference","target_concepts":["Work"],"scope":"concept","description":"Step or steps that may follow. A decision step lists several targets as an inline list (next:: [@approve, @decline], addresses like every reference field); the run records the one it took.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"condition","type":"string","scope":"concept","description":"Guard to enter the step. Evaluable forms are outcome == \u003ctoken> and [[artifact]] validated; anything else is prose the actor asserts.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"decision","type":"string","scope":"concept","description":"Question a decision step asks; its answer is the outcome the run records.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"command","type":"string","scope":"concept","description":"Shell command an engine step runs; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"produces","type":"string","scope":"concept","description":"Path or address the step produces; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"executor","type":"select","options":["human","agent","engine"],"scope":"concept","description":"Who performs the step. A step without executor is performed by an agent.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"input","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"output","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"output_status","type":"string","scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"tool","type":"reference","target_concepts":["Tools"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}}],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Artifact","type":"list","icon":"package","color":"orange","weight":80,"fields":[{"name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"What the artifact is: a file on disk (default), an element in a domain model, or an applied changeset.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"at","type":"string","scope":"concept","description":"Declared path or address for the artifact; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"verify","type":"string","scope":"concept","description":"How the artifact is checked: file:\u003cglob>, element:\u003caddress>, command:\u003ccmd> or human. Defaults from kind and at.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"required","type":"boolean","scope":"concept","description":"Whether a run must produce the artifact when its producer is on the walked path (default true).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}}],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Tools","type":"list","icon":"wrench","color":"orange","weight":70,"fields":[{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}}],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Roles","type":"list","icon":"users","color":"green","weight":60,"fields":[{"name":"scope","type":"select","options":["internal","external"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}}],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Concept 1","type":"list","icon":"box","color":"blue","weight":100,"description":"Baseline domain concept holding the 1A/1B/1C element triangle. Concept 1 carries every field type and anchors the Concept 1-Concept 2 matrix.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"manual","type":"markdown_file","scope":"concept","description":"External markdown file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"photo","type":"image","scope":"concept","description":"Image attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"demo_video","type":"video","scope":"concept","description":"Downloaded video asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"voice_note","type":"audio","scope":"concept","description":"Downloaded and transcribed audio asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"sibling","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"Reference to an element of Concept 2.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"status","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"Lifecycle status of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Concept 2","type":"list","icon":"boxes","color":"green","weight":90,"description":"Owner concept holding the 2A/2B elements that reference Concept 1. Concept 2 closes the matrix crossings and proves bidirectional reference resolution.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"owner","type":"reference","target_concepts":["Concept 1"],"scope":"concept","description":"Reference back to an element of Concept 1.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Edge Cases","type":"list","icon":"flask-conical","color":"amber","weight":80,"description":"Quarantined stress probes with literal names describing the case under test: traceability probes, the very-long-description probe, the file probe, the artifact-as-source probe, the broken reference probe, and the sourceless probe.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"photo","type":"image","scope":"concept","description":"Image attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Modification Cases","type":"list","icon":"git-pull-request","color":"violet","weight":70,"description":"One field per Level-1 field type, so the review pass can exercise every kind of modification (a field of each type) with a self-describing name.","fields":[{"name":"string_field","type":"string","scope":"concept","description":"A string field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"number_field","type":"number","scope":"concept","description":"A number field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"boolean_field","type":"boolean","scope":"concept","description":"A boolean field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"select_field","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"A select field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"reference_field","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"A reference field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"image_field","type":"image","scope":"concept","description":"An image field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"file_field","type":"file","scope":"concept","description":"A file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"video_field","type":"video","scope":"concept","description":"A video field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"audio_field","type":"audio","scope":"concept","description":"An audio field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"url_field","type":"url","scope":"concept","description":"A URL field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"markdown_inline_field","type":"markdown_inline","scope":"concept","description":"A markdown_inline field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"markdown_file_field","type":"markdown_file","scope":"concept","description":"A markdown_file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"knowledge_field","type":"knowledge","target_blueprint":"TestLab","scope":"concept","description":"A knowledge field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"address_field","type":"address","scope":"concept","description":"An address field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"citation_field","type":"citation","scope":"concept","description":"A citation field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"fields":[{"concept":"Procedure Execution","name":"procedure","type":"address","scope":"concept","description":"Address of the Procedure or root Work this run executes (model@element or document@container).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"def_rev","type":"string","scope":"concept","description":"knowledge_version of the procedure model when the run started; the run follows that revision to the end.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"params","type":"string","scope":"concept","description":"Opaque parameters the run was started with (a JSON object of slot values).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"seq","type":"number","scope":"concept","description":"The run's write counter. Every runner changeset increments it with a from guard, so any concurrent write to the same run conflicts the whole changeset.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"state","type":"select","options":["open","paused","completed","failed","cancelled"],"scope":"concept","description":"The stored lifecycle of the run. The status the tools return is the fold's derived RunStatus, which reports paused when this is paused.","transitions":{"":["open"],"open":["paused","completed","failed","cancelled"],"paused":["open","completed","failed","cancelled"],"completed":[],"failed":[],"cancelled":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"status","type":"select","options":["pending","active","waiting","done","failed"],"scope":"concept","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed). Each row only takes the edges of its own lifecycle. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"attempt","type":"number","scope":"concept","description":"The attempt number of the current claim, 1 for the first try.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"outcome","type":"string","scope":"concept","description":"The answer the step recorded; for a decision step, the token its next conditions test.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"next","type":"string","scope":"concept","description":"The slug of the step this one moved to.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"inputs","type":"string","scope":"concept","description":"The input artifact revisions frozen at claim time: a JSON object mapping artifact slug to its rev.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"waiting_on","type":"string","scope":"concept","description":"What a waiting step waits on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"failure","type":"string","scope":"concept","description":"Why the step failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"claimed_at","type":"string","scope":"concept","description":"When the current attempt was claimed (ISO 8601).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"timeout_ms","type":"number","scope":"concept","description":"The budget of the current attempt. At most 300000.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"holder","type":"string","scope":"concept","description":"Who holds the claim, as pid@host. For an engine step it is the process that runs the command, not the server that reports it. A step whose holder is gone is a crash, derived from it; a claim that names neither a holder nor a claim time is broken, never a permanent holder.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"evidence","type":"string","scope":"concept","description":"The applied change ids a human step observed, such as the verdicts it waited on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"status","type":"select","options":["expected","produced","validated","rejected"],"scope":"concept","description":"The stored lifecycle of an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle.","transitions":{"":["expected"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"How the artifact is carried: a file, a model element, or a changeset of several elements.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Input","name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Input","name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"action","type":"select","options":["start","wait","complete","fail"],"scope":"concept","description":"The action the person asked the runner to record on the step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"step","type":"string","scope":"concept","description":"The slug of the step the request names.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"base_seq","type":"number","scope":"concept","description":"The run's header seq when the request was made. A consumer refuses the request when the run has advanced past it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"reason","type":"string","scope":"concept","description":"Why the request was rejected or found stale, as the runner reported it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"request_status","type":"select","options":["pending","done","stale","rejected"],"scope":"concept","description":"The life of a request: pending while nobody consumed it, then done, stale or rejected. A resolved request never returns to pending.","transitions":{"":["pending"],"pending":["done","stale","rejected"],"done":[],"stale":[],"rejected":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"requested_outcome","type":"string","scope":"concept","description":"The outcome the person asked for when the request names a branching step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"requested_value","type":"string","scope":"concept","description":"The value the person attached to the request, such as who a step waits on or why it failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"requested_outputs","type":"string","scope":"concept","description":"The deliverables a person wrote for the step's file outputs, as one line of JSON: artifact slug -> { \"name\"?: string, \"text\": string }. Valid only with action complete; each text is UTF-8 and at most 256 KiB.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure","name":"category","type":"select","options":["ingestion","transformation","audit","reporting","custom"],"scope":"concept","description":"Functional classification of the procedure workflow.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"summary","type":"string","scope":"concept","description":"Mandatory concise summary of the workflow intent and transformation steps.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"inputs_required","type":"string","scope":"concept","description":"References to required Source or Model concepts consumed as inputs.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"outputs_expected","type":"string","scope":"concept","description":"References to expected Artifact concepts produced by the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"executed_by","type":"string","scope":"concept","description":"Reference to responsible agent or functional role executing the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"procedure_model","type":"knowledge","scope":"concept","description":"Link to concrete procedure definition or executable stepper model _NN.md.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"step_type","type":"select","options":["task","decision","event"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"parent","type":"reference","target_concepts":["Work"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"next","type":"reference","target_concepts":["Work"],"scope":"concept","description":"Step or steps that may follow. A decision step lists several targets as an inline list (next:: [@approve, @decline], addresses like every reference field); the run records the one it took.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"condition","type":"string","scope":"concept","description":"Guard to enter the step. Evaluable forms are outcome == \u003ctoken> and [[artifact]] validated; anything else is prose the actor asserts.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"decision","type":"string","scope":"concept","description":"Question a decision step asks; its answer is the outcome the run records.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"command","type":"string","scope":"concept","description":"Shell command an engine step runs; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"produces","type":"string","scope":"concept","description":"Path or address the step produces; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"executor","type":"select","options":["human","agent","engine"],"scope":"concept","description":"Who performs the step. A step without executor is performed by an agent.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"input","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"output","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"output_status","type":"string","scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"tool","type":"reference","target_concepts":["Tools"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"What the artifact is: a file on disk (default), an element in a domain model, or an applied changeset.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"at","type":"string","scope":"concept","description":"Declared path or address for the artifact; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"verify","type":"string","scope":"concept","description":"How the artifact is checked: file:\u003cglob>, element:\u003caddress>, command:\u003ccmd> or human. Defaults from kind and at.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"required","type":"boolean","scope":"concept","description":"Whether a run must produce the artifact when its producer is on the walked path (default true).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Tools","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Tools","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Roles","name":"scope","type":"select","options":["internal","external"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Roles","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Roles","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Concept 1","name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"manual","type":"markdown_file","scope":"concept","description":"External markdown file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"photo","type":"image","scope":"concept","description":"Image attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"demo_video","type":"video","scope":"concept","description":"Downloaded video asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"voice_note","type":"audio","scope":"concept","description":"Downloaded and transcribed audio asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"sibling","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"Reference to an element of Concept 2.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"status","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"Lifecycle status of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"owner","type":"reference","target_concepts":["Concept 1"],"scope":"concept","description":"Reference back to an element of Concept 1.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"summary","type":"string","scope":"concept","description":"One-line summary of the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"photo","type":"image","scope":"concept","description":"Image attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"string_field","type":"string","scope":"concept","description":"A string field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"number_field","type":"number","scope":"concept","description":"A number field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"boolean_field","type":"boolean","scope":"concept","description":"A boolean field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"select_field","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"A select field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"reference_field","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"A reference field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"image_field","type":"image","scope":"concept","description":"An image field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"file_field","type":"file","scope":"concept","description":"A file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"video_field","type":"video","scope":"concept","description":"A video field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"audio_field","type":"audio","scope":"concept","description":"An audio field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"url_field","type":"url","scope":"concept","description":"A URL field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"markdown_inline_field","type":"markdown_inline","scope":"concept","description":"A markdown_inline field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"markdown_file_field","type":"markdown_file","scope":"concept","description":"A markdown_file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"knowledge_field","type":"knowledge","target_blueprint":"TestLab","scope":"concept","description":"A knowledge field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"address_field","type":"address","scope":"concept","description":"An address field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"citation_field","type":"citation","scope":"concept","description":"A citation field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"markers":[],"matrices":[{"name":"work-roles matrix","source":"Work","target":"Roles","params":"","values":["Responsible","Accountable","Consulted","Informed"],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"work-tools matrix","source":"Work","target":"Tools","params":"","values":["Uses"],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"work-artifacts matrix","source":"Work","target":"Artifact","params":"","values":["Creates","Modifies","Validates","Reviews"],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Concept 1-Concept 2 Matrix","source":"Concept 1","target":"Concept 2","params":"","values":["relevant","archived"],"widgetType":"set","description":"Scores how relevant each Concept 1 element is to each Concept 2 element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"procedures":[{"id":"usage","name":"Getting started","path":"procedures/usage_procedures_NN.md","status":"selected"},{"id":"usage","name":"Getting started","path":"procedures/usage_procedures_NN.md","status":"shadowed","shadowed_by":"procedures_V_0-6-1"}]}
 </script>
     <script type="application/x-nn-deflate-base64" id="nn-model">
-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
+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
 </script>
     <script type="application/json" id="nn-procedure-core"></script>
     <script type="application/json" id="nn-drafts">
@@ -21217,7 +21217,11 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           var vLabel = String(keys[k])
           var v = raw[keys[k]]
           if (!Array.isArray(v)) {
-            invalid.push({ id: id, label: label, detail: 'variant "' + vLabel + '" is not an array' })
+            invalid.push({
+              id: id,
+              label: label,
+              detail: 'variant "' + vLabel + '" is not an array',
+            })
             return
           }
           variants.push({ label: vLabel, values: v })
@@ -21233,13 +21237,19 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
             invalid.push({
               id: id,
               label: label,
-              detail: 'non-pure series value at index ' + i + ' in variant "' + variants[vi].label + '"',
+              detail:
+                'non-pure series value at index ' + i + ' in variant "' + variants[vi].label + '"',
             })
             return
           }
         }
       }
-      var n = Math.max.apply(null, variants.map(function (v) { return v.values.length }))
+      var n = Math.max.apply(
+        null,
+        variants.map(function (v) {
+          return v.values.length
+        }),
+      )
       var xs = []
       for (var xi = 0; xi < (Number.isFinite(n) ? n : 0); xi++) xs.push(xi)
       charts.push({
@@ -21250,7 +21260,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         count: Number.isFinite(n) ? n : 0,
       })
     })
-    return { ok: missing.length === 0 && invalid.length === 0, charts: charts, missing: missing, invalid: invalid }
+    return {
+      ok: missing.length === 0 && invalid.length === 0,
+      charts: charts,
+      missing: missing,
+      invalid: invalid,
+    }
   }
 
   function monthAxis(meta, count) {
@@ -21270,7 +21285,16 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
   // ---- Charts (ECharts) ----------------------------------------------------
   // The one chart entry point for built-in tabs and custom views: it takes a plain
   // ECharts option and applies the console defaults (white background, palette).
-  var CHART_PALETTE = ['#2563eb', '#dc2626', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2', '#db2777', '#65a30d']
+  var CHART_PALETTE = [
+    '#2563eb',
+    '#dc2626',
+    '#16a34a',
+    '#f59e0b',
+    '#7c3aed',
+    '#0891b2',
+    '#db2777',
+    '#65a30d',
+  ]
 
   function chartLibrary() {
     if (typeof Chart !== 'undefined') return Chart
@@ -21281,7 +21305,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
   function warnChartLibraryMissing() {
     if (typeof console !== 'undefined' && console.warn)
-      console.warn('nn-console: Chart library unavailable — charts need the vendored console bundle')
+      console.warn(
+        'nn-console: Chart library unavailable — charts need the vendored console bundle',
+      )
   }
 
   function flattenTreemapData(tree) {
@@ -21321,36 +21347,40 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
     if (sType === 'treemap') {
       var rawTree = firstSeries.data || []
-      var hasNested = Array.isArray(rawTree) && rawTree.some(function (d) {
-        return d && Array.isArray(d.children) && d.children.length > 0
-      })
+      var hasNested =
+        Array.isArray(rawTree) &&
+        rawTree.some(function (d) {
+          return d && Array.isArray(d.children) && d.children.length > 0
+        })
       var flat = hasNested ? flattenTreemapData(rawTree) : rawTree
       var groups = firstSeries.groups || (hasNested ? ['l0', 'l1'] : ['name'])
       return {
         type: 'treemap',
         data: {
-          datasets: [{
-            tree: flat,
-            key: 'value',
-            groups: groups,
-            backgroundColor: function (ctx) {
-              if (ctx.type !== 'data') return 'transparent'
-              var d = ctx.raw && (ctx.raw._data || ctx.raw)
-              return (d && (d.color || (d.itemStyle && d.itemStyle.color))) || CHART_PALETTE[0]
-            },
-            borderColor: '#ffffff',
-            borderWidth: 2,
-            spacing: 1,
-            labels: {
-              display: true,
-              formatter: function (ctx) {
+          datasets: [
+            {
+              tree: flat,
+              key: 'value',
+              groups: groups,
+              backgroundColor: function (ctx) {
+                if (ctx.type !== 'data') return 'transparent'
                 var d = ctx.raw && (ctx.raw._data || ctx.raw)
-                return ctx.raw.g || (d && (d.name || d.label)) || ''
+                return (d && (d.color || (d.itemStyle && d.itemStyle.color))) || CHART_PALETTE[0]
               },
-              color: '#ffffff',
-              font: { size: 11, weight: 'bold' },
+              borderColor: '#ffffff',
+              borderWidth: 2,
+              spacing: 1,
+              labels: {
+                display: true,
+                formatter: function (ctx) {
+                  var d = ctx.raw && (ctx.raw._data || ctx.raw)
+                  return ctx.raw.g || (d && (d.name || d.label)) || ''
+                },
+                color: '#ffffff',
+                font: { size: 11, weight: 'bold' },
+              },
             },
-          }],
+          ],
         },
         options: {
           animation: false,
@@ -21370,7 +21400,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         (s.lineStyle && s.lineStyle.color) ||
         CHART_PALETTE[i % CHART_PALETTE.length]
       return {
-        label: s.name || ('Series ' + (i + 1)),
+        label: s.name || 'Series ' + (i + 1),
         data: s.data || [],
         borderColor: color,
         backgroundColor: color,
@@ -21416,17 +21446,26 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
   function renderSvgGraph(host, option, opts) {
     var o = opts || {}
     var seriesList = (option && option.series) || []
-    var graph = seriesList.find(function (s) { return s.type === 'graph' }) || seriesList[0] || {}
-    var linesSeries = seriesList.find(function (s) { return s.type === 'lines' })
-    var scatterSeries = seriesList.filter(function (s) { return s.type === 'scatter' })
+    var graph =
+      seriesList.find(function (s) {
+        return s.type === 'graph'
+      }) ||
+      seriesList[0] ||
+      {}
+    var linesSeries = seriesList.find(function (s) {
+      return s.type === 'lines'
+    })
+    var scatterSeries = seriesList.filter(function (s) {
+      return s.type === 'scatter'
+    })
 
     var doc = host.ownerDocument || document
     host.innerHTML = ''
 
     var autoW = o.width === undefined
     var autoH = o.height === undefined
-    var width = autoW ? (graph.width || host.clientWidth || 960) : o.width
-    var height = autoH ? (graph.height || host.clientHeight || 450) : o.height
+    var width = autoW ? graph.width || host.clientWidth || 960 : o.width
+    var height = autoH ? graph.height || host.clientHeight || 450 : o.height
     if (typeof width === 'string') width = parseInt(width, 10) || 960
     if (typeof height === 'string') height = parseInt(height, 10) || 450
     if (height < 200) height = 200
@@ -21436,7 +21475,11 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
     var xAxis = option.xAxis || {}
     var yAxis = option.yAxis || {}
-    var hasCartesian = xAxis.min !== undefined && xAxis.max !== undefined && yAxis.min !== undefined && yAxis.max !== undefined
+    var hasCartesian =
+      xAxis.min !== undefined &&
+      xAxis.max !== undefined &&
+      yAxis.min !== undefined &&
+      yAxis.max !== undefined
     var xMin = Number(xAxis.min) || 0
     var xMax = Number(xAxis.max) || 1
     var yMin = Number(yAxis.min) || 0
@@ -21449,8 +21492,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         return { x: rx * width, y: ry * height }
       }
       return {
-        x: defX !== undefined ? defX : (Array.isArray(val) ? val[0] : 0),
-        y: defY !== undefined ? defY : (Array.isArray(val) ? val[1] : 0),
+        x: defX !== undefined ? defX : Array.isArray(val) ? val[0] : 0,
+        y: defY !== undefined ? defY : Array.isArray(val) ? val[1] : 0,
       }
     }
 
@@ -21458,9 +21501,14 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     if (isCircular) {
       var cx = width / 2
       var cy = height / 2
-      var centerNode = rawNodes.find(function (n) { return (n.symbolSize > 30) }) || rawNodes[0]
-      var centerId = centerNode ? (centerNode.id || centerNode.name) : null
-      var otherNodes = rawNodes.filter(function (n) { return (n.id || n.name) !== centerId })
+      var centerNode =
+        rawNodes.find(function (n) {
+          return n.symbolSize > 30
+        }) || rawNodes[0]
+      var centerId = centerNode ? centerNode.id || centerNode.name : null
+      var otherNodes = rawNodes.filter(function (n) {
+        return (n.id || n.name) !== centerId
+      })
       var R = Math.max(60, Math.min(width, height) / 2 - 50)
       if (centerId) nodePos[centerId] = { x: cx, y: cy, isCenter: true }
       otherNodes.forEach(function (n, idx) {
@@ -21639,7 +21687,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       var borderWidth = st.borderWidth !== undefined ? st.borderWidth : 1
 
       if (isRect) {
-        var w = Array.isArray(node.symbolSize) ? node.symbolSize[0] : (node.symbolSize || 120)
+        var w = Array.isArray(node.symbolSize) ? node.symbolSize[0] : node.symbolSize || 120
         var h = Array.isArray(node.symbolSize) ? node.symbolSize[1] : 40
         var x = p.x - w / 2
         var y = p.y - h / 2
@@ -21665,10 +21713,41 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           var matchT = formatter.match(/\{t\|([^}]+)\}/)
           var headerText = matchT ? matchT[1] : node.name
           var headerBand = doc.createElementNS('http://www.w3.org/2000/svg', 'path')
-          headerBand.setAttribute('d',
-            'M ' + x + ' ' + (y + 6) + ' Q ' + x + ' ' + y + ' ' + (x + 6) + ' ' + y +
-            ' L ' + (x + w - 6) + ' ' + y + ' Q ' + (x + w) + ' ' + y + ' ' + (x + w) + ' ' + (y + 6) +
-            ' L ' + (x + w) + ' ' + (y + 26) + ' L ' + x + ' ' + (y + 26) + ' Z'
+          headerBand.setAttribute(
+            'd',
+            'M ' +
+              x +
+              ' ' +
+              (y + 6) +
+              ' Q ' +
+              x +
+              ' ' +
+              y +
+              ' ' +
+              (x + 6) +
+              ' ' +
+              y +
+              ' L ' +
+              (x + w - 6) +
+              ' ' +
+              y +
+              ' Q ' +
+              (x + w) +
+              ' ' +
+              y +
+              ' ' +
+              (x + w) +
+              ' ' +
+              (y + 6) +
+              ' L ' +
+              (x + w) +
+              ' ' +
+              (y + 26) +
+              ' L ' +
+              x +
+              ' ' +
+              (y + 26) +
+              ' Z',
           )
           headerBand.setAttribute('fill', borderColor)
           g.appendChild(headerBand)
@@ -21866,7 +21945,10 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           frect.setAttribute('rx', '8')
           frect.setAttribute('fill', 'none')
           frect.setAttribute('stroke', (sc.itemStyle && sc.itemStyle.borderColor) || '#2563eb')
-          frect.setAttribute('stroke-width', String((sc.itemStyle && sc.itemStyle.borderWidth) || 2.5))
+          frect.setAttribute(
+            'stroke-width',
+            String((sc.itemStyle && sc.itemStyle.borderWidth) || 2.5),
+          )
           gFocus.appendChild(frect)
           svg.appendChild(gFocus)
         }
@@ -21899,7 +21981,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       return null
     }
 
-    if (sType === 'graph' || seriesList.some(function (s) { return s.type === 'graph' })) {
+    if (
+      sType === 'graph' ||
+      seriesList.some(function (s) {
+        return s.type === 'graph'
+      })
+    ) {
       return renderSvgGraph(host, option, o)
     }
     var o = opts || {}
@@ -21914,12 +22001,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       }
       var autoWidth = o.width === undefined
       var autoHeight = o.height === undefined
-      canvas.width = autoWidth ? (host.clientWidth || 960) : o.width
-      canvas.height = autoHeight ? (host.clientHeight || 400) : o.height
+      canvas.width = autoWidth ? host.clientWidth || 960 : o.width
+      canvas.height = autoHeight ? host.clientHeight || 400 : o.height
       if (o.height) canvas.style.height = typeof o.height === 'number' ? o.height + 'px' : o.height
       if (o.width) canvas.style.width = typeof o.width === 'number' ? o.width + 'px' : o.width
 
-      var prev = lib.getChart ? lib.getChart(canvas) : (canvas.__chartInstance || null)
+      var prev = lib.getChart ? lib.getChart(canvas) : canvas.__chartInstance || null
       if (prev && typeof prev.destroy === 'function') prev.destroy()
       if (host.__nnChartObserver) {
         host.__nnChartObserver.disconnect()
@@ -21939,13 +22026,21 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       }
       if (typeof window !== 'undefined') {
         window.echarts = window.echarts || {
-          getInstanceByDom: function (h) { return lib.getInstanceByDom(h) },
+          getInstanceByDom: function (h) {
+            return lib.getInstanceByDom(h)
+          },
         }
       }
       chart._isDisposed = false
-      chart.getWidth = function () { return canvas.width }
-      chart.getHeight = function () { return canvas.height }
-      chart.isDisposed = function () { return chart._isDisposed || !canvas.__chartInstance }
+      chart.getWidth = function () {
+        return canvas.width
+      }
+      chart.getHeight = function () {
+        return canvas.height
+      }
+      chart.isDisposed = function () {
+        return chart._isDisposed || !canvas.__chartInstance
+      }
       var origDestroy = chart.destroy.bind(chart)
       chart.destroy = function () {
         chart._isDisposed = true
@@ -21958,7 +22053,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         lib.prototype.getOption = function () {
           var c = this
           return {
-            backgroundColor: (c.canvas && c.canvas.style && c.canvas.style.backgroundColor) || '#ffffff',
+            backgroundColor:
+              (c.canvas && c.canvas.style && c.canvas.style.backgroundColor) || '#ffffff',
             xAxis: [{ data: (c.data && c.data.labels) || [] }],
             series: ((c.data && c.data.datasets) || []).map(function (ds) {
               return {
@@ -22022,16 +22118,24 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       chart.getOption = function () {
         return {
           backgroundColor: (canvas.style && canvas.style.backgroundColor) || '#ffffff',
-          xAxis: [{ data: (chart.data && chart.data.labels) || (option && option.xAxis && option.xAxis.data) || [] }],
-          series: (option && option.series && option.series.length)
-            ? option.series
-            : ((chart.data && chart.data.datasets) || []).map(function (ds) {
-                return {
-                  type: chartConfig.type || 'line',
-                  name: ds.label,
-                  data: ds.tree || ds.data || [],
-                }
-              }),
+          xAxis: [
+            {
+              data:
+                (chart.data && chart.data.labels) ||
+                (option && option.xAxis && option.xAxis.data) ||
+                [],
+            },
+          ],
+          series:
+            option && option.series && option.series.length
+              ? option.series
+              : ((chart.data && chart.data.datasets) || []).map(function (ds) {
+                  return {
+                    type: chartConfig.type || 'line',
+                    name: ds.label,
+                    data: ds.tree || ds.data || [],
+                  }
+                }),
         }
       }
 
@@ -22069,7 +22173,10 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     if (typeof ResizeObserver !== 'undefined' && (autoW || autoH)) {
       host.__nnChartObserver = new ResizeObserver(function () {
         if (!echartsChart.isDisposed() && host.clientWidth) {
-          echartsChart.resize({ width: autoW ? 'auto' : o.width, height: autoH ? 'auto' : o.height })
+          echartsChart.resize({
+            width: autoW ? 'auto' : o.width,
+            height: autoH ? 'auto' : o.height,
+          })
         }
       })
       host.__nnChartObserver.observe(host)
@@ -22092,8 +22199,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       warnChartLibraryMissing()
       return
     }
-    var windowCount =
-      (Number(meta && meta.months) || 0) + (Number(meta && meta.historyMonths) || 0)
+    var windowCount = (Number(meta && meta.months) || 0) + (Number(meta && meta.historyMonths) || 0)
     compiled.charts.forEach(function (chart) {
       var section = el('section', 'nn-chart')
       if (!section) return
@@ -22188,7 +22294,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     memo[memoKey] = null
 
     var val = 0
-    var isVar = row.variable || (!row.formula && (row.base != null || row.metricValue != null || row.val != null))
+    var isVar =
+      row.variable ||
+      (!row.formula && (row.base != null || row.metricValue != null || row.val != null))
 
     if (isVar) {
       var growth = growthState[row.id] || row.growth || { mode: 'fixed', factor: 0 }
@@ -22206,7 +22314,15 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     } else if (Array.isArray(row.history) && m < row.history.length && row.history[m] !== null) {
       val = Number(row.history[m]) || 0
     } else if (row.formula) {
-      val = parseAndEvalFormula(String(row.formula).trim(), m, rowMap, overrides, memo, growthState, historyCount)
+      val = parseAndEvalFormula(
+        String(row.formula).trim(),
+        m,
+        rowMap,
+        overrides,
+        memo,
+        growthState,
+        historyCount,
+      )
       var gRow = growthState[row.id] || row.growth || { mode: 'fixed', factor: 0 }
       var factorRow = Number(gRow.factor) || 0
       if (gRow.mode === 'compound' && factorRow) {
@@ -22227,7 +22343,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
   function parseAndEvalFormula(formula, m, rowMap, overrides, memo, growthState, historyCount) {
     if (!formula || /^<.*>$/.test(formula)) return 0
     var cleaned = formula.replace(/\s+[xX]\s+/g, ' * ')
-    var tokens = cleaned.split(/(\s*[+\-*/]\s*)/).map(function (s) { return s.trim() }).filter(Boolean)
+    var tokens = cleaned
+      .split(/(\s*[+\-*/]\s*)/)
+      .map(function (s) {
+        return s.trim()
+      })
+      .filter(Boolean)
     if (!tokens.length) return 0
 
     function resolveOperand(token) {
@@ -22236,8 +22357,17 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       var norm = normalizeKey(token)
       var targetRow = rowMap[norm]
       if (targetRow) {
-        var operandVal = evaluateFormulaTree(targetRow, m, rowMap, overrides, memo, growthState, historyCount)
-        if (!targetRow.formula && String(targetRow.metricUnit || '').trim() === '%') operandVal = operandVal / 100
+        var operandVal = evaluateFormulaTree(
+          targetRow,
+          m,
+          rowMap,
+          overrides,
+          memo,
+          growthState,
+          historyCount,
+        )
+        if (!targetRow.formula && String(targetRow.metricUnit || '').trim() === '%')
+          operandVal = operandVal / 100
         return operandVal
       }
       warnUnresolvedOperand(token, formula)
@@ -22288,24 +22418,40 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       header.push(labels[m] != null ? labels[m] : 'Month ' + (m + 1))
     }
     header.push('Total')
-    lines.push(header.map(function (s) { return '"' + String(s).replace(/"/g, '""') + '"' }).join(','))
+    lines.push(
+      header
+        .map(function (s) {
+          return '"' + String(s).replace(/"/g, '""') + '"'
+        })
+        .join(','),
+    )
 
     rows.forEach(function (r) {
       var g = r.growth || { mode: 'fixed', factor: 0 }
       var vals = rowValues[r.id] || []
-      var sum = vals.reduce(function (a, b) { return a + b }, 0)
+      var sum = vals.reduce(function (a, b) {
+        return a + b
+      }, 0)
       var rowLine = [
         r.grp || '',
         r.label || r.id,
         r.metricType || '',
         r.metricUnit || '',
-        g.mode + (g.factor ? ' (' + g.factor + ')' : '')
+        g.mode + (g.factor ? ' (' + g.factor + ')' : ''),
       ]
       for (var i = 0; i < totalMonths; i++) {
-        rowLine.push(vals[i] != null && Number.isFinite(vals[i]) ? Math.round(vals[i] * 100) / 100 : '')
+        rowLine.push(
+          vals[i] != null && Number.isFinite(vals[i]) ? Math.round(vals[i] * 100) / 100 : '',
+        )
       }
       rowLine.push(Number.isFinite(sum) ? Math.round(sum * 100) / 100 : '')
-      lines.push(rowLine.map(function (s) { return '"' + String(s).replace(/"/g, '""') + '"' }).join(','))
+      lines.push(
+        rowLine
+          .map(function (s) {
+            return '"' + String(s).replace(/"/g, '""') + '"'
+          })
+          .join(','),
+      )
     })
 
     if (typeof Blob !== 'undefined' && typeof URL !== 'undefined') {
@@ -22315,7 +22461,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       a.href = url
       a.download = (meta.slug || 'timeline') + '_projection.csv'
       a.click()
-      setTimeout(function () { URL.revokeObjectURL(url) }, 1000)
+      setTimeout(function () {
+        URL.revokeObjectURL(url)
+      }, 1000)
     }
   }
 
@@ -22335,7 +22483,10 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     }
 
     var metricType = (row && (row.metricType || row.type)) || ''
-    var isCost = metricType === 'cost' || metricType === 'expense' || /cost|churn|cpa|cac|expense|churn/i.test((row && (row.id || row.label)) || '')
+    var isCost =
+      metricType === 'cost' ||
+      metricType === 'expense' ||
+      /cost|churn|cpa|cac|expense|churn/i.test((row && (row.id || row.label)) || '')
 
     var effectiveMin = Math.min(0, minVal)
     var effectiveMax = Math.max(0.0001, maxVal)
@@ -22355,7 +22506,19 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     }
   }
 
-  function renderStudioView(host, model, meta, rows, totalMonths, labels, rowMap, overrides, growthState, historyCount, onStateChange) {
+  function renderStudioView(
+    host,
+    model,
+    meta,
+    rows,
+    totalMonths,
+    labels,
+    rowMap,
+    overrides,
+    growthState,
+    historyCount,
+    onStateChange,
+  ) {
     var studioHost = host
     if (!studioHost) return
 
@@ -22378,23 +22541,49 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     var studioWrap = el('div', 'nn-studio-layout')
 
     var kpisWrap = el('div', 'nn-studio-kpis')
-    
-    var revRow = rows.filter(function (r) { return /revenue|ingreso/i.test(r.metricType || r.id || r.label) })[0]
-    var costRow = rows.filter(function (r) { return /expense|cost|gasto/i.test(r.metricType || r.id || r.label) })[0]
-    var netRow = rows.filter(function (r) { return /result|net|ebit|beneficio/i.test(r.metricType || r.id || r.label) })[0] || rows[0]
+
+    var revRow = rows.filter(function (r) {
+      return /revenue|ingreso/i.test(r.metricType || r.id || r.label)
+    })[0]
+    var costRow = rows.filter(function (r) {
+      return /expense|cost|gasto/i.test(r.metricType || r.id || r.label)
+    })[0]
+    var netRow =
+      rows.filter(function (r) {
+        return /result|net|ebit|beneficio/i.test(r.metricType || r.id || r.label)
+      })[0] || rows[0]
 
     var kpiList = []
     if (netRow && rowValues[netRow.id]) {
-      var netSum = rowValues[netRow.id].reduce(function (a, b) { return a + b }, 0)
-      kpiList.push({ label: 'Net Result (Year 1)', val: formatGridNumber(netSum), unit: netRow.metricUnit || 'USD', isHighlight: true })
+      var netSum = rowValues[netRow.id].reduce(function (a, b) {
+        return a + b
+      }, 0)
+      kpiList.push({
+        label: 'Net Result (Year 1)',
+        val: formatGridNumber(netSum),
+        unit: netRow.metricUnit || 'USD',
+        isHighlight: true,
+      })
     }
     if (revRow && rowValues[revRow.id]) {
-      var revSum = rowValues[revRow.id].reduce(function (a, b) { return a + b }, 0)
-      kpiList.push({ label: 'Total Revenue', val: formatGridNumber(revSum), unit: revRow.metricUnit || 'USD' })
+      var revSum = rowValues[revRow.id].reduce(function (a, b) {
+        return a + b
+      }, 0)
+      kpiList.push({
+        label: 'Total Revenue',
+        val: formatGridNumber(revSum),
+        unit: revRow.metricUnit || 'USD',
+      })
     }
     if (costRow && rowValues[costRow.id]) {
-      var costSum = rowValues[costRow.id].reduce(function (a, b) { return a + b }, 0)
-      kpiList.push({ label: 'Total Expenses', val: formatGridNumber(costSum), unit: costRow.metricUnit || 'USD' })
+      var costSum = rowValues[costRow.id].reduce(function (a, b) {
+        return a + b
+      }, 0)
+      kpiList.push({
+        label: 'Total Expenses',
+        val: formatGridNumber(costSum),
+        unit: costRow.metricUnit || 'USD',
+      })
     }
 
     kpiList.forEach(function (kpi) {
@@ -22416,7 +22605,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     leftCol.appendChild(leftHdr)
 
     var varRows = rows.filter(function (r) {
-      return r.variable || (!r.formula && (r.metricValue != null || r.val != null || r.base != null))
+      return (
+        r.variable || (!r.formula && (r.metricValue != null || r.val != null || r.base != null))
+      )
     })
 
     if (!varRows.length) {
@@ -22426,14 +22617,31 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     var sliderCardsWrap = el('div', 'nn-studio-sliders-wrap')
 
     varRows.forEach(function (r) {
-      var baseVal = r.metricValue !== undefined ? Number(r.metricValue) : (r.val !== undefined ? Number(r.val) : (r.base !== undefined ? Number(r.base) : 0))
-      var currVal = overrides[r.id] !== undefined ? (typeof overrides[r.id] === 'number' ? overrides[r.id] : overrides[r.id][0]) : baseVal
+      var baseVal =
+        r.metricValue !== undefined
+          ? Number(r.metricValue)
+          : r.val !== undefined
+            ? Number(r.val)
+            : r.base !== undefined
+              ? Number(r.base)
+              : 0
+      var currVal =
+        overrides[r.id] !== undefined
+          ? typeof overrides[r.id] === 'number'
+            ? overrides[r.id]
+            : overrides[r.id][0]
+          : baseVal
       if (currVal === undefined || isNaN(currVal)) currVal = baseVal
 
-      var minVal = baseVal > 0 ? Math.floor(baseVal * 0.2) : (baseVal < 0 ? Math.floor(baseVal * 2.5) : 0)
-      var maxVal = baseVal > 0 ? Math.ceil(baseVal * 2.5) : (baseVal < 0 ? Math.ceil(baseVal * 0.2) : 100)
-      if (minVal === maxVal) { minVal = 0; maxVal = 100; }
-      var step = baseVal > 1000 ? 100 : (baseVal > 100 ? 10 : (baseVal > 10 ? 1 : 0.1))
+      var minVal =
+        baseVal > 0 ? Math.floor(baseVal * 0.2) : baseVal < 0 ? Math.floor(baseVal * 2.5) : 0
+      var maxVal =
+        baseVal > 0 ? Math.ceil(baseVal * 2.5) : baseVal < 0 ? Math.ceil(baseVal * 0.2) : 100
+      if (minVal === maxVal) {
+        minVal = 0
+        maxVal = 100
+      }
+      var step = baseVal > 1000 ? 100 : baseVal > 100 ? 10 : baseVal > 10 ? 1 : 0.1
 
       var card = el('div', 'nn-slider-card')
       var cardTop = el('div', 'nn-slider-card-top')
@@ -22564,7 +22772,13 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         dotEl.setAttribute('r', '3.5')
         dotEl.setAttribute('fill', c)
         var tip = document.createElementNS('http://www.w3.org/2000/svg', 'title')
-        tip.textContent = (labels[mi] || ('M' + (mi + 1))) + ' ' + (pr.label || pr.id) + ': ' + formatGridNumber(v) + (pr.metricUnit ? ' ' + pr.metricUnit : '')
+        tip.textContent =
+          (labels[mi] || 'M' + (mi + 1)) +
+          ' ' +
+          (pr.label || pr.id) +
+          ': ' +
+          formatGridNumber(v) +
+          (pr.metricUnit ? ' ' + pr.metricUnit : '')
         dotEl.appendChild(tip)
         svg.appendChild(dotEl)
       })
@@ -22627,9 +22841,22 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       }
       if (r.formula) {
         var cleaned = String(r.formula).replace(/\s+[xX]\s+/g, ' * ')
-        var tokens = cleaned.split(/(\s*[+\-*/]\s*)/).map(function (s) { return s.trim() }).filter(Boolean)
+        var tokens = cleaned
+          .split(/(\s*[+\-*/]\s*)/)
+          .map(function (s) {
+            return s.trim()
+          })
+          .filter(Boolean)
         tokens.forEach(function (tok) {
-          if (!tok || !isNaN(Number(tok)) || tok === '+' || tok === '-' || tok === '*' || tok === '/') return
+          if (
+            !tok ||
+            !isNaN(Number(tok)) ||
+            tok === '+' ||
+            tok === '-' ||
+            tok === '*' ||
+            tok === '/'
+          )
+            return
           var norm = normalizeKey(tok)
           var targetRow = rowMap[norm]
           if (targetRow && depIds.indexOf(targetRow.id) === -1) {
@@ -22646,7 +22873,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       var queue = [startRowId]
       var visited = {}
       var byId = {}
-      rows.forEach(function (r) { if (r && r.id) byId[r.id] = r })
+      rows.forEach(function (r) {
+        if (r && r.id) byId[r.id] = r
+      })
 
       while (queue.length > 0) {
         var currId = queue.shift()
@@ -22680,7 +22909,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
     function renderView() {
       var rowValues = recalculate()
-      var activeDepSet = focusedDependencyRowId ? getTransitiveDependencySet(focusedDependencyRowId) : null
+      var activeDepSet = focusedDependencyRowId
+        ? getTransitiveDependencySet(focusedDependencyRowId)
+        : null
       host.innerHTML = ''
 
       var gridHeader = el('div', 'nn-timeline-header')
@@ -22690,7 +22921,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       if (resetBtn) {
         resetBtn.setAttribute('type', 'button')
         resetBtn.addEventListener('click', function () {
-          Object.keys(overrides).forEach(function (k) { delete overrides[k] })
+          Object.keys(overrides).forEach(function (k) {
+            delete overrides[k]
+          })
           rows.forEach(function (r) {
             var g = r.growth || { mode: 'fixed', factor: 0 }
             growthState[r.id] = { mode: g.mode || 'fixed', factor: g.factor != null ? g.factor : 0 }
@@ -22712,11 +22945,19 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       if (gridHeader) host.appendChild(gridHeader)
 
       if (focusedDependencyRowId) {
-        var focusedRow = rows.filter(function (r) { return r.id === focusedDependencyRowId })[0]
+        var focusedRow = rows.filter(function (r) {
+          return r.id === focusedDependencyRowId
+        })[0]
         if (focusedRow) {
           var filterBanner = el('div', 'nn-timeline-filter-banner')
           var bannerText = el('span', 'nn-filter-banner-text')
-          bannerText.innerHTML = UI.icon('target', 14) + ' <span>Showing dependency tree for: <strong>' + escapeHtml(focusedRow.label || focusedRow.id) + '</strong> (' + Object.keys(activeDepSet).length + ' items)</span>'
+          bannerText.innerHTML =
+            UI.icon('target', 14) +
+            ' <span>Showing dependency tree for: <strong>' +
+            escapeHtml(focusedRow.label || focusedRow.id) +
+            '</strong> (' +
+            Object.keys(activeDepSet).length +
+            ' items)</span>'
           var clearBtn = el('button', 'nn-filter-banner-clear')
           clearBtn.setAttribute('type', 'button')
           clearBtn.innerHTML = UI.icon('close', 12) + ' <span>Clear Filter</span>'
@@ -22740,7 +22981,11 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       trHead.appendChild(el('th', 'th-unit', 'Unit'))
       for (var m = 0; m < totalMonths; m++) {
         var isHist = m < historyCount
-        var thM = el('th', 'th-month' + (isHist ? ' hist-col' : ''), labels[m] != null ? labels[m] : 'M' + (m + 1))
+        var thM = el(
+          'th',
+          'th-month' + (isHist ? ' hist-col' : ''),
+          labels[m] != null ? labels[m] : 'M' + (m + 1),
+        )
         if (isHist) thM.setAttribute('title', 'Historical / Measured month')
         trHead.appendChild(thM)
       }
@@ -22751,7 +22996,13 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       var tbody = el('tbody')
 
       function renderRowItem(r, isPinned) {
-        var tr = el('tr', 'nn-timeline-row' + (r.variable ? ' is-var' : '') + (isPinned ? ' is-pinned' : '') + (focusedDependencyRowId === r.id ? ' is-focus-root' : ''))
+        var tr = el(
+          'tr',
+          'nn-timeline-row' +
+            (r.variable ? ' is-var' : '') +
+            (isPinned ? ' is-pinned' : '') +
+            (focusedDependencyRowId === r.id ? ' is-focus-root' : ''),
+        )
         var tdMetric = el('td', 'td-sticky td-metric')
 
         var actionsSpan = el('span', 'nn-row-actions')
@@ -22770,7 +23021,10 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         var isChartThis = !!expandedChartRowIds[r.id]
         var chartBtn = el('button', 'nn-row-btn nn-chart-btn' + (isChartThis ? ' active' : ''))
         chartBtn.setAttribute('type', 'button')
-        chartBtn.setAttribute('title', isChartThis ? 'Hide inline monthly chart' : 'Show inline monthly chart')
+        chartBtn.setAttribute(
+          'title',
+          isChartThis ? 'Hide inline monthly chart' : 'Show inline monthly chart',
+        )
         chartBtn.innerHTML = UI.icon('chart', 12)
         chartBtn.addEventListener('click', function (e) {
           e.stopPropagation()
@@ -22784,19 +23038,31 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           var isFocusThis = focusedDependencyRowId === r.id
           var filterBtn = el('button', 'nn-row-btn nn-filter-btn' + (isFocusThis ? ' active' : ''))
           filterBtn.setAttribute('type', 'button')
-          filterBtn.setAttribute('title', isFocusThis ? 'Clear dependency tree filter' : 'Filter grid to show only dependencies of ' + (r.label || r.id))
+          filterBtn.setAttribute(
+            'title',
+            isFocusThis
+              ? 'Clear dependency tree filter'
+              : 'Filter grid to show only dependencies of ' + (r.label || r.id),
+          )
           filterBtn.innerHTML = UI.icon('target', 12)
           filterBtn.addEventListener('click', function (e) {
             e.stopPropagation()
-            focusedDependencyRowId = (focusedDependencyRowId === r.id ? null : r.id)
+            focusedDependencyRowId = focusedDependencyRowId === r.id ? null : r.id
             renderView()
           })
           actionsSpan.appendChild(filterBtn)
         }
         tdMetric.appendChild(actionsSpan)
 
-        var markerSvg = r.variable ? UI.icon('star', 11) : r.source === 'derived' ? UI.icon('derived', 11) : UI.icon('calc', 11)
-        var markerSpan = el('span', 'nn-row-marker marker-' + (r.variable ? 'var' : r.source === 'derived' ? 'der' : 'calc'))
+        var markerSvg = r.variable
+          ? UI.icon('star', 11)
+          : r.source === 'derived'
+            ? UI.icon('derived', 11)
+            : UI.icon('calc', 11)
+        var markerSpan = el(
+          'span',
+          'nn-row-marker marker-' + (r.variable ? 'var' : r.source === 'derived' ? 'der' : 'calc'),
+        )
         markerSpan.innerHTML = markerSvg
         var nameSpan =
           UI && typeof UI.Ku === 'function'
@@ -22832,7 +23098,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         selGrow.appendChild(optAdd)
         selGrow.addEventListener('change', function (e) {
           growthState[r.id].mode = e.target.value
-          if (inpFactor) inpFactor.disabled = (e.target.value === 'fixed')
+          if (inpFactor) inpFactor.disabled = e.target.value === 'fixed'
           onStateChange()
         })
         tdRule.appendChild(selGrow)
@@ -22860,11 +23126,17 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           var tdVal = el('td', 'td-num' + (isHistCell ? ' hist-cell' : ''))
 
           if (r.variable && !isHistCell) {
-            var isOverridden = overrides[r.id] && (typeof overrides[r.id] === 'number' || overrides[r.id][mi] !== undefined)
+            var isOverridden =
+              overrides[r.id] &&
+              (typeof overrides[r.id] === 'number' || overrides[r.id][mi] !== undefined)
             var inpVar = el('input', 'nn-var-input' + (isOverridden ? ' overridden' : ''))
             inpVar.type = 'number'
             inpVar.step = 'any'
-            inpVar.value = isOverridden ? (typeof overrides[r.id] === 'number' ? String(overrides[r.id]) : String(overrides[r.id][mi])) : String(Math.round(val * 100) / 100)
+            inpVar.value = isOverridden
+              ? typeof overrides[r.id] === 'number'
+                ? String(overrides[r.id])
+                : String(overrides[r.id][mi])
+              : String(Math.round(val * 100) / 100)
             inpVar.dataset.row = r.id
             inpVar.dataset.m = String(mi)
             inpVar.addEventListener('change', function (e) {
@@ -22882,9 +23154,10 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         }
 
         var isResultOrRev = r.metricType === 'result' || r.metricType === 'revenue'
-        var totalFormatted = r.growth && r.growth.mode === 'fixed' && !isResultOrRev && r.variable
-          ? formatGridNumber(vals[0]) + ' (avg)'
-          : formatGridNumber(sum)
+        var totalFormatted =
+          r.growth && r.growth.mode === 'fixed' && !isResultOrRev && r.variable
+            ? formatGridNumber(vals[0]) + ' (avg)'
+            : formatGridNumber(sum)
         tr.appendChild(el('td', 'td-num td-total', totalFormatted))
 
         tbody.appendChild(tr)
@@ -22893,17 +23166,32 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           var trChart = el('tr', 'nn-timeline-chart-row')
           var tdChartSticky = el('td', 'td-sticky')
           var chartLabel = el('span', 'nn-chart-row-label')
-          chartLabel.innerHTML = UI.icon('chart', 12) + ' <span>Monthly: ' + escapeHtml(r.label || r.id) + '</span>'
+          chartLabel.innerHTML =
+            UI.icon('chart', 12) + ' <span>Monthly: ' + escapeHtml(r.label || r.id) + '</span>'
           tdChartSticky.appendChild(chartLabel)
           trChart.appendChild(tdChartSticky)
 
-          var finiteVals = vals.filter(function (v) { return Number.isFinite(v) })
-          var maxAbs = Math.max.apply(null, finiteVals.map(function (v) { return Math.abs(v) })) || 1
+          var finiteVals = vals.filter(function (v) {
+            return Number.isFinite(v)
+          })
+          var maxAbs =
+            Math.max.apply(
+              null,
+              finiteVals.map(function (v) {
+                return Math.abs(v)
+              }),
+            ) || 1
           var minReal = finiteVals.length ? Math.min.apply(null, finiteVals) : NaN
           var maxReal = finiteVals.length ? Math.max.apply(null, finiteVals) : NaN
 
           var tdChartRule = el('td', 'td-rule')
-          tdChartRule.appendChild(el('span', 'nn-chart-range', 'Range: ' + formatGridNumber(minReal) + ' .. ' + formatGridNumber(maxReal)))
+          tdChartRule.appendChild(
+            el(
+              'span',
+              'nn-chart-range',
+              'Range: ' + formatGridNumber(minReal) + ' .. ' + formatGridNumber(maxReal),
+            ),
+          )
           trChart.appendChild(tdChartRule)
 
           trChart.appendChild(el('td', 'td-unit', r.metricUnit || ''))
@@ -22913,13 +23201,21 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
             var isHistCol = ci < historyCount
             var tdCell = el('td', 'td-chart-cell' + (isHistCol ? ' hist-cell' : ''))
             var barWrap = el('div', 'nn-mini-bar-wrap')
-            barWrap.setAttribute('title', (labels[ci] || ('M' + (ci + 1))) + ': ' + formatGridNumber(cVal) + (r.metricUnit ? ' ' + r.metricUnit : ''))
+            barWrap.setAttribute(
+              'title',
+              (labels[ci] || 'M' + (ci + 1)) +
+                ': ' +
+                formatGridNumber(cVal) +
+                (r.metricUnit ? ' ' + r.metricUnit : ''),
+            )
 
             var cResolved = Number.isFinite(cVal)
             var heightPct = cResolved ? Math.max(4, Math.round((Math.abs(cVal) / maxAbs) * 100)) : 4
             var bar = el('div', 'nn-mini-bar' + (cResolved && cVal < 0 ? ' negative' : ''))
             bar.style.height = heightPct + '%'
-            bar.style.backgroundColor = cResolved ? getSemanticBarColor(cVal, minReal, maxReal, r) : '#cbd5e1'
+            bar.style.backgroundColor = cResolved
+              ? getSemanticBarColor(cVal, minReal, maxReal, r)
+              : '#cbd5e1'
 
             var valLabel = el('span', 'nn-mini-bar-val', formatGridNumber(cVal))
             barWrap.appendChild(bar)
@@ -22931,8 +23227,11 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           var tdChartTotal = el('td', 'td-total td-chart-total')
           var firstVal = vals[0] || 0
           var lastVal = vals[totalMonths - 1] || 0
-          var deltaPct = firstVal !== 0 ? Math.round(((lastVal - firstVal) / Math.abs(firstVal)) * 100) : 0
-          var trendLabel = Number.isFinite(deltaPct) ? (deltaPct >= 0 ? '+' : '') + deltaPct + '% trend' : '- trend'
+          var deltaPct =
+            firstVal !== 0 ? Math.round(((lastVal - firstVal) / Math.abs(firstVal)) * 100) : 0
+          var trendLabel = Number.isFinite(deltaPct)
+            ? (deltaPct >= 0 ? '+' : '') + deltaPct + '% trend'
+            : '- trend'
           tdChartTotal.appendChild(el('div', 'nn-mini-total', trendLabel))
           trChart.appendChild(tdChartTotal)
 
@@ -22950,7 +23249,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         var tdPinnedHdr = el('td')
         tdPinnedHdr.setAttribute('colspan', String(totalMonths + 4))
         var pinnedBadge = el('span', 'nn-grp-badge')
-        pinnedBadge.innerHTML = UI.icon('pin', 12) + ' <span>PINNED METRICS (' + pinnedRows.length + ')</span>'
+        pinnedBadge.innerHTML =
+          UI.icon('pin', 12) + ' <span>PINNED METRICS (' + pinnedRows.length + ')</span>'
         tdPinnedHdr.appendChild(pinnedBadge)
         trPinnedHdr.appendChild(tdPinnedHdr)
         tbody.appendChild(trPinnedHdr)
@@ -22993,11 +23293,35 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
     function onStateChange() {
       renderView()
-      renderStudioView(studioHost, model, meta, rows, totalMonths, labels, rowMap, overrides, growthState, historyCount, onStateChange)
+      renderStudioView(
+        studioHost,
+        model,
+        meta,
+        rows,
+        totalMonths,
+        labels,
+        rowMap,
+        overrides,
+        growthState,
+        historyCount,
+        onStateChange,
+      )
     }
 
     renderView()
-    renderStudioView(studioHost, model, meta, rows, totalMonths, labels, rowMap, overrides, growthState, historyCount, onStateChange)
+    renderStudioView(
+      studioHost,
+      model,
+      meta,
+      rows,
+      totalMonths,
+      labels,
+      rowMap,
+      overrides,
+      growthState,
+      historyCount,
+      onStateChange,
+    )
   }
 
   return {
@@ -30887,9 +31211,7 @@ if (typeof window !== 'undefined') {
         seg.setAttribute('title', c + ': ' + count)
         seg.setAttribute('data-concept', c)
         seg.addEventListener('click', function () {
-          var row = legend.querySelector(
-            'li[data-concept="' + String(c).replace(/"/g, '') + '"]',
-          )
+          var row = legend.querySelector('li[data-concept="' + String(c).replace(/"/g, '') + '"]')
           openConceptWindow(row)
         })
         barWrap.appendChild(seg)

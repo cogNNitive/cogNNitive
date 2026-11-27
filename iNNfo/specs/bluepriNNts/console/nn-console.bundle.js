@@ -8699,7 +8699,11 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           var vLabel = String(keys[k])
           var v = raw[keys[k]]
           if (!Array.isArray(v)) {
-            invalid.push({ id: id, label: label, detail: 'variant "' + vLabel + '" is not an array' })
+            invalid.push({
+              id: id,
+              label: label,
+              detail: 'variant "' + vLabel + '" is not an array',
+            })
             return
           }
           variants.push({ label: vLabel, values: v })
@@ -8715,13 +8719,19 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
             invalid.push({
               id: id,
               label: label,
-              detail: 'non-pure series value at index ' + i + ' in variant "' + variants[vi].label + '"',
+              detail:
+                'non-pure series value at index ' + i + ' in variant "' + variants[vi].label + '"',
             })
             return
           }
         }
       }
-      var n = Math.max.apply(null, variants.map(function (v) { return v.values.length }))
+      var n = Math.max.apply(
+        null,
+        variants.map(function (v) {
+          return v.values.length
+        }),
+      )
       var xs = []
       for (var xi = 0; xi < (Number.isFinite(n) ? n : 0); xi++) xs.push(xi)
       charts.push({
@@ -8732,7 +8742,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         count: Number.isFinite(n) ? n : 0,
       })
     })
-    return { ok: missing.length === 0 && invalid.length === 0, charts: charts, missing: missing, invalid: invalid }
+    return {
+      ok: missing.length === 0 && invalid.length === 0,
+      charts: charts,
+      missing: missing,
+      invalid: invalid,
+    }
   }
 
   function monthAxis(meta, count) {
@@ -8752,7 +8767,16 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
   // ---- Charts (ECharts) ----------------------------------------------------
   // The one chart entry point for built-in tabs and custom views: it takes a plain
   // ECharts option and applies the console defaults (white background, palette).
-  var CHART_PALETTE = ['#2563eb', '#dc2626', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2', '#db2777', '#65a30d']
+  var CHART_PALETTE = [
+    '#2563eb',
+    '#dc2626',
+    '#16a34a',
+    '#f59e0b',
+    '#7c3aed',
+    '#0891b2',
+    '#db2777',
+    '#65a30d',
+  ]
 
   function chartLibrary() {
     if (typeof Chart !== 'undefined') return Chart
@@ -8763,7 +8787,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
   function warnChartLibraryMissing() {
     if (typeof console !== 'undefined' && console.warn)
-      console.warn('nn-console: Chart library unavailable — charts need the vendored console bundle')
+      console.warn(
+        'nn-console: Chart library unavailable — charts need the vendored console bundle',
+      )
   }
 
   function flattenTreemapData(tree) {
@@ -8803,36 +8829,40 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
     if (sType === 'treemap') {
       var rawTree = firstSeries.data || []
-      var hasNested = Array.isArray(rawTree) && rawTree.some(function (d) {
-        return d && Array.isArray(d.children) && d.children.length > 0
-      })
+      var hasNested =
+        Array.isArray(rawTree) &&
+        rawTree.some(function (d) {
+          return d && Array.isArray(d.children) && d.children.length > 0
+        })
       var flat = hasNested ? flattenTreemapData(rawTree) : rawTree
       var groups = firstSeries.groups || (hasNested ? ['l0', 'l1'] : ['name'])
       return {
         type: 'treemap',
         data: {
-          datasets: [{
-            tree: flat,
-            key: 'value',
-            groups: groups,
-            backgroundColor: function (ctx) {
-              if (ctx.type !== 'data') return 'transparent'
-              var d = ctx.raw && (ctx.raw._data || ctx.raw)
-              return (d && (d.color || (d.itemStyle && d.itemStyle.color))) || CHART_PALETTE[0]
-            },
-            borderColor: '#ffffff',
-            borderWidth: 2,
-            spacing: 1,
-            labels: {
-              display: true,
-              formatter: function (ctx) {
+          datasets: [
+            {
+              tree: flat,
+              key: 'value',
+              groups: groups,
+              backgroundColor: function (ctx) {
+                if (ctx.type !== 'data') return 'transparent'
                 var d = ctx.raw && (ctx.raw._data || ctx.raw)
-                return ctx.raw.g || (d && (d.name || d.label)) || ''
+                return (d && (d.color || (d.itemStyle && d.itemStyle.color))) || CHART_PALETTE[0]
               },
-              color: '#ffffff',
-              font: { size: 11, weight: 'bold' },
+              borderColor: '#ffffff',
+              borderWidth: 2,
+              spacing: 1,
+              labels: {
+                display: true,
+                formatter: function (ctx) {
+                  var d = ctx.raw && (ctx.raw._data || ctx.raw)
+                  return ctx.raw.g || (d && (d.name || d.label)) || ''
+                },
+                color: '#ffffff',
+                font: { size: 11, weight: 'bold' },
+              },
             },
-          }],
+          ],
         },
         options: {
           animation: false,
@@ -8852,7 +8882,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         (s.lineStyle && s.lineStyle.color) ||
         CHART_PALETTE[i % CHART_PALETTE.length]
       return {
-        label: s.name || ('Series ' + (i + 1)),
+        label: s.name || 'Series ' + (i + 1),
         data: s.data || [],
         borderColor: color,
         backgroundColor: color,
@@ -8898,17 +8928,26 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
   function renderSvgGraph(host, option, opts) {
     var o = opts || {}
     var seriesList = (option && option.series) || []
-    var graph = seriesList.find(function (s) { return s.type === 'graph' }) || seriesList[0] || {}
-    var linesSeries = seriesList.find(function (s) { return s.type === 'lines' })
-    var scatterSeries = seriesList.filter(function (s) { return s.type === 'scatter' })
+    var graph =
+      seriesList.find(function (s) {
+        return s.type === 'graph'
+      }) ||
+      seriesList[0] ||
+      {}
+    var linesSeries = seriesList.find(function (s) {
+      return s.type === 'lines'
+    })
+    var scatterSeries = seriesList.filter(function (s) {
+      return s.type === 'scatter'
+    })
 
     var doc = host.ownerDocument || document
     host.innerHTML = ''
 
     var autoW = o.width === undefined
     var autoH = o.height === undefined
-    var width = autoW ? (graph.width || host.clientWidth || 960) : o.width
-    var height = autoH ? (graph.height || host.clientHeight || 450) : o.height
+    var width = autoW ? graph.width || host.clientWidth || 960 : o.width
+    var height = autoH ? graph.height || host.clientHeight || 450 : o.height
     if (typeof width === 'string') width = parseInt(width, 10) || 960
     if (typeof height === 'string') height = parseInt(height, 10) || 450
     if (height < 200) height = 200
@@ -8918,7 +8957,11 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
     var xAxis = option.xAxis || {}
     var yAxis = option.yAxis || {}
-    var hasCartesian = xAxis.min !== undefined && xAxis.max !== undefined && yAxis.min !== undefined && yAxis.max !== undefined
+    var hasCartesian =
+      xAxis.min !== undefined &&
+      xAxis.max !== undefined &&
+      yAxis.min !== undefined &&
+      yAxis.max !== undefined
     var xMin = Number(xAxis.min) || 0
     var xMax = Number(xAxis.max) || 1
     var yMin = Number(yAxis.min) || 0
@@ -8931,8 +8974,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         return { x: rx * width, y: ry * height }
       }
       return {
-        x: defX !== undefined ? defX : (Array.isArray(val) ? val[0] : 0),
-        y: defY !== undefined ? defY : (Array.isArray(val) ? val[1] : 0),
+        x: defX !== undefined ? defX : Array.isArray(val) ? val[0] : 0,
+        y: defY !== undefined ? defY : Array.isArray(val) ? val[1] : 0,
       }
     }
 
@@ -8940,9 +8983,14 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     if (isCircular) {
       var cx = width / 2
       var cy = height / 2
-      var centerNode = rawNodes.find(function (n) { return (n.symbolSize > 30) }) || rawNodes[0]
-      var centerId = centerNode ? (centerNode.id || centerNode.name) : null
-      var otherNodes = rawNodes.filter(function (n) { return (n.id || n.name) !== centerId })
+      var centerNode =
+        rawNodes.find(function (n) {
+          return n.symbolSize > 30
+        }) || rawNodes[0]
+      var centerId = centerNode ? centerNode.id || centerNode.name : null
+      var otherNodes = rawNodes.filter(function (n) {
+        return (n.id || n.name) !== centerId
+      })
       var R = Math.max(60, Math.min(width, height) / 2 - 50)
       if (centerId) nodePos[centerId] = { x: cx, y: cy, isCenter: true }
       otherNodes.forEach(function (n, idx) {
@@ -9121,7 +9169,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       var borderWidth = st.borderWidth !== undefined ? st.borderWidth : 1
 
       if (isRect) {
-        var w = Array.isArray(node.symbolSize) ? node.symbolSize[0] : (node.symbolSize || 120)
+        var w = Array.isArray(node.symbolSize) ? node.symbolSize[0] : node.symbolSize || 120
         var h = Array.isArray(node.symbolSize) ? node.symbolSize[1] : 40
         var x = p.x - w / 2
         var y = p.y - h / 2
@@ -9147,10 +9195,41 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           var matchT = formatter.match(/\{t\|([^}]+)\}/)
           var headerText = matchT ? matchT[1] : node.name
           var headerBand = doc.createElementNS('http://www.w3.org/2000/svg', 'path')
-          headerBand.setAttribute('d',
-            'M ' + x + ' ' + (y + 6) + ' Q ' + x + ' ' + y + ' ' + (x + 6) + ' ' + y +
-            ' L ' + (x + w - 6) + ' ' + y + ' Q ' + (x + w) + ' ' + y + ' ' + (x + w) + ' ' + (y + 6) +
-            ' L ' + (x + w) + ' ' + (y + 26) + ' L ' + x + ' ' + (y + 26) + ' Z'
+          headerBand.setAttribute(
+            'd',
+            'M ' +
+              x +
+              ' ' +
+              (y + 6) +
+              ' Q ' +
+              x +
+              ' ' +
+              y +
+              ' ' +
+              (x + 6) +
+              ' ' +
+              y +
+              ' L ' +
+              (x + w - 6) +
+              ' ' +
+              y +
+              ' Q ' +
+              (x + w) +
+              ' ' +
+              y +
+              ' ' +
+              (x + w) +
+              ' ' +
+              (y + 6) +
+              ' L ' +
+              (x + w) +
+              ' ' +
+              (y + 26) +
+              ' L ' +
+              x +
+              ' ' +
+              (y + 26) +
+              ' Z',
           )
           headerBand.setAttribute('fill', borderColor)
           g.appendChild(headerBand)
@@ -9348,7 +9427,10 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           frect.setAttribute('rx', '8')
           frect.setAttribute('fill', 'none')
           frect.setAttribute('stroke', (sc.itemStyle && sc.itemStyle.borderColor) || '#2563eb')
-          frect.setAttribute('stroke-width', String((sc.itemStyle && sc.itemStyle.borderWidth) || 2.5))
+          frect.setAttribute(
+            'stroke-width',
+            String((sc.itemStyle && sc.itemStyle.borderWidth) || 2.5),
+          )
           gFocus.appendChild(frect)
           svg.appendChild(gFocus)
         }
@@ -9381,7 +9463,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       return null
     }
 
-    if (sType === 'graph' || seriesList.some(function (s) { return s.type === 'graph' })) {
+    if (
+      sType === 'graph' ||
+      seriesList.some(function (s) {
+        return s.type === 'graph'
+      })
+    ) {
       return renderSvgGraph(host, option, o)
     }
     var o = opts || {}
@@ -9396,12 +9483,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       }
       var autoWidth = o.width === undefined
       var autoHeight = o.height === undefined
-      canvas.width = autoWidth ? (host.clientWidth || 960) : o.width
-      canvas.height = autoHeight ? (host.clientHeight || 400) : o.height
+      canvas.width = autoWidth ? host.clientWidth || 960 : o.width
+      canvas.height = autoHeight ? host.clientHeight || 400 : o.height
       if (o.height) canvas.style.height = typeof o.height === 'number' ? o.height + 'px' : o.height
       if (o.width) canvas.style.width = typeof o.width === 'number' ? o.width + 'px' : o.width
 
-      var prev = lib.getChart ? lib.getChart(canvas) : (canvas.__chartInstance || null)
+      var prev = lib.getChart ? lib.getChart(canvas) : canvas.__chartInstance || null
       if (prev && typeof prev.destroy === 'function') prev.destroy()
       if (host.__nnChartObserver) {
         host.__nnChartObserver.disconnect()
@@ -9421,13 +9508,21 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       }
       if (typeof window !== 'undefined') {
         window.echarts = window.echarts || {
-          getInstanceByDom: function (h) { return lib.getInstanceByDom(h) },
+          getInstanceByDom: function (h) {
+            return lib.getInstanceByDom(h)
+          },
         }
       }
       chart._isDisposed = false
-      chart.getWidth = function () { return canvas.width }
-      chart.getHeight = function () { return canvas.height }
-      chart.isDisposed = function () { return chart._isDisposed || !canvas.__chartInstance }
+      chart.getWidth = function () {
+        return canvas.width
+      }
+      chart.getHeight = function () {
+        return canvas.height
+      }
+      chart.isDisposed = function () {
+        return chart._isDisposed || !canvas.__chartInstance
+      }
       var origDestroy = chart.destroy.bind(chart)
       chart.destroy = function () {
         chart._isDisposed = true
@@ -9440,7 +9535,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         lib.prototype.getOption = function () {
           var c = this
           return {
-            backgroundColor: (c.canvas && c.canvas.style && c.canvas.style.backgroundColor) || '#ffffff',
+            backgroundColor:
+              (c.canvas && c.canvas.style && c.canvas.style.backgroundColor) || '#ffffff',
             xAxis: [{ data: (c.data && c.data.labels) || [] }],
             series: ((c.data && c.data.datasets) || []).map(function (ds) {
               return {
@@ -9504,16 +9600,24 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       chart.getOption = function () {
         return {
           backgroundColor: (canvas.style && canvas.style.backgroundColor) || '#ffffff',
-          xAxis: [{ data: (chart.data && chart.data.labels) || (option && option.xAxis && option.xAxis.data) || [] }],
-          series: (option && option.series && option.series.length)
-            ? option.series
-            : ((chart.data && chart.data.datasets) || []).map(function (ds) {
-                return {
-                  type: chartConfig.type || 'line',
-                  name: ds.label,
-                  data: ds.tree || ds.data || [],
-                }
-              }),
+          xAxis: [
+            {
+              data:
+                (chart.data && chart.data.labels) ||
+                (option && option.xAxis && option.xAxis.data) ||
+                [],
+            },
+          ],
+          series:
+            option && option.series && option.series.length
+              ? option.series
+              : ((chart.data && chart.data.datasets) || []).map(function (ds) {
+                  return {
+                    type: chartConfig.type || 'line',
+                    name: ds.label,
+                    data: ds.tree || ds.data || [],
+                  }
+                }),
         }
       }
 
@@ -9551,7 +9655,10 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     if (typeof ResizeObserver !== 'undefined' && (autoW || autoH)) {
       host.__nnChartObserver = new ResizeObserver(function () {
         if (!echartsChart.isDisposed() && host.clientWidth) {
-          echartsChart.resize({ width: autoW ? 'auto' : o.width, height: autoH ? 'auto' : o.height })
+          echartsChart.resize({
+            width: autoW ? 'auto' : o.width,
+            height: autoH ? 'auto' : o.height,
+          })
         }
       })
       host.__nnChartObserver.observe(host)
@@ -9574,8 +9681,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       warnChartLibraryMissing()
       return
     }
-    var windowCount =
-      (Number(meta && meta.months) || 0) + (Number(meta && meta.historyMonths) || 0)
+    var windowCount = (Number(meta && meta.months) || 0) + (Number(meta && meta.historyMonths) || 0)
     compiled.charts.forEach(function (chart) {
       var section = el('section', 'nn-chart')
       if (!section) return
@@ -9670,7 +9776,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     memo[memoKey] = null
 
     var val = 0
-    var isVar = row.variable || (!row.formula && (row.base != null || row.metricValue != null || row.val != null))
+    var isVar =
+      row.variable ||
+      (!row.formula && (row.base != null || row.metricValue != null || row.val != null))
 
     if (isVar) {
       var growth = growthState[row.id] || row.growth || { mode: 'fixed', factor: 0 }
@@ -9688,7 +9796,15 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     } else if (Array.isArray(row.history) && m < row.history.length && row.history[m] !== null) {
       val = Number(row.history[m]) || 0
     } else if (row.formula) {
-      val = parseAndEvalFormula(String(row.formula).trim(), m, rowMap, overrides, memo, growthState, historyCount)
+      val = parseAndEvalFormula(
+        String(row.formula).trim(),
+        m,
+        rowMap,
+        overrides,
+        memo,
+        growthState,
+        historyCount,
+      )
       var gRow = growthState[row.id] || row.growth || { mode: 'fixed', factor: 0 }
       var factorRow = Number(gRow.factor) || 0
       if (gRow.mode === 'compound' && factorRow) {
@@ -9709,7 +9825,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
   function parseAndEvalFormula(formula, m, rowMap, overrides, memo, growthState, historyCount) {
     if (!formula || /^<.*>$/.test(formula)) return 0
     var cleaned = formula.replace(/\s+[xX]\s+/g, ' * ')
-    var tokens = cleaned.split(/(\s*[+\-*/]\s*)/).map(function (s) { return s.trim() }).filter(Boolean)
+    var tokens = cleaned
+      .split(/(\s*[+\-*/]\s*)/)
+      .map(function (s) {
+        return s.trim()
+      })
+      .filter(Boolean)
     if (!tokens.length) return 0
 
     function resolveOperand(token) {
@@ -9718,8 +9839,17 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       var norm = normalizeKey(token)
       var targetRow = rowMap[norm]
       if (targetRow) {
-        var operandVal = evaluateFormulaTree(targetRow, m, rowMap, overrides, memo, growthState, historyCount)
-        if (!targetRow.formula && String(targetRow.metricUnit || '').trim() === '%') operandVal = operandVal / 100
+        var operandVal = evaluateFormulaTree(
+          targetRow,
+          m,
+          rowMap,
+          overrides,
+          memo,
+          growthState,
+          historyCount,
+        )
+        if (!targetRow.formula && String(targetRow.metricUnit || '').trim() === '%')
+          operandVal = operandVal / 100
         return operandVal
       }
       warnUnresolvedOperand(token, formula)
@@ -9770,24 +9900,40 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       header.push(labels[m] != null ? labels[m] : 'Month ' + (m + 1))
     }
     header.push('Total')
-    lines.push(header.map(function (s) { return '"' + String(s).replace(/"/g, '""') + '"' }).join(','))
+    lines.push(
+      header
+        .map(function (s) {
+          return '"' + String(s).replace(/"/g, '""') + '"'
+        })
+        .join(','),
+    )
 
     rows.forEach(function (r) {
       var g = r.growth || { mode: 'fixed', factor: 0 }
       var vals = rowValues[r.id] || []
-      var sum = vals.reduce(function (a, b) { return a + b }, 0)
+      var sum = vals.reduce(function (a, b) {
+        return a + b
+      }, 0)
       var rowLine = [
         r.grp || '',
         r.label || r.id,
         r.metricType || '',
         r.metricUnit || '',
-        g.mode + (g.factor ? ' (' + g.factor + ')' : '')
+        g.mode + (g.factor ? ' (' + g.factor + ')' : ''),
       ]
       for (var i = 0; i < totalMonths; i++) {
-        rowLine.push(vals[i] != null && Number.isFinite(vals[i]) ? Math.round(vals[i] * 100) / 100 : '')
+        rowLine.push(
+          vals[i] != null && Number.isFinite(vals[i]) ? Math.round(vals[i] * 100) / 100 : '',
+        )
       }
       rowLine.push(Number.isFinite(sum) ? Math.round(sum * 100) / 100 : '')
-      lines.push(rowLine.map(function (s) { return '"' + String(s).replace(/"/g, '""') + '"' }).join(','))
+      lines.push(
+        rowLine
+          .map(function (s) {
+            return '"' + String(s).replace(/"/g, '""') + '"'
+          })
+          .join(','),
+      )
     })
 
     if (typeof Blob !== 'undefined' && typeof URL !== 'undefined') {
@@ -9797,7 +9943,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       a.href = url
       a.download = (meta.slug || 'timeline') + '_projection.csv'
       a.click()
-      setTimeout(function () { URL.revokeObjectURL(url) }, 1000)
+      setTimeout(function () {
+        URL.revokeObjectURL(url)
+      }, 1000)
     }
   }
 
@@ -9817,7 +9965,10 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     }
 
     var metricType = (row && (row.metricType || row.type)) || ''
-    var isCost = metricType === 'cost' || metricType === 'expense' || /cost|churn|cpa|cac|expense|churn/i.test((row && (row.id || row.label)) || '')
+    var isCost =
+      metricType === 'cost' ||
+      metricType === 'expense' ||
+      /cost|churn|cpa|cac|expense|churn/i.test((row && (row.id || row.label)) || '')
 
     var effectiveMin = Math.min(0, minVal)
     var effectiveMax = Math.max(0.0001, maxVal)
@@ -9837,7 +9988,19 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     }
   }
 
-  function renderStudioView(host, model, meta, rows, totalMonths, labels, rowMap, overrides, growthState, historyCount, onStateChange) {
+  function renderStudioView(
+    host,
+    model,
+    meta,
+    rows,
+    totalMonths,
+    labels,
+    rowMap,
+    overrides,
+    growthState,
+    historyCount,
+    onStateChange,
+  ) {
     var studioHost = host
     if (!studioHost) return
 
@@ -9860,23 +10023,49 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     var studioWrap = el('div', 'nn-studio-layout')
 
     var kpisWrap = el('div', 'nn-studio-kpis')
-    
-    var revRow = rows.filter(function (r) { return /revenue|ingreso/i.test(r.metricType || r.id || r.label) })[0]
-    var costRow = rows.filter(function (r) { return /expense|cost|gasto/i.test(r.metricType || r.id || r.label) })[0]
-    var netRow = rows.filter(function (r) { return /result|net|ebit|beneficio/i.test(r.metricType || r.id || r.label) })[0] || rows[0]
+
+    var revRow = rows.filter(function (r) {
+      return /revenue|ingreso/i.test(r.metricType || r.id || r.label)
+    })[0]
+    var costRow = rows.filter(function (r) {
+      return /expense|cost|gasto/i.test(r.metricType || r.id || r.label)
+    })[0]
+    var netRow =
+      rows.filter(function (r) {
+        return /result|net|ebit|beneficio/i.test(r.metricType || r.id || r.label)
+      })[0] || rows[0]
 
     var kpiList = []
     if (netRow && rowValues[netRow.id]) {
-      var netSum = rowValues[netRow.id].reduce(function (a, b) { return a + b }, 0)
-      kpiList.push({ label: 'Net Result (Year 1)', val: formatGridNumber(netSum), unit: netRow.metricUnit || 'USD', isHighlight: true })
+      var netSum = rowValues[netRow.id].reduce(function (a, b) {
+        return a + b
+      }, 0)
+      kpiList.push({
+        label: 'Net Result (Year 1)',
+        val: formatGridNumber(netSum),
+        unit: netRow.metricUnit || 'USD',
+        isHighlight: true,
+      })
     }
     if (revRow && rowValues[revRow.id]) {
-      var revSum = rowValues[revRow.id].reduce(function (a, b) { return a + b }, 0)
-      kpiList.push({ label: 'Total Revenue', val: formatGridNumber(revSum), unit: revRow.metricUnit || 'USD' })
+      var revSum = rowValues[revRow.id].reduce(function (a, b) {
+        return a + b
+      }, 0)
+      kpiList.push({
+        label: 'Total Revenue',
+        val: formatGridNumber(revSum),
+        unit: revRow.metricUnit || 'USD',
+      })
     }
     if (costRow && rowValues[costRow.id]) {
-      var costSum = rowValues[costRow.id].reduce(function (a, b) { return a + b }, 0)
-      kpiList.push({ label: 'Total Expenses', val: formatGridNumber(costSum), unit: costRow.metricUnit || 'USD' })
+      var costSum = rowValues[costRow.id].reduce(function (a, b) {
+        return a + b
+      }, 0)
+      kpiList.push({
+        label: 'Total Expenses',
+        val: formatGridNumber(costSum),
+        unit: costRow.metricUnit || 'USD',
+      })
     }
 
     kpiList.forEach(function (kpi) {
@@ -9898,7 +10087,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     leftCol.appendChild(leftHdr)
 
     var varRows = rows.filter(function (r) {
-      return r.variable || (!r.formula && (r.metricValue != null || r.val != null || r.base != null))
+      return (
+        r.variable || (!r.formula && (r.metricValue != null || r.val != null || r.base != null))
+      )
     })
 
     if (!varRows.length) {
@@ -9908,14 +10099,31 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     var sliderCardsWrap = el('div', 'nn-studio-sliders-wrap')
 
     varRows.forEach(function (r) {
-      var baseVal = r.metricValue !== undefined ? Number(r.metricValue) : (r.val !== undefined ? Number(r.val) : (r.base !== undefined ? Number(r.base) : 0))
-      var currVal = overrides[r.id] !== undefined ? (typeof overrides[r.id] === 'number' ? overrides[r.id] : overrides[r.id][0]) : baseVal
+      var baseVal =
+        r.metricValue !== undefined
+          ? Number(r.metricValue)
+          : r.val !== undefined
+            ? Number(r.val)
+            : r.base !== undefined
+              ? Number(r.base)
+              : 0
+      var currVal =
+        overrides[r.id] !== undefined
+          ? typeof overrides[r.id] === 'number'
+            ? overrides[r.id]
+            : overrides[r.id][0]
+          : baseVal
       if (currVal === undefined || isNaN(currVal)) currVal = baseVal
 
-      var minVal = baseVal > 0 ? Math.floor(baseVal * 0.2) : (baseVal < 0 ? Math.floor(baseVal * 2.5) : 0)
-      var maxVal = baseVal > 0 ? Math.ceil(baseVal * 2.5) : (baseVal < 0 ? Math.ceil(baseVal * 0.2) : 100)
-      if (minVal === maxVal) { minVal = 0; maxVal = 100; }
-      var step = baseVal > 1000 ? 100 : (baseVal > 100 ? 10 : (baseVal > 10 ? 1 : 0.1))
+      var minVal =
+        baseVal > 0 ? Math.floor(baseVal * 0.2) : baseVal < 0 ? Math.floor(baseVal * 2.5) : 0
+      var maxVal =
+        baseVal > 0 ? Math.ceil(baseVal * 2.5) : baseVal < 0 ? Math.ceil(baseVal * 0.2) : 100
+      if (minVal === maxVal) {
+        minVal = 0
+        maxVal = 100
+      }
+      var step = baseVal > 1000 ? 100 : baseVal > 100 ? 10 : baseVal > 10 ? 1 : 0.1
 
       var card = el('div', 'nn-slider-card')
       var cardTop = el('div', 'nn-slider-card-top')
@@ -10046,7 +10254,13 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         dotEl.setAttribute('r', '3.5')
         dotEl.setAttribute('fill', c)
         var tip = document.createElementNS('http://www.w3.org/2000/svg', 'title')
-        tip.textContent = (labels[mi] || ('M' + (mi + 1))) + ' ' + (pr.label || pr.id) + ': ' + formatGridNumber(v) + (pr.metricUnit ? ' ' + pr.metricUnit : '')
+        tip.textContent =
+          (labels[mi] || 'M' + (mi + 1)) +
+          ' ' +
+          (pr.label || pr.id) +
+          ': ' +
+          formatGridNumber(v) +
+          (pr.metricUnit ? ' ' + pr.metricUnit : '')
         dotEl.appendChild(tip)
         svg.appendChild(dotEl)
       })
@@ -10109,9 +10323,22 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       }
       if (r.formula) {
         var cleaned = String(r.formula).replace(/\s+[xX]\s+/g, ' * ')
-        var tokens = cleaned.split(/(\s*[+\-*/]\s*)/).map(function (s) { return s.trim() }).filter(Boolean)
+        var tokens = cleaned
+          .split(/(\s*[+\-*/]\s*)/)
+          .map(function (s) {
+            return s.trim()
+          })
+          .filter(Boolean)
         tokens.forEach(function (tok) {
-          if (!tok || !isNaN(Number(tok)) || tok === '+' || tok === '-' || tok === '*' || tok === '/') return
+          if (
+            !tok ||
+            !isNaN(Number(tok)) ||
+            tok === '+' ||
+            tok === '-' ||
+            tok === '*' ||
+            tok === '/'
+          )
+            return
           var norm = normalizeKey(tok)
           var targetRow = rowMap[norm]
           if (targetRow && depIds.indexOf(targetRow.id) === -1) {
@@ -10128,7 +10355,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       var queue = [startRowId]
       var visited = {}
       var byId = {}
-      rows.forEach(function (r) { if (r && r.id) byId[r.id] = r })
+      rows.forEach(function (r) {
+        if (r && r.id) byId[r.id] = r
+      })
 
       while (queue.length > 0) {
         var currId = queue.shift()
@@ -10162,7 +10391,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
     function renderView() {
       var rowValues = recalculate()
-      var activeDepSet = focusedDependencyRowId ? getTransitiveDependencySet(focusedDependencyRowId) : null
+      var activeDepSet = focusedDependencyRowId
+        ? getTransitiveDependencySet(focusedDependencyRowId)
+        : null
       host.innerHTML = ''
 
       var gridHeader = el('div', 'nn-timeline-header')
@@ -10172,7 +10403,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       if (resetBtn) {
         resetBtn.setAttribute('type', 'button')
         resetBtn.addEventListener('click', function () {
-          Object.keys(overrides).forEach(function (k) { delete overrides[k] })
+          Object.keys(overrides).forEach(function (k) {
+            delete overrides[k]
+          })
           rows.forEach(function (r) {
             var g = r.growth || { mode: 'fixed', factor: 0 }
             growthState[r.id] = { mode: g.mode || 'fixed', factor: g.factor != null ? g.factor : 0 }
@@ -10194,11 +10427,19 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       if (gridHeader) host.appendChild(gridHeader)
 
       if (focusedDependencyRowId) {
-        var focusedRow = rows.filter(function (r) { return r.id === focusedDependencyRowId })[0]
+        var focusedRow = rows.filter(function (r) {
+          return r.id === focusedDependencyRowId
+        })[0]
         if (focusedRow) {
           var filterBanner = el('div', 'nn-timeline-filter-banner')
           var bannerText = el('span', 'nn-filter-banner-text')
-          bannerText.innerHTML = UI.icon('target', 14) + ' <span>Showing dependency tree for: <strong>' + escapeHtml(focusedRow.label || focusedRow.id) + '</strong> (' + Object.keys(activeDepSet).length + ' items)</span>'
+          bannerText.innerHTML =
+            UI.icon('target', 14) +
+            ' <span>Showing dependency tree for: <strong>' +
+            escapeHtml(focusedRow.label || focusedRow.id) +
+            '</strong> (' +
+            Object.keys(activeDepSet).length +
+            ' items)</span>'
           var clearBtn = el('button', 'nn-filter-banner-clear')
           clearBtn.setAttribute('type', 'button')
           clearBtn.innerHTML = UI.icon('close', 12) + ' <span>Clear Filter</span>'
@@ -10222,7 +10463,11 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       trHead.appendChild(el('th', 'th-unit', 'Unit'))
       for (var m = 0; m < totalMonths; m++) {
         var isHist = m < historyCount
-        var thM = el('th', 'th-month' + (isHist ? ' hist-col' : ''), labels[m] != null ? labels[m] : 'M' + (m + 1))
+        var thM = el(
+          'th',
+          'th-month' + (isHist ? ' hist-col' : ''),
+          labels[m] != null ? labels[m] : 'M' + (m + 1),
+        )
         if (isHist) thM.setAttribute('title', 'Historical / Measured month')
         trHead.appendChild(thM)
       }
@@ -10233,7 +10478,13 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       var tbody = el('tbody')
 
       function renderRowItem(r, isPinned) {
-        var tr = el('tr', 'nn-timeline-row' + (r.variable ? ' is-var' : '') + (isPinned ? ' is-pinned' : '') + (focusedDependencyRowId === r.id ? ' is-focus-root' : ''))
+        var tr = el(
+          'tr',
+          'nn-timeline-row' +
+            (r.variable ? ' is-var' : '') +
+            (isPinned ? ' is-pinned' : '') +
+            (focusedDependencyRowId === r.id ? ' is-focus-root' : ''),
+        )
         var tdMetric = el('td', 'td-sticky td-metric')
 
         var actionsSpan = el('span', 'nn-row-actions')
@@ -10252,7 +10503,10 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         var isChartThis = !!expandedChartRowIds[r.id]
         var chartBtn = el('button', 'nn-row-btn nn-chart-btn' + (isChartThis ? ' active' : ''))
         chartBtn.setAttribute('type', 'button')
-        chartBtn.setAttribute('title', isChartThis ? 'Hide inline monthly chart' : 'Show inline monthly chart')
+        chartBtn.setAttribute(
+          'title',
+          isChartThis ? 'Hide inline monthly chart' : 'Show inline monthly chart',
+        )
         chartBtn.innerHTML = UI.icon('chart', 12)
         chartBtn.addEventListener('click', function (e) {
           e.stopPropagation()
@@ -10266,19 +10520,31 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           var isFocusThis = focusedDependencyRowId === r.id
           var filterBtn = el('button', 'nn-row-btn nn-filter-btn' + (isFocusThis ? ' active' : ''))
           filterBtn.setAttribute('type', 'button')
-          filterBtn.setAttribute('title', isFocusThis ? 'Clear dependency tree filter' : 'Filter grid to show only dependencies of ' + (r.label || r.id))
+          filterBtn.setAttribute(
+            'title',
+            isFocusThis
+              ? 'Clear dependency tree filter'
+              : 'Filter grid to show only dependencies of ' + (r.label || r.id),
+          )
           filterBtn.innerHTML = UI.icon('target', 12)
           filterBtn.addEventListener('click', function (e) {
             e.stopPropagation()
-            focusedDependencyRowId = (focusedDependencyRowId === r.id ? null : r.id)
+            focusedDependencyRowId = focusedDependencyRowId === r.id ? null : r.id
             renderView()
           })
           actionsSpan.appendChild(filterBtn)
         }
         tdMetric.appendChild(actionsSpan)
 
-        var markerSvg = r.variable ? UI.icon('star', 11) : r.source === 'derived' ? UI.icon('derived', 11) : UI.icon('calc', 11)
-        var markerSpan = el('span', 'nn-row-marker marker-' + (r.variable ? 'var' : r.source === 'derived' ? 'der' : 'calc'))
+        var markerSvg = r.variable
+          ? UI.icon('star', 11)
+          : r.source === 'derived'
+            ? UI.icon('derived', 11)
+            : UI.icon('calc', 11)
+        var markerSpan = el(
+          'span',
+          'nn-row-marker marker-' + (r.variable ? 'var' : r.source === 'derived' ? 'der' : 'calc'),
+        )
         markerSpan.innerHTML = markerSvg
         var nameSpan =
           UI && typeof UI.Ku === 'function'
@@ -10314,7 +10580,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         selGrow.appendChild(optAdd)
         selGrow.addEventListener('change', function (e) {
           growthState[r.id].mode = e.target.value
-          if (inpFactor) inpFactor.disabled = (e.target.value === 'fixed')
+          if (inpFactor) inpFactor.disabled = e.target.value === 'fixed'
           onStateChange()
         })
         tdRule.appendChild(selGrow)
@@ -10342,11 +10608,17 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           var tdVal = el('td', 'td-num' + (isHistCell ? ' hist-cell' : ''))
 
           if (r.variable && !isHistCell) {
-            var isOverridden = overrides[r.id] && (typeof overrides[r.id] === 'number' || overrides[r.id][mi] !== undefined)
+            var isOverridden =
+              overrides[r.id] &&
+              (typeof overrides[r.id] === 'number' || overrides[r.id][mi] !== undefined)
             var inpVar = el('input', 'nn-var-input' + (isOverridden ? ' overridden' : ''))
             inpVar.type = 'number'
             inpVar.step = 'any'
-            inpVar.value = isOverridden ? (typeof overrides[r.id] === 'number' ? String(overrides[r.id]) : String(overrides[r.id][mi])) : String(Math.round(val * 100) / 100)
+            inpVar.value = isOverridden
+              ? typeof overrides[r.id] === 'number'
+                ? String(overrides[r.id])
+                : String(overrides[r.id][mi])
+              : String(Math.round(val * 100) / 100)
             inpVar.dataset.row = r.id
             inpVar.dataset.m = String(mi)
             inpVar.addEventListener('change', function (e) {
@@ -10364,9 +10636,10 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         }
 
         var isResultOrRev = r.metricType === 'result' || r.metricType === 'revenue'
-        var totalFormatted = r.growth && r.growth.mode === 'fixed' && !isResultOrRev && r.variable
-          ? formatGridNumber(vals[0]) + ' (avg)'
-          : formatGridNumber(sum)
+        var totalFormatted =
+          r.growth && r.growth.mode === 'fixed' && !isResultOrRev && r.variable
+            ? formatGridNumber(vals[0]) + ' (avg)'
+            : formatGridNumber(sum)
         tr.appendChild(el('td', 'td-num td-total', totalFormatted))
 
         tbody.appendChild(tr)
@@ -10375,17 +10648,32 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           var trChart = el('tr', 'nn-timeline-chart-row')
           var tdChartSticky = el('td', 'td-sticky')
           var chartLabel = el('span', 'nn-chart-row-label')
-          chartLabel.innerHTML = UI.icon('chart', 12) + ' <span>Monthly: ' + escapeHtml(r.label || r.id) + '</span>'
+          chartLabel.innerHTML =
+            UI.icon('chart', 12) + ' <span>Monthly: ' + escapeHtml(r.label || r.id) + '</span>'
           tdChartSticky.appendChild(chartLabel)
           trChart.appendChild(tdChartSticky)
 
-          var finiteVals = vals.filter(function (v) { return Number.isFinite(v) })
-          var maxAbs = Math.max.apply(null, finiteVals.map(function (v) { return Math.abs(v) })) || 1
+          var finiteVals = vals.filter(function (v) {
+            return Number.isFinite(v)
+          })
+          var maxAbs =
+            Math.max.apply(
+              null,
+              finiteVals.map(function (v) {
+                return Math.abs(v)
+              }),
+            ) || 1
           var minReal = finiteVals.length ? Math.min.apply(null, finiteVals) : NaN
           var maxReal = finiteVals.length ? Math.max.apply(null, finiteVals) : NaN
 
           var tdChartRule = el('td', 'td-rule')
-          tdChartRule.appendChild(el('span', 'nn-chart-range', 'Range: ' + formatGridNumber(minReal) + ' .. ' + formatGridNumber(maxReal)))
+          tdChartRule.appendChild(
+            el(
+              'span',
+              'nn-chart-range',
+              'Range: ' + formatGridNumber(minReal) + ' .. ' + formatGridNumber(maxReal),
+            ),
+          )
           trChart.appendChild(tdChartRule)
 
           trChart.appendChild(el('td', 'td-unit', r.metricUnit || ''))
@@ -10395,13 +10683,21 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
             var isHistCol = ci < historyCount
             var tdCell = el('td', 'td-chart-cell' + (isHistCol ? ' hist-cell' : ''))
             var barWrap = el('div', 'nn-mini-bar-wrap')
-            barWrap.setAttribute('title', (labels[ci] || ('M' + (ci + 1))) + ': ' + formatGridNumber(cVal) + (r.metricUnit ? ' ' + r.metricUnit : ''))
+            barWrap.setAttribute(
+              'title',
+              (labels[ci] || 'M' + (ci + 1)) +
+                ': ' +
+                formatGridNumber(cVal) +
+                (r.metricUnit ? ' ' + r.metricUnit : ''),
+            )
 
             var cResolved = Number.isFinite(cVal)
             var heightPct = cResolved ? Math.max(4, Math.round((Math.abs(cVal) / maxAbs) * 100)) : 4
             var bar = el('div', 'nn-mini-bar' + (cResolved && cVal < 0 ? ' negative' : ''))
             bar.style.height = heightPct + '%'
-            bar.style.backgroundColor = cResolved ? getSemanticBarColor(cVal, minReal, maxReal, r) : '#cbd5e1'
+            bar.style.backgroundColor = cResolved
+              ? getSemanticBarColor(cVal, minReal, maxReal, r)
+              : '#cbd5e1'
 
             var valLabel = el('span', 'nn-mini-bar-val', formatGridNumber(cVal))
             barWrap.appendChild(bar)
@@ -10413,8 +10709,11 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           var tdChartTotal = el('td', 'td-total td-chart-total')
           var firstVal = vals[0] || 0
           var lastVal = vals[totalMonths - 1] || 0
-          var deltaPct = firstVal !== 0 ? Math.round(((lastVal - firstVal) / Math.abs(firstVal)) * 100) : 0
-          var trendLabel = Number.isFinite(deltaPct) ? (deltaPct >= 0 ? '+' : '') + deltaPct + '% trend' : '- trend'
+          var deltaPct =
+            firstVal !== 0 ? Math.round(((lastVal - firstVal) / Math.abs(firstVal)) * 100) : 0
+          var trendLabel = Number.isFinite(deltaPct)
+            ? (deltaPct >= 0 ? '+' : '') + deltaPct + '% trend'
+            : '- trend'
           tdChartTotal.appendChild(el('div', 'nn-mini-total', trendLabel))
           trChart.appendChild(tdChartTotal)
 
@@ -10432,7 +10731,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         var tdPinnedHdr = el('td')
         tdPinnedHdr.setAttribute('colspan', String(totalMonths + 4))
         var pinnedBadge = el('span', 'nn-grp-badge')
-        pinnedBadge.innerHTML = UI.icon('pin', 12) + ' <span>PINNED METRICS (' + pinnedRows.length + ')</span>'
+        pinnedBadge.innerHTML =
+          UI.icon('pin', 12) + ' <span>PINNED METRICS (' + pinnedRows.length + ')</span>'
         tdPinnedHdr.appendChild(pinnedBadge)
         trPinnedHdr.appendChild(tdPinnedHdr)
         tbody.appendChild(trPinnedHdr)
@@ -10475,11 +10775,35 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
     function onStateChange() {
       renderView()
-      renderStudioView(studioHost, model, meta, rows, totalMonths, labels, rowMap, overrides, growthState, historyCount, onStateChange)
+      renderStudioView(
+        studioHost,
+        model,
+        meta,
+        rows,
+        totalMonths,
+        labels,
+        rowMap,
+        overrides,
+        growthState,
+        historyCount,
+        onStateChange,
+      )
     }
 
     renderView()
-    renderStudioView(studioHost, model, meta, rows, totalMonths, labels, rowMap, overrides, growthState, historyCount, onStateChange)
+    renderStudioView(
+      studioHost,
+      model,
+      meta,
+      rows,
+      totalMonths,
+      labels,
+      rowMap,
+      overrides,
+      growthState,
+      historyCount,
+      onStateChange,
+    )
   }
 
   return {
@@ -18369,9 +18693,7 @@ if (typeof window !== 'undefined') {
         seg.setAttribute('title', c + ': ' + count)
         seg.setAttribute('data-concept', c)
         seg.addEventListener('click', function () {
-          var row = legend.querySelector(
-            'li[data-concept="' + String(c).replace(/"/g, '') + '"]',
-          )
+          var row = legend.querySelector('li[data-concept="' + String(c).replace(/"/g, '') + '"]')
           openConceptWindow(row)
         })
         barWrap.appendChild(seg)

@@ -56,13 +56,32 @@ export function installChartLibrary(dom) {
   targetDom.window.cancelAnimationFrame = (id) => clearTimeout(id)
   global.requestAnimationFrame = targetDom.window.requestAnimationFrame
   global.cancelAnimationFrame = targetDom.window.cancelAnimationFrame
-  global.ResizeObserver = class { observe() {} disconnect() {} unobserve() {} }
-  global.MutationObserver = targetDom.window.MutationObserver || class { observe() {} disconnect() {} }
+  global.ResizeObserver = class {
+    observe() {}
+    disconnect() {}
+    unobserve() {}
+  }
+  global.MutationObserver =
+    targetDom.window.MutationObserver ||
+    class {
+      observe() {}
+      disconnect() {}
+    }
 
   const chartPath = join(consoleDir, 'vendor', 'chart.umd.min.js')
   global.Chart = require(chartPath)
-  require.cache['chart.js'] = { id: 'chart.js', filename: 'chart.js', loaded: true, exports: global.Chart }
-  require.cache['chart.js/helpers'] = { id: 'chart.js/helpers', filename: 'chart.js/helpers', loaded: true, exports: global.Chart.helpers }
+  require.cache['chart.js'] = {
+    id: 'chart.js',
+    filename: 'chart.js',
+    loaded: true,
+    exports: global.Chart,
+  }
+  require.cache['chart.js/helpers'] = {
+    id: 'chart.js/helpers',
+    filename: 'chart.js/helpers',
+    loaded: true,
+    exports: global.Chart.helpers,
+  }
   const Module = require('node:module')
   const origResolve = Module._resolveFilename
   Module._resolveFilename = function (request, parent, isMain, options) {

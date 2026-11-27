@@ -255,7 +255,10 @@ describe('Domain tab', () => {
         ['Deal', 'Deal: 1'],
       ],
     )
-    assert.ok(segs[0].style.background.includes('2563eb') || segs[0].style.background.includes('37, 99, 235'))
+    assert.ok(
+      segs[0].style.background.includes('2563eb') ||
+        segs[0].style.background.includes('37, 99, 235'),
+    )
   })
 
   it('still renders its numbers when ECharts is missing', () => {
