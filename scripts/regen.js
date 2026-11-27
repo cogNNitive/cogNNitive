@@ -105,7 +105,9 @@ function syncCopies() {
   }
 }
 
-const guards = FRESHNESS_GUARDS.filter((g) => !WRITE_SKIPS.has(g.id));
+const guards = FRESHNESS_GUARDS.filter(
+  (g) => !WRITE_SKIPS.has(g.id) && fs.existsSync(path.join(repoRoot, g.script))
+);
 const generate = [
   ...guards.map((g) => [g.script]),
   ['scripts/generate-docs-facts.mjs'],

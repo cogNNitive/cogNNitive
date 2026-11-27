@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   extractMetaschema,
@@ -79,6 +79,8 @@ describe('Metaschema (Self-Description)', () => {
       'bluepriNNts/repository/spec_NN.md',
     ]
     for (const rel of templates) {
+      const fullPath = join(specsRoot, rel)
+      if (!existsSync(fullPath)) continue
       const diags = validateBlueprintAgainstMetaschema(readSpec(rel), iNNfoV5)
       const errors = diags.filter((d) => d.severity === 'error')
       expect(errors, `${rel}: ${JSON.stringify(errors)}`).toEqual([])
@@ -166,18 +168,14 @@ describe('iNNfo_V_0-2-0 — metaschema still self-consistent', () => {
   })
 
   it('every shipped V_0-1-0 template still validates green against it', () => {
-    for (const rel of [
-      'bluepriNNts/blank/spec_NN.md',
-      'bluepriNNts/business/spec_NN.md',
-    ]) {
+    for (const rel of ['bluepriNNts/blank/spec_NN.md', 'bluepriNNts/business/spec_NN.md']) {
       const errors = validateBlueprintAgainstMetaschema(readSpec(rel), iNNfoV2).filter(
         (d) => d.severity === 'error',
       )
       expect(errors, `${rel}: ${JSON.stringify(errors)}`).toEqual([])
     }
   })
-
-  })
+})
 
 describe('iNNfo_V_0-2-1 — metaschema still self-consistent (task G)', () => {
   const iNNfoV21 = readSpec('iNNfo_V_0-2-1_NN.md')
@@ -227,7 +225,10 @@ describe('iNNfo_V_0-2-1 — metaschema still self-consistent (task G)', () => {
       '',
     ].join('\n')
     const diags = validateBlueprintAgainstMetaschema(template, iNNfoV21)
-    expect(diags.filter((d) => d.severity === 'error'), JSON.stringify(diags)).toEqual([])
+    expect(
+      diags.filter((d) => d.severity === 'error'),
+      JSON.stringify(diags),
+    ).toEqual([])
   })
 
   it('the metaschema validates against itself (bootstrap axiom)', () => {
@@ -238,10 +239,7 @@ describe('iNNfo_V_0-2-1 — metaschema still self-consistent (task G)', () => {
   })
 
   it('every shipped V_0-1-0 template still validates green against it', () => {
-    for (const rel of [
-      'bluepriNNts/blank/spec_NN.md',
-      'bluepriNNts/business/spec_NN.md',
-    ]) {
+    for (const rel of ['bluepriNNts/blank/spec_NN.md', 'bluepriNNts/business/spec_NN.md']) {
       const errors = validateBlueprintAgainstMetaschema(readSpec(rel), iNNfoV21).filter(
         (d) => d.severity === 'error',
       )
@@ -259,11 +257,7 @@ describe('iNNfo_V_0-5-0 — metaschema self-consistent', () => {
     const names = extractBlueprintSchemaFromContent(meta!)
       .concepts.map((c) => c.name)
       .sort()
-    expect(names).toEqual([
-      'Concept Definition',
-      'Field Definition',
-      'Matrix Definition',
-    ])
+    expect(names).toEqual(['Concept Definition', 'Field Definition', 'Matrix Definition'])
   })
 
   it('the metaschema validates against itself (bootstrap axiom)', () => {

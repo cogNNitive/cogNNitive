@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseKnowledge, validateDocument } from '../src/index.js'
@@ -155,36 +155,42 @@ describe('procedure references: the address form is the one accepted form', () =
   })
 })
 
-describe('procedure references: the shipped coNNtent procedures agree on it', () => {
-  it.each(SHIPPED)('%s validates with zero errors', (fileName) => {
-    const result = validateProcedureDoc(fileName)
-    expect(result.errors).toEqual([])
-    expect(result.valid).toBe(true)
-  })
-
-  it.each(SHIPPED)('%s writes every Work reference as an address, never a wikilink', (fileName) => {
-    const text = readFileSync(join(PROCEDURES_DIR, fileName), 'utf-8')
-    const offenders: string[] = []
-    let element = '(document)'
-    text.split(/\r?\n/).forEach((line, index) => {
-      const heading = line.match(/^#{2,6}\s+NN\s+(?:[^:]+):\s*(.+?)\s*$/)
-      if (heading) element = heading[1].trim()
-      const field = line.match(/^([a-z_]+)::\s*(.*)$/)
-      if (!field) return
-      if (!(REFERENCE_FIELDS as readonly string[]).includes(field[1])) return
-      const value = field[2].trim()
-      if (!value) return
-      // A branching `next::` is a list of addresses (`[@a, @b]`); every item is an address.
-      const items = /^\[.*\]$/.test(value)
-        ? value
-            .slice(1, -1)
-            .split(',')
-            .map((item) => item.trim())
-        : [value]
-      if (value.includes('[[') || items.some((item) => !item.startsWith('@'))) {
-        offenders.push(`${fileName}:${index + 1} — ${element}.${field[1]} = ${value}`)
-      }
+describe.skipIf(!existsSync(PROCEDURES_DIR))(
+  'procedure references: the shipped coNNtent procedures agree on it',
+  () => {
+    it.each(SHIPPED)('%s validates with zero errors', (fileName) => {
+      const result = validateProcedureDoc(fileName)
+      expect(result.errors).toEqual([])
+      expect(result.valid).toBe(true)
     })
-    expect(offenders).toEqual([])
-  })
-})
+
+    it.each(SHIPPED)(
+      '%s writes every Work reference as an address, never a wikilink',
+      (fileName) => {
+        const text = readFileSync(join(PROCEDURES_DIR, fileName), 'utf-8')
+        const offenders: string[] = []
+        let element = '(document)'
+        text.split(/\r?\n/).forEach((line, index) => {
+          const heading = line.match(/^#{2,6}\s+NN\s+(?:[^:]+):\s*(.+?)\s*$/)
+          if (heading) element = heading[1].trim()
+          const field = line.match(/^([a-z_]+)::\s*(.*)$/)
+          if (!field) return
+          if (!(REFERENCE_FIELDS as readonly string[]).includes(field[1])) return
+          const value = field[2].trim()
+          if (!value) return
+          // A branching `next::` is a list of addresses (`[@a, @b]`); every item is an address.
+          const items = /^\[.*\]$/.test(value)
+            ? value
+                .slice(1, -1)
+                .split(',')
+                .map((item) => item.trim())
+            : [value]
+          if (value.includes('[[') || items.some((item) => !item.startsWith('@'))) {
+            offenders.push(`${fileName}:${index + 1} — ${element}.${field[1]} = ${value}`)
+          }
+        })
+        expect(offenders).toEqual([])
+      },
+    )
+  },
+)

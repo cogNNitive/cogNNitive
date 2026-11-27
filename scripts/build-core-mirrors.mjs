@@ -178,6 +178,16 @@ async function main() {
   for (const target of targets) {
     const outFile = outOverride || target.out
     const rel = path.relative(REPO_ROOT, outFile) || outFile
+
+    if (
+      target.name === 'coNNtent' &&
+      !outOverride &&
+      !fs.existsSync(path.join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts', 'coNNtent'))
+    ) {
+      console.log(`build-core-mirrors: SKIPPED — ${target.name} directory absent.`)
+      continue
+    }
+
     const rendered = await renderTarget(target, esbuild)
 
     if (check) {

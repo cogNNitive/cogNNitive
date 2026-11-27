@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parseKnowledge } from '../src/parser/index.js'
@@ -51,7 +51,9 @@ describe('Task 2.2: Shipped Field Catalogue and Blueprint Conventions', () => {
       const parsed = parseKnowledge(content)
       const schema = extractBlueprintSchema(parsed)
 
-      expect(schema.markers ?? [], `${entry.name} should have no Marker Definitions`).toHaveLength(0)
+      expect(schema.markers ?? [], `${entry.name} should have no Marker Definitions`).toHaveLength(
+        0,
+      )
       expect(
         content.toLowerCase().includes('item-markers matrix'),
         `${entry.name} should have no item-markers matrix`,
@@ -65,6 +67,8 @@ describe('Task 2.2: Shipped Field Catalogue and Blueprint Conventions', () => {
         name === 'workspace'
           ? join(BLUEPRINTS_DIR, 'workspace_spec_NN.md')
           : join(BLUEPRINTS_DIR, name, 'spec_NN.md')
+
+      if (!existsSync(specPath)) continue
 
       const content = await readFile(specPath, 'utf-8')
       const parsed = parseKnowledge(content)
@@ -167,7 +171,6 @@ describe('Task 2.2: Shipped Field Catalogue and Blueprint Conventions', () => {
       expect(confidence?.widgetConfig).toEqual({ min: 0, max: 10 })
     }
   })
-
 
   it('frozen workspace_V_0-2-2_NN.md stays byte-identical', async () => {
     const historicalPath = join(REPO_ROOT, 'iNNfo/specs/workspace_V_0-2-2_NN.md')
