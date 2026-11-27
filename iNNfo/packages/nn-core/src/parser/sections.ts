@@ -127,6 +127,7 @@ export interface ParsedConceptSection {
   fields?: Record<string, unknown>
   rawFields?: Record<string, string>
   warnings?: string[]
+  unknownConstructs?: string[]
 }
 
 export function parseConceptSection(conceptName: string, content: string): ParsedConceptSection {
@@ -160,7 +161,10 @@ export function parseConceptSection(conceptName: string, content: string): Parse
     }
 
     // Maintain heading stack: pop entries with depth >= current heading depth
-    while (headingStack.length > 0 && headingStack[headingStack.length - 1].depth >= heading.depth) {
+    while (
+      headingStack.length > 0 &&
+      headingStack[headingStack.length - 1].depth >= heading.depth
+    ) {
       headingStack.pop()
     }
 
@@ -202,12 +206,20 @@ export function parseConceptSection(conceptName: string, content: string): Parse
   const rawConceptFields: Record<string, string> = {}
   let inConceptPrologueProperties = true
   const warnings: string[] = []
+  const unknownConstructs: string[] = []
 
   for (const line of lines) {
     // Unified element heading: `#{2,6} NN Concept: Element`
     const heading = parseElementHeadingFull(line)
     if (heading !== null) {
       current = startElement(heading)
+      continue
+    }
+
+    // Detect malformed/unknown NN element headings: `#{2,6} NN <invalid>`
+    const malformedNnHeading = line.match(/^\s*(#{2,6})\s+NN\s+(.*)$/)
+    if (malformedNnHeading) {
+      unknownConstructs.push(`NN ${malformedNnHeading[2].trim()}`)
       continue
     }
 
@@ -226,7 +238,10 @@ export function parseConceptSection(conceptName: string, content: string): Parse
         if (prop[0] === 'slug') {
           current.slug = String(prop[1])
           current.slugExplicit = true
-          if (headingStack.length > 0 && headingStack[headingStack.length - 1].name === current.name) {
+          if (
+            headingStack.length > 0 &&
+            headingStack[headingStack.length - 1].name === current.name
+          ) {
             headingStack[headingStack.length - 1].slug = current.slug
           }
         } else {
@@ -287,6 +302,7 @@ export function parseConceptSection(conceptName: string, content: string): Parse
     fields: Object.keys(conceptFields).length > 0 ? conceptFields : undefined,
     rawFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : undefined,
     warnings: warnings.length > 0 ? warnings : undefined,
+    unknownConstructs: unknownConstructs.length > 0 ? unknownConstructs : undefined,
   }
 }
 

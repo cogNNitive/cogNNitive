@@ -377,6 +377,8 @@ export interface ParsedKnowledge {
   slugCollisions?: Array<{ slug: string; elements: string[]; concept: string }>
   /** Non-fatal parse warnings (e.g. deprecated features). */
   parseWarnings?: string[]
+  /** Unknown constructs detected in the document (D7). Refused at load time. */
+  unknownConstructs?: string[]
   /** Field values applied to Concept sections directly (not individual elements) */
   conceptFields?: Record<string, Record<string, unknown>>
   /** Exact source text of each concept-level field RHS */

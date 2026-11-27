@@ -149,6 +149,7 @@ export function parseKnowledge(content: string): ParsedKnowledge {
   const rawOtherSections: Record<string, string> = {}
   const sectionOrder: string[] = []
   const sectionBlankLine: Record<string, boolean> = {}
+  const unknownConstructs: string[] = []
 
   for (const section of sections) {
     const headerMatch = section.match(/^#\s+(.*)$/m)
@@ -157,6 +158,17 @@ export function parseKnowledge(content: string): ParsedKnowledge {
     const type = getSectionType(rawTitle)
     const name = sectionTitle(rawTitle)
     const bodyContent = section.replace(/^#\s+.*$/m, '').trim()
+
+    // Detect unknown # NN constructs
+    if (rawTitle.startsWith('NN ')) {
+      const rest = rawTitle.slice(3).trim()
+      const lower = rest.toLowerCase()
+      const isIndex = lower === 'index' || lower === 'taxonomy'
+      const isMatrix = lower.startsWith('matrices:')
+      if (!isIndex && !isMatrix && rest.includes(':')) {
+        unknownConstructs.push(rawTitle)
+      }
+    }
 
     // AD-2: record document order of top-level `# NN` sections so
     // `serializeKnowledge` can walk them back in the author's original order,
@@ -193,6 +205,9 @@ export function parseKnowledge(content: string): ParsedKnowledge {
       }
     } else if (type === 'concept') {
       const parsed = parseConceptSection(name, bodyContent)
+      if (parsed.unknownConstructs) {
+        unknownConstructs.push(...parsed.unknownConstructs)
+      }
       if (parsed.elements.length > 0) {
         for (const el of parsed.elements) {
           const targetConcept = el.type || name
@@ -217,7 +232,10 @@ export function parseKnowledge(content: string): ParsedKnowledge {
       // concepts (e.g. `text`) keep their free-form Markdown here. Empty
       // sections are skipped so ghost detection still flags no-content
       // concepts.
-      if (parsed.elements.length === 0 && (parsed.content || (!parsed.fields && bodyContent.trim()))) {
+      if (
+        parsed.elements.length === 0 &&
+        (parsed.content || (!parsed.fields && bodyContent.trim()))
+      ) {
         rawSections[name] = parsed.content ? parsed.content : bodyContent
       }
     } else if (type === 'matrix') {
@@ -261,6 +279,7 @@ export function parseKnowledge(content: string): ParsedKnowledge {
     matrices,
     slugCollisions,
     parseWarnings: parseWarnings.length > 0 ? parseWarnings : undefined,
+    unknownConstructs: unknownConstructs.length > 0 ? unknownConstructs : undefined,
     conceptFields: Object.keys(conceptFields).length > 0 ? conceptFields : undefined,
     rawConceptFields: Object.keys(rawConceptFields).length > 0 ? rawConceptFields : undefined,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : undefined,
