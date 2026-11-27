@@ -13,7 +13,7 @@ import {
 import { inheritedEvidenceShas } from '../changeset/execution-facts.js'
 import type { FileSnapshot } from '../queryUnits.js'
 import { isNNName, isSidecarName, isUnderRootSources, parseName } from '../naming/contract.js'
-import { parseChangeset } from '../changeset/parser.js'
+import { parsedChangesetOf, type SnapshotParses } from '../lineage/snapshot-parses.js'
 import { splitEvidence } from '../changeset/evidence.js'
 import { slugifyHeading } from '../sourceRef.js'
 import { createChangeLog, type ChangeLog, type LoggedChange } from './index.js'
@@ -80,17 +80,19 @@ export function isChangesetPath(path: string): boolean {
   return parsed.kind === 'nn' && parsed.stem.endsWith('_changes')
 }
 
-/** Parses the changeset documents of a workspace snapshot; other files are ignored. */
-export function parseChangesetSnapshots(files: ReadonlyArray<FileSnapshot>): ChangesetLike[] {
+/**
+ * Parses the changeset documents of a workspace snapshot; other files are ignored. With
+ * `parses`, a changeset already parsed for this snapshot is reused and a new parse is recorded.
+ */
+export function parseChangesetSnapshots(
+  files: ReadonlyArray<FileSnapshot>,
+  parses?: SnapshotParses,
+): ChangesetLike[] {
   const changesets: ChangesetLike[] = []
   for (const file of files) {
     if (!isChangesetPath(file.path)) continue
-    let doc
-    try {
-      doc = parseChangeset(file.content)
-    } catch {
-      continue
-    }
+    const doc = parsedChangesetOf(parses, file.path, file.content)
+    if (doc === null) continue
     changesets.push(changesetLikeOf(file.path, doc))
   }
   return changesets
@@ -254,9 +256,12 @@ export function buildChangeLogFromChangesets(changesets: ReadonlyArray<Changeset
   return createChangeLog(changes)
 }
 
-/** Builds the log over a workspace snapshot. */
-export function buildChangeLog(files: ReadonlyArray<FileSnapshot>): ChangeLog {
-  return buildChangeLogFromChangesets(parseChangesetSnapshots(files))
+/** Builds the log over a workspace snapshot; `parses` shares the snapshot's changeset parses. */
+export function buildChangeLog(
+  files: ReadonlyArray<FileSnapshot>,
+  parses?: SnapshotParses,
+): ChangeLog {
+  return buildChangeLogFromChangesets(parseChangesetSnapshots(files, parses))
 }
 
 export type { ChangeItem }

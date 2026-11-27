@@ -9,9 +9,7 @@
  * pending change from it (`checkStaleTarget`). The log orders changes with
  * `compareChanges`, never by filename, and is never bounded by a count.
  */
-import { readdir, readFile } from 'node:fs/promises'
-import { join } from 'node:path'
-import { parseChangeset } from './parser.js'
+import { readChangesDir } from './changeset-index.js'
 import { compareVersions } from '../workspace/integrity/versionStatus.js'
 import { slugify } from '../parser/slug.js'
 import { buildChangeLogFromChangesets, changesetLikeOf, type ChangesetLike } from '../changelog/load.js'
@@ -45,29 +43,12 @@ export interface StalenessHistory {
 export async function loadStalenessHistory(changesDir: string): Promise<StalenessHistory> {
   const changesets: ChangesetLike[] = []
   const transitionsByPath: StalenessHistory['transitions'] = new Map()
-  let entries: string[]
-  try {
-    entries = await readdir(changesDir)
-  } catch {
-    return { log: buildChangeLogFromChangesets([]), transitions: transitionsByPath }
-  }
+  // Through the persistent changeset index: only new or changed files are parsed.
+  const read = readChangesDir(changesDir, (file) => file.endsWith('.md') && !file.startsWith('.'))
 
-  const files = entries.filter((file) => file.endsWith('.md') && !file.startsWith('.'))
-
-  for (const filename of files) {
-    let content: string
-    try {
-      content = await readFile(join(changesDir, filename), 'utf-8')
-    } catch {
-      continue
-    }
-    let doc
-    try {
-      doc = parseChangeset(content)
-    } catch {
-      continue
-    }
-    const path = `changes/${filename}`
+  for (const { name, doc } of read) {
+    if (doc === null) continue
+    const path = `changes/${name}`
     const fm = doc.frontmatter
     changesets.push(changesetLikeOf(path, doc))
     const transitions = new Map<string, VersionTransition>()

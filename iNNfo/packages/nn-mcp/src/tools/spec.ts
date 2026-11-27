@@ -24,6 +24,7 @@ import {
   procedureIdOf,
   resolveProcedures,
   isDomainRoot,
+  isDomainChangesDir,
 } from '@cognnitive/nn-core'
 import { listScopedProcedures } from './scoped-procedures.js'
 import type { ScopedProceduresResult } from './scoped-procedures.js'
@@ -74,7 +75,7 @@ export function deriveNameFromUrl(url: string): string {
 
 import { normalizeId } from './list-read.js'
 import { isSafeRelativeId } from './path-guard.js'
-import { buildNodeDomainIndex } from './domain-index.js'
+import { buildNodeDomainIndex, type NodeDomainIndex } from './domain-index.js'
 
 export { normalizeId }
 
@@ -104,7 +105,7 @@ async function collectDomainFiles(
   dir: string,
   rootDir: string,
   relPaths: string[],
-  opts?: { includeSpecs?: boolean },
+  opts?: { includeSpecs?: boolean; includeChanges?: boolean },
   depth = 0,
 ): Promise<void> {
   if (depth > 8) return
@@ -117,6 +118,8 @@ async function collectDomainFiles(
         ? ['node_modules', '.git', 'dist', '.spec-cache', 'backups', 'archive']
         : ['node_modules', '.git', 'dist', '.spec-cache', 'specs', 'backups', 'archive']
       if (skip.includes(nameLower)) continue
+      // The root's change ledger holds only changesets: listed only when a changeset is asked for.
+      if (depth === 0 && !opts?.includeChanges && isDomainChangesDir(entry.name)) continue
       const child = join(dir, entry.name)
       if (isDomainRoot(child)) continue
 
@@ -141,11 +144,16 @@ async function collectDomainFiles(
  * A document that is not a model (domaiNN entrypoint, plain document) is found
  * by its stem without `_NN`. `includeSpecs` also searches `specs/`, where paths
  * are accepted (specs are documents, not models).
+ *
+ * `index` is a domain index the caller already built for `rootDir` IN THE SAME
+ * tool call (`buildNodeDomainIndex(rootDir)`, default options), so a call that
+ * resolves many ids builds it once. Never keep one across calls: other
+ * processes write the domaiNN, and a long-lived index would serve stale paths.
  */
 export async function findKnowledgeFile(
   rootDir: string,
   id: string,
-  opts?: { includeSpecs?: boolean },
+  opts?: { includeSpecs?: boolean; index?: NodeDomainIndex },
 ): Promise<string | null> {
   if (!isSafeRelativeId(id)) return null
   const wanted = id.trim()
@@ -155,7 +163,7 @@ export async function findKnowledgeFile(
   const bare = wanted.replace(/\.md$/i, '').replace(/(_NN)+$/i, '')
 
   if (!opts?.includeSpecs) {
-    const { index, pathOf, discovered } = await buildNodeDomainIndex(rootDir)
+    const { index, pathOf, discovered } = opts?.index ?? (await buildNodeDomainIndex(rootDir))
     const exact = pathOf(bare)
     if (exact) return exact
     const lower = bare.toLowerCase()
@@ -170,9 +178,9 @@ export async function findKnowledgeFile(
     }
     // Not a model: look among the documents that discovery does not list.
     const modelPaths = new Set(discovered.map((d) => d.path))
-    return await findDocument(rootDir, bare, modelPaths, opts)
+    return await findDocument(rootDir, bare, modelPaths, { includeSpecs: opts?.includeSpecs })
   }
-  return await findDocument(rootDir, bare, new Set(), opts)
+  return await findDocument(rootDir, bare, new Set(), { includeSpecs: opts?.includeSpecs })
 }
 
 /** A non-model document whose stem (or domain-relative path) without `_NN` equals `bare`. */
@@ -183,7 +191,10 @@ async function findDocument(
   opts?: { includeSpecs?: boolean },
 ): Promise<string | null> {
   const relPaths: string[] = []
-  await collectDomainFiles(rootDir, rootDir, relPaths, opts)
+  // Every changeset is named `<prefix>_<author>_<stamp>_changes_NN.md`, so only a `_changes`
+  // stem can name one; any other lookup leaves the (possibly huge) ledger unlisted.
+  const includeChanges = /_changes$/i.test(bare)
+  await collectDomainFiles(rootDir, rootDir, relPaths, { ...opts, includeChanges })
   const lower = bare.toLowerCase()
   const strip = (p: string) => p.replace(/\.md$/i, '').replace(/(_NN)+$/i, '').toLowerCase()
   const hits = relPaths.filter((rel) => {

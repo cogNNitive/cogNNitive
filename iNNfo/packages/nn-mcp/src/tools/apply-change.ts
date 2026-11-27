@@ -24,6 +24,7 @@ import {
   computeProposalSha,
   verifyProposalSha,
   parseChangeset,
+  readChangesDir,
   serializeChangeset,
   resolveBatchSlugs,
   evaluateBatchDeleteImpact,
@@ -487,21 +488,9 @@ function hasUnfrozenElements(model: ParsedKnowledge): boolean {
 
 /** True when an applied `produce_artifact` already records `rel`. */
 async function artifactAlreadyRecorded(rootDir: string, rel: string): Promise<boolean> {
-  const dir = join(rootDir, 'changes')
-  let names: string[]
-  try {
-    names = await readdir(dir)
-  } catch {
-    return false
-  }
-  for (const name of names) {
-    if (!isNNName(name)) continue
-    let doc: ChangesetDocument
-    try {
-      doc = parseChangeset(await readFile(join(dir, name), 'utf-8'))
-    } catch {
-      continue
-    }
+  // Through the persistent changeset index: only new or changed files are parsed.
+  for (const { name, doc } of readChangesDir(join(rootDir, 'changes'), isNNName)) {
+    if (doc === null) continue
     const changeset = changesetLikeOf(`changes/${name}`, doc)
     for (const change of doc.changes) {
       if (
@@ -633,21 +622,10 @@ async function evidenceShas(
 
 /** The latest `applied_at` of any recorded changeset, or `undefined`. */
 async function latestAppliedAt(changesDir: string): Promise<string | undefined> {
-  let names: string[]
-  try {
-    names = await readdir(changesDir)
-  } catch {
-    return undefined
-  }
   let latest: string | undefined
-  for (const name of names) {
-    if (!isNNName(name)) continue
-    let doc: ChangesetDocument
-    try {
-      doc = parseChangeset(await readFile(join(changesDir, name), 'utf-8'))
-    } catch {
-      continue
-    }
+  // Through the persistent changeset index: only new or changed files are parsed.
+  for (const { doc } of readChangesDir(changesDir, isNNName)) {
+    if (doc === null) continue
     const candidates = [doc.frontmatter.applied_at, ...doc.changes.map((c) => c.applied_at)]
     for (const value of candidates) {
       if (

@@ -19,6 +19,7 @@ import type {
   SlotDecl,
 } from '@cognnitive/nn-core'
 import { findKnowledgeFile } from './spec.js'
+import type { NodeDomainIndex } from './domain-index.js'
 import { listScopedProcedures } from './scoped-procedures.js'
 import { listInstalledProcedures } from './floor-procedures.js'
 import { readHandoff } from './run-handoff.js'
@@ -177,16 +178,21 @@ export interface RunRecord extends RunModel {
   closed: boolean
 }
 
-/** Reads a run instance model: its header and its step and artifact rows. */
+/**
+ * Reads a run instance model: its header and its step and artifact rows. `index` is a domain
+ * index built for `root` earlier in the same tool call (see `findKnowledgeFile`), so a sweep
+ * over many runs resolves them all against one index.
+ */
 export async function readRun(
   root: string,
   run: unknown,
+  opts: { index?: NodeDomainIndex } = {},
 ): Promise<{ ok: true; run: RunRecord } | ToolError> {
   if (typeof run !== 'string' || run.trim() === '')
     return fail('INVALID_ARGUMENT', 'run must be a non-empty run id.')
   let file: string | null
   try {
-    file = await findKnowledgeFile(root, run.trim())
+    file = await findKnowledgeFile(root, run.trim(), { index: opts.index })
   } catch {
     file = null
   }
