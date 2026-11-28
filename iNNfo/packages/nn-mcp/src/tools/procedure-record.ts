@@ -1,6 +1,5 @@
 import { spawn } from 'node:child_process'
-import { createHash } from 'node:crypto'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   DEFAULT_MAX_ATTEMPTS,
@@ -20,6 +19,7 @@ import { applyChange } from './apply-change.js'
 import { writeProposedChangeset } from './propose-changeset.js'
 import { findKnowledgeFile } from './spec.js'
 import { artifactRowChange, stageOutputs, writeOutputs } from './run-outputs.js'
+import { artifactFileRev, artifactPathCandidate, resolveArtifactPath } from './artifact-path.js'
 import { loadDeclarations } from './domain-index.js'
 import {
   describeRun,
@@ -737,19 +737,15 @@ function plan(
       let fileRevValue: string | undefined
       let effectiveValue = value
       if (kind === 'file') {
-        const slots = slotValuesOf(f.run)
-        const declaredAt = substitute(f.graph.artifacts[field]!.at, slots)
-        const verify = substitute(f.graph.artifacts[field]!.verify, slots)
-        const verifyFile = verify?.startsWith('file:')
-          ? verify.slice('file:'.length).trim()
-          : undefined
-        const filePath = (value ?? (declaredAt?.trim() || undefined) ?? verifyFile)?.replace(
-          /\\/g,
-          '/',
-        )
+        const candidate = artifactPathCandidate(f.graph.artifacts[field], f.run, value)
+        const resolved = candidate ? resolveArtifactPath(root, field, candidate) : undefined
+        if (resolved && 'ok' in resolved) return resolved
+        const filePath = resolved?.path
         if (filePath) {
+          const onDisk = artifactFileRev(root, field, filePath)
+          if ('ok' in onDisk) return onDisk
+          const actualRev = onDisk.rev
           if (status === 'validated') {
-            const actualRev = fileRev(root, filePath)
             if (!actualRev) {
               return fail(
                 'FILE_NOT_FOUND',
@@ -767,7 +763,6 @@ function plan(
             fileRevValue = actualRev
             effectiveValue = filePath
           } else {
-            const actualRev = fileRev(root, filePath)
             if (actualRev) {
               if (rev !== undefined && rev.trim() !== '' && rev.trim() !== actualRev) {
                 return fail(
@@ -1035,18 +1030,14 @@ function plan(
     if (!artDef || artDef.kind !== 'file') continue
     const artRow = f.run.artifacts[slug]
     if (artRow?.status === 'validated') {
-      const slots = slotValuesOf(f.run)
-      const declaredAt = substitute(artDef.at, slots)
-      const verify = substitute(artDef.verify, slots)
-      const verifyFile = verify?.startsWith('file:')
-        ? verify.slice('file:'.length).trim()
-        : undefined
-      const filePath = (artRow.value ?? (declaredAt?.trim() || undefined) ?? verifyFile)?.replace(
-        /\\/g,
-        '/',
-      )
-      if (!filePath) continue
-      const actualRev = fileRev(root, filePath)
+      const candidate = artifactPathCandidate(artDef, f.run, artRow.value)
+      if (!candidate) continue
+      const resolved = resolveArtifactPath(root, slug, candidate)
+      if ('ok' in resolved) return resolved
+      const filePath = resolved.path
+      const onDisk = artifactFileRev(root, slug, filePath)
+      if ('ok' in onDisk) return onDisk
+      const actualRev = onDisk.rev
       if (!actualRev) {
         return fail(
           'FILE_NOT_FOUND',
@@ -1110,13 +1101,6 @@ function plan(
       },
     ],
   }
-}
-
-/** sha256 of a file the `file:<path>` verify names, relative to the domain root; undefined when absent. */
-function fileRev(root: string, path: string): string | undefined {
-  const abs = join(root, path)
-  if (!existsSync(abs)) return undefined
-  return createHash('sha256').update(readFileSync(abs)).digest('hex')
 }
 
 /**
@@ -1320,13 +1304,18 @@ function planEngineRun(
     for (const slug of def.outputs) {
       const declaredAt = substitute(f.graph.artifacts[slug]?.at, slots)
       const verify = substitute(f.graph.artifacts[slug]?.verify, slots)
-      const path = verify?.startsWith('file:')
+      const candidate = verify?.startsWith('file:')
         ? verify.slice('file:'.length).trim()
         : f.graph.artifacts[slug]?.kind === 'file'
           ? declaredAt?.trim()
           : undefined
-      if (!path) continue
-      const rev = fileRev(root, path)
+      if (!candidate) continue
+      // A path outside the domaiNN, a model or a directory is never hashed: the step did
+      // not produce a file the run can pin, so the output is rejected like a missing one.
+      const resolved = resolveArtifactPath(root, slug, candidate)
+      const path = 'ok' in resolved ? candidate.replace(/\\/g, '/') : resolved.path
+      const onDisk = 'ok' in resolved ? resolved : artifactFileRev(root, slug, path)
+      const rev = 'ok' in onDisk ? undefined : onDisk.rev
       if (rev)
         artifactChanges.push({
           op: 'set_fields',
@@ -1680,7 +1669,7 @@ export async function procedureRecord(
       )
     const located = stepFor(target, effectiveArgs)
     if (located.ok) {
-      const outputs = stageOutputs(target, located.step, effectiveArgs['outputs'])
+      const outputs = stageOutputs(root, target, located.step, effectiveArgs['outputs'])
       if ('ok' in outputs) return rejectRequest(root, read, requestId, outputs)
       const overlaid = await foldStoredRun(root, outputs.run)
       if (!overlaid.ok) return overlaid

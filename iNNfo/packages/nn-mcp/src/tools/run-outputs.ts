@@ -3,7 +3,8 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type { ChangeItem } from '@cognnitive/nn-core'
-import { fail, slotValuesOf, substitute } from './procedure-state.js'
+import { artifactPathCandidate, resolveArtifactPath } from './artifact-path.js'
+import { fail } from './procedure-state.js'
 import type { FoldedRun, ToolError } from './procedure-state.js'
 
 /**
@@ -11,7 +12,11 @@ import type { FoldedRun, ToolError } from './procedure-state.js'
  * step's `file` output travels with the completion, as `requested_outputs` on a `complete`
  * Step Request or as the `outputs` argument of `procedure_record`. The runner keeps it private
  * to the run, at `executions/<run>/outputs/<slug>/<name>`, and records the artifact row in the
- * same atomic changeset as the completion. Nothing is written outside the run folder.
+ * same atomic changeset as the completion. An artifact that declares `at` is written at that
+ * path instead, its slots filled from the run params. Either path must pass the containment
+ * rule of `resolveArtifactPath` (relative, inside the domaiNN, not a `*_NN.md` model), checked
+ * for every output before anything is written, so nothing is written outside the domaiNN root
+ * and no model is overwritten without a changeset.
  */
 
 /** The largest text one output may carry, in UTF-8 bytes. */
@@ -81,6 +86,7 @@ export const artifactRowChange = (
  * with those rows applied, so the completion is planned against what it records.
  */
 export function stageOutputs(
+  root: string,
   f: FoldedRun,
   step: string,
   raw: unknown,
@@ -121,12 +127,17 @@ export function stageOutputs(
         `Output "${slug}" holds ${bytes.length} bytes; the limit is ${MAX_OUTPUT_BYTES}.`,
         { artifact: slug, bytes: bytes.length, limit: MAX_OUTPUT_BYTES },
       )
-    const declaredAt = f.graph.artifacts[slug]?.at
-    const atSubstituted = declaredAt ? substitute(declaredAt, slotValuesOf(f.run)) : undefined
-    const path =
-      atSubstituted && atSubstituted.trim() !== ''
-        ? atSubstituted.trim().replace(/\\/g, '/')
-        : `executions/${f.run.id}/outputs/${slug}/${outputFileName(slug, name)}`
+    const decl = f.graph.artifacts[slug]
+    const declaredAt = decl?.at
+      ? artifactPathCandidate({ ...decl, verify: undefined }, f.run)
+      : undefined
+    const resolved = resolveArtifactPath(
+      root,
+      slug,
+      declaredAt ?? `executions/${f.run.id}/outputs/${slug}/${outputFileName(slug, name)}`,
+    )
+    if ('ok' in resolved) return resolved
+    const path = resolved.path
     outputs.push({
       slug,
       path,
