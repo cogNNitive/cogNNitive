@@ -8,7 +8,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { consoleHtml, consoleBundle, consoleMembers } from '../test/helpers/console-artifacts.mjs'
-import { runExportConsole, writeConsole, decodeConsoleModelText } from './export-console.mjs'
+import {
+  runExportConsole,
+  writeConsole,
+  decodeConsoleModelText,
+  writeFileAtomic,
+} from './export-console.mjs'
 import { createHash } from 'node:crypto'
 import { withDecodedModel } from './lib/console-fixture-freshness.js'
 
@@ -36,10 +41,14 @@ function computeHash(str) {
 async function runCli(args, opts = {}) {
   if (opts.env || opts.subprocess) {
     try {
-      const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args, '--no-open'], {
-        cwd: opts.cwd || process.cwd(),
-        env: { ...process.env, ...opts.env },
-      })
+      const { stdout, stderr } = await execFileAsync(
+        process.execPath,
+        [scriptPath, ...args, '--no-open'],
+        {
+          cwd: opts.cwd || process.cwd(),
+          env: { ...process.env, ...opts.env },
+        },
+      )
       return { code: 0, stdout, stderr }
     } catch (err) {
       return {
@@ -57,7 +66,10 @@ describe('export-console CLI test suite', () => {
   let tempDir
 
   it('ignores *_NN.md notes with no frontmatter instead of crashing the domain export', async () => {
-    await writeFile(join(tempDir, 'models', 'handoff_NN.md'), '# Handoff\n\nPlain notes without a model header.\n')
+    await writeFile(
+      join(tempDir, 'models', 'handoff_NN.md'),
+      '# Handoff\n\nPlain notes without a model header.\n',
+    )
     const result = await runCli([tempDir, '--domain'])
     assert.equal(result.code, 0, result.stderr)
   })
@@ -128,7 +140,10 @@ level: 3
       assert.equal(typeof res.stderr, 'string')
       assert.ok(Array.isArray(res.writtenFiles))
       assert.ok(res.writtenFiles.length >= 1, 'a successful export reports its written file(s)')
-      assert.ok(res.writtenFiles.every((f) => existsSync(f)), 'each writtenFiles entry exists on disk')
+      assert.ok(
+        res.writtenFiles.every((f) => existsSync(f)),
+        'each writtenFiles entry exists on disk',
+      )
     })
 
     it('reports invalid flags with a non-zero exit code instead of terminating', async () => {
@@ -367,7 +382,11 @@ notes:: "Please review the tagline"
       assert.match(res.stdout, /business_V_0-2-5_NN\.md\s+\[uncompiled\]/)
       assert.match(res.stdout, /procedures_V_0-1-0_NN\.md\s+\[uncompiled\]/)
       assert.match(res.stdout, /metrics_V_0-1-0_NN\.md\s+\[uncompiled\]/)
-      assert.equal(existsSync(join(tempDir, 'artifacts')), false, 'Status check must not create artifacts dir')
+      assert.equal(
+        existsSync(join(tempDir, 'artifacts')),
+        false,
+        'Status check must not create artifacts dir',
+      )
 
       // Compile business model
       const compileRes = await runCli([tempDir, 'business'])
@@ -380,7 +399,10 @@ notes:: "Please review the tagline"
       assert.match(res.stdout, /procedures_V_0-1-0_NN\.md\s+\[uncompiled\]/)
 
       // Modify business model without updating version -> stale
-      const currentContent = await readFile(join(tempDir, 'models', 'business_V_0-2-5_NN.md'), 'utf-8')
+      const currentContent = await readFile(
+        join(tempDir, 'models', 'business_V_0-2-5_NN.md'),
+        'utf-8',
+      )
       await writeFile(
         join(tempDir, 'models', 'business_V_0-2-5_NN.md'),
         currentContent + '\n## NN Stakeholders: Partner\n  slug:: partner\n  budget:: "$10k"\n',
@@ -392,8 +414,14 @@ notes:: "Please review the tagline"
       assert.match(res.stdout, /business_V_0-2-5_NN\.md\s+\[stale\]/)
 
       // Bump version in model frontmatter without recompiling -> version_mismatch
-      const modifiedContent = await readFile(join(tempDir, 'models', 'business_V_0-2-5_NN.md'), 'utf-8')
-      const bumpedContent = modifiedContent.replace('knowledge_version: "V_0-2-5"', 'knowledge_version: "V_0-3-0"')
+      const modifiedContent = await readFile(
+        join(tempDir, 'models', 'business_V_0-2-5_NN.md'),
+        'utf-8',
+      )
+      const bumpedContent = modifiedContent.replace(
+        'knowledge_version: "V_0-2-5"',
+        'knowledge_version: "V_0-3-0"',
+      )
       await writeFile(join(tempDir, 'models', 'business_V_0-2-5_NN.md'), bumpedContent, 'utf-8')
 
       res = await runCli([tempDir, '--status'])
@@ -426,10 +454,11 @@ notes:: "Please review the tagline"
       const html = await readFile(join(tempDir, 'artifacts', families[0], members[0]), 'utf-8')
       const model = JSON.parse(modelSlotMatch(html)[1])
       assert.equal(model.meta.consoleScope.models.length, 3)
-      assert.deepEqual(
-        model.meta.models.map((m) => m.filePath).sort(),
-        ['models/business_V_0-2-5_NN.md', 'models/procedures_V_0-1-0_NN.md', 'subdomains/metrics_V_0-1-0_NN.md'],
-      )
+      assert.deepEqual(model.meta.models.map((m) => m.filePath).sort(), [
+        'models/business_V_0-2-5_NN.md',
+        'models/procedures_V_0-1-0_NN.md',
+        'subdomains/metrics_V_0-1-0_NN.md',
+      ])
     })
 
     it('exports only stale or uncompiled models with --stale', async () => {
@@ -444,7 +473,11 @@ notes:: "Please review the tagline"
       // Modify procedures model
       const procFile = join(tempDir, 'models', 'procedures_V_0-1-0_NN.md')
       const content = await readFile(procFile, 'utf-8')
-      await writeFile(procFile, content + '\n## NN Procedure: Offboarding\n  slug:: offboarding\n', 'utf-8')
+      await writeFile(
+        procFile,
+        content + '\n## NN Procedure: Offboarding\n  slug:: offboarding\n',
+        'utf-8',
+      )
 
       // Now --stale should compile only procedures
       res = await runCli([tempDir, '--stale'])
@@ -537,10 +570,7 @@ notes:: "Please review the tagline"
         { cwd: tempDir },
       )
       assert.match(stdout, /business_V_0-2-5_console(?:_\d{8}T\d{6}Z(?:-\d+)?)?\.html/)
-      assert.equal(
-        existsSync(consoleHtml(tempDir, 'business_V_0-2-5')),
-        true,
-      )
+      assert.equal(existsSync(consoleHtml(tempDir, 'business_V_0-2-5')), true)
     })
 
     it('falls back to the legacy artifact_blueprint.html name in an installed console dir', async () => {
@@ -553,9 +583,18 @@ notes:: "Please review the tagline"
       await copyFile(resolve(here, 'export-console.mjs'), join(toolsDir, 'export-console.mjs'))
       await copyFile(resolve(here, 'console-views.mjs'), join(toolsDir, 'console-views.mjs'))
       // Installs made before the shell rename only carry the old filename.
-      await copyFile(join(consoleSrc, 'artifact_shell.html'), join(assetsDir, 'artifact_blueprint.html'))
-      await copyFile(join(consoleSrc, 'nn-console.bundle.js'), join(assetsDir, 'nn-console.bundle.js'))
-      await copyFile(join(consoleSrc, 'console-payload.generated.cjs'), join(assetsDir, 'console-payload.generated.cjs'))
+      await copyFile(
+        join(consoleSrc, 'artifact_shell.html'),
+        join(assetsDir, 'artifact_blueprint.html'),
+      )
+      await copyFile(
+        join(consoleSrc, 'nn-console.bundle.js'),
+        join(assetsDir, 'nn-console.bundle.js'),
+      )
+      await copyFile(
+        join(consoleSrc, 'console-payload.generated.cjs'),
+        join(assetsDir, 'console-payload.generated.cjs'),
+      )
       await copyFile(join(consoleSrc, 'nn-ui.css'), join(assetsDir, 'nn-ui.css'))
 
       const { stdout } = await execFileAsync(
@@ -564,10 +603,7 @@ notes:: "Please review the tagline"
         { cwd: tempDir, env: { ...process.env, INNFO_CONSOLE_DIR: assetsDir } },
       )
       assert.match(stdout, /business_V_0-2-5_console(?:_\d{8}T\d{6}Z(?:-\d+)?)?\.html/)
-      assert.equal(
-        existsSync(consoleHtml(tempDir, 'business_V_0-2-5')),
-        true,
-      )
+      assert.equal(existsSync(consoleHtml(tempDir, 'business_V_0-2-5')), true)
     })
 
     it('prefers artifact_shell.html over the legacy name when both exist in a dir', async () => {
@@ -579,11 +615,23 @@ notes:: "Please review the tagline"
       await mkdir(toolsDir, { recursive: true })
       await copyFile(resolve(here, 'export-console.mjs'), join(toolsDir, 'export-console.mjs'))
       await copyFile(resolve(here, 'console-views.mjs'), join(toolsDir, 'console-views.mjs'))
-      await copyFile(join(consoleSrc, 'artifact_shell.html'), join(assetsDir, 'artifact_shell.html'))
+      await copyFile(
+        join(consoleSrc, 'artifact_shell.html'),
+        join(assetsDir, 'artifact_shell.html'),
+      )
       const shell = await readFile(join(consoleSrc, 'artifact_shell.html'), 'utf-8')
-      await writeFile(join(assetsDir, 'artifact_blueprint.html'), shell.replace('<title>', '<title>STALE-LEGACY '))
-      await copyFile(join(consoleSrc, 'nn-console.bundle.js'), join(assetsDir, 'nn-console.bundle.js'))
-      await copyFile(join(consoleSrc, 'console-payload.generated.cjs'), join(assetsDir, 'console-payload.generated.cjs'))
+      await writeFile(
+        join(assetsDir, 'artifact_blueprint.html'),
+        shell.replace('<title>', '<title>STALE-LEGACY '),
+      )
+      await copyFile(
+        join(consoleSrc, 'nn-console.bundle.js'),
+        join(assetsDir, 'nn-console.bundle.js'),
+      )
+      await copyFile(
+        join(consoleSrc, 'console-payload.generated.cjs'),
+        join(assetsDir, 'console-payload.generated.cjs'),
+      )
       await copyFile(join(consoleSrc, 'nn-ui.css'), join(assetsDir, 'nn-ui.css'))
 
       await execFileAsync(
@@ -591,10 +639,7 @@ notes:: "Please review the tagline"
         [join(toolsDir, 'export-console.mjs'), tempDir, 'business', '--no-open'],
         { cwd: tempDir, env: { ...process.env, INNFO_CONSOLE_DIR: assetsDir } },
       )
-      const out = await readFile(
-        consoleHtml(tempDir, 'business_V_0-2-5'),
-        'utf-8',
-      )
+      const out = await readFile(consoleHtml(tempDir, 'business_V_0-2-5'), 'utf-8')
       assert.equal(out.includes('STALE-LEGACY'), false)
     })
 
@@ -624,10 +669,7 @@ notes:: "Please review the tagline"
         { cwd: tempDir, env: { ...process.env, INNFO_CONSOLE_DIR: assetsDir } },
       )
       assert.match(stdout, /business_V_0-2-5_console(?:_\d{8}T\d{6}Z(?:-\d+)?)?\.html/)
-      assert.equal(
-        existsSync(consoleHtml(tempDir, 'business_V_0-2-5')),
-        true,
-      )
+      assert.equal(existsSync(consoleHtml(tempDir, 'business_V_0-2-5')), true)
     })
   })
 
@@ -647,10 +689,14 @@ notes:: "Please review the tagline"
       }
     }
     const runInstalled = (dir, args, env = {}) =>
-      execFileAsync(process.execPath, [join(dir, 'export-console.mjs'), tempDir, ...args, '--no-open'], {
-        cwd: tempDir,
-        env: { ...process.env, INNFO_CONSOLE_DIR: dir, ...env },
-      })
+      execFileAsync(
+        process.execPath,
+        [join(dir, 'export-console.mjs'), tempDir, ...args, '--no-open'],
+        {
+          cwd: tempDir,
+          env: { ...process.env, INNFO_CONSOLE_DIR: dir, ...env },
+        },
+      )
     const VIEW = (title) =>
       `registerView({ title: '${title}', icon: 'layout', order: 1, kind: 'readonly', mount() {} })\n`
     const METRICS_MODEL =
@@ -675,7 +721,9 @@ notes:: "Please review the tagline"
       assert.equal(html.split(banner).length - 1, 1, 'bundle inlined once')
       assert.match(html, /<style>[\s\S]*--nn-bg[\s\S]*<\/style>/, 'css inlined')
       assert.ok(
-        html.includes('data-nn-view="pipeline" data-nn-view-source="domaiNN:consoles/views/pipeline.js"'),
+        html.includes(
+          'data-nn-view="pipeline" data-nn-view-source="domaiNN:consoles/views/pipeline.js"',
+        ),
         'domain view present',
       )
     }
@@ -740,7 +788,11 @@ notes:: "Please review the tagline"
       const home = join(tempDir, 'home')
       await install(dir)
       await setUpViews(join(home, '.agents', 'bluepriNNts'))
-      await runInstalled(dir, ['--domain'], { HOME: home, USERPROFILE: home, INNFO_BLUEPRINTS_DIR: '' })
+      await runInstalled(dir, ['--domain'], {
+        HOME: home,
+        USERPROFILE: home,
+        INNFO_BLUEPRINTS_DIR: '',
+      })
       assert.ok((await domainHtml()).includes('data-nn-view="timeline"'))
     })
 
@@ -750,7 +802,10 @@ notes:: "Please review the tagline"
       await setUpViews(null)
       const packages = join(tempDir, 'empty-packages')
       const { stderr } = await runInstalled(dir, ['--domain'], { INNFO_BLUEPRINTS_DIR: packages })
-      assert.match(stderr, /WARNING: \[export-console\] no bluepriNNt package for "metrics_V_0-4-1"/)
+      assert.match(
+        stderr,
+        /WARNING: \[export-console\] no bluepriNNt package for "metrics_V_0-4-1"/,
+      )
       assert.ok(stderr.includes(join(packages, 'metrics')))
       await assertWholeConsole(await domainHtml())
     })
@@ -815,20 +870,37 @@ notes:: "Please review the tagline"
       await runCli([tempDir, 'business'])
       // Compile the rest so only the edited model is stale afterwards.
       await runCli([tempDir, '--all'])
-      const stable = join(tempDir, 'artifacts', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html')
+      const stable = join(
+        tempDir,
+        'artifacts',
+        'business_V_0-2-5_console',
+        'business_V_0-2-5_console.html',
+      )
       assert.equal(existsSync(stable), true)
       const before = await sha(stable)
 
       const file = join(tempDir, 'models', 'business_V_0-2-5_NN.md')
-      await writeFile(file, (await readFile(file, 'utf-8')) + '\n## NN Stakeholders: Partner\n  slug:: partner\n  budget:: "$10k"\n', 'utf-8')
+      await writeFile(
+        file,
+        (await readFile(file, 'utf-8')) +
+          '\n## NN Stakeholders: Partner\n  slug:: partner\n  budget:: "$10k"\n',
+        'utf-8',
+      )
       const res = await runCli([tempDir, '--stale'])
       assert.equal(res.code, 0)
 
       assert.notEqual(await sha(stable), before, 'the stable file now holds the new console')
       const members = consoleMembers(tempDir, 'business_V_0-2-5')
-      assert.deepEqual(members.map((m) => basename(m)), ['business_V_0-2-5_console.html'])
+      assert.deepEqual(
+        members.map((m) => basename(m)),
+        ['business_V_0-2-5_console.html'],
+      )
       const dirFiles = await readdir(join(tempDir, 'artifacts', 'business_V_0-2-5_console'))
-      assert.deepEqual(dirFiles, ['business_V_0-2-5_console.html'], 'no stamped console, bundle or tmp file')
+      assert.deepEqual(
+        dirFiles,
+        ['business_V_0-2-5_console.html'],
+        'no stamped console, bundle or tmp file',
+      )
       const html = await readFile(stable, 'utf-8')
       const meta = JSON.parse(modelSlotMatch(html)[1]).meta
       assert.equal(meta.models[0].sha256, computeHash(await readFile(file, 'utf-8')))
@@ -869,9 +941,17 @@ notes:: "Please review the tagline"
     it('writes exactly the path consoleOutputPath reports, then reports unchanged', async () => {
       const { writeConsole } = await load()
       const scope = { model: 'business_V_0-2-5' }
-      const first = await writeConsole({ rootDir: tempDir, scope, open: false, launcher: failingLauncher })
+      const first = await writeConsole({
+        rootDir: tempDir,
+        scope,
+        open: false,
+        launcher: failingLauncher,
+      })
       assert.equal(first.status, 'written')
-      assert.equal(first.relativePath, 'artifacts/business_V_0-2-5_console/business_V_0-2-5_console.html')
+      assert.equal(
+        first.relativePath,
+        'artifacts/business_V_0-2-5_console/business_V_0-2-5_console.html',
+      )
       assert.equal(existsSync(first.path), true)
       assert.equal(first.opened, false)
       const [versions] = Object.values(first.knowledgeVersions)
@@ -957,11 +1037,15 @@ notes:: "Please review the tagline"
       assert.equal(await readFile(join(finalDir, 'probe_delivery.html'), 'utf8'), 'existing')
     })
 
-
     it('an outFile outside the domain is refused', async () => {
       const { writeConsole } = await load()
       await assert.rejects(
-        () => writeConsole({ rootDir: tempDir, scope: { models: ['business_V_0-2-5'], outFile: '../escape.html' }, open: false }),
+        () =>
+          writeConsole({
+            rootDir: tempDir,
+            scope: { models: ['business_V_0-2-5'], outFile: '../escape.html' },
+            open: false,
+          }),
         (err) => /** @type {{ code?: string }} */ (err).code === 'OUTFILE_INVALID',
       )
     })
@@ -969,7 +1053,11 @@ notes:: "Please review the tagline"
     it('open: false never calls the launcher', async () => {
       const { writeConsole } = await load()
       const calls = []
-      const res = await writeConsole({ rootDir: tempDir, open: false, launcher: (...a) => calls.push(a) })
+      const res = await writeConsole({
+        rootDir: tempDir,
+        open: false,
+        launcher: (...a) => calls.push(a),
+      })
       assert.deepEqual(calls, [])
       assert.equal(res.opened, false)
       assert.equal(res.openError, undefined)
@@ -1030,7 +1118,12 @@ notes:: "Please review the tagline"
       const calls = []
       const launcher = (c, a) => calls.push([c, a])
       await writeConsole({ rootDir: tempDir, open: true, openCooldownMinutes: 0, launcher })
-      const again = await writeConsole({ rootDir: tempDir, open: true, openCooldownMinutes: 0, launcher })
+      const again = await writeConsole({
+        rootDir: tempDir,
+        open: true,
+        openCooldownMinutes: 0,
+        launcher,
+      })
       assert.equal(again.opened, true)
       assert.equal(calls.length, 2)
     })
@@ -1053,7 +1146,12 @@ notes:: "Please review the tagline"
       try {
         await cp(tempDir, risky, { recursive: true })
         const calls = []
-        const res = await writeConsole({ rootDir: risky, open: true, platform: 'win32', launcher: (c, a) => calls.push([c, a]) })
+        const res = await writeConsole({
+          rootDir: risky,
+          open: true,
+          platform: 'win32',
+          launcher: (c, a) => calls.push([c, a]),
+        })
         assert.equal(res.opened, false)
         assert.match(res.openError, /shell-significant/)
         assert.deepEqual(calls, [])
@@ -1064,7 +1162,12 @@ notes:: "Please review the tagline"
 
     it('reports an unsupported platform as not opened without throwing', async () => {
       const { writeConsole } = await load()
-      const res = await writeConsole({ rootDir: tempDir, open: true, platform: 'plan9', launcher: failingLauncher })
+      const res = await writeConsole({
+        rootDir: tempDir,
+        open: true,
+        platform: 'plan9',
+        launcher: failingLauncher,
+      })
       assert.equal(res.opened, false)
       assert.match(res.openError, /not supported/)
     })
@@ -1075,7 +1178,11 @@ notes:: "Please review the tagline"
       assert.match(fresh.stdout, /domaiNN_console[.]html \[fresh\]/)
 
       const file = join(tempDir, 'models', 'business_V_0-2-5_NN.md')
-      await writeFile(file, (await readFile(file, 'utf-8')) + '\n## NN Stakeholders: Late\n  slug:: late\n', 'utf-8')
+      await writeFile(
+        file,
+        (await readFile(file, 'utf-8')) + '\n## NN Stakeholders: Late\n  slug:: late\n',
+        'utf-8',
+      )
       const stale = await runCli([tempDir, '--status'])
       assert.match(stale.stdout, /domaiNN_console[.]html \[stale\]/)
     })
@@ -1121,7 +1228,11 @@ notes:: "Please review the tagline"
       )
       const stale = await runCli([tempDir, '--status'])
       assert.match(stale.stdout, /domaiNN_console[.]html \[stale\]/)
-      assert.match(stale.stdout, /business_V_0-2-5_NN[.]md \[fresh\]/, 'the models themselves did not change')
+      assert.match(
+        stale.stdout,
+        /business_V_0-2-5_NN[.]md \[fresh\]/,
+        'the models themselves did not change',
+      )
     })
 
     it('--status with changesets stays fresh after export and goes stale after a model change', async () => {
@@ -1135,7 +1246,11 @@ notes:: "Please review the tagline"
       assert.match((await runCli([tempDir, '--status'])).stdout, /domaiNN_console[.]html \[fresh\]/)
 
       const file = join(tempDir, 'models', 'business_V_0-2-5_NN.md')
-      await writeFile(file, (await readFile(file, 'utf-8')) + '\n## NN Stakeholders: Late\n  slug:: late\n', 'utf-8')
+      await writeFile(
+        file,
+        (await readFile(file, 'utf-8')) + '\n## NN Stakeholders: Late\n  slug:: late\n',
+        'utf-8',
+      )
       assert.match((await runCli([tempDir, '--status'])).stdout, /domaiNN_console[.]html \[stale\]/)
     })
 
@@ -1150,7 +1265,10 @@ notes:: "Please review the tagline"
       assert.match(status.stdout, /business_V_0-2-5_NN[.]md \[fresh\]/)
       const tree = await runCli([tempDir, '--tree'])
       assert.equal(tree.code, 0)
-      assert.match(tree.stdout, /artifacts[/]business_V_0-2-5_console[/]business_V_0-2-5_console[.]html/)
+      assert.match(
+        tree.stdout,
+        /artifacts[/]business_V_0-2-5_console[/]business_V_0-2-5_console[.]html/,
+      )
     })
   })
 
@@ -1245,9 +1363,7 @@ metricValue:: 56
 
       const htmlPath = consoleHtml(tempDir, 'matrix_V_0-1-0')
       const htmlContent = await readFile(htmlPath, 'utf-8')
-      const modelJson = JSON.parse(
-        modelSlotMatch(htmlContent)[1],
-      )
+      const modelJson = JSON.parse(modelSlotMatch(htmlContent)[1])
 
       assert.equal(modelJson.matrices.length, 2, 'both ordinary matrices serialized')
       const deps = modelJson.matrices.find((m) => m.name === 'metrics-dependencies matrix')
@@ -1288,7 +1404,9 @@ health:: critical
       assert.equal(res.code, 0)
 
       const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
-      const schemaMatch = html.match(/<script type="application\/json" id="nn-schema">([\s\S]*?)<\/script>/)
+      const schemaMatch = html.match(
+        /<script type="application\/json" id="nn-schema">([\s\S]*?)<\/script>/,
+      )
       assert.ok(schemaMatch, 'nn-schema script tag found')
       const schemaJson = JSON.parse(schemaMatch[1])
       assert.ok(Array.isArray(schemaJson.fields), 'schema.fields is an array')
@@ -1384,14 +1502,26 @@ applied_at: "2026-01-01T00:00:00.000Z"
         'changes/audit_reviewer_20260101T000000Z_changes_NN.md',
       ]
       const change = 'business_V_0-2-5@Enterprise Customer'
-      await writeChangeset('Business_reviewer_20260101T000000Z_changes_NN.md', CHANGESET('c-b', change))
-      await writeChangeset('audit_reviewer_20260101T000000Z_changes_NN.md', CHANGESET('c-a', change))
+      await writeChangeset(
+        'Business_reviewer_20260101T000000Z_changes_NN.md',
+        CHANGESET('c-b', change),
+      )
+      await writeChangeset(
+        'audit_reviewer_20260101T000000Z_changes_NN.md',
+        CHANGESET('c-a', change),
+      )
 
       const slot = await exportDomainSlot()
       const { compareCodeUnits } = await import('./console-views.mjs')
       assert.equal(typeof compareCodeUnits, 'function', 'the views lib owns the one comparator')
       // Code unit, newest first: 'a' (0x61) sorts after 'B' (0x42), so `audit…` leads.
-      assert.deepEqual(slot.changes.map((c) => c.path), ['changes/audit_reviewer_20260101T000000Z_changes_NN.md', 'changes/Business_reviewer_20260101T000000Z_changes_NN.md'])
+      assert.deepEqual(
+        slot.changes.map((c) => c.path),
+        [
+          'changes/audit_reviewer_20260101T000000Z_changes_NN.md',
+          'changes/Business_reviewer_20260101T000000Z_changes_NN.md',
+        ],
+      )
       assert.deepEqual(
         slot.changes.map((c) => c.path),
         paths.slice().sort((a, b) => compareCodeUnits(b, a)),
@@ -1411,13 +1541,20 @@ applied_at: "2026-01-01T00:00:00.000Z"
         .map((line) => line.trim())
         .filter((line) => line.endsWith('_NN.md'))
       // 'Z' (0x5A) sorts before 'a' (0x61) by code unit; a locale collator would flip them.
-      assert.deepEqual(listed.slice(0, 2), ['models/Zeta_V_1-0-0_NN.md', 'models/alpha_V_1-0-0_NN.md'])
+      assert.deepEqual(listed.slice(0, 2), [
+        'models/Zeta_V_1-0-0_NN.md',
+        'models/alpha_V_1-0-0_NN.md',
+      ])
     })
 
     it('leaves no localeCompare in the exporter or the views lib (d16)', async () => {
       for (const name of ['export-console.mjs', 'console-views.mjs']) {
         const source = readFileSync(join(here, name), 'utf-8')
-        assert.doesNotMatch(source, /\.localeCompare\(/, `${name} must order by code unit, not by locale`)
+        assert.doesNotMatch(
+          source,
+          /\.localeCompare\(/,
+          `${name} must order by code unit, not by locale`,
+        )
       }
     })
 
@@ -1455,7 +1592,11 @@ applied_at: "2026-01-01T00:00:00.000Z"
         `---\ntitle: "${title}"\nknowledge_version: "V_1-0-0"\nlevel: 3\n---\n\n# NN Item\n## NN Item: A\n  slug:: a\n`
       await writeFile(join(tempDir, 'models', 'sales_V_1-0-0_NN.md'), model('Sales'), 'utf-8')
       // A title that is also the stem: the same model under one spelling twice.
-      await writeFile(join(tempDir, 'models', 'inventory_V_1-0-0_NN.md'), model('inventory_V_1-0-0'), 'utf-8')
+      await writeFile(
+        join(tempDir, 'models', 'inventory_V_1-0-0_NN.md'),
+        model('inventory_V_1-0-0'),
+        'utf-8',
+      )
 
       // The id the payload reports for the model is the third spelling a change may use.
       const before = await exportDomainSlot()
@@ -1482,8 +1623,16 @@ applied_at: "2026-01-01T00:00:00.000Z"
       const slot = await exportDomainSlot()
       const countOf = (filePath) =>
         slot.meta.models.find((m) => m.filePath === filePath)?.changeCount
-      assert.equal(countOf('models/sales_V_1-0-0_NN.md'), 3, 'one count per change, not one per alias')
-      assert.equal(countOf('models/inventory_V_1-0-0_NN.md'), 2, 'the shared title/stem counts once per change')
+      assert.equal(
+        countOf('models/sales_V_1-0-0_NN.md'),
+        3,
+        'one count per change, not one per alias',
+      )
+      assert.equal(
+        countOf('models/inventory_V_1-0-0_NN.md'),
+        2,
+        'the shared title/stem counts once per change',
+      )
     })
 
     it('leaves the page theme to the shell, not to a post-inline patch (d20)', async () => {
@@ -1509,7 +1658,9 @@ describe('console size budget', () => {
   it('stripConsoleCitations drops the resolved citations and counts the elements', async () => {
     const { stripConsoleCitations } = await import('./console-views.mjs')
     const payload = {
-      model: { elements: [{ id: 'a', citations: { refs: [] } }, { id: 'b' }, { id: 'c', citations: {} }] },
+      model: {
+        elements: [{ id: 'a', citations: { refs: [] } }, { id: 'b' }, { id: 'c', citations: {} }],
+      },
     }
 
     assert.equal(stripConsoleCitations(payload), 2)
@@ -1523,7 +1674,6 @@ describe('console size budget', () => {
     assert.equal(stripConsoleCitations(null), 0)
   })
 })
-
 
 describe('change history embedding and omission', () => {
   const MODEL = `---
@@ -1566,8 +1716,16 @@ notes:: "note ${n}"
     assert.deepEqual(slot.changes, [], 'no changeset is embedded')
     assert.equal(slot.meta.changesOmitted.count, count)
     assert.ok(slot.meta.changesOmitted.bytes > 0)
-    assert.equal(slot.meta.models.some((m) => m.filePath === '<changes>'), false, 'no materialized Changes model')
-    assert.equal(slot.elements.some((e) => e.modelId === 'changes'), false, 'no materialized Change elements')
+    assert.equal(
+      slot.meta.models.some((m) => m.filePath === '<changes>'),
+      false,
+      'no materialized Changes model',
+    )
+    assert.equal(
+      slot.elements.some((e) => e.modelId === 'changes'),
+      false,
+      'no materialized Change elements',
+    )
     const enterprise = slot.elements.find((e) => e.slug === 'enterprise')
     assert.ok(enterprise, 'the model element itself is still embedded')
     assert.ok(!enterprise.history || enterprise.history.length === 0, 'no per-element history')
@@ -1589,7 +1747,10 @@ notes:: "note ${n}"
     assert.equal(slot.meta.changesOmitted, undefined)
     assert.equal(slot.changes.length, 1)
     assert.equal(slot.changes[0].changes.length, 3)
-    assert.ok(slot.meta.models.some((m) => m.filePath === '<changes>'), 'the Changes model is materialized')
+    assert.ok(
+      slot.meta.models.some((m) => m.filePath === '<changes>'),
+      'the Changes model is materialized',
+    )
     assert.equal(slot.elements.filter((e) => e.modelId === 'changes').length, 3)
     assert.equal(slot.elements.find((e) => e.slug === 'enterprise').history.length, 3)
     assert.doesNotMatch(html, /nn-changes-omitted/)
@@ -1602,7 +1763,9 @@ notes:: "note ${n}"
       `\n## NN Change: c-01\nop:: set_fields\ntarget:: business@enterprise\nfrom:: {"tier":"basic"}\nto:: {"tier":"gold","owner":"Ana"}\nevidence:: decision\n`
     await writeFile(join(root, 'changes', 'c1_changes_NN.md'), cs, 'utf-8')
     const { slot } = await exportDomain()
-    const record = slot.elements.find((e) => e.modelId === 'changes' && e.fields.op === 'set_fields')
+    const record = slot.elements.find(
+      (e) => e.modelId === 'changes' && e.fields.op === 'set_fields',
+    )
     assert.ok(record, 'the set_fields change is materialized')
     assert.equal(record.fields.to, undefined, 'no raw JSON to field')
     assert.equal(record.fields.from, undefined, 'no raw JSON from field')
@@ -1694,7 +1857,9 @@ status:: active
   const exportDomain = async () => {
     const res = await runExportConsole([root, '--domain', '--no-open'], { open: false })
     // The model slot is compressed: the page is read with it decoded.
-    const html = existsSync(domainFile()) ? withDecodedModel(await readFile(domainFile(), 'utf-8')) : ''
+    const html = existsSync(domainFile())
+      ? withDecodedModel(await readFile(domainFile(), 'utf-8'))
+      : ''
     return { ...res, html }
   }
   const seed = async () => {
@@ -1759,5 +1924,99 @@ evidence:: decision
     assert.equal(res.exitCode, 0, res.stderr)
     assert.doesNotMatch(res.stderr, /MODEL_WITHOUT_RECORD/)
     assert.match(res.html, /handmade_handmade/)
+  })
+})
+
+describe('Decision D23: writeFileAtomic bounded retry on Windows rename locks', () => {
+  let tmpDir
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'nn-atomic-'))
+  })
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true }).catch(() => {})
+  })
+
+  it('writes content atomically to the destination file', async () => {
+    const target = join(tmpDir, 'test.html')
+    await writeFileAtomic(target, '<h1>Hello</h1>')
+    const content = await readFile(target, 'utf-8')
+    assert.equal(content, '<h1>Hello</h1>')
+  })
+
+  it('retries on transient EPERM/EBUSY/EACCES locks and succeeds', async () => {
+    const target = join(tmpDir, 'test-retry.html')
+    let attempts = 0
+    const sleepCalls = []
+    const customRename = async (src, dst) => {
+      attempts++
+      if (attempts < 3) {
+        throw Object.assign(new Error('File locked'), { code: 'EPERM' })
+      }
+      const { rename } = await import('node:fs/promises')
+      return rename(src, dst)
+    }
+
+    await writeFileAtomic(target, '<p>Retry success</p>', {
+      rename: customRename,
+      sleep: async (ms) => {
+        sleepCalls.push(ms)
+      },
+    })
+
+    assert.equal(attempts, 3)
+    assert.deepEqual(sleepCalls, [25, 50])
+    const content = await readFile(target, 'utf-8')
+    assert.equal(content, '<p>Retry success</p>')
+  })
+
+  it('cleans up temp file and throws when retry limit is exhausted', async () => {
+    const target = join(tmpDir, 'test-fail.html')
+    let attempts = 0
+    const customRename = async () => {
+      attempts++
+      throw Object.assign(new Error('Permanent lock'), { code: 'EBUSY' })
+    }
+
+    await assert.rejects(
+      async () => {
+        await writeFileAtomic(target, '<p>Never written</p>', {
+          maxRetries: 3,
+          rename: customRename,
+          sleep: async () => {},
+        })
+      },
+      { code: 'EBUSY' },
+    )
+
+    assert.equal(attempts, 4)
+    assert.equal(existsSync(target), false)
+    const files = await readdir(tmpDir)
+    assert.equal(files.length, 0, 'temp files must be cleaned up on failure')
+  })
+
+  it('cleans up temp file immediately and throws without retry on non-lock errors', async () => {
+    const target = join(tmpDir, 'test-nonlock.html')
+    let attempts = 0
+    const customRename = async () => {
+      attempts++
+      throw Object.assign(new Error('No space left on device'), { code: 'ENOSPC' })
+    }
+
+    await assert.rejects(
+      async () => {
+        await writeFileAtomic(target, '<p>No space</p>', {
+          maxRetries: 5,
+          rename: customRename,
+          sleep: async () => {},
+        })
+      },
+      { code: 'ENOSPC' },
+    )
+
+    assert.equal(attempts, 1)
+    const files = await readdir(tmpDir)
+    assert.equal(files.length, 0, 'temp files must be cleaned up on non-lock error')
   })
 })
