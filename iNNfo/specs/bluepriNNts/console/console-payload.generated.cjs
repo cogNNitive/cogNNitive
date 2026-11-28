@@ -14196,6 +14196,22 @@ function extractWikilinksFromValue(val) {
   }
   return [];
 }
+function referenceTokens2(val) {
+  if (typeof val === "string") return [val];
+  if (Array.isArray(val)) return val.filter((v) => typeof v === "string");
+  return [];
+}
+function referenceTargetName(value) {
+  let text2 = String(value || "").trim();
+  if (!text2) return "";
+  const link = text2.match(/^\[\[([^\]]+)\]\]$/);
+  if (link) text2 = link[1].split("|")[0].trim();
+  const bracket = text2.match(/^\[[^\]]+\]\s*(.+)$/);
+  if (bracket) return bracket[1].trim();
+  const colon = text2.lastIndexOf("::");
+  if (colon !== -1) return text2.slice(colon + 2).trim();
+  return text2;
+}
 function standaloneModelId(filePath, fallbackTitle) {
   if (filePath) {
     const base = filePath.split(/[\\/]/).pop() ?? "";
@@ -14237,6 +14253,16 @@ function buildConsolePayload(options) {
   const elementsById = /* @__PURE__ */ new Map();
   const unfrozen = [];
   const resolvedBlueprintSchema = typeof inputSchema === "string" ? resolveBlueprintSchema(inputSchema).schema : inputSchema;
+  const referenceFieldsByConcept = /* @__PURE__ */ new Map();
+  if (resolvedBlueprintSchema?.concepts) {
+    const conceptDefs = Array.isArray(resolvedBlueprintSchema.concepts) ? resolvedBlueprintSchema.concepts : Object.values(resolvedBlueprintSchema.concepts);
+    for (const def of conceptDefs) {
+      const names = (Array.isArray(def?.fields) ? def.fields : []).filter((f) => f?.type === "reference").map((f) => String(f.name).toLowerCase());
+      if (def?.name && names.length > 0) {
+        referenceFieldsByConcept.set(String(def.name).toLowerCase(), new Set(names));
+      }
+    }
+  }
   for (const [conceptName, nodes] of parsed.elements.entries()) {
     for (const node of nodes) {
       const concept = conceptName;
@@ -14302,6 +14328,20 @@ function buildConsolePayload(options) {
             target: targetEl.id,
             targetLabel: link.label || targetEl.name
           });
+        }
+      }
+    }
+    const referenceFields = referenceFieldsByConcept.get(elem.concept.toLowerCase());
+    if (referenceFields) {
+      for (const [fieldName, val] of Object.entries(rawFields)) {
+        if (!referenceFields.has(fieldName.toLowerCase())) continue;
+        for (const token of referenceTokens2(val)) {
+          const targetName = referenceTargetName(token);
+          if (!targetName) continue;
+          const targetEl = elementsByName.get(targetName.toLowerCase()) || elementsById.get(slugify(targetName).toLowerCase());
+          if (!targetEl || targetEl.id === elem.id) continue;
+          if (relations.some((r) => r.field === fieldName && r.target === targetEl.id)) continue;
+          relations.push({ field: fieldName, target: targetEl.id, targetLabel: targetEl.name });
         }
       }
     }
