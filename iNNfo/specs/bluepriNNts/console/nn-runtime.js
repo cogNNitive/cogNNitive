@@ -9400,13 +9400,22 @@
     // contain — never a wrapper prompt.
     var changesetText = composed.changesetText
     try {
-      copyTextToClipboard(doc, changesetText).then(function (ok) {
-        if (ok) {
-          announce('Copied changeset to clipboard.')
-        } else {
-          announce(fallbackCopy(doc, textarea, changesetText))
-        }
-      })
+      if (
+        typeof navigator !== 'undefined' &&
+        navigator.clipboard &&
+        typeof navigator.clipboard.writeText === 'function'
+      ) {
+        navigator.clipboard.writeText(changesetText).then(
+          function () {
+            announce('Copied changeset to clipboard.')
+          },
+          function () {
+            announce(fallbackCopy(doc, textarea, changesetText))
+          },
+        )
+        return composed
+      }
+      announce(fallbackCopy(doc, textarea, changesetText))
     } catch {
       announce('Copy failed. Select the text and press Ctrl+C.')
     }
@@ -9416,7 +9425,13 @@
   function copyTextToClipboard(doc, text) {
     var win = (doc && doc.defaultView) || (typeof window !== 'undefined' ? window : null)
     var nav =
-      win && win.navigator ? win.navigator : typeof navigator !== 'undefined' ? navigator : null
+      typeof navigator !== 'undefined' && navigator.clipboard
+        ? navigator
+        : win && win.navigator
+          ? win.navigator
+          : typeof navigator !== 'undefined'
+            ? navigator
+            : null
     if (nav && nav.clipboard && typeof nav.clipboard.writeText === 'function') {
       return nav.clipboard.writeText(text).then(
         function () {
