@@ -221,7 +221,6 @@ test('runRelease blueprint release stamps release_tag on catalog.json', async (t
       blueprints: {
         procedures: { name: 'procedures', release_tag: 'blueprints-v0.40.0' },
       },
-      frozen: {},
     }, null, 2) + '\n'
   );
 

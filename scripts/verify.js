@@ -52,7 +52,7 @@ function extractDeclaredBlueprints(sourceText) {
   /** @type {Set<string>} */
   const declaredBlueprints = new Set();
   const matchRegex = /-\s+name:\s+([^\s\n]+)/g;
-  for (const block of ['blueprints:', 'frozen_blueprints:', 'seam_dirs:']) {
+  for (const block of ['blueprints:', 'seam_dirs:']) {
     const templatesMatch = sourceText.match(new RegExp(`(?:^|\\n)${block}\\s*\\r?\\n([\\s\\S]*?)(?=\\r?\\n[a-z_]+:|$)`));
     const templatesBlock = templatesMatch ? templatesMatch[1] : '';
     let match;
@@ -113,11 +113,6 @@ function checkBlueprintInventory(blueprintsDir, sourceYamlPath, repoRoot = null)
       for (const b of (doc.blueprints || [])) {
         if (b.path && !fs.existsSync(path.join(repoRoot, b.path))) {
           missingPaths.push(`Blueprint '${b.name || b.path}' missing at ${b.path}`);
-        }
-      }
-      for (const b of (doc.frozen_blueprints || [])) {
-        if (b.path && !fs.existsSync(path.join(repoRoot, b.path))) {
-          missingPaths.push(`Frozen blueprint '${b.name || b.path}' missing at ${b.path}`);
         }
       }
       for (const a of (doc.console_assets || [])) {

@@ -403,7 +403,6 @@ export interface BlueprintCatalogEntry {
 export interface BlueprintCatalog {
   generator?: string
   blueprints: Record<string, BlueprintCatalogEntry>
-  frozen?: Record<string, BlueprintCatalogEntry>
   warnings?: string[]
 }
 
@@ -444,9 +443,6 @@ function catalogEntryFor(
   if (!catalog) return undefined
   const wanted = name.toLowerCase()
   for (const [key, entry] of Object.entries(catalog.blueprints ?? {})) {
-    if (key.toLowerCase() === wanted || entry.name.toLowerCase() === wanted) return entry
-  }
-  for (const [key, entry] of Object.entries(catalog.frozen ?? {})) {
     if (key.toLowerCase() === wanted || entry.name.toLowerCase() === wanted) return entry
   }
   return undefined

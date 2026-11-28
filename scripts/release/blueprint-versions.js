@@ -244,11 +244,8 @@ function stampCatalog(workDir, tag, logger) {
     if (!fs.existsSync(catPath)) continue
     try {
       const raw = JSON.parse(fs.readFileSync(catPath, 'utf-8'))
-      for (const sec of [raw.blueprints, raw.frozen]) {
-        if (sec)
-          for (const bp of Object.values(sec))
-            if (bp && typeof bp === 'object') bp.release_tag = tag
-      }
+      for (const bp of Object.values(raw.blueprints || {}))
+        if (bp && typeof bp === 'object') bp.release_tag = tag
       fs.writeFileSync(catPath, JSON.stringify(raw, null, 2) + '\n', 'utf-8')
     } catch (err) {
       logger.warn(`Could not stamp release_tag on ${catPath}: ${err.message}`)
