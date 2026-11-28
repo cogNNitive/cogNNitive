@@ -28,14 +28,14 @@ Branch: `t3/procedure-workflow-investigation`. Delivery: `ask-on-risk`. Merge is
 |---|---|---|---|---|
 | T1 | S1 | merged (authorized L12) | done | #982 -> 390796d5f |
 | T2 | S2 | delegated research (read-only) | done | L5 |
-| T3 | S3 | inline, heavy lane | delta written, migration pending | `check:openspec` OK |
+| T3 | S3 | inline, heavy lane, branch `session/procedure-document-structure` | delta merged (#998 -> eeccfdd); migration slices M1-M5 pending | L14 |
 | T4 | S4 | inline, heavy lane | pending (after T3 delta) | #966 to rewrite |
 | T5 | S5 | inline | blocked by T1, T3 | — |
 | T6 | S6 | coordinated (61a13990) | in review | #972 MERGEABLE |
 | T7 | S7 | inline | blocked by #975 | — |
 | T8 | S8 | inside T3 migration | pending | — |
 | T9 | S9 | inside T5 | pending | — |
-| T10 | S10 | inline | blocked by T1 | — |
+| T10 | S10 | inline | write-back #1000 got an empty `ci:` commit (792111d6c), watching | — |
 | T11 | S11 | inside T3 | pending | — |
 | T12 | S12 | inline docs | done | nn-console-kit Rule E |
 | T13 | S13 | inline | partly blocked by #972 | — |
@@ -57,4 +57,5 @@ Branch: `t3/procedure-workflow-investigation`. Delivery: `ask-on-risk`. Merge is
 - L11 (2026-11-28, maintainer, grill Q5): "ok" to: a Procedure without Work is declared and refused at start with `PROCEDURE_NOT_IMPLEMENTED`; a procedure implemented in another file moves its Procedure header into that file; a skill-backed procedure is one `executor:: agent` Work whose `tool` references the skill; documents with several Procedure elements are split and the catalog is derived. Grill closed.
 - L12 (2026-11-28, maintainer): "Si te has hecho cargo de casi todo, me parecen pocas cosas. ¿Estás teniendo en cuenta lo que has heredado de otras conversaciones a las que has dado el relevo?" and "Adelante con todo sin preguntarme". Inherited items inventoried as S8-S16.
 - L13 (61a13990, notice): #972 removed its own `ARTIFACT_PATH_IS_MODEL` check (commit 317b4091b) because `at` may legally name a model the run produces (Document SOP pilot); containment stays. Notice arrived after the push, not before; no conflict with S3.
+- L14 (migration map, read-only explorer): parser already nests `### NN Work:` under `## NN Procedure:` (`parser/sections.ts:158-198`, `core.ts:55-84`); nesting validated in `validator/hierarchy.ts:27-44`. Executor default exists only in prose (spec :157, :278); code leaves it undefined. `TOOL_ALIASES` read only at `graph.ts:110-116`. coNNtent sets the executor of all 88 steps through `tool` and its skill test asserts `tool` as a closed executor set (opposite of S3). `procedure_model` also drives console visibility (`naming/contract.ts:321-353` `isConsoleModel`, `export-console.mjs:691-715`). Multi-root: coNNtent `usage` (54 Work, 6 roots) and `Ghostbusters_V_0-7-0` sample (2 roots); testlab `TestLab_procedures_TestLab` has 2 Procedure elements. ~45 files pin `procedures_V_0-7-0`. Design consequence: the coNNtent `usage_procedures_NN.md` name is mandatory, so after the split it becomes a walkthrough whose steps `call::` the 6 sub-procedures — S3 for coNNtent depends on S4. Slices: M1 nn-core graph + document check (outside `procedureGraph`, so ~50 inline fixtures keep passing); M2 nn-mcp runner (`@container` gone, `PROCEDURE_NOT_IMPLEMENTED`, catalog summary); M3 spec + bump + shipped documents (coNNtent last, with `call::`); M4 samples and fixtures; M5 console (header ficha, RACI by slug, visibility without `procedure_model`).
 - L4: Corrections to the original brief: b005800b did propose removing `parent` (document as container; `parent::` redundant in ~94%); whether `parent` goes is part of S3, not closed.
