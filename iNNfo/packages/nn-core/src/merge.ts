@@ -1,5 +1,6 @@
 import type { ParsedKnowledge, ElementNode, MatrixData } from './types/index.js'
 import { ElementsMap } from './types/index.js'
+import { explicitAxes, matrixAxes } from './matrix.js'
 
 /**
  * Merges an on-disk AST with an in-memory (UI) AST without textual conflicts.
@@ -122,11 +123,20 @@ export function mergeKnowledge(disk: ParsedKnowledge, memory: ParsedKnowledge): 
         return { row, col, value: val }
       })
 
+      // Table order: the in-memory axes first, then whatever only the disk had.
+      const memAxes = matrixAxes(memM)
+      const diskAxes = matrixAxes(diskM)
+      const union = (a: string[], b: string[]) => [...a, ...b.filter((v) => !a.includes(v))]
       mergedMatrices.push({
         name: memM.name || diskM.name,
         source: memM.source || diskM.source,
         target: memM.target || diskM.target,
         cells: mergedCells,
+        ...explicitAxes(
+          mergedCells,
+          union(memAxes.rows, diskAxes.rows),
+          union(memAxes.cols, diskAxes.cols),
+        ),
       })
     }
   }
@@ -178,7 +188,8 @@ export function mergeKnowledge(disk: ParsedKnowledge, memory: ParsedKnowledge): 
     sectionOrder,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : undefined,
     conceptFields: Object.keys(mergedConceptFields).length > 0 ? mergedConceptFields : undefined,
-    rawConceptFields: Object.keys(mergedRawConceptFields).length > 0 ? mergedRawConceptFields : undefined,
+    rawConceptFields:
+      Object.keys(mergedRawConceptFields).length > 0 ? mergedRawConceptFields : undefined,
     rawContent: disk.rawContent ?? memory.rawContent ?? '',
   }
 }

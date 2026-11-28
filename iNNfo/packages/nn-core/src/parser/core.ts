@@ -13,10 +13,12 @@ import {
   parseConceptSection,
   parseMatrixSection,
   parseMatrixHeaderAxis,
+  parseMatrixTableAxes,
   getSectionType,
   sectionTitle,
 } from './sections.js'
 import { slugify } from './slug.js'
+import { explicitAxes } from '../matrix.js'
 
 /**
  * Derive slugs for all elements that don't have one, and detect collisions.
@@ -248,11 +250,13 @@ export function parseKnowledge(content: string): ParsedKnowledge {
       // frontmatter `matrices:` declaration (level-2 template metadata) is
       // only a fallback for a matrix whose header carries no labels.
       const axis = parseMatrixHeaderAxis(bodyContent)
+      const table = parseMatrixTableAxes(bodyContent)
       matrices.push({
         name,
         source: axis?.source || matrixDecl?.source || '',
         target: axis?.target || matrixDecl?.target || '',
         cells,
+        ...explicitAxes(cells, table.rows, table.cols),
       })
     }
   }

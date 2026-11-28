@@ -4,27 +4,55 @@
 
 ## ADDED Requirements
 
+### Requirement: A `-` in a matrix table is the hole marker, not a cell
+
+The parser MUST NOT create a cell for a matrix table entry that is `-` or empty: that entry is the hole marker for a row/column pair with no cell.
+The serializer MUST write `-` only for a pair of the table that has no cell, because a Markdown table is rectangular.
+Parsing a serialized matrix MUST yield the same set of cells that was serialized, whether the cells form a rectangle or not.
+An untouched matrix MUST serialize back with the same rows, columns and order it was read with, including a row or a column that holds only `-`.
+A mutation that touches a matrix MUST drop the rows and columns that hold no evaluated cell (the lazy prune), and serializing the pruned matrix again MUST yield the same bytes.
+
+#### Scenario: A non-rectangular sparse matrix round-trips
+- GIVEN a matrix whose only cells are `Admin`/`read` and `User`/`write`
+- WHEN it is serialized and parsed again
+- THEN the table shows two `-`, one for `Admin`/`write` and one for `User`/`read`
+- AND the parsed matrix holds exactly the two original cells
+- AND a further touch of the matrix serializes to the same bytes
+
+#### Scenario: A rectangular matrix round-trips byte for byte
+- GIVEN a matrix table in which every pair holds a value
+- WHEN it is parsed and serialized
+- THEN the output is byte-identical to the input
+
 ### Requirement: check_domain reports persisted matrix cells that carry no value
 
-`check_domain` MUST report, per model and per matrix, when the persisted cells include pairs whose value is empty or `-`, naming the model, the matrix and the number of such cells.
+`check_domain` MUST report, per model and per matrix, when the persisted table holds a row or a column in which no cell has a value, naming the model, the matrix and the number of table cells in those rows and columns.
+The `-` that the serializer writes for an absent pair inside a row and a column that both hold a value MUST NOT be reported.
 The finding MUST be a warning: it MUST NOT change the command's exit code and MUST NOT block validation.
 
 #### Scenario: A dense matrix is reported
-- GIVEN a domain whose model `targets_NN.md` carries a matrix with four persisted cells and no evaluated value
+- GIVEN a domain whose model `targets_NN.md` carries a 2×2 matrix table whose four entries are all `-`
 - WHEN `check_domain` runs
 - THEN the report names that model and that matrix
-- AND it states that the matrix persists four cells with no value
+- AND it states that the matrix persists four cells in rows or columns with no value
 - AND the domain still validates, because the finding is a warning
 
 #### Scenario: A sparse matrix stays silent
-- GIVEN a domain whose matrices persist only evaluated cells
+- GIVEN a domain whose matrices persist only rows and columns that hold an evaluated cell
+- WHEN `check_domain` runs
+- THEN no matrix finding is reported
+
+#### Scenario: The engine's own filler stays silent
+- GIVEN a matrix with the cells `Admin`/`read` and `User`/`write`, written by the serializer with two `-`
 - WHEN `check_domain` runs
 - THEN no matrix finding is reported
 
 ## Context: why a diagnostic instead of a migration
 
 - A dense matrix is valid iNNfo. No validator requires completeness, and `-` is exempt from the `values::` check (`iNNfo/packages/nn-core/src/validator/knowledge-checks.ts:474`), so nothing is broken and nothing should fail.
-- The pruning happens on its own the next time a change touches the matrix: the serializer only writes cells that exist, so a matrix edited after D1 lands converges to its evaluated cells.
+- The pruning happens on its own the next time a change touches the matrix: the parser reads `-` as an absent pair, and a touched matrix drops the rows and columns that hold no evaluated cell, so a matrix edited after D1 lands converges to the smallest table that shows its evaluated cells.
+- What a Markdown table cannot prune is the `-` inside a live row and column: the table is rectangular, so that filler is the format's floor, not waste, and the diagnostic ignores it.
+- Touching one cell rewrites the whole matrix table while the changeset records that one cell. The rows and columns the prune drops held no evaluated cell, so the rewrite loses no data; it is the lazy prune taking effect.
 - A migration command was rejected in the grill. It is a new command, its own tests and its own consent surface, for a problem with zero measured cases: `coNNtent_NN` holds 0 matrices across 272 documents.
 - The diagnostic reuses the channel `check_domain` already uses for `PLACEMENT_MISMATCH`, so a maintainer sees it where they already look.
 

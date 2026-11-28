@@ -3,10 +3,8 @@ import { parseFrontmatter } from './yaml.js'
 import { stringify as yamlStringify } from 'yaml'
 import { printTaxonomyNode } from './taxonomy.js'
 import { parsePropertyValue } from './sections.js'
-import {
-  parseCitation,
-  serializeKnowledgeUnitRef,
-} from '../sourceRef.js'
+import { matrixAxes } from '../matrix.js'
+import { parseCitation, serializeKnowledgeUnitRef } from '../sourceRef.js'
 
 /**
  * Serializes a property value into the unified `key:: value` form.
@@ -90,7 +88,6 @@ function serializeListValue(value: unknown[]): string | null {
   if (!value.every(isSafeListItem)) return null
   return `[${value.map(String).join(', ')}]`
 }
-
 
 function isSafeListItem(v: unknown): boolean {
   if (typeof v === 'number' || typeof v === 'boolean') return true
@@ -417,10 +414,9 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     // round-trip, otherwise the tree loses the matrix entirely.
     lines.push(`# NN matrices: ${matrix.name}`)
     if (matrixBlankLine(matrix.name)) lines.push('')
-    const colSet = new Set(matrix.cells.map((c) => c.col))
-    const rowSet = new Set(matrix.cells.map((c) => c.row))
-    const cols = Array.from(colSet)
-    const rows = Array.from(rowSet)
+    // Only cells are data. `-` is written as the hole marker for a pair with no
+    // cell, which the parser reads back as absent; the axes keep the table order.
+    const { rows, cols } = matrixAxes(matrix)
     const cellMap = new Map(matrix.cells.map((c) => [`${c.row}||${c.col}`, c.value]))
 
     // Axis labels are emitted exactly as held, empty ones included. An

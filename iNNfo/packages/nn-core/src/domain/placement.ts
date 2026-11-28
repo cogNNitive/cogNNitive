@@ -14,6 +14,7 @@ import {
 import { parsePlacement, type ConceptStorage, type PlacementSegment } from '../schema/storage.js'
 import { classifyModel, idOf, parentSpecOf, type Classification } from './classify.js'
 import type { DomainModelInput, LayoutCode, LayoutDiagnostic } from './types.js'
+import { prunableMatrixCellCount } from '../matrix.js'
 
 export type FolderSegment = { kind: 'literal'; value: string } | { kind: 'slug' }
 
@@ -255,14 +256,14 @@ function countToWords(n: number): string {
 export function matrixHygieneDiagnostics(input: DomainModelInput): LayoutDiagnostic[] {
   const out: LayoutDiagnostic[] = []
   for (const matrix of input.matrices ?? []) {
-    const emptyCount = (matrix.cells ?? []).filter(
-      (c) => !c.value || c.value.trim() === '' || c.value.trim() === '-',
-    ).length
+    // The `-` filler inside a live row and column is how the serializer writes an
+    // absent pair, so it is never reported; only what a lazy prune would drop is.
+    const emptyCount = prunableMatrixCellCount({ ...matrix, cells: matrix.cells ?? [] })
     if (emptyCount > 0) {
       out.push(
         layoutDiagnostic(
           'PERSISTED_EMPTY_MATRIX_CELLS',
-          `${input.path} - matrix "${matrix.name}" persists ${countToWords(emptyCount)} cells with no value`,
+          `${input.path} - matrix "${matrix.name}" persists ${countToWords(emptyCount)} cells in rows or columns with no value`,
           [input.path],
           { severity: 'warning', meta: { matrix: matrix.name, emptyCount } },
         ),

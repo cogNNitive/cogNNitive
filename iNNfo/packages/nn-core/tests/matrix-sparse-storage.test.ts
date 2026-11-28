@@ -1,13 +1,7 @@
 /**
- * RED test for openspec/changes/matrix-sparse-storage.
- *
- * These three expectations describe the behaviour the change specifies and do
- * NOT hold on the current main: `add_matrix` still seeds the full cartesian
- * product with empty values, `columns`/`rows` are still accepted as seeds, and
- * emptying a cell still persists `-`.
- *
- * Not committed on purpose: a failing test would red CI before the change lands.
- * The real output is captured in the change's delta spec.
+ * Tests for openspec/changes/matrix-sparse-storage: add_matrix seeds no cell,
+ * emptying a cell deletes the pair, a touched matrix is pruned lazily, and a
+ * `-` in the table is the hole marker for an absent pair, never a cell.
  */
 import { describe, expect, it } from 'vitest'
 import { parseKnowledge, serializeKnowledge } from '../src/parser/index.js'
@@ -28,7 +22,7 @@ title: "Targets"
 ## NN Resultados: Logo retention
 `
 
-describe('matrix-sparse-storage (RED)', () => {
+describe('matrix-sparse-storage', () => {
   it('D1: add_matrix declares the matrix without seeding a cell for any pair', () => {
     const model = parseKnowledge(TWO_AXES)
     const res = applyMutation(model, 'add_matrix', {
@@ -159,6 +153,102 @@ title: "Access"
     expect(diag?.severity).toBe('warning')
     expect(diag?.message).toContain('targets_NN.md')
     expect(diag?.message).toContain('Targets')
-    expect(diag?.message).toContain('persists four cells with no value')
+    expect(diag?.message).toContain('persists four cells in rows or columns with no value')
+  })
+})
+
+describe('matrix hole marker', () => {
+  const ACCESS = `---
+level: 3
+knowledge_version: "V_0-1-0"
+title: "Access"
+---
+
+# NN matrices: Access
+
+`
+
+  const sorted = (cells: ReadonlyArray<{ row: string; col: string; value: string }>) =>
+    [...cells].sort((a, b) => `${a.row}|${a.col}`.localeCompare(`${b.row}|${b.col}`))
+
+  const hygiene = async (content: string) => {
+    const { matrixHygieneDiagnostics } = await import('../src/domain/index.js')
+    const model = parseKnowledge(content)
+    return matrixHygieneDiagnostics({
+      path: 'access_NN.md',
+      frontmatter: {},
+      elements: [],
+      matrices: model.matrices,
+    })
+  }
+
+  it('a non-rectangular sparse matrix round-trips to the same cells, converges and raises no warning', async () => {
+    const model = parseKnowledge(
+      `${ACCESS}| Role \\ Permission | Read |\n| :--- | :---: |\n| Admin | allow |\n`,
+    )
+    const res = applyMutation(model, 'update_matrix_cell', {
+      matrixName: 'Access',
+      row: 'User',
+      col: 'Write',
+      value: 'allow',
+    })
+    expect(res.success).toBe(true)
+    const inMemory = sorted(model.matrices[0].cells)
+    expect(inMemory).toHaveLength(2)
+
+    const first = serializeKnowledge(model)
+    expect(first).toContain('| Admin | allow | - |')
+    expect(first).toContain('| User | - | allow |')
+
+    const reparsed = parseKnowledge(first)
+    expect(sorted(reparsed.matrices[0].cells)).toEqual(inMemory)
+
+    // Lazy prune converges: a touch of the re-read matrix writes the same bytes.
+    const touched = applyMutation(reparsed, 'update_matrix_cell', {
+      matrixName: 'Access',
+      row: 'Admin',
+      col: 'Read',
+      value: 'allow',
+    })
+    expect(touched.success).toBe(true)
+    expect(serializeKnowledge(reparsed)).toBe(first)
+    expect(serializeKnowledge(parseKnowledge(first))).toBe(first)
+
+    expect(await hygiene(first)).toEqual([])
+  })
+
+  it('a rectangular matrix still round-trips byte for byte', async () => {
+    const content = `${ACCESS}| Role \\ Permission | Read | Write |\n| :--- | :---: | :---: |\n| Admin | allow | allow |\n| User | allow | deny |\n`
+    const model = parseKnowledge(content)
+    expect(model.matrices[0].cells).toHaveLength(4)
+    expect(serializeKnowledge(model)).toBe(content)
+    expect(await hygiene(content)).toEqual([])
+  })
+
+  it('keeps the column order of an untouched table whose first row has a hole', () => {
+    const content = `${ACCESS}| Role \\ Permission | Read | Write | Delete |\n| :--- | :---: | :---: | :---: |\n| Admin | allow | - | allow |\n| User | - | allow | - |\n`
+    const model = parseKnowledge(content)
+    expect(model.matrices[0].cells).toHaveLength(3)
+    expect(serializeKnowledge(model)).toBe(content)
+  })
+
+  it('warns about rows and columns persisted with no value, and the prune removes them', async () => {
+    const content = `${ACCESS}| Role \\ Permission | Read | Write |\n| :--- | :---: | :---: |\n| Admin | allow | - |\n| User | - | - |\n`
+    const diags = await hygiene(content)
+    expect(diags).toHaveLength(1)
+    expect(diags[0].code).toBe('PERSISTED_EMPTY_MATRIX_CELLS')
+    expect(diags[0].message).toContain('persists three cells in rows or columns with no value')
+
+    const model = parseKnowledge(content)
+    applyMutation(model, 'update_matrix_cell', {
+      matrixName: 'Access',
+      row: 'Admin',
+      col: 'Read',
+      value: 'allow',
+    })
+    const pruned = serializeKnowledge(model)
+    expect(pruned).toContain('| Role \\ Permission | Read |\n')
+    expect(pruned).not.toContain('User')
+    expect(await hygiene(pruned)).toEqual([])
   })
 })
