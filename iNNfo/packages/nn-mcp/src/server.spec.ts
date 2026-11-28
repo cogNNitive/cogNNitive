@@ -770,6 +770,50 @@ describe('nn-mcp server (dispatch/handler layer, real MCP client/server round-tr
       expect(result.isError).toBe(true)
       expect(textOf(result as CallToolResult)).toContain('Unresolved template')
     })
+
+    it('hydrate_blueprint reports BLUEPRINT_NOT_INSTALLED with the install command for a catalog blueprint', async () => {
+      // The root carries a catalog so the tool can name the blueprint instead of
+      // guessing; nothing is installed, so the read-only contract is what answers.
+      // The resolver writes its cache under INNFO_CACHE_DIR, which the suite isolates.
+      const catalogPath = join(rootDir, 'catalog.json')
+      await writeFile(
+        catalogPath,
+        JSON.stringify({
+          generator: 'test',
+          blueprints: {
+            organization: { name: 'organization', adopted: 'V_0-4-0', versions: [] },
+          },
+        }),
+        'utf-8',
+      )
+      const previousCatalog = process.env.INNFO_BLUEPRINT_CATALOG
+      const previousHome = process.env.HOME
+      const previousProfile = process.env.USERPROFILE
+      process.env.INNFO_BLUEPRINT_CATALOG = catalogPath
+      // An isolated HOME: the point is that this machine has the blueprint nowhere,
+      // and the developer machine's own ~/.agents must not supply it.
+      process.env.HOME = join(rootDir, 'isolated-home')
+      process.env.USERPROFILE = join(rootDir, 'isolated-home')
+      try {
+        const result = await client.callTool({
+          name: 'hydrate_blueprint',
+          arguments: { blueprint_name: 'organization', domain: rootDir },
+        })
+        expect(result.isError).toBe(true)
+        const parsed = JSON.parse(textOf(result as CallToolResult))
+        expect(parsed.code).toBe('BLUEPRINT_NOT_INSTALLED')
+        expect(parsed.installCommand).toBe(
+          'node ~/.agents/skills/nn-skills-lifecycle/scripts/skills-manager.js install --blueprint organization',
+        )
+      } finally {
+        if (previousCatalog === undefined) delete process.env.INNFO_BLUEPRINT_CATALOG
+        else process.env.INNFO_BLUEPRINT_CATALOG = previousCatalog
+        if (previousHome === undefined) delete process.env.HOME
+        else process.env.HOME = previousHome
+        if (previousProfile === undefined) delete process.env.USERPROFILE
+        else process.env.USERPROFILE = previousProfile
+      }
+    })
   })
 
   describe('no legacy domain interception across MCP tools', () => {
