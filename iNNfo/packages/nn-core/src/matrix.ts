@@ -23,7 +23,12 @@ export function deriveMatrixWidgetType(decl: {
 }): MatrixWidgetType {
   if (decl.widgetType || decl.widget) {
     const explicit = (decl.widgetType || decl.widget || '').toLowerCase()
-    if (explicit === 'boolean' || explicit === 'cycle' || explicit === 'scale' || explicit === 'set')
+    if (
+      explicit === 'boolean' ||
+      explicit === 'cycle' ||
+      explicit === 'scale' ||
+      explicit === 'set'
+    )
       return explicit
     return 'text'
   }
@@ -60,7 +65,8 @@ export function normalizeMatrixDecl(decl: Record<string, unknown>): {
   max_color?: string
 } {
   const raw = decl as unknown as MatrixDecl
-  const values = Array.isArray(raw.values) && raw.values.length > 0 ? raw.values.map(String) : undefined
+  const values =
+    Array.isArray(raw.values) && raw.values.length > 0 ? raw.values.map(String) : undefined
   const params = typeof raw.params === 'string' ? raw.params : ''
   const widgetType = deriveMatrixWidgetType({
     widgetType: raw.widgetType,
@@ -113,7 +119,11 @@ export function scaleRangeFor(decl: {
   let max = num(cfg.max)
   const step = num(cfg.step) ?? 1
 
-  if ((min === undefined || max === undefined) && Array.isArray(decl.values) && decl.values.length) {
+  if (
+    (min === undefined || max === undefined) &&
+    Array.isArray(decl.values) &&
+    decl.values.length
+  ) {
     const numeric = decl.values.map(Number).filter((n) => !Number.isNaN(n))
     if (numeric.length === decl.values.length && numeric.length > 0) return numeric
   }
@@ -127,4 +137,98 @@ export function scaleRangeFor(decl: {
     for (let i = min; i <= max; i += step) range.push(Number(i.toFixed(4)))
   }
   return range
+}
+
+/** The two axes of a matrix, as a structural shape shared by `MatrixData` and the domain index input. */
+interface MatrixAxesShape {
+  rows?: readonly string[]
+  cols?: readonly string[]
+  cells: ReadonlyArray<{ row: string; col: string; value: string }>
+}
+
+/** True when a cell value is evaluated, i.e. neither empty nor the `-` hole marker. */
+export function isEvaluatedCellValue(value: string | undefined): boolean {
+  const v = (value ?? '').trim()
+  return v !== '' && v !== '-'
+}
+
+function pushUnique(list: string[], value: string): void {
+  if (!list.includes(value)) list.push(value)
+}
+
+function derivedAxes(cells: MatrixAxesShape['cells']): { rows: string[]; cols: string[] } {
+  const rows: string[] = []
+  const cols: string[] = []
+  for (const c of cells) {
+    pushUnique(rows, c.row)
+    pushUnique(cols, c.col)
+  }
+  return { rows, cols }
+}
+
+const sameList = (a: readonly string[], b: readonly string[]): boolean =>
+  a.length === b.length && a.every((v, i) => v === b[i])
+
+/**
+ * Rows and columns a matrix table shows, in order: the axes read from the table
+ * (`rows` / `cols`, which may name a row or column holding only `-`), then any
+ * row or column a cell names that the table did not.
+ */
+export function matrixAxes(matrix: MatrixAxesShape): { rows: string[]; cols: string[] } {
+  const derived = derivedAxes(matrix.cells)
+  const rows = [...(matrix.rows ?? [])]
+  const cols = [...(matrix.cols ?? [])]
+  for (const r of derived.rows) pushUnique(rows, r)
+  for (const c of derived.cols) pushUnique(cols, c)
+  return { rows, cols }
+}
+
+/**
+ * The explicit axes to keep on a matrix holding `cells` that should show `rows`
+ * and `cols`: undefined when the cells alone already yield that order, so a
+ * matrix only carries axes when they add something.
+ */
+export function explicitAxes(
+  cells: MatrixAxesShape['cells'],
+  rows: string[],
+  cols: string[],
+): { rows?: string[]; cols?: string[] } {
+  const derived = derivedAxes(cells)
+  return sameList(rows, derived.rows) && sameList(cols, derived.cols) ? {} : { rows, cols }
+}
+
+/**
+ * Lazy prune of a touched matrix: drops the rows and columns that hold no
+ * evaluated cell, keeping the table order of the rest. Only a mutation of the
+ * matrix calls it, so an untouched table keeps its bytes.
+ */
+export function pruneMatrixAxes(matrix: {
+  rows?: string[]
+  cols?: string[]
+  cells: MatrixAxesShape['cells']
+}): void {
+  const { rows, cols } = matrixAxes(matrix)
+  const live = matrix.cells.filter((c) => isEvaluatedCellValue(c.value))
+  const keep = explicitAxes(
+    matrix.cells,
+    rows.filter((r) => live.some((c) => c.row === r)),
+    cols.filter((c) => live.some((cell) => cell.col === c)),
+  )
+  delete matrix.rows
+  delete matrix.cols
+  if (keep.rows) matrix.rows = keep.rows
+  if (keep.cols) matrix.cols = keep.cols
+}
+
+/**
+ * Number of table cells a lazy prune would drop: the cells that sit in a row or
+ * a column holding no evaluated value. The `-` filler the serializer writes for
+ * an absent pair inside a live row and column is not counted.
+ */
+export function prunableMatrixCellCount(matrix: MatrixAxesShape): number {
+  const { rows, cols } = matrixAxes(matrix)
+  const live = matrix.cells.filter((c) => isEvaluatedCellValue(c.value))
+  const liveRows = rows.filter((r) => live.some((c) => c.row === r)).length
+  const liveCols = cols.filter((c) => live.some((cell) => cell.col === c)).length
+  return rows.length * cols.length - liveRows * liveCols
 }

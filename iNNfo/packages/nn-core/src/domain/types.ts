@@ -13,6 +13,9 @@ export interface DomainModelInput {
   matrices?: ReadonlyArray<{
     name: string
     cells: ReadonlyArray<{ row: string; col: string; value: string }>
+    /** Table axis order when the cells alone do not yield it (see `MatrixData`). */
+    rows?: ReadonlyArray<string>
+    cols?: ReadonlyArray<string>
   }>
 }
 

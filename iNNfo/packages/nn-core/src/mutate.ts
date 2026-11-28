@@ -11,6 +11,7 @@ import { levenshteinDistance, slugifyHeading } from './sourceRef.js'
 import { updateReferenceString, updateWikiLinks } from './references.js'
 import { validateFieldValue } from './schema/field-values.js'
 import { addElementFieldsEntries, addElementFieldsProblems } from './changeset/types.js'
+import { pruneMatrixAxes } from './matrix.js'
 
 // The reference-rewriting helpers live in `sourceRef.ts` (pure string helpers, so
 // the browser-safe changelog can relink without importing the mutation engine).
@@ -1246,6 +1247,7 @@ function updateMatrixCell(
       matrix.cells.push({ row, col, value: val })
     }
   }
+  pruneMatrixAxes(matrix)
 
   return { success: true }
 }
@@ -1331,31 +1333,28 @@ function removeElement(model: ParsedKnowledge, args: Record<string, unknown>): M
     const targetSlug = targetEl?.slug?.toLowerCase()
     const targetHeading = targetEl ? slugifyHeading(targetEl.name).toLowerCase() : undefined
 
+    const unbracket = (s: string) => {
+      const m = s.match(/^\[\[(.*)\]\]$/)
+      return m ? m[1].toLowerCase() : s
+    }
+    const namesTarget = (label: string): boolean => {
+      const lower = label.toLowerCase()
+      const clean = unbracket(lower)
+      return (
+        lower === targetIdent ||
+        clean === targetIdent ||
+        (targetSlug !== undefined && (lower === targetSlug || clean === targetSlug)) ||
+        (targetHeading !== undefined && (lower === targetHeading || clean === targetHeading))
+      )
+    }
     for (const matrix of model.matrices) {
       if (!matrix.cells) continue
       const initialCount = matrix.cells.length
-      matrix.cells = matrix.cells.filter((c) => {
-        const rLower = c.row.toLowerCase()
-        const colLower = c.col.toLowerCase()
-        const unbracket = (s: string) => {
-          const m = s.match(/^\[\[(.*)\]\]$/)
-          return m ? m[1].toLowerCase() : s
-        }
-        const rClean = unbracket(rLower)
-        const cClean = unbracket(colLower)
-        const rowMatches =
-          rLower === targetIdent ||
-          rClean === targetIdent ||
-          (targetSlug !== undefined && (rLower === targetSlug || rClean === targetSlug)) ||
-          (targetHeading !== undefined && (rLower === targetHeading || rClean === targetHeading))
-        const colMatches =
-          colLower === targetIdent ||
-          cClean === targetIdent ||
-          (targetSlug !== undefined && (colLower === targetSlug || cClean === targetSlug)) ||
-          (targetHeading !== undefined && (colLower === targetHeading || cClean === targetHeading))
-        return !rowMatches && !colMatches
-      })
+      matrix.cells = matrix.cells.filter((c) => !namesTarget(c.row) && !namesTarget(c.col))
       cascadedCells += initialCount - matrix.cells.length
+      // A row or column that only held `-` names the element too: touching the matrix prunes it.
+      const axisNamesTarget = [...(matrix.rows ?? []), ...(matrix.cols ?? [])].some(namesTarget)
+      if (matrix.cells.length !== initialCount || axisNamesTarget) pruneMatrixAxes(matrix)
     }
   }
 
@@ -2028,6 +2027,9 @@ function renameElement(
       if (cell.row.toLowerCase() === lowerOld) cell.row = newName
       if (cell.col.toLowerCase() === lowerOld) cell.col = newName
     }
+    const rename = (label: string) => (label.toLowerCase() === lowerOld ? newName : label)
+    if (matrix.rows) matrix.rows = matrix.rows.map(rename)
+    if (matrix.cols) matrix.cols = matrix.cols.map(rename)
   }
 
   // Rewrite references in element fields, description, and relationships.

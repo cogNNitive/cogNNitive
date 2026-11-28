@@ -309,7 +309,14 @@ export interface MatrixData {
   source: string
   /** Right axis label, parsed and written back the same way. */
   target: string
+  /** Evaluated cells only. A `-` in the table is the hole marker for an
+   *  absent pair, never a cell. */
   cells: MatrixCell[]
+  /** Row order of the table as read, set only when the cells alone would not
+   *  yield it (a row holding only `-`, or a hole that would reorder). */
+  rows?: string[]
+  /** Column order of the table as read, under the same rule as `rows`. */
+  cols?: string[]
 }
 
 export interface TaxonomyEdge {

@@ -22,6 +22,7 @@ import { inheritConceptValues } from '../schema/field-values.js'
 import { resolveBlueprintSchema } from '../schema/compose.js'
 import { attachChangesetHistory } from './element-history.js'
 import { buildChangeLogFromChangesets, type ChangesetLike } from '../changelog/load.js'
+import { matrixAxes } from '../matrix.js'
 import type { ChangesetRecord, ElementHistoryItem } from './element-history.js'
 import type {
   FileCategory,
@@ -422,13 +423,14 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
   const matrices: ConsolePayloadMatrix[] = []
   if (Array.isArray(parsed.matrices)) {
     for (const mat of parsed.matrices) {
-      const rows: string[] = []
-      const cols: string[] = []
+      // Table order, rows and columns holding only `-` included.
+      const { rows, cols } = matrixAxes({
+        ...mat,
+        cells: Array.isArray(mat.cells) ? mat.cells : [],
+      })
       const cellsObj: Record<string, Record<string, unknown>> = {}
       if (Array.isArray(mat.cells)) {
         for (const cell of mat.cells) {
-          if (!rows.includes(cell.row)) rows.push(cell.row)
-          if (!cols.includes(cell.col)) cols.push(cell.col)
           if (!cellsObj[cell.row]) {
             cellsObj[cell.row] = {}
           }

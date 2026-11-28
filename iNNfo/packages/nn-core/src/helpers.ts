@@ -97,6 +97,8 @@ function matricesOf(content: string): DomainModelInput['matrices'] {
     return parseKnowledge(content).matrices.map((m) => ({
       name: m.name,
       cells: m.cells.map((c) => ({ row: c.row, col: c.col, value: c.value })),
+      ...(m.rows ? { rows: [...m.rows] } : {}),
+      ...(m.cols ? { cols: [...m.cols] } : {}),
     }))
   } catch {
     return []

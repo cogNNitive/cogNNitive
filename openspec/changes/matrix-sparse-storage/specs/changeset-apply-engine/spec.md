@@ -50,7 +50,7 @@ Two write paths make the cost, and they multiply:
 - **Creation seeds everything.** `add_matrix` defaults `cols` to the target concept's element names and `rows` to the source concept's element names, then pushes one `{row, col, value: ''}` per pair. With 500 and 200 elements that is 100,000 empty cells in memory and in the file. Nobody chose it; it is the seed's default.
 - **The serializer rebuilds the rectangle.** It derives its columns and rows from the cells that exist and then emits the full product, writing `-` for every hole. So even without seeding, a matrix whose rows and columns have each been touched once is `rows × columns` again. A Markdown table is rectangular by construction: this floor is the format's, not the seed's.
 
-The parser makes the round trip symmetric: it keeps a cell when its value is truthy, so a `-` comes back as a cell with value `-`. The rectangle therefore also lands in memory on every read.
+The parser made the round trip symmetric: it kept a cell when its value was truthy, so a `-` came back as a cell with value `-` and the rectangle landed in memory on every read. The `matrix-storage-hygiene` delta now reads `-` as the hole marker, so only evaluated cells reach memory.
 
 ## Decisions locked (maintainer grill, 2026-11-27, issue #945)
 

@@ -1,4 +1,5 @@
 import { ElementNode, MatrixCell } from '../types/index.js'
+import { isEvaluatedCellValue } from '../matrix.js'
 import { parseMarkdownTable, parseTableRow, normalizeSource } from './markdown.js'
 
 /**
@@ -314,12 +315,23 @@ export function parseMatrixSection(content: string, _matrixName: string): Matrix
   for (const row of rows) {
     const rowName = colNames.length > 0 ? row[colNames[0]] || '' : ''
     for (let i = 1; i < colNames.length; i++) {
-      if (row[colNames[i]]) {
+      // `-` is the hole marker the serializer writes for an absent pair.
+      if (isEvaluatedCellValue(row[colNames[i]])) {
         cells.push({ row: rowName, col: colNames[i], value: row[colNames[i]] })
       }
     }
   }
   return cells
+}
+
+/** Row and column labels of a matrix table, in table order, holes included. */
+export function parseMatrixTableAxes(content: string): { rows: string[]; cols: string[] } {
+  const rows = parseMarkdownTable(content)
+  const colNames = rows.length > 0 ? Object.keys(rows[0]) : []
+  return {
+    rows: colNames.length > 0 ? rows.map((r) => r[colNames[0]] || '') : [],
+    cols: colNames.slice(1),
+  }
 }
 
 /**
