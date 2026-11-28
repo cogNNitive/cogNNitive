@@ -6,8 +6,9 @@ shared dialog shell accessibility. Branch `session/console-proc-nav`. Delivery s
 
 ## Specs
 
-- **S1** — The flow graph lives in its own column **on the right**, drawn by ECharts only.
-  User: *"Prefiero que él sea un grafo con flechas y nodos … pero que esté en una columna,
+- **S1** — The flow graph lives in its own column **on the right**, drawn as SVG by the
+  console's one diagram renderer (`nnConsole.renderGraph`); superseded "drawn by ECharts only"
+  on 2026-11-28 (see the Log). User: *"Prefiero que él sea un grafo con flechas y nodos … pero que esté en una columna,
   en una tercera columna a la derecha, hecho con ECharts, y mejorando la versión que hay
   ahora"*.
 - **S2** — The graph shows the step name **whole**, and colour carries the state.
@@ -81,6 +82,20 @@ and panel a global id. `role=tab`/`aria-selected`/`tabindex` stay; `id`, `aria-c
 
 Tests now: view 22, runner-ux 65, artifacts 7, projection 7, console-bundle 1, console-export 67.
 The one test I changed asserts the new column order.
+
+**2026-11-28 — ECharts is gone; S1 superseded, S6 done.** PR #967 replaced ECharts 6.1.0 (not
+"ECharts 5") with Chart.js 4.4.7 + chartjs-chart-treemap 2.3.0 for charts and native SVG for
+diagrams, which reverses S1's "hecho con ECharts". #967 kept an ECharts emulation layer
+(`renderChart` took ECharts options, patched `Chart.prototype.getOption`, stubbed
+`window.echarts`, fell back to `lib.init`) and drew the flow through it. The audit follow-up
+(`odd/tasks/audit-followups-2026-11-28.md`, T4/S5) removed that layer: `renderChart` takes a
+native Chart.js config only, and the flow, the Schema tab and the Map neighbourhood are drawn by
+`nnConsole.renderGraph` from the console's own spec. Because the SVG draws in jsdom, the flow
+nodes now carry the node contract (`data-step`, `data-status`, `data-layer`,
+`current/selected/decision`), so the button-list fallback (`buildNativeGraph`) and its CSS were
+removed and the four procedure suites click `.nn-graph-node[data-step]` instead: S6 is done.
+The pulse is a CSS animation on the current box again (the ECharts `effectScatter` it replaced
+was ignored by #967's SVG).
 
 ## Visual pass
 
