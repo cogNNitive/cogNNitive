@@ -12,17 +12,8 @@ const EXECUTORS: readonly string[] = ['human', 'agent', 'engine']
 /** How many attempts a loop target may take when it declares no `max_attempts`. */
 export const DEFAULT_MAX_ATTEMPTS = 3
 
-/**
- * `tool` aliases (design §4.6): when a Work has no `executor`, one of these literals read
- * from `tool` is taken as its executor. `console` maps to `human`, because the console is
- * where a person acts. Any other `tool` value keeps its meaning as a Tool reference.
- */
-const TOOL_ALIASES: ReadonlyMap<string, Executor> = new Map([
-  ['engine', 'engine'],
-  ['agent', 'agent'],
-  ['human', 'human'],
-  ['console', 'human'],
-])
+/** Who performs a step that declares no `executor` (the procedures bluepriNNt's one default). */
+export const DEFAULT_EXECUTOR: Executor = 'agent'
 
 /** A `{name}` placeholder in prose or a command. */
 const SLOT_RE = /\{([A-Za-z_][\w-]*)\}/g
@@ -71,33 +62,23 @@ const str = (v: unknown): string | undefined =>
   v === undefined || v === null || v === '' ? undefined : String(v)
 
 /**
- * Parses a procedures-bluepriNNt model into its runnable steps (design §2, §3). A Work that is
- * the parent of another Work is a container, not a step. Structural problems are reported,
- * never thrown. A loop is runnable only when it is guarded (see `findCycles`); any other loop
- * is reported as CYCLE.
- *
- * `container` restricts the graph to one container's descendants (design §4.6): a file that
- * holds several sub-procedures is addressed as `<doc>@<container-slug>`, and starts, `next`
- * and artifacts are computed among those descendants only.
+ * Parses a procedures-bluepriNNt model into its runnable steps (design §2, §3). Every Work
+ * element is a step: the procedure document is the container, so a run walks the whole
+ * document. Structural problems are reported, never thrown. A loop is runnable only when it
+ * is guarded (see `findCycles`); any other loop is reported as CYCLE.
  */
-export function procedureGraph(model: ParsedKnowledge, container?: string): ProcedureGraph {
-  const allWork = model.elements.get('Work') ?? []
+export function procedureGraph(model: ParsedKnowledge): ProcedureGraph {
+  const work = model.elements.get('Work') ?? []
   const artifactNodes = model.elements.get('Artifact') ?? []
-  const toAllWork = resolver(allWork)
-  const containerSlug = container ? (toAllWork(container) ?? container) : undefined
-  const work = containerSlug ? descendantsOf(allWork, containerSlug, resolver(allWork)) : allWork
   const toWork = resolver(work)
   const toArtifact = resolver(artifactNodes)
   const diagnostics: GraphDiagnostic[] = []
 
-  const parentOf = (n: ElementNode) => referenceTokens(n.fields['parent']).map(toWork)[0]
-  const containers = new Set(work.map(parentOf).filter((p): p is string => p !== undefined))
   const artifactRefs = (v: unknown) => referenceTokens(v).map((t) => toArtifact(t) ?? t)
 
   const steps: Record<string, ProcedureStep> = {}
   for (const n of work) {
     const slug = n.slug ?? ''
-    if (containers.has(slug)) continue
     if (!n.slugExplicit) {
       diagnostics.push({
         code: 'MISSING_SLUG',
@@ -107,19 +88,13 @@ export function procedureGraph(model: ParsedKnowledge, container?: string): Proc
       })
     }
     const executor = str(n.fields['executor'])
-    const toolAlias = str(n.fields['tool'])
-    const resolvedExecutor: Executor | undefined =
-      executor && EXECUTORS.includes(executor)
-        ? (executor as Executor)
-        : toolAlias
-          ? TOOL_ALIASES.get(toolAlias.trim().toLowerCase())
-          : undefined
+    const resolvedExecutor: Executor =
+      executor && EXECUTORS.includes(executor) ? (executor as Executor) : DEFAULT_EXECUTOR
     steps[slug] = {
       slug,
       name: n.name,
       stepType: str(n.fields['step_type']),
       executor: resolvedExecutor,
-      parent: parentOf(n),
       next: [],
       condition: str(n.fields['condition']),
       decision: str(n.fields['decision']),
@@ -210,11 +185,9 @@ export function procedureGraph(model: ParsedKnowledge, container?: string): Proc
           .split(',')
           .map((s) => s.trim().replace(/^\{|\}$/g, ''))
       : []
-  // A container is one sub-procedure: the document's declared slots belong to its siblings too,
-  // so only the placeholders its own steps and artifacts carry are asked for.
   const slots = [
     ...new Set([
-      ...(containerSlug ? [] : declaredSlots.filter((s) => s !== '')),
+      ...declaredSlots.filter((s) => s !== ''),
       ...slotNames(
         ...Object.values(steps).map((s) => s.command),
         ...Object.values(artifacts).map((a) => a.at),
@@ -233,30 +206,6 @@ export function procedureGraph(model: ParsedKnowledge, container?: string): Proc
     slots,
     diagnostics,
   }
-}
-
-/** The Works that are the container's descendants (never the container itself). */
-function descendantsOf(
-  work: ElementNode[],
-  container: string,
-  toWork: (token: string) => string | undefined,
-): ElementNode[] {
-  const childrenOf = new Map<string, ElementNode[]>()
-  for (const n of work) {
-    const parent = referenceTokens(n.fields['parent']).map(toWork)[0]
-    if (!parent) continue
-    const list = childrenOf.get(parent)
-    if (list) list.push(n)
-    else childrenOf.set(parent, [n])
-  }
-  const out = new Set<ElementNode>()
-  const todo = [...(childrenOf.get(container) ?? [])]
-  for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
-    out.add(n)
-    todo.push(...(childrenOf.get(n.slug ?? '') ?? []))
-  }
-  // In declaration order: loops are read from the start (see `findCycles`).
-  return work.filter((n) => out.has(n))
 }
 
 /**

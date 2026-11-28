@@ -1,12 +1,11 @@
-/** Who performs a step (design §3). Absent means asserted by whoever drives the run. */
+/** Who performs a step (design §3). A step that declares none is performed by an agent. */
 export type Executor = 'human' | 'agent' | 'engine'
 
 export interface ProcedureStep {
   slug: string
   name: string
   stepType?: string
-  executor?: Executor
-  parent?: string
+  executor: Executor
   /** Target step slugs, in declaration order. */
   next: string[]
   /** Guard to enter this step. */
@@ -44,7 +43,14 @@ export interface ProcedureArtifact {
 }
 
 export type GraphDiagnosticCode =
-  'MISSING_SLUG' | 'UNKNOWN_NEXT' | 'NO_START' | 'MULTIPLE_STARTS' | 'CYCLE' | 'UNRESOLVED_SLOT'
+  | 'MISSING_SLUG'
+  | 'UNKNOWN_NEXT'
+  | 'NO_START'
+  | 'MULTIPLE_STARTS'
+  | 'CYCLE'
+  | 'UNRESOLVED_SLOT'
+  | 'PROCEDURE_HEADER_COUNT'
+  | 'WORK_NOT_UNDER_PROCEDURE'
 
 export interface GraphDiagnostic {
   code: GraphDiagnosticCode

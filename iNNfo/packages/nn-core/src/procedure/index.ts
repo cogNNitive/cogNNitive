@@ -4,7 +4,9 @@ export {
   fillSlots,
   unresolvedSlots,
   DEFAULT_MAX_ATTEMPTS,
+  DEFAULT_EXECUTOR,
 } from './graph.js'
+export { procedureDocumentDiagnostics } from './document.js'
 export { foldRun } from './fold.js'
 export { runModelOf } from './run.js'
 export { runAttemptsOf } from './attempts.js'

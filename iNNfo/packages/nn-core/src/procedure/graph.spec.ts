@@ -100,39 +100,36 @@ condition:: outcome == done
     expect(g.start).toBe('a')
   })
 
-  it('reads a guarded loop of a sub-procedure from its start, whatever its steps declare first', () => {
+  it('reads a guarded loop of steps nested under the procedure header from its start', () => {
     const g = procedureGraph(
-      model(
-        `## NN Work: Proc
+      parse(`---
+level: 3
+knowledge_version: "V_0-1-0"
+title: "g"
+---
+
+# NN Procedure
+
+## NN Procedure: Proc
 slug:: proc
 
-` +
-          `## NN Work: A
+### NN Work: A
 slug:: a
-parent:: [[proc]]
 next:: [[b]]
 
-` +
-          `## NN Work: B
+### NN Work: B
 slug:: b
-parent:: [[proc]]
 next:: [[c]], [[d]]
 
-` +
-          `## NN Work: C
+### NN Work: C
 slug:: c
-parent:: [[proc]]
 condition:: outcome == ok
 
-` +
-          `## NN Work: D
+### NN Work: D
 slug:: d
-parent:: [[proc]]
 condition:: outcome == redo
 next:: [[b]]
-`,
-      ),
-      'proc',
+`),
     )
     expect(g.diagnostics).toEqual([])
     expect(g.start).toBe('a')
@@ -169,45 +166,35 @@ next:: [[b]]
     expect(g.start).toBeNull()
   })
 
-  it('asks a container only for the slots its own steps carry', () => {
-    const doc = parse(`---
-level: 3
-knowledge_version: "V_0-1-0"
-title: "g"
-slots:
-  - { name: episode, kind: value, required: false }
-  - { name: voice, kind: value, required: true }
----
-
-# NN Work
-
-## NN Work: One
-slug:: one
+  it('treats every Work as a step: a Work with children is no longer a container', () => {
+    const g = procedureGraph(
+      model(`## NN Work: Proc
+slug:: proc
+next:: [[a]]
 
 ## NN Work: A
 slug:: a
-parent:: [[one]]
-command:: run {episode}
+parent:: [[proc]]
+`),
+    )
+    expect(Object.keys(g.steps)).toEqual(['proc', 'a'])
+    expect(g.start).toBe('proc')
+  })
 
-## NN Work: Two
-slug:: two
+  it('performs a step with no executor by an agent, whatever its tool says', () => {
+    const g = procedureGraph(
+      model(`## NN Work: A
+slug:: a
+tool:: console
+next:: [[b]]
 
 ## NN Work: B
 slug:: b
-parent:: [[two]]
-command:: run {voice}
-`)
-    expect(procedureGraph(doc).slots).toEqual(['episode', 'voice'])
-    expect(procedureGraph(doc, 'one').slots).toEqual(['episode'])
-    expect(procedureGraph(doc, 'two').slots).toEqual(['voice'])
-  })
-
-  it('treats a Work that is the parent of other Work as a container, not a step', () => {
-    const g = procedureGraph(
-      model(`## NN Work: Proc\nslug:: proc\n\n## NN Work: A\nslug:: a\nparent:: [[proc]]\n`),
+executor:: human
+`),
     )
-    expect(Object.keys(g.steps)).toEqual(['a'])
-    expect(g.start).toBe('a')
+    expect(g.steps.a.executor).toBe('agent')
+    expect(g.steps.b.executor).toBe('human')
   })
 
   it('defaults verify from kind and at when verify is omitted', () => {
