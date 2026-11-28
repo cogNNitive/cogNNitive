@@ -1,8 +1,8 @@
 /**
  * check_workspace tool — one consolidated workspace integrity pass.
  *
- * Implements AD-5: self-heal first (resolve/hydrate missing template
- * packages), classify second (against the resolved catalog), dedup freshness
+ * Implements AD-5: resolve first (never download, never write: blueprint
+ * packages belong to the skills-manager), classify second (against the resolved catalog), dedup freshness
  * third. All five `buildWorkspaceIntegrityReport` ports are Node adapters
  * sharing one per-call context so the merged `SpecCache` (first-wins) reaches
  * `collectWorkspaceDiagnostics` and each model's resolution is computed once.
@@ -76,9 +76,9 @@ interface CheckContext {
   absByPath: Map<string, string>
   /**
    * The domain index of this call, built once after every model's bluepriNNt was
-   * self-healed and shared by the workspace pass, each model's validation, provenance
-   * and layout. Discovery builds its own before self-heal: hydration may add a
-   * bluepriNNt package whose declared storage changes the ids. Never outlives the call.
+   * resolved and shared by the workspace pass, each model's validation, provenance
+   * and layout. Discovery builds its own before resolution: an installed
+   * bluepriNNt package declares storage that changes the ids. Never outlives the call.
    */
   index?: Promise<NodeDomainIndex>
   /**
@@ -183,15 +183,14 @@ export async function resolveCatalog(
 }
 
 /**
- * Self-healing resolve + hydrate for one model's parent template. Reads
- * through `resolveParentChainNode({ checkFreshness: false })`:
- * a 4-tier local
- * hit is `resolved` (with tier), a network fetch + write-once hydration is
- * `hydrated`, and a `SpecResolutionError` is `unresolved` — never throws out
- * of the port. Merges the returned `SpecCache` into the shared context.
+ * Read-only resolve for one model's parent template. Reads through
+ * `resolveParentChainNode({ checkFreshness: false })`:
+ * a 4-tier local hit is `resolved` and a `SpecResolutionError` is
+ * `unresolved` — never throws out of the port. Merges the returned
+ * `SpecCache` into the shared context.
  *
- * Hydration never writes parent-chain packages into the domain tree: resolution
- * goes through the OS temp cache (the resolver's default, `inPlace` unset).
+ * Nothing is downloaded and nothing is written: a template that is not installed
+ * locally stays unresolved, and the fix is the skills-manager install command.
  */
 async function resolveBlueprintForKnowledge(
   ctx: CheckContext,
@@ -209,7 +208,9 @@ async function resolveBlueprintForKnowledge(
     mergeCache(ctx.mergedCache, cache)
     const depth0 = cache.specs.get(model.parentName)
     const localContent = depth0?.rawContent
-    const outcome = existingPkg ? 'resolved' : 'hydrated'
+    // A chain filled from a remote URL is not an install, and no longer counts as
+    // one: report what the package store actually holds.
+    const outcome = existingPkg ? 'resolved' : 'unresolved'
     return {
       outcome,
       tier: existingPkg?.tier,

@@ -242,16 +242,15 @@ describe('checkWorkspace (AD-5)', () => {
     expect(report.layout.ok).toBe(true)
   })
 
-  it('hydrates a missing template package through the temp cache and never writes into the tree', async () => {
+  it('never downloads or writes a missing template: the model stays unresolved and the tree is untouched', async () => {
     stubNetwork()
     await writeModels(2)
     const report = await checkWorkspace(rootDir)
     expect(report.models).toHaveLength(2)
-    // No package exists in-tree, so both models report a hydration (temp cache).
-    expect(report.models.filter((m) => m.templateResolved === 'hydrated')).toHaveLength(2)
-    expect(report.models.every((m) => m.versionStatus === 'current')).toBe(true)
-    expect(report.catalogSource).toBe('remote')
-    expect(report.offline).toBe(false)
+    // No package is installed, so resolution reports exactly that. The stub network
+    // must not turn an uninstalled blueprint into a "hydrated" one.
+    expect(report.models.filter((m) => m.templateResolved === 'resolved')).toHaveLength(0)
+    expect(report.models.every((m) => m.templateResolved === 'unresolved')).toBe(true)
 
     // Nothing is written under specs/bluepriNNts/ in the domain tree.
     const inTree = await readdir(join(specsDir, 'bluepriNNts')).catch(() => [])

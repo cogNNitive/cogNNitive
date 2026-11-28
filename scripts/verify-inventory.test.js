@@ -71,7 +71,8 @@ blueprints:
     }
   }
 
-  // 3. Folder declared only under frozen_blueprints: passes guard (frozen partition)
+  // 3. A `frozen_blueprints:` block no longer declares anything: a folder that only
+  //    appears there is missing from the inventory.
   {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-inventory-'))
     try {
@@ -80,22 +81,25 @@ blueprints:
   - name: registered-tmpl
     path: iNNfo/specs/templates/registered-tmpl
 frozen_blueprints:
-    version: "V_0-2-1"
+  - name: frozen-tmpl
+    path: iNNfo/specs/templates/frozen-tmpl
 `
       const sourceYamlPath = path.join(tmpDir, 'source.yaml')
       fs.writeFileSync(sourceYamlPath, sourceYaml, 'utf8')
 
       const blueprintsDir = path.join(tmpDir, 'templates')
-      fs.mkdirSync(path.join(blueprintsDir, 'registered-tmpl'), { recursive: true })
+      fs.mkdirSync(path.join(blueprintsDir, 'frozen-tmpl'), { recursive: true })
 
       const result = checkBlueprintInventory(blueprintsDir, sourceYamlPath)
       assert.strictEqual(
         result.ok,
-        true,
-        'frozen-only folder must satisfy the inventory guard via the frozen_blueprints: partition',
+        false,
+        'the retired frozen_blueprints: partition must not satisfy the inventory guard',
       )
-      assert.deepStrictEqual(result.missing, [])
-      console.log('✔ Frozen-only folder passed via frozen_blueprints: partition')
+      assert.deepStrictEqual(result.missing, ['frozen-tmpl'])
+      console.log(
+        '✔ A folder declared only under the retired frozen_blueprints: partition is missing',
+      )
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true })
     }
@@ -239,10 +243,11 @@ blueprints:
     for (const name of CORE) {
       assert.ok(name in catalog.blueprints, `catalog.json must contain Core blueprint ${name}`)
     }
-    assert.deepStrictEqual(
-      Object.keys(catalog.frozen).sort(),
-      ['workspace'],
-      'frozen partition unchanged',
+    assert.ok(!('frozen' in catalog), 'the retired frozen partition is gone')
+    assert.strictEqual(
+      catalog.blueprints.workspace?.adopted,
+      'V_0-12-0',
+      'workspace is an ordinary entry',
     )
     console.log('✔ catalog.json carries tier/access/when_to_use/release_tag/embedded_skills')
   }
@@ -422,15 +427,15 @@ blueprints:
         expectedUrl,
         `${rel}: distribution_url "${manifest.distribution_url}" but expected "${expectedUrl}"`,
       )
-      // `workspace` is frozen, not adopted: it has no entry in catalog.blueprints.
+      // After #S7 every published blueprint is an ordinary catalog entry; the
+      // assertion is unconditional so a missing entry fails instead of skipping.
       const catalogEntry = catalog.blueprints[name]
-      if (catalogEntry && catalogEntry.adopted) {
-        assert.strictEqual(
-          manifest.version,
-          catalogEntry.adopted,
-          `${rel}: version "${manifest.version}" but catalog.json adopted "${catalogEntry.adopted}"`,
-        )
-      }
+      assert.ok(catalogEntry?.adopted, `${name}: no catalog entry adopted version`)
+      assert.strictEqual(
+        manifest.version,
+        catalogEntry.adopted,
+        `${rel}: version "${manifest.version}" but catalog.json adopted "${catalogEntry.adopted}"`,
+      )
       pinned.push(name)
     }
     assert.strictEqual(

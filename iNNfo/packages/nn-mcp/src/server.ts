@@ -33,6 +33,7 @@ import {
   deriveNameFromUrl,
   listBlueprints,
   hydrateBlueprint,
+  UninstalledBlueprintError,
   listBlueprintProcedures,
   listBlueprintSkills,
   ModelIdError,
@@ -587,7 +588,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'hydrate_blueprint',
       annotations: { readOnlyHint: false, destructiveHint: false },
       description:
-        'Hydrate (copy) a Level 2 spec blueprint from global or skill store into active domain blueprints directory',
+        'Copy a Level 2 blueprint already installed by the skills-manager (global or skill store) into the domain spec directory. Never downloads: an uninstalled blueprint returns BLUEPRINT_NOT_INSTALLED with the exact skills-manager install command.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -638,7 +639,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'check_domain',
       annotations: { readOnlyHint: true },
       description:
-        'Run one consolidated domain integrity pass over every Level-3 knowledge document: validate each against its blueprint and traceability, self-heal missing blueprint packages/specs (write-once hydration), classify each pinned blueprint version against the published catalog, check provenance (evidence warnings, drift between the applied changes and the files, and ARTIFACT_WITHOUT_RECORD; read-only), and return one report with a per-knowledge status and a domain aggregate. Non-blocking and informational — validation failures never fail the tool.',
+        'Run one consolidated domain integrity pass over every Level-3 knowledge document: validate each against its blueprint and traceability, resolve each model blueprint package (a missing one is reported, never downloaded or written), classify each pinned blueprint version against the published catalog, check provenance (evidence warnings, drift between the applied changes and the files, and ARTIFACT_WITHOUT_RECORD; read-only), and return one report with a per-knowledge status and a domain aggregate. Non-blocking and informational - validation failures never fail the tool.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -1491,8 +1492,27 @@ async function handleHydrateBlueprint(args: Record<string, unknown>): Promise<Ca
   if (!blueprintName) return errorResult('Missing required argument: blueprint_name')
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
   const targetDir = args.target_dir as string | undefined
-  const result = await hydrateBlueprint(root, blueprintName, { targetDir })
-  return textResult(JSON.stringify(envelope('innfo-hydrate-blueprint', result), null, 2))
+  try {
+    const result = await hydrateBlueprint(root, blueprintName, { targetDir })
+    return textResult(JSON.stringify(envelope('innfo-hydrate-blueprint', result), null, 2))
+  } catch (err) {
+    if (err instanceof UninstalledBlueprintError) {
+      return errorResult(
+        JSON.stringify(
+          envelope('innfo-hydrate-blueprint', {
+            ok: false,
+            code: err.code,
+            blueprint: err.blueprint,
+            installCommand: err.installCommand,
+            message: err.message,
+          }),
+          null,
+          2,
+        ),
+      )
+    }
+    throw err
+  }
 }
 
 async function handleSyncDomainManifest(args: Record<string, unknown>): Promise<CallToolResult> {

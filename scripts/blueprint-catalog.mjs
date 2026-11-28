@@ -54,14 +54,6 @@ const SKIP_DIRS = new Set([
 ])
 
 /**
- * Retired templates that are frozen byte-identical for legacy resolution but no
- * longer part of ACTIVE distribution. They are emitted under a top-level
- * `frozen` object and dropped from `blueprints` (so nn-preflight lineage-audit —
- * which reads only `catalog.blueprints` — gives them no upgrade notices).
- */
-const FROZEN_NAMES = ['workspace']
-
-/**
  * The Core `bluepriNNts` that remain bundled in `manifest/source.yaml` and the
  * offline canonical registry. Every other catalog entry is an optional vertical
  * hydrated on demand (`tier: 'free'`).
@@ -263,11 +255,7 @@ function generate(rootDir, releaseTagFor) {
 
     const relPosix = rel.replace(/\\/g, '/')
     const name = nameFromPath(relPosix)
-    // Frozen legacy files are byte-identical and predate `blueprint_version`: they carry
-    // `template_version`, which is the version they are catalogued under.
-    const rawVersion =
-      fm.blueprint_version || (FROZEN_NAMES.includes(name) ? fm.template_version : undefined)
-    const version = normalizeBlueprintVersion(rawVersion)
+    const version = normalizeBlueprintVersion(fm.blueprint_version)
     if (!version) {
       warnings.push(`skipped (no parseable blueprint_version): ${relPosix}`)
       continue
@@ -290,7 +278,6 @@ function generate(rootDir, releaseTagFor) {
   }
 
   const blueprints = {}
-  const frozen = {}
   for (const [name, rawVersions] of byName.entries()) {
     rawVersions.sort((a, b) => compareVersions(a.blueprint_version, b.blueprint_version))
     const seenVer = new Set()
@@ -315,21 +302,15 @@ function generate(rootDir, releaseTagFor) {
       adopted: adopted.blueprint_version,
       versions: versionsOut,
     }
-    if (FROZEN_NAMES.includes(name)) {
-      // Frozen legacy specs are retired from active distribution: their
-      // partition shape is intentionally unchanged (no tier/access metadata).
-      frozen[name] = entry
-    } else {
-      blueprints[name] = {
-        name,
-        adopted: entry.adopted,
-        tier: CORE_NAMES.has(name) ? 'core' : 'free',
-        access: 'public',
-        when_to_use: whenToUse,
-        release_tag: releaseTagFor(name),
-        embedded_skills: embeddedSkills(rootDir, name),
-        versions: versionsOut,
-      }
+    blueprints[name] = {
+      name,
+      adopted: entry.adopted,
+      tier: CORE_NAMES.has(name) ? 'core' : 'free',
+      access: 'public',
+      when_to_use: whenToUse,
+      release_tag: releaseTagFor(name),
+      embedded_skills: embeddedSkills(rootDir, name),
+      versions: versionsOut,
     }
   }
 
@@ -339,11 +320,6 @@ function generate(rootDir, releaseTagFor) {
       Object.keys(blueprints)
         .sort()
         .map((k) => [k, blueprints[k]]),
-    ),
-    frozen: Object.fromEntries(
-      Object.keys(frozen)
-        .sort()
-        .map((k) => [k, frozen[k]]),
     ),
     warnings,
   }

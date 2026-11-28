@@ -31,6 +31,7 @@ function fixtureTree() {
   fs.mkdirSync(path.join(t, 'business', 'samples'), { recursive: true });
   fs.mkdirSync(path.join(t, 'documentation'), { recursive: true });
   fs.mkdirSync(path.join(t, 'draft'), { recursive: true });
+  fs.mkdirSync(path.join(t, 'legacy'), { recursive: true });
   fs.mkdirSync(path.join(t, 'blank', 'skills', 'nn-blank'), { recursive: true });
   fs.mkdirSync(path.join(t, 'blank', 'skills', 'ignored-no-skill-md'), { recursive: true });
 
@@ -54,12 +55,12 @@ function fixtureTree() {
   fs.writeFileSync(path.join(t, 'blank', 'spec_NN.md'), spec('https://x/blank/spec_NN.md', 2, 'V_0-4-0'));
   fs.writeFileSync(path.join(t, 'blank', 'skills', 'nn-blank', 'SKILL.md'), '# skill');
   // root workspace spec — canonical bare filename, discovered as `workspace`
-  fs.writeFileSync(path.join(t, 'workspace_spec_NN.md'), spec('https://x/workspace_spec_NN.md', 2, 'V_0-3-0', 'template_version'));
+  fs.writeFileSync(path.join(t, 'workspace_spec_NN.md'), spec('https://x/workspace_spec_NN.md', 2, 'V_0-3-0'));
+  // a level-2 file that still carries the retired `template_version` field only is not
+  // catalogued: `blueprint_version` is the single accepted version source.
+  fs.writeFileSync(path.join(t, 'legacy', 'spec_NN.md'), spec('https://x/legacy/spec_NN.md', 2, 'V_0-1-0', 'template_version'));
   // level-2 template with no frontmatter blueprint_version — skipped with a warning
   fs.writeFileSync(path.join(t, 'draft', 'spec_NN.md'), spec('https://x/draft/spec_NN.md', 2, null));
-  // frozen templates — a frozen name must land in `frozen`, not `blueprints`.
-  // The real frozen files carry `template_version` (never `blueprint_version`) and are
-  // byte-frozen, so the generator must read the field they actually have.
   return root;
 }
 
@@ -90,24 +91,28 @@ async function runTests() {
         'flat canonical subdir template discovered by frontmatter version',
       );
 
-      assert.ok('workspace' in catalog.frozen, 'root workspace_spec_NN.md discovered as a frozen workspace blueprint');
-      assert.strictEqual(catalog.frozen.workspace.adopted, 'V_0-3-0');
+      assert.strictEqual(catalog.blueprints.workspace.adopted, 'V_0-3-0', 'root workspace_spec_NN.md catalogued as a normal blueprint');
+      assert.ok(!('frozen' in catalog), 'the retired frozen partition is never emitted');
 
       assert.ok(!('draft' in catalog.blueprints), 'level-2 file without blueprint_version is not catalogued');
       assert.ok(
         catalog.warnings.some((w) => w.includes('draft/spec_NN.md')),
         'missing blueprint_version produces a warning',
       );
+      assert.ok(
+        !('legacy' in catalog.blueprints) && catalog.warnings.some((w) => w.includes('legacy/spec_NN.md')),
+        'the retired template_version field is not a version source',
+      );
       console.log('✔ generator emits correct catalog (frontmatter versions, adopted, level-3 excluded, canonical names)');
     }
 
-    // Test 1a: frozen partition — workspace under `frozen`, absent from `blueprints`
+    // Test 1a: `blueprint_version` is the single version source for every entry
     {
       const catalog = JSON.parse(fs.readFileSync(out, 'utf-8'));
-      assert.ok('frozen' in catalog, 'catalog carries a top-level frozen partition');
-      assert.ok('workspace' in catalog.frozen, 'workspace recorded under frozen');
-      assert.ok(!('workspace' in catalog.blueprints), 'workspace dropped from blueprints');
-      console.log('✔ frozen partition emits workspace and drops it from blueprints');
+      assert.ok(!('frozen' in catalog), 'catalog carries no frozen partition');
+      assert.strictEqual(catalog.blueprints.workspace.adopted, 'V_0-3-0', 'workspace is an ordinary catalog entry');
+      assert.strictEqual(catalog.blueprints.workspace.tier, 'free', 'workspace carries the ordinary entry shape');
+      console.log('✔ no frozen partition: workspace is an ordinary catalog entry');
     }
 
     // Test 1b: enriched catalog metadata — tier/access/when_to_use/release_tag/embedded_skills
@@ -143,8 +148,6 @@ async function runTests() {
       assert.deepStrictEqual(bp.business.embedded_skills, ['nn-business'], 'business embedded skill discovered');
       assert.deepStrictEqual(bp.documentation.embedded_skills, [], 'no skills dir yields an empty array');
 
-      // Frozen partition keeps its original shape (no tier/access metadata).
-      assert.ok(!('tier' in catalog.frozen.workspace), 'frozen entries keep their unchanged shape');
       console.log('✔ enriched metadata (tier/access/when_to_use/release_tag/embedded_skills) is emitted');
     }
 

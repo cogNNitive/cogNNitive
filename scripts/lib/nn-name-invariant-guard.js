@@ -11,7 +11,7 @@
  *
  * Carve-out (frozen content is reported, never failed, never renamed):
  *   - published specs `iNNfo/specs/**` whose name carries `_V_`
- *   - the folder of every blueprint in `manifest/source.yaml` `frozen_blueprints`
+ *   - the legacy root `iNNfo/specs/bluepriNNts/workspace_spec_NN.md` (FROZEN_PREFIXES)
  *
  * Out of scope: test directories (deliberately legacy inputs), `openspec/`,
  * `temp/`, `node_modules/`.
@@ -25,16 +25,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { parseFocusedYaml, parseFrontmatter } = require('./yaml-parser.js');
 
-const MANIFEST_PATH = 'manifest/source.yaml';
-
 /**
  * Fixed carve-out prefixes (posix, repo-relative).
  *
  * `bluepriNNts/workspace_spec_NN.md` is frozen legacy content: it predates
- * `blueprint_version`, and renaming it would change what an install resolves. The carve-out
- * used to be derived from `frozen_blueprints` in `manifest/source.yaml`; that section is gone
- * (2026-11-26 decision 6) because it promised entries the manifest never rendered. The
- * exemption is a property of the content, not of the manifest, so it lives here.
+ * `blueprint_version`, and renaming it would change what an install resolves. The
+ * exemption is a property of the content, so it lives here and nowhere else.
  */
 const FROZEN_PREFIXES = ['iNNfo/specs/bluepriNNts/workspace_spec_NN.md'];
 
@@ -44,35 +40,9 @@ const FROZEN_PREFIXES = ['iNNfo/specs/bluepriNNts/workspace_spec_NN.md'];
  */
 const TEMPORARY_ALLOWLIST = [];
 
-/**
- * Carve-out prefixes of the frozen blueprints: the folder of a `spec_NN.md` entry, or the
- * exact file of a flat entry. `manifest/source.yaml` no longer declares a frozen section
- * (2026-11-26 decision 6), so in the real repo this contributes nothing and `FROZEN_PREFIXES`
- * carries the one legacy carve-out; a manifest that still declares entries is still honoured.
- * @param {string} manifestText contents of manifest/source.yaml
- * @returns {string[]}
- */
-function frozenBlueprintDirs(manifestText) {
-  let doc;
-  try {
-    doc = parseFocusedYaml(manifestText);
-  } catch {
-    return [];
-  }
-  const dirs = [];
-  for (const entry of doc.frozen_blueprints || []) {
-    if (!entry || typeof entry.path !== 'string') continue;
-    const p = entry.path.replace(/\\/g, '/');
-    if (path.posix.basename(p) === 'spec_NN.md') dirs.push(`${path.posix.dirname(p)}/`);
-    else dirs.push(p);
-  }
-  return dirs;
-}
-
-/** @param {string} relPath posix path @param {string[]} frozenDirs */
-function isCarvedOut(relPath, frozenDirs) {
+/** @param {string} relPath posix path */
+function isCarvedOut(relPath) {
   if (FROZEN_PREFIXES.some((p) => relPath.startsWith(p))) return true;
-  if (frozenDirs.some((p) => relPath.startsWith(p))) return true;
   // Package-level blueprint `defaults/` baseline documents (e.g.
   // `bluepriNNts/coNNtent/defaults/video-defaults_NN.md`) are blueprint-internal
   // data named by the blueprint spec, not user kNNowledge; the universal `_NN`
@@ -115,7 +85,6 @@ function parentSpecNameOfText(text, parentSpecNameOf) {
  * @param {string} [options.repoRoot]
  * @param {string[]} [options.files] repo-relative paths (default: git-visible files)
  * @param {(file: string) => string} [options.readFile]
- * @param {string} [options.manifestText]
  * @param {Array<{ pattern: string, reason: string }>} [options.allowlist]
  * @returns {{ ok: boolean, errors: string[], violations: Array<{ file: string, expected: string }>, carvedOut: string[], allowlisted: string[] }}
  */
@@ -129,11 +98,6 @@ function checkNnNameInvariantGuard(options = {}) {
 
   const core = require(path.join(repoRoot, 'skills', 'nn-sources', 'scripts', 'lib', 'nn-core.generated.cjs'));
   const readFile = options.readFile || ((f) => fs.readFileSync(path.join(repoRoot, f), 'utf8'));
-  const manifestText =
-    options.manifestText !== undefined
-      ? options.manifestText
-      : fs.readFileSync(path.join(repoRoot, MANIFEST_PATH), 'utf8');
-  const frozenDirs = frozenBlueprintDirs(manifestText);
 
   let files = options.files;
   if (!files) {
@@ -154,7 +118,7 @@ function checkNnNameInvariantGuard(options = {}) {
   for (const raw of files) {
     const relPath = raw.split(path.sep).join('/');
     if (!core.isNNName(relPath) || isOutOfScope(relPath)) continue;
-    if (isCarvedOut(relPath, frozenDirs)) {
+    if (isCarvedOut(relPath)) {
       carvedOut.push(relPath);
       continue;
     }
@@ -196,7 +160,6 @@ module.exports = {
   checkNnNameInvariantGuard,
   isCarvedOut,
   isOutOfScope,
-  frozenBlueprintDirs,
   validateAllowlist,
   TEMPORARY_ALLOWLIST,
   FROZEN_PREFIXES,

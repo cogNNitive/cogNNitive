@@ -13,6 +13,7 @@ import {
   findKnowledgeFile,
   deriveNameFromUrl,
   ModelIdError,
+  UninstalledBlueprintError,
 } from './spec'
 import { validateKnowledge, validateBlueprint } from './mutate'
 
@@ -769,16 +770,18 @@ describe('catalog-driven discovery and on-demand hydration', () => {
     expect(core?.tier).toBe('core')
   })
 
-  it('hydrateBlueprint returns the install command for an uninstalled catalog blueprint and writes nothing', async () => {
-    const res = await hydrateBlueprint(catRoot, 'organization', {
+  it('hydrateBlueprint fails with a typed error naming the install command for an uninstalled catalog blueprint, and writes nothing', async () => {
+    const err = await hydrateBlueprint(catRoot, 'organization', {
       globalDir,
       skillsDir,
       catalog,
-    })
+    }).catch((e: unknown) => e)
 
-    expect(res.success).toBe(false)
-    expect(res.source).toBe('catalog')
-    expect(res.installCommand).toBe(
+    expect(err).toBeInstanceOf(UninstalledBlueprintError)
+    const uninstalled = err as UninstalledBlueprintError
+    expect(uninstalled.code).toBe('BLUEPRINT_NOT_INSTALLED')
+    expect(uninstalled.blueprint).toBe('organization')
+    expect(uninstalled.installCommand).toBe(
       'node ~/.agents/skills/nn-skills-lifecycle/scripts/skills-manager.js install --blueprint organization',
     )
 
@@ -787,11 +790,13 @@ describe('catalog-driven discovery and on-demand hydration', () => {
     await expect(statFs(join(skillsDir, 'nn-org', 'SKILL.md'))).rejects.toThrow()
   })
 
-  it('hydrateBlueprint never fetches: the command is returned even without network', async () => {
+  it('hydrateBlueprint never fetches: the typed error is raised even without network', async () => {
     vi.spyOn(global, 'fetch').mockRejectedValue(new Error('network down'))
 
-    const res = await hydrateBlueprint(catRoot, 'organization', { globalDir, skillsDir, catalog })
-    expect(res.success).toBe(false)
-    expect(res.installCommand).toMatch(/install --blueprint organization/)
+    const err = await hydrateBlueprint(catRoot, 'organization', { globalDir, skillsDir, catalog }).catch(
+      (e: unknown) => e,
+    )
+    expect(err).toBeInstanceOf(UninstalledBlueprintError)
+    expect((err as UninstalledBlueprintError).installCommand).toMatch(/install --blueprint organization/)
   })
 })

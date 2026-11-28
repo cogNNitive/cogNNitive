@@ -11,6 +11,7 @@
  */
 
 import { join, basename, dirname, resolve, relative } from 'node:path'
+import { existsSync } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
 import {
   getBlueprint as coreGetBlueprint,
@@ -403,7 +404,6 @@ export interface BlueprintCatalogEntry {
 export interface BlueprintCatalog {
   generator?: string
   blueprints: Record<string, BlueprintCatalogEntry>
-  frozen?: Record<string, BlueprintCatalogEntry>
   warnings?: string[]
 }
 
@@ -444,9 +444,6 @@ function catalogEntryFor(
   if (!catalog) return undefined
   const wanted = name.toLowerCase()
   for (const [key, entry] of Object.entries(catalog.blueprints ?? {})) {
-    if (key.toLowerCase() === wanted || entry.name.toLowerCase() === wanted) return entry
-  }
-  for (const [key, entry] of Object.entries(catalog.frozen ?? {})) {
     if (key.toLowerCase() === wanted || entry.name.toLowerCase() === wanted) return entry
   }
   return undefined
@@ -625,8 +622,20 @@ export interface HydrateBlueprintResult {
   targetPath: string
   source: string
   message?: string
-  /** Exact command to install an uninstalled catalog blueprint (single writer). */
-  installCommand?: string
+}
+
+export class UninstalledBlueprintError extends Error {
+  readonly code = 'BLUEPRINT_NOT_INSTALLED'
+  constructor(
+    readonly blueprint: string,
+    readonly installCommand: string,
+  ) {
+    super(
+      `Blueprint "${blueprint}" is not installed. Install it with:\n  ${installCommand}\n` +
+        'This tool never downloads or writes a bluepriNNt: the skills-manager is its only installer.',
+    )
+    this.name = 'UninstalledBlueprintError'
+  }
 }
 
 export async function hydrateBlueprint(
@@ -652,6 +661,26 @@ export async function hydrateBlueprint(
 
   const globalBlueprintsDir = opts?.globalDir ?? join(homedir(), '.agents', 'bluepriNNts')
   const skillsDir = opts?.skillsDir ?? join(homedir(), '.agents', 'skills')
+
+  // Read-only contract: a blueprint this machine does not have installed is named
+  // with its install command before any resolution runs, so an uninstalled catalog
+  // blueprint can never borrow a remote tier or a profile-installed copy.
+  if (!opts?.globalDir && !opts?.skillsDir) {
+    const parsedName = parseSpecName(templateName)
+    const installed =
+      (await resolveBlueprintPackage(rootDir, parsedName.base).catch(() => null)) !== null ||
+      existsSync(join(skillsDir, `nn-${parsedName.base.toLowerCase()}`, 'SKILL.md'))
+    if (!installed) {
+      const catalog = await loadCatalog(rootDir, opts)
+      const entry = catalogEntryFor(catalog, parsedName.base)
+      if (entry) {
+        throw new UninstalledBlueprintError(
+          entry.name,
+          `node ~/.agents/skills/nn-skills-lifecycle/scripts/skills-manager.js install --blueprint ${entry.name}`,
+        )
+      }
+    }
+  }
 
   const pkg = await resolveBlueprintPackage(rootDir, templateName, undefined, {
     globalDir: globalBlueprintsDir,
@@ -740,15 +769,7 @@ export async function hydrateBlueprint(
     const entry = catalogEntryFor(catalog, parsed.base)
     if (entry) {
       const installCommand = `node ~/.agents/skills/nn-skills-lifecycle/scripts/skills-manager.js install --blueprint ${entry.name}`
-      return {
-        success: false,
-        templateName,
-        targetPath: '',
-        source: 'catalog',
-        installCommand,
-        message:
-          `Blueprint "${entry.name}" is not installed. Install it with:\n  ${installCommand}`,
-      }
+      throw new UninstalledBlueprintError(entry.name, installCommand)
     }
 
     const checkedPaths = await getBlueprintSearchPaths(templateName, {

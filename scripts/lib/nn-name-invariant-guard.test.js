@@ -11,31 +11,16 @@ const assert = require('node:assert');
 const {
   checkNnNameInvariantGuard,
   isCarvedOut,
-  frozenBlueprintDirs,
   validateAllowlist,
   TEMPORARY_ALLOWLIST,
 } = require('./nn-name-invariant-guard.js');
 
 const doc = (bp) => `---\nlevel: 3\nparent_spec:\n  name: "${bp}"\n  url: "https://example.com/${bp}"\n---\n\n# NN Summary\n`;
 
-const MANIFEST = [
-  'frozen_blueprints:',
-  '  - name: cogNNitive',
-  '    repo: cogNNitive/cogNNitive-web',
-  '    path: iNNfo/specs/bluepriNNts/cogNNitive/spec_NN.md',
-  '    ref_key: blueprints',
-  '  - name: workspace_spec',
-  '    repo: cogNNitive/cogNNitive-web',
-  '    path: iNNfo/specs/bluepriNNts/workspace_spec_NN.md',
-  '    ref_key: blueprints',
-  '',
-].join('\n');
-
 function run(files, extra = {}) {
   return checkNnNameInvariantGuard({
     files: Object.keys(files),
     readFile: (f) => files[f],
-    manifestText: MANIFEST,
     allowlist: [],
     ...extra,
   });
@@ -75,11 +60,11 @@ function main() {
   }
   console.log('✔ a _V_ token in a new name fails');
 
-  // 4. Frozen carve-out: published specs, frozen blueprints.
+  // 4. Frozen carve-out: published `_V_` specs and the legacy root workspace_spec_NN.md.
   {
     const files = {
       'iNNfo/specs/bluepriNNts/business/samples/Ghostbusters_V_0-2-3_business_NN.md': doc('business'),
-      'iNNfo/specs/bluepriNNts/cogNNitive/samples/workspace_NN.md': doc('workspace_spec'),
+      'iNNfo/specs/bluepriNNts/workspace_spec_NN.md': '---\nlevel: 2\n---\n',
     };
     const r = run(files);
     assert.strictEqual(r.ok, true, r.errors.join('; '));
@@ -100,8 +85,8 @@ function main() {
 
   // 5. Package procedures (including workspace) are not carved out and must follow the suffix rule.
   {
-    assert.strictEqual(isCarvedOut('iNNfo/specs/bluepriNNts/workspace/procedures/a_NN.md', []), false);
-    assert.strictEqual(isCarvedOut('iNNfo/specs/bluepriNNts/video/procedures/generate_video_script_NN.md', []), false);
+    assert.strictEqual(isCarvedOut('iNNfo/specs/bluepriNNts/workspace/procedures/a_NN.md'), false);
+    assert.strictEqual(isCarvedOut('iNNfo/specs/bluepriNNts/video/procedures/generate_video_script_NN.md'), false);
     const r = run({ 'iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_artifact_feedback_NN.md': doc('procedures') });
     assert.strictEqual(r.ok, false);
   }
@@ -110,23 +95,21 @@ function main() {
   // 5b. Blueprint package `defaults/` baseline documents are carved out: they are named
   //     by the blueprint spec (`video-defaults_NN.md`), not by the `_NN` invariant.
   {
-    assert.strictEqual(isCarvedOut('iNNfo/specs/bluepriNNts/coNNtent/defaults/video-defaults_NN.md', []), true);
+    assert.strictEqual(isCarvedOut('iNNfo/specs/bluepriNNts/coNNtent/defaults/video-defaults_NN.md'), true);
     const r = run({ 'iNNfo/specs/bluepriNNts/coNNtent/defaults/video-defaults_NN.md': doc('coNNtent') });
     assert.strictEqual(r.ok, true, r.errors.join('; '));
     assert.deepStrictEqual(r.carvedOut, ['iNNfo/specs/bluepriNNts/coNNtent/defaults/video-defaults_NN.md']);
   }
   console.log('✔ blueprint package defaults/ documents are carved out');
 
-  // 6. frozen_blueprints is read from the manifest; its folder is carved out.
+  // 6. The carve-out is fixed: no function reads a frozen folder list from a manifest.
   {
-    // A folder spec carves out its folder; a flat entry carves out only that file (its folder holds live blueprints).
-    assert.deepStrictEqual(frozenBlueprintDirs(MANIFEST), [
-      'iNNfo/specs/bluepriNNts/cogNNitive/',
-      'iNNfo/specs/bluepriNNts/workspace_spec_NN.md',
-    ]);
-    assert.deepStrictEqual(frozenBlueprintDirs(''), []);
+    assert.strictEqual(require('./nn-name-invariant-guard.js').frozenBlueprintDirs, undefined, 'frozenBlueprintDirs is removed');
+    const r = run({ 'iNNfo/specs/bluepriNNts/cogNNitive/samples/workspace_NN.md': doc('workspace_spec') });
+    assert.strictEqual(r.ok, false, 'a blueprint folder is never carved out');
+    assert.strictEqual(r.carvedOut.length, 0);
   }
-  console.log('✔ the frozen blueprint folders come from manifest/source.yaml');
+  console.log('✔ no folder is carved out by a manifest declaration');
 
   // 7. Test directories are out of scope; a file with no parent_spec is only judged on the version rule.
   {
@@ -144,7 +127,7 @@ function main() {
     const r = run({ 'kNNowledge/Client_NN.md': doc('business') }, { allowlist });
     assert.strictEqual(r.ok, true, r.errors.join('; '));
     assert.deepStrictEqual(r.allowlisted, ['kNNowledge/Client_NN.md']);
-    const bad = checkNnNameInvariantGuard({ files: [], manifestText: MANIFEST, allowlist: [{ pattern: 'x', reason: '' }] });
+    const bad = checkNnNameInvariantGuard({ files: [], allowlist: [{ pattern: 'x', reason: '' }] });
     assert.strictEqual(bad.ok, false);
     assert.ok(bad.errors.some((e) => e.includes('missing a reason')));
   }
