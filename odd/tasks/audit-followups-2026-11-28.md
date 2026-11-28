@@ -21,7 +21,7 @@ Delivery: ask-on-risk; merging is the maintainer's call. Runner: vitest (`node n
 - T3 S4 delegated (parallel unit, persisted format) - PR #974 - in review
 - T4 S5 delegated (parallel unit, console hot area) - PR #975, commits a31392d23, e35eedbbe - in review
 - T5a S6 delegated (parallel unit, contract: nn-mcp tools) - branch `session/audit-blueprint-single-path` - not started: the writer was still reading when the session died; S6 is the remaining work
-- T5b S7 delegated (parallel unit, catalog format) - same branch - done, uncommitted (see L7)
+- T5b S7 delegated (parallel unit, catalog format) - PR #983, commit 418d5a659 - open, unreviewed
 - T6 S8 inline - partial: web#32 branch published as PR #976; domain-creation frictions filed as #977; #913 and #915 were already closed by another session; `t3/unify-console-export-action` (#33) waits for #975 (console is serial); `session/procedure-graph-lanes` belongs to a live worktree, left to its owner
 
 ## Log
