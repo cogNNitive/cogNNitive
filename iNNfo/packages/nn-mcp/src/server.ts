@@ -964,7 +964,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       name: 'procedure_start',
       annotations: { readOnlyHint: false, destructiveHint: false },
       description:
-        'Start a run of a procedure. Resolves the procedure with the list_blueprint_procedures precedence (an id visible from path, or a domain-relative *_procedures_NN.md path), applies slot defaults to params and refuses a missing required slot (MISSING_REQUIRED_SLOT) or an unknown procedure (PROCEDURE_NOT_FOUND). ' +
+        'Start a run of a procedure. Resolves the procedure with the list_blueprint_procedures precedence (an id visible from path, or a domain-relative *_procedures_NN.md path), applies slot defaults to params and refuses a missing required slot (MISSING_REQUIRED_SLOT) or an unknown procedure (PROCEDURE_NOT_FOUND), and refuses a procedure that declares no steps (PROCEDURE_NOT_IMPLEMENTED). A run always walks a whole procedure document. ' +
         'Creates the run as an executions instance model (executions/<run>/) with its header (procedure, def_rev pinned to the procedure knowledge_version, params) and its started event, in ONE changeset applied through apply_change. ' +
         'Other codes: RUN_EXISTS, EXECUTIONS_NOT_INSTALLED (the domaiNN does not carry specs/bluepriNNts/executions/spec_NN.md; install it with hydrate_blueprint blueprint_name=executions), INVALID_ARGUMENT, APPLY_FAILED. Returns the run id and its folded state.',
       inputSchema: {
@@ -972,8 +972,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         properties: {
           procedure: {
             type: 'string',
-            description:
-              'Procedure id (e.g. review) or domain-relative procedure document path; append @<container-slug> to run one sub-procedure of a document that holds several',
+            description: 'Procedure id (e.g. review) or domain-relative procedure document path',
           },
           params: { type: 'object', description: 'Run parameters: slot name -> value' },
           run: {

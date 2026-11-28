@@ -78,17 +78,11 @@ async function floorPackageDir(root: string, address: string): Promise<string | 
   return pkg.isPackageDir ? pkg.packagePath : dirname(pkg.specFilePath)
 }
 
-/** Reads a procedure document by the address a run header records, optionally one container. */
+/** Reads a procedure document by the address a run header records: a run walks a whole document. */
 export async function loadProcedure(
   root: string,
-  address: string,
+  docAddress: string,
 ): Promise<{ ok: true; graph: ProcedureGraph } | ToolError> {
-  // `<doc>@<container-slug>` addresses one sub-procedure of a file (design §4.6).
-  const at = address.lastIndexOf('@')
-  const docAddress =
-    at > 0 && !address.slice(0, at).includes('://') ? address.slice(0, at) : address
-  const container =
-    at > 0 && !address.slice(0, at).includes('://') ? address.slice(at + 1) : undefined
   let abs: string
   if (docAddress.startsWith(FLOOR_PREFIX)) {
     const packageDir = await floorPackageDir(root, docAddress)
@@ -106,7 +100,7 @@ export async function loadProcedure(
   } catch {
     return fail('PROCEDURE_NOT_FOUND', `The procedure document ${docAddress} cannot be read.`)
   }
-  return { ok: true, graph: procedureGraph(parseKnowledge(text), container) }
+  return { ok: true, graph: procedureGraph(parseKnowledge(text)) }
 }
 
 /**
@@ -121,11 +115,7 @@ export async function resolveProcedure(
   ref: string,
   scope = '.',
 ): Promise<{ ok: true; procedure: ResolvedProcedure } | ToolError> {
-  // `<doc-or-id>@<container-slug>` starts one sub-procedure of a document that holds several
-  // (design §4.6); the run header then records `<doc>@<container>`, which `loadProcedure` reads.
-  const at = ref.lastIndexOf('@')
-  const container = at > 0 && !ref.slice(0, at).includes('://') ? ref.slice(at + 1) : undefined
-  const target = container === undefined ? ref : ref.slice(0, at)
+  const target = ref
   const byPath = target.endsWith('.md')
   const doc = byPath ? posix.normalize(target.replace(/\\/g, '/')) : undefined
   // A document is read in its own chain, so the floor is the bluepriNNt its own `parent_spec`
@@ -158,18 +148,9 @@ export async function resolveProcedure(
     return fail('PROCEDURE_NOT_FOUND', `No procedure "${target}" is visible from "${scope}".`)
   }
   const document = entry.source_kind === 'blueprint' ? `${entry.source}/${entry.doc}` : entry.doc
-  const address = container === undefined ? document : `${document}@${container}`
-  const loaded = await loadProcedure(root, address)
+  const loaded = await loadProcedure(root, document)
   if (!loaded.ok) return loaded
-  if (container !== undefined && Object.keys(loaded.graph.steps).length === 0)
-    return fail('PROCEDURE_NOT_FOUND', `"${target}" has no sub-procedure "${container}".`)
-  // A container runs on its own: it asks only for the slots its steps carry, not for every slot
-  // the document declares for its sibling procedures.
-  const slots =
-    container === undefined
-      ? entry.slots
-      : entry.slots.filter((s) => loaded.graph.slots.includes(s.name))
-  return { ok: true, procedure: { address, slots, graph: loaded.graph } }
+  return { ok: true, procedure: { address: document, slots: entry.slots, graph: loaded.graph } }
 }
 
 export interface RunRecord extends RunModel {

@@ -151,6 +151,13 @@ export async function procedureStart(
   if (!resolved.ok) return resolved
   const { address, slots, graph } = resolved.procedure
 
+  // A procedure with no steps is declared, not implemented: it is listed, never started.
+  if (Object.keys(graph.steps).length === 0)
+    return fail(
+      'PROCEDURE_NOT_IMPLEMENTED',
+      `Procedure "${ref}" declares no steps, so it cannot be run.`,
+    )
+
   // Start-time refusal (design §3.1): structural errors are fatal to a run, because the
   // runner is the only validator of the run-to-procedure relation.
   const errors = graph.diagnostics.filter((d) => d.severity === 'error')
@@ -184,12 +191,7 @@ export async function procedureStart(
       { missing: unfilled },
     )
 
-  // A container run is named after its document and the container: `usage-define-a-frame`.
-  const at = ref.lastIndexOf('@')
-  const procId =
-    at > 0 && !ref.slice(0, at).includes('://')
-      ? `${procedureIdOf(ref.slice(0, at))}-${ref.slice(at + 1)}`
-      : procedureIdOf(ref)
+  const procId = procedureIdOf(ref)
   const run = text(args['run']) ?? `${procId}-${formatUtcStamp(new Date()).toLowerCase()}`
   if (!RUN_ID.test(run)) return fail('INVALID_ARGUMENT', `run "${run}" must be a lowercase slug.`)
   let taken = existsSync(join(root, 'executions', run))
