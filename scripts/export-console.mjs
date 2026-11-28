@@ -1644,12 +1644,13 @@ function fillRunSlots(text, params, runId) {
  * resolution. Kept local because this script carries no runtime dependency on nn-mcp.
  */
 function insideRoot(root, path) {
+  payloadHelper ??= loadPayloadHelper(resolveConsoleDir())
   if (
     typeof path !== 'string' ||
     !path.trim() ||
     isAbsolute(path) ||
     /\{[^}]*\}/.test(path) ||
-    /_NN\.md$/i.test(path.trim())
+    payloadHelper.isNNName(path.trim())
   )
     return null
   const abs = resolve(root, path)

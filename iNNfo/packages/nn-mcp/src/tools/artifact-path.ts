@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { isNNName } from '@cognnitive/nn-core'
 import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
 import { fail, slotValuesOf, substitute } from './procedure-state.js'
 import type { FoldedRun, ToolError } from './procedure-state.js'
@@ -52,7 +53,7 @@ export function resolveArtifactPath(
       `Artifact "${artifact}" path "${path}" is not a relative path inside the domaiNN.`,
       { artifact, path },
     )
-  if (/_NN\.md$/i.test(path))
+  if (isNNName(path.trim()))
     return fail(
       'ARTIFACT_PATH_IS_MODEL',
       `Artifact "${artifact}" path "${path}" names a model; models change only through a changeset.`,
