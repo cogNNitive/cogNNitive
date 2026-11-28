@@ -275,7 +275,11 @@ async function setupRuns(runPolicy: string): Promise<void> {
     '---\nlevel: 3\ntitle: "Notes"\nknowledge_version: "V_0-1-0"\nparent_spec:\n  name: "runs_V_0-1-0"\n  url: "specs/bluepriNNts/runs_V_0-1-0_NN.md"\n---\n\n# NN Note\n\n## NN Note: First\ntext:: hello\n',
     'utf-8',
   )
-  await writeFile(join(specsDir, 'bluepriNNts', 'runs_V_0-1-0_NN.md'), RUNS_BLUEPRINT(runPolicy), 'utf-8')
+  await writeFile(
+    join(specsDir, 'bluepriNNts', 'runs_V_0-1-0_NN.md'),
+    RUNS_BLUEPRINT(runPolicy),
+    'utf-8',
+  )
 }
 
 /** Creates the instance under a mutable Run, then switches the declaration. */
@@ -308,7 +312,9 @@ describe('apply_change enforces the write policy on whole models', () => {
     const res = await apply('op:: remove_model\ntarget:: first-run\n')
     expect(res.success).toBe(false)
     expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
-    expect(await readFile(join(root, 'runs', 'first-run', 'first-run_runs_NN.md'), 'utf-8')).toBe(before)
+    expect(await readFile(join(root, 'runs', 'first-run', 'first-run_runs_NN.md'), 'utf-8')).toBe(
+      before,
+    )
   })
 
   it('refuses moving an append-only instance', async () => {
@@ -394,6 +400,17 @@ describe('an append-only instance is written once', () => {
     await apply('op:: update_field\ntarget:: ops@Entry Two&note\nto:: second\n')
     const written = await modelText()
     const res = await apply('op:: update_field\ntarget:: ops@Entry Two&note\nto:: changed\n')
+    expect(res.success).toBe(false)
+    expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
+    expect(await modelText()).toBe(written)
+  })
+
+  it('refuses overwriting a value on an unfrozen element addressed by slug (write policy bypass regression)', async () => {
+    await setup()
+    await apply(ADD_LOG)
+    await apply('op:: update_field\ntarget:: ops@entry-two&note\nto:: second\n')
+    const written = await modelText()
+    const res = await apply('op:: update_field\ntarget:: ops@entry-two&note\nto:: changed\n')
     expect(res.success).toBe(false)
     expect(res.errors?.map((e) => e.code)).toContain('WRITE_POLICY_DENIED')
     expect(await modelText()).toBe(written)

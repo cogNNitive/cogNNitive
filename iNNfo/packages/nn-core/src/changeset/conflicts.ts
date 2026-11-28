@@ -1,5 +1,6 @@
 import { slugify } from '../parser/slug.js'
 import { slugifyHeading } from '../sourceRef.js'
+import { matchesElement } from '../mutate.js'
 import { parsePropertyValue } from '../parser/sections.js'
 import { hashParsedElement } from '../console/element-hash.js'
 import { checkStaleTarget, loadStalenessHistory, type StalenessHistory } from './history.js'
@@ -311,11 +312,7 @@ export async function partitionChangeset(
         if (change.concept && model.elements.has(change.concept)) {
           const list = model.elements.get(change.concept)!
           for (const el of list) {
-            if (
-              el.name.toLowerCase() === elementIdent.toLowerCase() ||
-              (el.slug && el.slug.toLowerCase() === elementIdent.toLowerCase()) ||
-              slugify(el.name).toLowerCase() === elementIdent.toLowerCase()
-            ) {
+            if (matchesElement(el, elementIdent)) {
               candidates.push({ concept: change.concept, element: el })
             }
           }
@@ -326,11 +323,7 @@ export async function partitionChangeset(
           for (const [conceptName, elements] of model.elements.entries()) {
             if (change.concept && conceptName === change.concept) continue
             for (const el of elements) {
-              if (
-                el.name.toLowerCase() === elementIdent.toLowerCase() ||
-                (el.slug && el.slug.toLowerCase() === elementIdent.toLowerCase()) ||
-                slugify(el.name).toLowerCase() === elementIdent.toLowerCase()
-              ) {
+              if (matchesElement(el, elementIdent)) {
                 candidates.push({ concept: conceptName, element: el })
               }
             }

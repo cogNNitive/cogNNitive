@@ -7,8 +7,13 @@
  * same changes, so the mapping is extracted here: one definition, two callers,
  * no chance of the replay drifting from apply.
  */
-import { isAddressError, parseAddress } from '@cognnitive/nn-core'
-import type { AddressError, BlueprintSchema, ChangeItem, ParsedKnowledge } from '@cognnitive/nn-core'
+import { isAddressError, parseAddress, matchesElement } from '@cognnitive/nn-core'
+import type {
+  AddressError,
+  BlueprintSchema,
+  ChangeItem,
+  ParsedKnowledge,
+} from '@cognnitive/nn-core'
 
 /**
  * Splits a change target into its model id and remaining address parts. The unified
@@ -52,22 +57,18 @@ export function findElementInModel(
   elementIdent?: string,
 ): { concept: string; element: Record<string, any> } | null {
   if (!elementIdent) return null
-  const lowerIdent = elementIdent.toLowerCase()
-  const matches = (el: Record<string, any>): boolean =>
-    String(el.name ?? '').toLowerCase() === lowerIdent ||
-    (el.slug !== undefined && String(el.slug).toLowerCase() === lowerIdent)
 
   if (conceptName) {
     const list = model.elements.get(conceptName)
     if (list) {
       for (const el of list) {
-        if (matches(el)) return { concept: conceptName, element: el }
+        if (matchesElement(el as any, elementIdent)) return { concept: conceptName, element: el }
       }
     }
   }
   for (const [concept, list] of model.elements.entries()) {
     for (const el of list) {
-      if (matches(el)) return { concept, element: el }
+      if (matchesElement(el as any, elementIdent)) return { concept, element: el }
     }
   }
   return null
@@ -155,7 +156,8 @@ export function mutationArgsForChange(
     return { fieldName: change.name, to: change.to, conceptName: change.concept }
   }
 
-  if (change.op === 'remove_element') {    const elIdent = change.name || parts[0] || remainder
+  if (change.op === 'remove_element') {
+    const elIdent = change.name || parts[0] || remainder
     const conceptName = change.concept ?? findElementInModel(model, undefined, elIdent)?.concept
     return { conceptName, elementName: elIdent }
   }
@@ -181,7 +183,11 @@ export function mutationArgsForChange(
   if (change.op === 'update_concept_text') {
     return {
       conceptName: change.concept || remainder,
-      text: change.to || (change as Record<string, any>).text || (change as Record<string, any>).content || '',
+      text:
+        change.to ||
+        (change as Record<string, any>).text ||
+        (change as Record<string, any>).content ||
+        '',
     }
   }
 

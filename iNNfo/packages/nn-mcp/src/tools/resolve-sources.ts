@@ -15,6 +15,7 @@ import {
   createFsSourceResolver,
   loadChangeLog,
   splitEvidence,
+  matchesElement,
 } from '@cognnitive/nn-core'
 import type {
   ParsedKnowledge,
@@ -26,11 +27,7 @@ import { readKnowledge } from './list-read.js'
 import { findKnowledgeFile, resolveBlueprintWithCache, ModelIdError } from './spec.js'
 import { buildBlueprintSchemaResolverFromCache } from './validate.js'
 
-export {
-  EXCERPT_CHAR_CAP,
-  CHANGE_CONCEPT,
-  KNOWN_AGENT_TOOL_IDS,
-}
+export { EXCERPT_CHAR_CAP, CHANGE_CONCEPT, KNOWN_AGENT_TOOL_IDS }
 export type { CitationOrigin, ResolvedCitation }
 
 /**
@@ -109,7 +106,9 @@ interface FoundElement {
   fields: Record<string, unknown>
 }
 
-/** The unit part of a target address (`owner`, `#body`, `row&col`). */function unitLabelOf(target: string): string {
+/** The unit part of a target address (`owner`, `#body`, `row&col`). */ function unitLabelOf(
+  target: string,
+): string {
   const at = target.indexOf('@')
   if (at === -1) return ''
   const rest = target.slice(at + 1)
@@ -153,7 +152,7 @@ async function resolveTargetEvidence(
 }
 function findElement(model: ParsedKnowledge, elementId: string): FoundElement | undefined {
   for (const [concept, nodes] of model.elements.entries()) {
-    const match = nodes.find((n) => n.name.toLowerCase() === elementId.toLowerCase())
+    const match = nodes.find((n) => matchesElement(n, elementId))
     if (match) return { concept, fields: match.fields }
   }
   return undefined

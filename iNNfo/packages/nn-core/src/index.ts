@@ -222,6 +222,7 @@ export {
   subtreeOf,
   updateReferenceString,
   updateWikiLinks,
+  matchesElement,
 } from './mutate.js'
 export type { ExtractedSubtree, MutationResult, ReplayOperation, ReplayResult } from './mutate.js'
 export { envelope, envelopeList, envelopeVersion, ENVELOPE_MAJOR } from './envelope.js'
