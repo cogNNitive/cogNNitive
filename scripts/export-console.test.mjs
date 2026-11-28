@@ -1952,9 +1952,7 @@ describe('Decision D23: writeFileAtomic bounded retry on Windows rename locks', 
     const customRename = async (src, dst) => {
       attempts++
       if (attempts < 3) {
-        const err = new Error('File locked')
-        err.code = 'EPERM'
-        throw err
+        throw Object.assign(new Error('File locked'), { code: 'EPERM' })
       }
       const { rename } = await import('node:fs/promises')
       return rename(src, dst)
@@ -1978,9 +1976,7 @@ describe('Decision D23: writeFileAtomic bounded retry on Windows rename locks', 
     let attempts = 0
     const customRename = async () => {
       attempts++
-      const err = new Error('Permanent lock')
-      err.code = 'EBUSY'
-      throw err
+      throw Object.assign(new Error('Permanent lock'), { code: 'EBUSY' })
     }
 
     await assert.rejects(
@@ -2005,9 +2001,7 @@ describe('Decision D23: writeFileAtomic bounded retry on Windows rename locks', 
     let attempts = 0
     const customRename = async () => {
       attempts++
-      const err = new Error('No space left on device')
-      err.code = 'ENOSPC'
-      throw err
+      throw Object.assign(new Error('No space left on device'), { code: 'ENOSPC' })
     }
 
     await assert.rejects(
