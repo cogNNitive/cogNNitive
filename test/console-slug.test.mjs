@@ -27,7 +27,9 @@ describe('Console runtime slug parity with core (D8)', () => {
   it('console/nn-slug.generated.js exists and exposes global nnSlug', () => {
     assert.equal(existsSync(generatedSlugPath), true, 'nn-slug.generated.js must exist')
     const code = readFileSync(generatedSlugPath, 'utf8')
-    const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', { runScripts: 'outside-only' })
+    const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+      runScripts: 'outside-only',
+    })
     dom.window.eval(code)
     assert.ok(dom.window.nnSlug, 'nnSlug must be defined on window')
     assert.equal(typeof dom.window.nnSlug.slugify, 'function', 'nnSlug.slugify must be a function')
@@ -36,7 +38,9 @@ describe('Console runtime slug parity with core (D8)', () => {
   it('maintains slug parity with core parser/slug.ts across a fixture corpus', () => {
     assert.equal(existsSync(generatedSlugPath), true, 'nn-slug.generated.js must exist')
     const code = readFileSync(generatedSlugPath, 'utf8')
-    const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', { runScripts: 'outside-only' })
+    const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+      runScripts: 'outside-only',
+    })
     dom.window.eval(code)
     const runtimeSlugify = dom.window.nnSlug.slugify
 
@@ -57,7 +61,11 @@ describe('Console runtime slug parity with core (D8)', () => {
     for (const item of corpus) {
       const coreResult = coreSlugify(item)
       const runtimeResult = runtimeSlugify(item)
-      assert.equal(runtimeResult, coreResult, `Mismatch for "${item}": expected "${coreResult}", got "${runtimeResult}"`)
+      assert.equal(
+        runtimeResult,
+        coreResult,
+        `Mismatch for "${item}": expected "${coreResult}", got "${runtimeResult}"`,
+      )
     }
   })
 
@@ -66,7 +74,9 @@ describe('Console runtime slug parity with core (D8)', () => {
     const slugCode = readFileSync(generatedSlugPath, 'utf8')
     const runtimeCode = readFileSync(runtimePath, 'utf8')
 
-    const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', { runScripts: 'outside-only' })
+    const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+      runScripts: 'outside-only',
+    })
     // The runtime now depends on nnUI (D5), nnReview (C), and nnStudio; load them
     // first, as the bundle does.
     dom.window.eval(readFileSync(join(consoleDir, 'ui-kit.js'), 'utf8'))
@@ -76,8 +86,16 @@ describe('Console runtime slug parity with core (D8)', () => {
     dom.window.eval(runtimeCode)
 
     assert.ok(dom.window.nnConsole, 'nnConsole must be defined')
-    assert.equal(dom.window.nnConsole.resolveElementId('Problems', 'Paranormal Infestation'), 'problems-paranormal-infestation')
-    assert.equal(dom.window.nnConsole.resolveElementId('Problems', 'Café & Crème'), 'problems-cafe-creme')
+    assert.equal(
+      dom.window.nnConsole.resolveElementId('Problems', 'Paranormal Infestation'),
+      'problems-paranormal-infestation',
+    )
+    assert.equal(
+      dom.window.nnConsole.resolveElementId('Problems', 'Café & Crème'),
+      'problems-cafe-creme',
+    )
+    assert.ok(dom.window.nnUI, 'nnUI must be defined')
+    assert.equal(dom.window.nnUI.slug('Café & Crème Brûlée'), 'cafe-creme-brulee')
   })
 
   it('nn-runtime.js contains no independent slugify regex implementation', () => {
@@ -86,7 +104,11 @@ describe('Console runtime slug parity with core (D8)', () => {
     assert.ok(slugifyFuncMatch, 'function slugify should exist in nn-runtime.js')
     const slugifyBody = slugifyFuncMatch[1]
     assert.ok(slugifyBody.includes('nnSlug'), 'slugify in nn-runtime.js must delegate to nnSlug')
-    assert.equal(slugifyBody.includes('[\\u0300-\\u036f]'), false, 'slugify body must not contain duplicate regex logic')
+    assert.equal(
+      slugifyBody.includes('[\\u0300-\\u036f]'),
+      false,
+      'slugify body must not contain duplicate regex logic',
+    )
   })
 
   it('scripts/lib/console-bundle.js concatenates nn-slug.generated.js first', () => {
@@ -94,15 +116,27 @@ describe('Console runtime slug parity with core (D8)', () => {
     // build-console-bundle.mjs is a thin entry that re-exports it.
     const bundleLibPath = join(repoRoot, 'scripts', 'lib', 'console-bundle.js')
     const bundleLib = readFileSync(bundleLibPath, 'utf8')
-    assert.match(bundleLib, /\[\s*'nn-slug\.generated\.js'\s*,\s*'nnSlug'\s*\]/, 'SOURCES must include nn-slug.generated.js')
+    assert.match(
+      bundleLib,
+      /\[\s*'nn-slug\.generated\.js'\s*,\s*'nnSlug'\s*\]/,
+      'SOURCES must include nn-slug.generated.js',
+    )
     const firstSourceMatch = bundleLib.match(/const\s+SOURCES\s*=\s*\[\s*\[\s*'([^']+)'/)
     assert.ok(firstSourceMatch, 'SOURCES array must be found')
-    assert.equal(firstSourceMatch[1], 'nn-slug.generated.js', 'nn-slug.generated.js must be the first entry in SOURCES')
+    assert.equal(
+      firstSourceMatch[1],
+      'nn-slug.generated.js',
+      'nn-slug.generated.js must be the first entry in SOURCES',
+    )
   })
 
   it('nn-console.bundle.js starts with nn-slug.generated.js content after header', () => {
     assert.equal(existsSync(bundlePath), true, 'nn-console.bundle.js must exist')
     const bundleContent = readFileSync(bundlePath, 'utf8')
-    assert.match(bundleContent, /\/\* ===== nn-slug\.generated\.js \(defines nnSlug\) ===== \*\//, 'Bundle must contain nn-slug section')
+    assert.match(
+      bundleContent,
+      /\/\* ===== nn-slug\.generated\.js \(defines nnSlug\) ===== \*\//,
+      'Bundle must contain nn-slug section',
+    )
   })
 })
