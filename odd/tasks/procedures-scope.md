@@ -26,7 +26,7 @@ Branch: `t3/procedure-workflow-investigation`. Delivery: `ask-on-risk`. Merge is
 
 | ID | Spec | Route | Status | Evidence |
 |---|---|---|---|---|
-| T1 | S1 | maintainer merge | pending | #982 MERGEABLE |
+| T1 | S1 | merged (authorized L12) | done | #982 -> 390796d5f |
 | T2 | S2 | delegated research (read-only) | done | L5 |
 | T3 | S3 | inline, heavy lane | delta written, migration pending | `check:openspec` OK |
 | T4 | S4 | inline, heavy lane | pending (after T3 delta) | #966 to rewrite |
