@@ -91,11 +91,11 @@ batch:: b4e-okf-export
 value:: M
 effort:: M
 risk:: M
-status:: open
+status:: shipped
 lane:: heavy
-verdict:: current
+verdict:: obsolete
 ref:: #807
-evidence:: The coNNtent blueprint's procedures/ folder now holds configure_cascade, create_character, create_series and usage (checked 2026-11-22), but neither draft-scene-visuals nor produce-video exists. PR #807 was merged on 2026-11-22 and ships both (coNNtent V_0-31-0, merge f431b8a70), so what remains is a smoke run of the shipped procedure, not the shipping itself. The old video-template requirement on generate_video_script_procedures_NN.md survives only in the archive (openspec/changes/archive/2026-11-10-conntent-blueprint-redesign/specs/conntent-template/spec.md); openspec/specs/ no longer exists.
+evidence:: Shipped and archived 2026-11-28: the blueprint declares both ids (iNNfo/specs/bluepriNNts/coNNtent/spec_NN.md:22-25) and ships procedures/draft_scene_visuals_procedures_NN.md and procedures/produce_video_procedures_NN.md, and test/blueprint-procedures.test.mjs resolves the folder. PR #807 (merge f431b8a70) shipped both on V_0-31-0; the blueprint is now V_0-32-7. The residual smoke run stays unverified: nothing recorded here proves a real series ran end to end.
 done_when:: The coNNtent blueprint declares and ships a procedures/ folder with two generic procedures promoted from video_NN: draft-scene-visuals (cleaned of series, language, vendor and machine specifics, and carrying the pre-draft gate that clean screenshots and rendered HyperFrames clips must exist under assets/<slug>/media/ before the draft JSON or build-draft-html.mjs) and produce-video (a router that lists series through their scope documents and hands off to the procedure each series declares). select-news is not shipped here: it moves to the iNNbox_NN domain, which specializes in acquiring sources. A test asserts the folder is declared and every shipped procedure resolves, and the blueprint version is bumped and repinned. Open decisions before the change: procedure language, file naming against the video-template requirement, and whether the gate also becomes a hard check in build-draft-html.mjs.
 batch:: b5d-conntent-procedures
 
@@ -241,7 +241,7 @@ order:: 54
 lane:: heavy
 items:: coNNtent-procedures
 risk:: M
-state:: in-progress
+state:: done
 
 
 ## NN Batch: b6-on-hold-blueprints
