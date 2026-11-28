@@ -358,6 +358,62 @@ test('relink tops up a node_modules left half-built by an interrupted run', () =
   }
 })
 
+test('status --assert-linked passes when every link resolves into its own checkout', () => {
+  const { base, root, worktrees } = makeRepo()
+  try {
+    for (const checkout of [root, ...worktrees]) {
+      const gate = nnSession(checkout, 'status', '--assert-linked')
+      assert.equal(gate.code, 0, gate.stderr)
+    }
+    assert.doesNotMatch(
+      nnSession(root, 'status', '--assert-linked').stdout,
+      /another checkout/,
+      'a healthy checkout advertises no foreign target',
+    )
+  } finally {
+    cleanup(base)
+  }
+})
+
+test('status --assert-linked fails a foreign link, so verify:fast can gate on it', () => {
+  const { base, root, worktrees } = makeRepo({ legacy: true })
+  try {
+    fs.unlinkSync(coreLink(root))
+    fs.symlinkSync(pkg(worktrees[0]), coreLink(root), 'junction')
+
+    const gate = nnSession(root, 'status', '--assert-linked')
+    assert.equal(gate.code, 1, 'a foreign link is a failing gate, not a note')
+    assert.match(gate.stdout + gate.stderr, /another checkout/, 'it names the state')
+    assert.match(
+      gate.stdout + gate.stderr,
+      /nn-session\.mjs relink/,
+      'and prints the exact repair command',
+    )
+  } finally {
+    cleanup(base)
+  }
+})
+
+test('status --assert-linked judges the checkout it runs in, not the primary', () => {
+  const { base, root, worktrees } = makeRepo()
+  try {
+    const [wt] = worktrees
+    // The primary is healthy; the worktree reads the primary's core. Running the gate
+    // from inside the worktree must fail, or it could never catch the trap it exists for.
+    fs.unlinkSync(coreLink(wt))
+    fs.symlinkSync(pkg(root), coreLink(wt), 'junction')
+
+    const fromWorktree = run(process.execPath, [SESSION, 'status', '--assert-linked'], wt)
+    assert.equal(fromWorktree.code, 1, fromWorktree.stdout + fromWorktree.stderr)
+    assert.match(fromWorktree.stdout + fromWorktree.stderr, /another checkout/)
+
+    const fromPrimary = run(process.execPath, [SESSION, 'status', '--assert-linked'], root)
+    assert.equal(fromPrimary.code, 0, 'the primary is still healthy')
+  } finally {
+    cleanup(base)
+  }
+})
+
 test('sweeping a worktree does not leave the other checkouts dangling', () => {
   const { base, root, worktrees } = makeRepo({ extraWorktrees: 1, legacy: true })
   try {

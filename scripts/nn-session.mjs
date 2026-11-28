@@ -72,6 +72,19 @@ function repoRoot(argv) {
   return primaryCheckout(process.cwd()) ?? primaryCheckout(here) ?? DEFAULT_ROOT
 }
 
+/**
+ * The checkout the command is running in, which is not always the primary: from a session
+ * worktree `repoRoot` answers the primary, and that answer is right for the worktree map
+ * and wrong for anything that judges the tree you are about to build in.
+ * @param {string[]} argv
+ */
+function checkoutRoot(argv) {
+  const r = option(argv, '--root')
+  if (r) return resolve(r)
+  const top = tryGit(['rev-parse', '--show-toplevel'], process.cwd())
+  return top.ok && top.out ? resolve(top.out) : resolve(process.cwd())
+}
+
 function worktreePath(root, id) {
   return join(dirname(root), `cogNNitive-${id}`)
 }
@@ -525,7 +538,8 @@ function worktreeRegistered(root, target) {
 
 /**
  * One-block health report for the primary checkout — the single command that
- * replaces the five manual git calls of §1b. Informational: always exits 0.
+ * replaces the five manual git calls of §1b. Informational: without a flag it always
+ * exits 0. `--assert-linked` is the gate form and exits non-zero on a foreign link.
  *
  * Since 2026-11-21 it also reports every session worktree — dirty count, how long ago
  * somebody last wrote in it, and the open PR of its branch when `--prs` names the JSON
@@ -535,6 +549,12 @@ function worktreeRegistered(root, target) {
  */
 function status(argv) {
   const root = repoRoot(argv)
+  // The gate form prints only the link verdict, so `verify:fast` can fail on the one
+  // thing a person has to remember: a checkout linking to another worktree's core builds
+  // and tests someone else's code, and a green there is not evidence about this branch.
+  // It judges the checkout it runs in — `status` reports the primary, but a session
+  // worktree is exactly where a foreign link does its damage.
+  if (argv.includes('--assert-linked')) return assertWorkspaceLinks(checkoutRoot(argv))
   tryGit(['fetch', 'origin'], root) // best-effort; offline is fine
   const head = tryGit(['rev-parse', '--short', 'HEAD'], root).out || '?'
   const branch = tryGit(['symbolic-ref', '--short', 'HEAD'], root).out || '(detached)'
@@ -691,6 +711,36 @@ function linkStatus(link, checkout) {
   const own = join(checkout, 'iNNfo', 'packages', link.name)
   if (existsSync(own) && samePath(link.target, own)) return 'ok (this checkout)'
   return insidePath(link.target, checkout) ? 'ok (this checkout)' : '⚠️ another checkout'
+}
+
+/**
+ * The `status --assert-linked` gate: every `@cognnitive/*` link must resolve into the
+ * checkout that owns it. Prints the verdict per link and sets a failing exit code, so
+ * `verify:fast` turns "someone has to run relink" into "the gate catches it" (#792).
+ * A checkout with no install has no links to assert and passes: a bare tree is a valid
+ * state, not a broken one.
+ * @param {string} checkout
+ */
+function assertWorkspaceLinks(checkout) {
+  const links = workspaceLinks(checkout)
+  if (links.length === 0) {
+    console.log('workspace links: none installed (nothing to assert)')
+    return
+  }
+  let foreign = 0
+  for (const link of links) {
+    const verdict = linkStatus(link, checkout)
+    if (!verdict.startsWith('ok')) foreign += 1
+    console.log(`@cognnitive/${link.name} -> ${link.target ?? '(not a link)'}  (${verdict})`)
+  }
+  if (foreign > 0) {
+    console.error(
+      `${foreign} of ${links.length} workspace link(s) do not resolve into this checkout: ` +
+        'a build or a test here would exercise another worktree’s code.',
+    )
+    console.error('fix: node scripts/nn-session.mjs relink')
+    process.exitCode = 1
+  }
 }
 
 /**
@@ -867,7 +917,7 @@ function sweep(argv) {
 }
 
 const USAGE =
-  'usage: nn-session.mjs start|list|status|relink|stop|sweep [--id <id>] [--no-install] [--full-install] [--force] [--root <path>] [--prs <file>]'
+  'usage: nn-session.mjs start|list|status|relink|stop|sweep [--id <id>] [--no-install] [--full-install] [--force] [--root <path>] [--prs <file>] [--assert-linked]'
 
 const argv = process.argv.slice(2)
 const cmd = argv[0]
