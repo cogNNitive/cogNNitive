@@ -756,7 +756,10 @@ function workspaceLinks(root) {
     const link = join(dir, name)
     let target = null
     try {
-      if (lstatSync(link).isSymbolicLink()) target = readlinkSync(link)
+      // `readlink` answers an absolute path for a Windows junction but a path relative to
+      // the link on POSIX (what `npm ci` creates on CI), so resolve it here: every caller
+      // compares targets with absolute checkout paths.
+      if (lstatSync(link).isSymbolicLink()) target = resolve(dirname(link), readlinkSync(link))
     } catch {
       // a real directory is reported without a target
     }

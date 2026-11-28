@@ -414,6 +414,29 @@ test('status --assert-linked judges the checkout it runs in, not the primary', (
   }
 })
 
+test('a relative link target is resolved against the link, not the cwd', (t) => {
+  const { base, root, worktrees } = makeRepo()
+  try {
+    const [wt] = worktrees
+    fs.unlinkSync(coreLink(wt))
+    // `npm ci` on POSIX writes a relative target (`../../iNNfo/packages/nn-core`), which
+    // is healthy and must not read as another checkout. Windows junctions need an absolute
+    // target, so a host that refuses the relative link skips instead of failing.
+    const rel = path.relative(scope(wt), pkg(wt, 'nn-core'))
+    try {
+      fs.symlinkSync(rel, coreLink(wt), 'dir')
+    } catch {
+      t.skip('this host cannot create a relative symlink')
+      return
+    }
+
+    const gate = nnSession(wt, 'status', '--assert-linked')
+    assert.equal(gate.code, 0, gate.stdout + gate.stderr)
+  } finally {
+    cleanup(base)
+  }
+})
+
 test('sweeping a worktree does not leave the other checkouts dangling', () => {
   const { base, root, worktrees } = makeRepo({ extraWorktrees: 1, legacy: true })
   try {
