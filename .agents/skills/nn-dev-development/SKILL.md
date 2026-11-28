@@ -292,18 +292,16 @@ in its own worktree and pushing, one PR at a time: each landing moves the base u
 `ci.yml` still carries the `merge_group` trigger, so re-enabling a queue stays a ruleset change
 and not a PR.
 
-**Recovery for a write-back PR that arrived with no checks.** A pull request authored by
-`app/github-actions` gets no `pull_request` run, so all five required checks are simply absent:
-`gh pr merge` answers `5 of 5 required status checks are expected`. Dispatching
-does not help — `gh workflow run "CI & Verify" --ref chore/regen` goes green and satisfies
-nothing, because a `workflow_dispatch` run's check runs are not counted as the PR's checks
-(measured on #878, where the dispatch completed `success` and the PR stayed `BLOCKED`). Push a
-commit to the branch instead: `git commit --allow-empty -m "ci: run the pull request checks on
-the write-back"`, then merge on the real `pull_request` run. Work on a detached worktree at
-`origin/chore/regen` (`git worktree add --detach <tmp> origin/chore/regen`) and push
-`HEAD:refs/heads/chore/regen`: a local `chore/regen` left from an earlier attempt is usually
-stale and the push is rejected as a non-fast-forward. `ci:` is a conventional type the release
-plan accepts and it touches no `changePath`, so the commit cannot plan the release it rides on.
+**A write-back PR authored by the Actions App is closed, not repaired.** Before #992 the lane
+opened `chore/regen` with `GITHUB_TOKEN`, so GitHub authored it as `app/github-actions` and held
+its `pull_request` run for approval: all five required checks were absent, `gh pr merge` answered
+`5 of 5 required status checks are expected`, and dispatching did not help — a `workflow_dispatch`
+run's check runs are not counted as the PR's checks (measured on #878, where the dispatch
+completed `success` and the PR stayed `BLOCKED`). The lane now opens it with `REGEN_PR_TOKEN`
+(§5), so a fresh write-back gets a real `pull_request` run and merges like any other PR. A pull
+request left over from the old contract is **closed once**: do not push an empty commit to force
+checks on it, and do not merge it — the next regeneration opens a new one under the maintainer
+identity.
 
 1. Push the session branch and open a PR to `main` without asking. That is the normal
    end of a unit. Run `node scripts/pr-overlap.mjs --prs temp/prs.json` first: a `BLOCKING`
