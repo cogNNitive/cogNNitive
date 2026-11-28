@@ -573,15 +573,16 @@
   // ---- Shared helpers ----
 
   function slug(s) {
+    var str = String(s == null ? '' : s)
     var mod =
       (typeof nnSlug !== 'undefined' && nnSlug && nnSlug.slugify ? nnSlug : null) ||
       (typeof globalThis !== 'undefined' && globalThis.nnSlug && globalThis.nnSlug.slugify
         ? globalThis.nnSlug
         : null)
     if (mod && typeof mod.slugify === 'function') {
-      return mod.slugify(s)
+      return mod.slugify(str)
     }
-    return String(s == null ? '' : s)
+    return str
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
