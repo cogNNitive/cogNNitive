@@ -29,6 +29,7 @@ import {
 } from '../naming/contract.js'
 import { latestOfFamily } from '../writeOnce/plan.js'
 import { readOrNull, sha256Hex } from '../writeOnce/fs.js'
+import { isInsideRoot } from '../path-guard.js'
 import { SYNC_DIR } from './address.js'
 import type { Synchronization } from './declarations.js'
 
@@ -68,11 +69,6 @@ const digestOf = (entries: Map<string, string>): string =>
       .join(''),
   )
 
-const isInside = (child: string, parent: string): boolean => {
-  const rel = path.relative(parent, child)
-  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel))
-}
-
 /** Files under `dir` (symlinks skipped), as posix paths relative to `dir` mapped to their sha256. */
 async function shaTree(dir: string): Promise<Map<string, string>> {
   const out = new Map<string, string>()
@@ -87,7 +83,8 @@ async function shaTree(dir: string): Promise<Map<string, string>> {
     for (const entry of entries) {
       const entryRel = rel ? `${rel}/${entry.name}` : entry.name
       if (entry.isDirectory()) await walk(entryRel)
-      else if (entry.isFile()) out.set(entryRel, sha256Hex(await fsp.readFile(path.join(dir, entryRel))))
+      else if (entry.isFile())
+        out.set(entryRel, sha256Hex(await fsp.readFile(path.join(dir, entryRel))))
     }
   }
   await walk('')
@@ -106,7 +103,9 @@ async function classify(rel: string, abs: string, inDomain: boolean): Promise<Or
     } catch {
       return null
     }
-    return frontmatter && isModelCandidate({ path: rel, frontmatter }) ? { ...file, model: true } : null
+    return frontmatter && isModelCandidate({ path: rel, frontmatter })
+      ? { ...file, model: true }
+      : null
   }
   return inDomain ? null : { ...file, model: false }
 }
@@ -138,7 +137,12 @@ async function enumerateOrigin(s: Synchronization, originAbs: string): Promise<O
 }
 
 /** The latest write-once member of the family `(dir, key, ext)`, as its sha256. */
-async function latestMemberSha(root: string, dirRel: string, key: string, ext: string): Promise<string | null> {
+async function latestMemberSha(
+  root: string,
+  dirRel: string,
+  key: string,
+  ext: string,
+): Promise<string | null> {
   let names: string[]
   try {
     names = await fsp.readdir(path.join(root, dirRel))
@@ -159,7 +163,7 @@ async function latestMemberSha(root: string, dirRel: string, key: string, ext: s
 
 async function pruneEmptyDirs(from: string, stop: string): Promise<void> {
   let dir = from
-  while (dir !== stop && isInside(dir, stop)) {
+  while (dir !== stop && isInsideRoot(stop, dir)) {
     const left = await fsp.readdir(dir).catch(() => null)
     if (!left || left.length > 0) return
     await fsp.rmdir(dir)
@@ -172,7 +176,8 @@ export async function refreshSynchronization(
   s: Synchronization,
   o: RefreshOptions = {},
 ): Promise<RefreshResult> {
-  if (!SLUG_RE.test(s.alias)) throw new RangeError(`SYNC_ALIAS_INVALID: "${s.alias}" is not a folder-safe slug`)
+  if (!SLUG_RE.test(s.alias))
+    throw new RangeError(`SYNC_ALIAS_INVALID: "${s.alias}" is not a folder-safe slug`)
   const rootAbs = path.resolve(root)
   const mirrorDir = path.join(rootAbs, SYNC_DIR, s.alias)
   const platform = o.platform ?? process.platform
@@ -185,14 +190,19 @@ export async function refreshSynchronization(
   if (s.state === 'paused') return idle('skipped')
   const originAbs = path.resolve(s.origin)
   const stat = await fsp.stat(originAbs).catch(() => null)
-  if (!stat || (s.kind === 'file' ? !stat.isFile() : !stat.isDirectory())) return idle('unreachable')
+  if (!stat || (s.kind === 'file' ? !stat.isFile() : !stat.isDirectory()))
+    return idle('unreachable')
 
   const [originReal, rootReal] = await Promise.all([fsp.realpath(originAbs), fsp.realpath(rootAbs)])
-  if (isInside(originReal, rootReal)) {
-    throw new RangeError(`SYNC_SELF_LOOP: origin ${s.origin} is inside the domaiNN; a mirror would recurse`)
+  if (originReal === rootReal || isInsideRoot(rootReal, originReal)) {
+    throw new RangeError(
+      `SYNC_SELF_LOOP: origin ${s.origin} is inside the domaiNN; a mirror would recurse`,
+    )
   }
-  if (isInside(rootReal, originReal)) {
-    throw new RangeError(`SYNC_SELF_LOOP: the domaiNN is inside origin ${s.origin}; a mirror would recurse`)
+  if (originReal === rootReal || isInsideRoot(originReal, rootReal)) {
+    throw new RangeError(
+      `SYNC_SELF_LOOP: the domaiNN is inside origin ${s.origin}; a mirror would recurse`,
+    )
   }
 
   // Plan: classify every origin file, compare with what already landed, check the path budget.
@@ -208,7 +218,9 @@ export async function refreshSynchronization(
   const overBudget = (abs: string, rel: string): never | void => {
     const budget = checkPathBudget(abs, platform)
     if (!budget.ok) {
-      throw new RangeError(`SYNC_PATH_TOO_LONG: ${rel} (${budget.length} characters exceeds the ${budget.limit} limit)`)
+      throw new RangeError(
+        `SYNC_PATH_TOO_LONG: ${rel} (${budget.length} characters exceeds the ${budget.limit} limit)`,
+      )
     }
   }
 
@@ -247,7 +259,13 @@ export async function refreshSynchronization(
     note(f.rel, prior, f.sha)
     if (prior === f.sha) continue
     // Longest name this member can take: the stamp plus the sidecar suffix.
-    overBudget(path.join(rootAbs, sidecarPathOf(`${dirRel}/${parsed.key}_00000000T000000Z-99.${parsed.ext}`)), f.rel)
+    overBudget(
+      path.join(
+        rootAbs,
+        sidecarPathOf(`${dirRel}/${parsed.key}_00000000T000000Z-99.${parsed.ext}`),
+      ),
+      f.rel,
+    )
     files.push({ path: f.rel, before: prior, after: f.sha })
     writes.push(async () => {
       const r = await importRaw(rootAbs, f.abs, {
@@ -278,7 +296,10 @@ export async function refreshSynchronization(
  * Removes every mirror whose alias has no Synchronization any more. Raw members
  * under `sources/import` are write-once and stay.
  */
-export async function removeOrphanMirrors(root: string, aliases: string[]): Promise<RefreshResult[]> {
+export async function removeOrphanMirrors(
+  root: string,
+  aliases: string[],
+): Promise<RefreshResult[]> {
   const syncDir = path.join(path.resolve(root), SYNC_DIR)
   const entries = await fsp.readdir(syncDir, { withFileTypes: true }).catch(() => [] as Dirent[])
   const results: RefreshResult[] = []

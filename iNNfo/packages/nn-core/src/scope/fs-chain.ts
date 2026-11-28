@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { isInsideRoot } from '../path-guard.js'
 import { ENTRYPOINT_FILENAME, parseName } from '../naming/contract.js'
 import { parseFrontmatter } from '../parser/index.js'
 import { buildScopeChain } from './chain.js'
@@ -68,9 +69,17 @@ function probeDir(dir: string, root: string, failures: DocumentFailure[]): DirPr
       continue
     }
     const problems: string[] = []
-    const fm = parseFrontmatter(text, (message) => problems.push(message)) as unknown as Record<string, unknown> | null
+    const fm = parseFrontmatter(text, (message) => problems.push(message)) as unknown as Record<
+      string,
+      unknown
+    > | null
     if (problems.length > 0) {
-      failures.push({ ok: false, code: 'MALFORMED_FRONTMATTER', path: posix(root, path), detail: problems.join('; ') })
+      failures.push({
+        ok: false,
+        code: 'MALFORMED_FRONTMATTER',
+        path: posix(root, path),
+        detail: problems.join('; '),
+      })
       continue
     }
     if (fm?.['scope'] === true) scopeMarkers.push({ path, isolate: fm['isolate'] === true })
@@ -121,11 +130,6 @@ export function findScopeChain(path: string): ScopeChainResult {
   return result
 }
 
-function isInside(base: string, path: string): boolean {
-  const rel = relative(base, path)
-  return rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel)
-}
-
 export type ChainLookup =
   | { ok: true; path: string | null; searched: string[] }
   | { ok: false; code: 'PATH_OUTSIDE_SCOPE'; detail: string }
@@ -140,8 +144,12 @@ export type ChainLookup =
 export function findInChain(chain: ScopeChain, target: { rel: string }): ChainLookup {
   const outermost = chain.links.length > 0 ? resolve(chain.root, chain.links[0].dir) : chain.root
   const candidates = chain.links.map((link) => resolve(chain.root, link.dir, target.rel)).reverse()
-  if (isAbsolute(target.rel) || !candidates.every((c) => isInside(outermost, c))) {
-    return { ok: false, code: 'PATH_OUTSIDE_SCOPE', detail: `"${target.rel}" leaves the scope chain rooted at ${chain.links[0]?.dir || '.'}` }
+  if (isAbsolute(target.rel) || !candidates.every((c) => isInsideRoot(outermost, c))) {
+    return {
+      ok: false,
+      code: 'PATH_OUTSIDE_SCOPE',
+      detail: `"${target.rel}" leaves the scope chain rooted at ${chain.links[0]?.dir || '.'}`,
+    }
   }
   const searched: string[] = []
   for (const candidate of candidates) {

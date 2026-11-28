@@ -7,7 +7,8 @@
  */
 
 import { createHash } from 'node:crypto'
-import { isSidecarName } from '../naming/contract.js'
+import { isSidecarName, rawPathOfSidecar, sidecarPathOf } from '../naming/contract.js'
+import { parseSidecarFrontmatter } from '../cognitivize/sidecar.js'
 
 export type FileCategory = 'source' | 'asset' | 'evidence' | 'artifact' | 'unclassified'
 
@@ -170,9 +171,6 @@ export function isTextMime(mimeType: string): boolean {
   )
 }
 
-/** Suffix of a sidecar document. Kept as a string: the naming contract owns the pattern. */
-const SIDECAR_SUFFIX = '_sidecar_NN.md'
-
 /** True for the canonical sidecar document name (delegates to the naming contract). */
 export function isSidecarPath(relPath: string): boolean {
   return isSidecarName(relPath)
@@ -181,20 +179,12 @@ export function isSidecarPath(relPath: string): boolean {
 /** `sources/import/a.pdf_sidecar_NN.md` -> `sources/import/a.pdf` */
 export function sidecarSubjectPath(sidecarRel: string): string {
   if (!isSidecarName(sidecarRel)) return sidecarRel
-  return sidecarRel.slice(0, sidecarRel.length - SIDECAR_SUFFIX.length)
+  return rawPathOfSidecar(sidecarRel) ?? sidecarRel
 }
 
 /** `sources/import/a.pdf` -> `sources/import/a.pdf_sidecar_NN.md` */
 export function sidecarPathFor(relPath: string): string {
-  return relPath + SIDECAR_SUFFIX
-}
-
-const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/
-
-function frontmatterEntry(block: string, key: string): string | undefined {
-  const m = new RegExp('^' + key + ':\\s*(.+?)\\s*$', 'm').exec(block)
-  if (!m) return undefined
-  return m[1].replace(/^["']|["']$/g, '').trim()
+  return sidecarPathOf(relPath)
 }
 
 /**
@@ -209,13 +199,12 @@ export function parseAndValidateSidecar(
   if (sidecarContent === null || sidecarContent === undefined) {
     return { path: sidecarPath, exists: false, valid: false }
   }
-  const match = String(sidecarContent).match(FRONTMATTER_RE)
-  if (!match) {
+  const fm = parseSidecarFrontmatter(String(sidecarContent))
+  if (!fm) {
     return { path: sidecarPath, exists: true, valid: false, error: 'Missing YAML frontmatter' }
   }
-  const block = match[1]
-  const sourceFile = frontmatterEntry(block, 'source_file')
-  const sha256 = (frontmatterEntry(block, 'sha256') || '').toLowerCase()
+  const sourceFile = typeof fm['source_file'] === 'string' ? fm['source_file'].trim() : undefined
+  const sha256 = typeof fm['sha256'] === 'string' ? fm['sha256'].trim().toLowerCase() : ''
   if (!sourceFile) {
     return { path: sidecarPath, exists: true, valid: false, error: 'Missing source_file' }
   }
@@ -228,6 +217,8 @@ export function parseAndValidateSidecar(
       error: 'Missing or malformed sha256',
     }
   }
+  const str = (k: string): string | undefined =>
+    typeof fm[k] === 'string' ? (fm[k] as string).trim() : undefined
   return {
     path: sidecarPath,
     exists: true,
@@ -235,12 +226,12 @@ export function parseAndValidateSidecar(
     sourceFile,
     sha256,
     sha256Matches: subjectSha256 ? sha256 === subjectSha256.toLowerCase() : undefined,
-    sourceFormat: frontmatterEntry(block, 'source_format'),
-    author: frontmatterEntry(block, 'author'),
-    normalizedAt: frontmatterEntry(block, 'normalized_at'),
-    synchronization: frontmatterEntry(block, 'synchronization'),
-    originUri: frontmatterEntry(block, 'origin_uri'),
-    originPath: frontmatterEntry(block, 'origin_path'),
+    sourceFormat: str('source_format'),
+    author: str('author'),
+    normalizedAt: str('normalized_at'),
+    synchronization: str('synchronization'),
+    originUri: str('origin_uri'),
+    originPath: str('origin_path'),
   }
 }
 

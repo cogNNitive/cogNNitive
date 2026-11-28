@@ -4,6 +4,7 @@
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve, isAbsolute } from 'node:path'
+import { isInsideRoot } from '../path-guard.js'
 import { extractHeadings, levenshteinDistance } from '../sourceRef.js'
 import type { SourceResolver } from '../index.js'
 
@@ -31,8 +32,7 @@ export function createFsSourceResolver(rootDir: string): SourceResolver {
         if (cur === rootResolved || dirname(cur) === cur) {
           break
         }
-        const relToRoot = relative(rootResolved, cur)
-        if (relToRoot.startsWith('..')) {
+        if (!isInsideRoot(rootResolved, cur)) {
           break
         }
         cur = dirname(cur)
@@ -45,8 +45,7 @@ export function createFsSourceResolver(rootDir: string): SourceResolver {
 
     for (const dir of candidateDirs) {
       const abs = resolve(dir, refPath)
-      const rel = relative(dir, abs)
-      if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) {
+      if (!isInsideRoot(dir, abs)) {
         continue
       }
       if (existsSync(abs)) {

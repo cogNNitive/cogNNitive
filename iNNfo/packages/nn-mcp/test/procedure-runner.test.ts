@@ -13,7 +13,7 @@ import {
 import { readFile, readdir, writeFile } from 'node:fs/promises'
 import { tmpdir, hostname } from 'node:os'
 import { join } from 'node:path'
-import { procedureState } from '../src/tools/procedure-state.js'
+import { loadProcedure, procedureState } from '../src/tools/procedure-state.js'
 import { procedureRecord, procedureStart } from '../src/tools/procedure-record.js'
 import { procedurePending } from '../src/tools/procedure-pending.js'
 import { validateProposal } from '../src/tools/propose-changeset.js'
@@ -366,6 +366,22 @@ describe('procedure_start: a procedure only a bluepriNNt package ships', SLOW, (
       ok: false,
       code: 'PROCEDURE_NOT_FOUND',
     })
+  })
+
+  it('refuses a procedure path on another Windows drive or outside the domain root', async () => {
+    installBlueprintDomain()
+    const target =
+      process.platform === 'win32'
+        ? 'Z:\\outside\\proc_procedures_NN.md'
+        : '/outside/proc_procedures_NN.md'
+    const startRes = await procedureStart(root, { procedure: target, params: {} })
+    expect(startRes.ok).toBe(false)
+    const loadRes = await loadProcedure(root, target)
+    expect(loadRes).toMatchObject({
+      ok: false,
+      code: 'PROCEDURE_NOT_FOUND',
+    })
+    expect((loadRes as { detail: string }).detail).toContain('outside the domain root')
   })
 
   it('follows the blueprint named by the parent_spec of the document it resolves in', async () => {
