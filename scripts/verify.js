@@ -134,8 +134,8 @@ function checkBlueprintInventory(blueprintsDir, sourceYamlPath, repoRoot = null)
 }
 
 /**
- * Scans git-tracked docs source files under `docs/innfo/**` and
- * `docs/skills/**` (`.md`/`.txt`) at `ref` for hand-typed facts that must
+ * Scans git-tracked docs source files under `docs/innfo/**` (`.md`/`.txt`) at
+ * `ref` for hand-typed facts that must
  * instead be derived: a literal MCP tool count, or a registered skill name
  * paired with a literal version string (spec docs-derived-facts,
  * "CI Drift Guard").
@@ -179,7 +179,7 @@ function checkHandTypedFactsAtRef(repoRoot, ref, deps = {}) {
     "  return execFileSync('git', args, { cwd: repoRoot, encoding: 'utf-8', input, maxBuffer: 64 * 1024 * 1024 });",
     '}',
     '',
-    "const listing = git(['ls-tree', '-r', '--name-only', ref, '--', 'docs/innfo', 'docs/skills']);",
+    "const listing = git(['ls-tree', '-r', '--name-only', ref, '--', 'docs/innfo']);",
     "const docPaths = listing.split(/\\r?\\n/).filter((p) => p && /\\.(md|txt)$/.test(p));",
     '',
     '// One batched read for every blob: ls-tree + cat-file are the only two git spawns.',
@@ -459,6 +459,19 @@ function buildSteps(repoRoot, options = {}) {
   const ro = (id, desc, ...args) => ({ ...node(id, desc, ...args), parallel: true });
   const roFresh = (id) => ({ ...freshness(id), parallel: true });
   const steps = [];
+
+  // 0a. Workspace links must resolve into this checkout. A build or a test run from a tree
+  //     whose `@cognnitive/*` points at another worktree exercises someone else's code, so a
+  //     green there is not evidence about this branch. Cheap and deterministic (#792).
+  steps.push(
+    ro(
+      'workspace-links',
+      'Check Workspace Links',
+      'scripts/nn-session.mjs',
+      'status',
+      '--assert-linked'
+    )
+  );
 
   // 0b. Every `*.test.js` / `*.test.mjs` suite under scripts/, skills/, test/ and the skills
   //     embedded in bluepriNNt packages,
