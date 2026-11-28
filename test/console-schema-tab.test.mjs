@@ -1,14 +1,8 @@
 // @jsdom — the Schema tab: the domaiNN's concepts as an entity-relationship diagram
-// (ECharts) plus the same schema in words, readable without the chart.
-import { describe, it, afterEach } from 'node:test'
+// (SVG, drawn by renderGraph) plus the same schema in words, readable without it.
+import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { createRequire } from 'node:module'
-import { join } from 'node:path'
-import { JSDOM } from 'jsdom'
-import { bootConsole, consoleDir } from './helpers/console-boot.mjs'
-import { installChartLibrary, uninstallChartLibrary } from './helpers/console-chart.mjs'
-
-const require = createRequire(import.meta.url)
+import { bootConsole } from './helpers/console-boot.mjs'
 
 const SCHEMA = {
   concepts: [
@@ -41,15 +35,22 @@ function boot() {
   return bootConsole({ model: MODEL, schema: SCHEMA })
 }
 
-function withECharts() {
-  installChartLibrary()
+/** The diagram's boxes, by concept name: the rect each one is drawn with. */
+function boxesOf(document) {
+  const svg = document.querySelector('#nn-tab-metamodel .nn-schema-chart svg')
+  return Object.fromEntries(
+    [...svg.querySelectorAll('g.nn-graph-node')].map((g) => {
+      const r = g.querySelector('rect')
+      const n = (k) => Number(r.getAttribute(k))
+      return [
+        g.getAttribute('data-node-id'),
+        { l: n('x'), t: n('y'), r: n('x') + n('width'), b: n('y') + n('height'), rect: r },
+      ]
+    }),
+  )
 }
 
 describe('Schema tab', () => {
-  afterEach(() => {
-    uninstallChartLibrary()
-  })
-
   it('replaces the concept circles under the same tab id, titled Schema', () => {
     const { document } = boot()
     const tab = document.querySelector('.nn-view-tab[data-tab="metamodel"]')
@@ -81,79 +82,73 @@ describe('Schema tab', () => {
   })
 
   it('draws one box per concept, taller with more fields, and never overlapping', () => {
-    withECharts()
     const { document } = boot()
-    const host = document.querySelector('#nn-tab-metamodel .nn-schema-chart')
-    const series = global.echarts.getInstanceByDom(host).getOption().series[0]
-    assert.equal(series.type, 'graph')
-    const concepts = series.data.filter((n) => !n.name.startsWith('__nn-schema-anchor-'))
-    const boxes = Object.fromEntries(concepts.map((n) => [n.name, n]))
+    const boxes = boxesOf(document)
     assert.deepEqual(Object.keys(boxes), ['Client', 'Deal', 'Metric'])
-    assert.equal(boxes.Client.symbol, 'rect')
     assert.ok(
-      boxes.Client.symbolSize[1] > boxes.Metric.symbolSize[1],
+      boxes.Client.b - boxes.Client.t > boxes.Metric.b - boxes.Metric.t,
       'three fields need a taller box than one',
     )
-    assert.equal(boxes.Client.itemStyle.borderColor, '#2563eb')
-    const rect = (n) => ({
-      l: n.x - n.symbolSize[0] / 2,
-      r: n.x + n.symbolSize[0] / 2,
-      t: n.y - n.symbolSize[1] / 2,
-      b: n.y + n.symbolSize[1] / 2,
-    })
-    const nodes = concepts.map(rect)
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const a = nodes[i]
-        const b = nodes[j]
+    assert.equal(boxes.Client.rect.getAttribute('stroke'), '#2563eb')
+    assert.match(
+      document.querySelector('#nn-tab-metamodel [data-node-id="Client"] .nn-graph-header')
+        .textContent,
+      /^Client {2}· {2}2 elements$/,
+    )
+    const names = Object.keys(boxes)
+    for (let i = 0; i < names.length; i++) {
+      for (let j = i + 1; j < names.length; j++) {
+        const a = boxes[names[i]]
+        const b = boxes[names[j]]
         const overlap = a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b
-        assert.equal(overlap, false, `${concepts[i].name} overlaps ${concepts[j].name}`)
+        assert.equal(overlap, false, `${names[i]} overlaps ${names[j]}`)
       }
     }
   })
 
   it('draws matrices as solid lines and references as dashed lines, each labelled', () => {
-    withECharts()
     const { document } = boot()
-    const host = document.querySelector('#nn-tab-metamodel .nn-schema-chart')
-    const links = global.echarts.getInstanceByDom(host).getOption().series[0].links
+    const svg = document.querySelector('#nn-tab-metamodel .nn-schema-chart svg')
     assert.deepEqual(
-      links.map((l) => [l.source, l.target, l.lineStyle.type, l.label.formatter]),
+      [...svg.querySelectorAll('path.nn-graph-edge')].map((p) => [
+        p.getAttribute('data-source'),
+        p.getAttribute('data-target'),
+        p.getAttribute('stroke-dasharray') ? 'dashed' : 'solid',
+      ]),
       [
-        ['Deal', 'Metric', 'solid', 'Coverage'],
-        ['Deal', 'Client', 'dashed', 'client'],
+        ['Deal', 'Metric', 'solid'],
+        ['Deal', 'Client', 'dashed'],
       ],
+    )
+    assert.deepEqual(
+      [...svg.querySelectorAll('.nn-graph-edge-label')].map((l) => l.textContent),
+      ['Coverage', 'client'],
     )
   })
 
-  it('anchors the canvas corners so every box is drawn at its real size, inside the canvas', () => {
-    withECharts()
+  it('draws every box at its real size, inside the canvas', () => {
     const { document } = boot()
     const host = document.querySelector('#nn-tab-metamodel .nn-schema-chart')
-    const series = global.echarts.getInstanceByDom(host).getOption().series[0]
-    const anchors = series.data.filter((n) => n.name.startsWith('__nn-schema-anchor-'))
-    assert.deepEqual(
-      anchors.map((a) => [a.x, a.y]),
-      [
-        [0, 0],
-        [series.width, series.height],
-      ],
-    )
-    assert.equal(parseInt(host.style.height, 10), series.height)
-    for (const n of series.data.filter((d) => !d.name.startsWith('__nn-schema-anchor-'))) {
-      assert.ok(
-        n.x - n.symbolSize[0] / 2 >= 0 && n.x + n.symbolSize[0] / 2 <= series.width,
-        n.name + ' fits horizontally',
-      )
-      assert.ok(
-        n.y - n.symbolSize[1] / 2 >= 0 && n.y + n.symbolSize[1] / 2 <= series.height,
-        n.name + ' fits vertically',
-      )
+    const svg = host.querySelector('svg')
+    const [, , width, height] = svg.getAttribute('viewBox').split(' ').map(Number)
+    assert.equal(parseInt(host.style.height, 10), height)
+    assert.equal(parseInt(host.style.width, 10), width)
+    for (const [name, box] of Object.entries(boxesOf(document))) {
+      assert.equal(box.r - box.l, 230, name + ' keeps the box width')
+      assert.ok(box.l >= 0 && box.r <= width, name + ' fits horizontally')
+      assert.ok(box.t >= 0 && box.b <= height, name + ' fits vertically')
     }
   })
 
+  it('opens Knowledge filtered by the concept whose box is clicked', () => {
+    const { document } = boot()
+    document
+      .querySelector('#nn-tab-metamodel [data-node-id="Deal"]')
+      .dispatchEvent(new document.defaultView.Event('click'))
+    assert.equal(document.getElementById('nn-search').value, 'concept:Deal')
+  })
+
   it('sizes the chart to its layout so boxes keep their real size', () => {
-    withECharts()
     const { document } = boot()
     const host = document.querySelector('#nn-tab-metamodel .nn-schema-chart')
     assert.match(host.style.height, /^\d+px$/)

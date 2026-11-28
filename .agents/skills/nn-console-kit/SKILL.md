@@ -31,9 +31,10 @@ The console runtime does NOT compile JSX at runtime or during development.
 * All runtime code must belong to the 14 canonical sources listed in `scripts/lib/console-bundle.js`.
 * Adding a third-party library requires explicit maintainer approval and a standalone UMD vendor file placed under `iNNfo/specs/bluepriNNts/console/vendor/`.
 
-### Rule D: One Chart Library — Chart.js Through `renderChart`
-* Every quantitative chart (built-in tabs and custom views) is drawn with `nnConsole.renderChart(host, option, opts?)`. It delegates to vendored Chart.js (with the ChartTreemap plugin registered), applying console defaults, and returns the chart instance, or `null` with a warning when Chart.js is missing.
-* Procedural diagrams (procedure runner flow), summary card tracks, and structural ego graphs use pure DOM/SVG without external library overhead.
+### Rule D: One Chart Library (Chart.js) and One Diagram Renderer (SVG)
+* Every quantitative chart (built-in tabs and custom views) is a native Chart.js config `{ type, data, options }` drawn with `nnConsole.renderChart(host, config, opts?)`. It sizes the canvas (`opts.width`/`opts.height`, else the host, else 960x400), gives uncoloured datasets the console palette, calls `opts.onPick(item, hit)` with the data item of a clicked element, and returns the Chart, or `null` with a warning when Chart.js is missing. A type Chart.js has not registered (the registered set includes `treemap`) is shown as an error in the host and thrown, never drawn as another type. Never pass an ECharts-shaped option, and never patch `Chart` or add a `window.echarts` shim.
+* Every node-and-edge diagram (the procedure flow, the Schema tab, the Map tab's neighbourhood) is drawn as SVG with `nnConsole.renderGraph(host, spec, opts?)` from the console's own spec (nodes, edges, marks in px; documented on `renderGraph` in `studio.js`). `opts.onPick(node)` gets the clicked spec node. There is no second flow renderer and no fallback.
+* Production code carries no test-only seams: tests read the real Chart (`Chart.getChart(canvas)`) and the real SVG, and click through the DOM.
 * Never render a whole element graph: a force layout with ~2000 nodes blocks the page for ~18 s. Show concepts, or a one-hop neighbourhood of one element.
 
 ---

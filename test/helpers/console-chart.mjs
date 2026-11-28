@@ -5,51 +5,95 @@ import { consoleDir } from './console-boot.mjs'
 
 const require = createRequire(import.meta.url)
 
+/** A 2d context that accepts every call Chart.js and the treemap plugin make, and draws nothing. */
 export function mock2dContext(canvas) {
+  const noop = () => {}
   return {
-    fillRect: () => {},
-    clearRect: () => {},
+    fillRect: noop,
+    clearRect: noop,
+    strokeRect: noop,
     getImageData: () => ({ data: [] }),
-    putImageData: () => {},
-    createPattern: () => {},
-    createLinearGradient: () => ({ addColorStop: () => {} }),
-    createRadialGradient: () => ({ addColorStop: () => {} }),
-    setTransform: () => {},
-    resetTransform: () => {},
-    drawImage: () => {},
-    save: () => {},
-    fillText: () => {},
-    restore: () => {},
-    beginPath: () => {},
-    moveTo: () => {},
-    lineTo: () => {},
-    closePath: () => {},
-    stroke: () => {},
-    translate: () => {},
-    scale: () => {},
-    rotate: () => {},
-    arc: () => {},
-    fill: () => {},
+    putImageData: noop,
+    createPattern: noop,
+    createLinearGradient: () => ({ addColorStop: noop }),
+    createRadialGradient: () => ({ addColorStop: noop }),
+    setTransform: noop,
+    resetTransform: noop,
+    drawImage: noop,
+    save: noop,
+    fillText: noop,
+    strokeText: noop,
+    restore: noop,
+    beginPath: noop,
+    moveTo: noop,
+    lineTo: noop,
+    quadraticCurveTo: noop,
+    bezierCurveTo: noop,
+    arcTo: noop,
+    closePath: noop,
+    stroke: noop,
+    translate: noop,
+    scale: noop,
+    rotate: noop,
+    arc: noop,
+    ellipse: noop,
+    fill: noop,
     measureText: () => ({ width: 0 }),
-    transform: () => {},
-    rect: () => {},
-    clip: () => {},
-    setLineDash: () => {},
+    transform: noop,
+    rect: noop,
+    roundRect: noop,
+    clip: noop,
+    setLineDash: noop,
     getLineDash: () => [],
-    canvas: canvas,
+    canvas,
   }
 }
 
+/** Gives every canvas of `document`'s window the mock context (jsdom has no canvas). */
+export function mockCanvas(document) {
+  document.defaultView.HTMLCanvasElement.prototype.getContext = function () {
+    return mock2dContext(this)
+  }
+}
+
+let ChartLib = null
+
+/**
+ * Loads the vendored Chart.js and registers the treemap plugin once. The plugin's UMD
+ * build requires 'chart.js' and 'chart.js/helpers', so those two requests are resolved to
+ * the vendored build for the duration of that one require, then the resolver is restored.
+ */
+function loadChartLibrary() {
+  if (ChartLib) return ChartLib
+  const Chart = require(join(consoleDir, 'vendor', 'chart.umd.min.js'))
+  const Module = require('node:module')
+  const stubs = { 'chart.js': Chart, 'chart.js/helpers': Chart.helpers }
+  const origResolve = Module._resolveFilename
+  for (const [id, exports] of Object.entries(stubs)) {
+    require.cache[id] = { id, filename: id, loaded: true, exports }
+  }
+  Module._resolveFilename = function (request, ...rest) {
+    if (request in stubs) return request
+    return origResolve.call(this, request, ...rest)
+  }
+  try {
+    // The plugin registers its controller and element on load.
+    require(join(consoleDir, 'vendor', 'chartjs-chart-treemap.min.js'))
+  } finally {
+    Module._resolveFilename = origResolve
+    for (const id of Object.keys(stubs)) delete require.cache[id]
+  }
+  ChartLib = Chart
+  return Chart
+}
+
+/**
+ * Puts the vendored Chart.js (with the treemap plugin) on `global.Chart`, the way the
+ * bundle does, and installs a jsdom window whose canvases have the mock context.
+ */
 export function installChartLibrary(dom) {
   const targetDom = dom || new JSDOM('<!doctype html><html><body></body></html>')
-  const origCreateElement = targetDom.window.document.createElement.bind(targetDom.window.document)
-  targetDom.window.document.createElement = function (tagName) {
-    const el = origCreateElement(tagName)
-    if (tagName.toLowerCase() === 'canvas') {
-      el.getContext = () => mock2dContext(el)
-    }
-    return el
-  }
+  mockCanvas(targetDom.window.document)
   global.window = targetDom.window
   global.document = targetDom.window.document
   targetDom.window.requestAnimationFrame = (cb) => setTimeout(cb, 0)
@@ -67,43 +111,33 @@ export function installChartLibrary(dom) {
       observe() {}
       disconnect() {}
     }
-
-  const chartPath = join(consoleDir, 'vendor', 'chart.umd.min.js')
-  global.Chart = require(chartPath)
-  require.cache['chart.js'] = {
-    id: 'chart.js',
-    filename: 'chart.js',
-    loaded: true,
-    exports: global.Chart,
-  }
-  require.cache['chart.js/helpers'] = {
-    id: 'chart.js/helpers',
-    filename: 'chart.js/helpers',
-    loaded: true,
-    exports: global.Chart.helpers,
-  }
-  const Module = require('node:module')
-  const origResolve = Module._resolveFilename
-  Module._resolveFilename = function (request, parent, isMain, options) {
-    if (request === 'chart.js' || request === 'chart.js/helpers') return request
-    return origResolve.call(this, request, parent, isMain, options)
-  }
-  const treemapPath = join(consoleDir, 'vendor', 'chartjs-chart-treemap.min.js')
-  const ChartTreemap = require(treemapPath)
-  if (ChartTreemap && ChartTreemap.TreemapController) {
-    global.Chart.register(ChartTreemap.TreemapController, ChartTreemap.TreemapElement)
-  }
-  global.echarts = {
-    getInstanceByDom: (host) => {
-      if (!host) return null
-      const c = host.tagName === 'CANVAS' ? host : host.querySelector('canvas')
-      return (c && c.__chartInstance) || host.__chartInstance || null
-    },
-  }
+  global.Chart = loadChartLibrary()
   return targetDom
 }
 
 export function uninstallChartLibrary() {
   delete global.Chart
-  delete global.echarts
+}
+
+/** Clicks the canvas at the centre of the element `match(raw)` picks out of the chart. */
+export function clickChartCell(chart, match) {
+  const canvas = chart.canvas
+  const meta = chart.getDatasetMeta(0)
+  const cell = meta.data.find((el) => match(el.$context && el.$context.raw))
+  if (!cell) throw new Error('clickChartCell: no element matches')
+  canvas.getBoundingClientRect = () => ({
+    left: 0,
+    top: 0,
+    width: chart.width,
+    height: chart.height,
+    right: chart.width,
+    bottom: chart.height,
+  })
+  const win = canvas.ownerDocument.defaultView
+  canvas.dispatchEvent(
+    new win.MouseEvent('click', {
+      clientX: cell.x + cell.width / 2,
+      clientY: cell.y + cell.height / 2,
+    }),
+  )
 }
