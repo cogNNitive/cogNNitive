@@ -18,7 +18,7 @@ Branch: `t3/procedure-workflow-investigation`. Delivery: `ask-on-risk`. Merge is
 | ID | Spec | Route | Status | Evidence |
 |---|---|---|---|---|
 | T1 | S1 | maintainer merge | pending | #982 MERGEABLE |
-| T2 | S2 | inline research | pending | — |
+| T2 | S2 | delegated research (read-only) | done | L5 |
 | T3 | S3 | maintainer decision | blocked by T2 | — |
 | T4 | S4 | inline | blocked by T3 | #966 MERGEABLE |
 | T5 | S5 | inline | blocked by T1, T3 | — |
@@ -30,4 +30,5 @@ Branch: `t3/procedure-workflow-investigation`. Delivery: `ask-on-risk`. Merge is
 - L1 (2026-11-28, maintainer): "Quiero que todo lo que tenga que ver con procedimientos esté únicamente en esta conversación, registrado y actuando de forma coordinada."
 - L2: PR #828 is MERGED (2026-11-23), not open; #830 merged too. Runner thread 571c484d has nothing pending.
 - L3: Absorbed and settled: fedd0b37, bc4351b5, mcp:b005800b, 571c484d, mcp:cde8502b, f134de36. Partial: 61a13990 (#972), b86befc4 (#984/#985 procedure files), f9422ca6 (D11 procedures+executions merge, deferred).
+- L5 (S2 result): no mainstream system infers membership from transition edges. BPMN 2.0.2 separates `FlowElementsContainer.flowElements` from Sequence Flow; "no incoming flow = start" applies only inside the containing (Sub-)Process (§13.3), Sub-Processes exist for scope (§10.3.5), "Sequence Flows cannot cross the boundary of a Sub-Process" (§7.3.2). Step Functions forbids `Next` across a Parallel branch. Airflow keeps TaskGroup explicit; SubDAG removed in Airflow 3. Argo/Dagster/CWL/GitHub `needs` use edges for order only, inside a declared container. LittleHorse: `ThreadSpec.nodes` is membership, `outgoing_edges` is order. Failure modes of next-inferred containment: start node, fan-out siblings nested too deep, joins giving two parents, back-edges making containment cyclic, scope (retries, errors, artifacts) moving when steps are reordered. Mainstream reuse = document is the container + call another document (BPMN Call Activity, GitHub `workflow_call`, CWL `run:`, Argo templates, Kestra Subflow, n8n, Temporal/Prefect child flows). Verdict: transitions-only is cheap, not robust.
 - L4: Corrections to the original brief: b005800b did propose removing `parent` (document as container; `parent::` redundant in ~94%); whether `parent` goes is part of S3, not closed.
