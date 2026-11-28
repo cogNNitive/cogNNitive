@@ -97,7 +97,9 @@ frozen_blueprints:
         'the retired frozen_blueprints: partition must not satisfy the inventory guard',
       )
       assert.deepStrictEqual(result.missing, ['frozen-tmpl'])
-      console.log('✔ A folder declared only under the retired frozen_blueprints: partition is missing')
+      console.log(
+        '✔ A folder declared only under the retired frozen_blueprints: partition is missing',
+      )
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true })
     }
@@ -242,7 +244,11 @@ blueprints:
       assert.ok(name in catalog.blueprints, `catalog.json must contain Core blueprint ${name}`)
     }
     assert.ok(!('frozen' in catalog), 'the retired frozen partition is gone')
-    assert.strictEqual(catalog.blueprints.workspace?.adopted, 'V_0-12-0', 'workspace is an ordinary entry')
+    assert.strictEqual(
+      catalog.blueprints.workspace?.adopted,
+      'V_0-12-0',
+      'workspace is an ordinary entry',
+    )
     console.log('✔ catalog.json carries tier/access/when_to_use/release_tag/embedded_skills')
   }
 
