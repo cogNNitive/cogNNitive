@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-JEYRPA2fr02x2Yvy4tisBxtvAcOBvF5tzQ0m3gNJI6g=' 'sha256-qsjLjnpwNES4Y0CM36eMiDfJELR1nScCKX3nlAuFDJI='; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; media-src 'self' file: blob:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-ZWF99ab90BVgraBErYYVTnrULtU8xaQQ6C2tt2JyNM4=' 'sha256-qsjLjnpwNES4Y0CM36eMiDfJELR1nScCKX3nlAuFDJI='; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; media-src 'self' file: blob:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -12515,7 +12515,7 @@ button.proc-run.active {
 {"concepts":[{"name":"Procedure Execution","type":"list","icon":"play-circle","color":"purple","weight":100,"storage":{"mode":"distributed","placement":"executions/{slug}/"},"fields":[{"name":"procedure","type":"address","scope":"concept","description":"Address of the Procedure or root Work this run executes (model@element or document@container).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"def_rev","type":"string","scope":"concept","description":"knowledge_version of the procedure model when the run started; the run follows that revision to the end.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"params","type":"string","scope":"concept","description":"Opaque parameters the run was started with (a JSON object of slot values).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"seq","type":"number","scope":"concept","description":"The run's write counter. Every runner changeset increments it with a from guard, so any concurrent write to the same run conflicts the whole changeset.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"state","type":"select","options":["open","paused","completed","failed","cancelled"],"scope":"concept","description":"The stored lifecycle of the run. The status the tools return is the fold's derived RunStatus, which reports paused when this is paused.","transitions":{"":["open"],"open":["paused","completed","failed","cancelled"],"paused":["open","completed","failed","cancelled"],"completed":[],"failed":[],"cancelled":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Step Run","type":"list","icon":"list-checks","color":"blue","weight":90,"description":"One row per step of the procedure. Its slug is the step slug. Mutable: the runner writes it as the step advances.","fields":[{"name":"status","type":"select","options":["pending","active","waiting","done","failed"],"scope":"concept","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed). Each row only takes the edges of its own lifecycle. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"attempt","type":"number","scope":"concept","description":"The attempt number of the current claim, 1 for the first try.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"outcome","type":"string","scope":"concept","description":"The answer the step recorded; for a decision step, the token its next conditions test.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"next","type":"string","scope":"concept","description":"The slug of the step this one moved to.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"inputs","type":"string","scope":"concept","description":"The input artifact revisions frozen at claim time: a JSON object mapping artifact slug to its rev.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"waiting_on","type":"string","scope":"concept","description":"What a waiting step waits on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"failure","type":"string","scope":"concept","description":"Why the step failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"claimed_at","type":"string","scope":"concept","description":"When the current attempt was claimed (ISO 8601).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"timeout_ms","type":"number","scope":"concept","description":"The budget of the current attempt. At most 300000.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"holder","type":"string","scope":"concept","description":"Who holds the claim, as pid@host. For an engine step it is the process that runs the command, not the server that reports it. A step whose holder is gone is a crash, derived from it; a claim that names neither a holder nor a claim time is broken, never a permanent holder.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"evidence","type":"string","scope":"concept","description":"The applied change ids a human step observed, such as the verdicts it waited on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Run Artifact","type":"list","icon":"package","color":"orange","weight":80,"description":"One row per artifact of the procedure. Its slug is the artifact slug. Mutable: verification and staleness move it.","fields":[{"name":"status","type":"select","options":["expected","produced","validated","rejected"],"scope":"concept","description":"The stored lifecycle of an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle.","transitions":{"":["expected"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"How the artifact is carried: a file, a model element, or a changeset of several elements.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Input","type":"list","icon":"log-in","color":"grey","weight":70,"description":"A computed or entered input the run recorded, with its revision. One row per input name.","fields":[{"name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Step Request","type":"list","icon":"inbox","color":"yellow","weight":60,"description":"One row per human request that an action be recorded on a step. Intent, never state: only the runner consumes it, and it never moves a Step Run row by itself.","fields":[{"name":"action","type":"select","options":["start","wait","complete","fail"],"scope":"concept","description":"The action the person asked the runner to record on the step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"step","type":"string","scope":"concept","description":"The slug of the step the request names.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"base_seq","type":"number","scope":"concept","description":"The run's header seq when the request was made. A consumer refuses the request when the run has advanced past it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"reason","type":"string","scope":"concept","description":"Why the request was rejected or found stale, as the runner reported it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"request_status","type":"select","options":["pending","done","stale","rejected"],"scope":"concept","description":"The life of a request: pending while nobody consumed it, then done, stale or rejected. A resolved request never returns to pending.","transitions":{"":["pending"],"pending":["done","stale","rejected"],"done":[],"stale":[],"rejected":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"requested_outcome","type":"string","scope":"concept","description":"The outcome the person asked for when the request names a branching step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"requested_value","type":"string","scope":"concept","description":"The value the person attached to the request, such as who a step waits on or why it failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"requested_outputs","type":"string","scope":"concept","description":"The deliverables a person wrote for the step's file outputs, as one line of JSON: artifact slug -> { \"name\"?: string, \"text\": string }. Valid only with action complete; each text is UTF-8 and at most 256 KiB.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Procedure","type":"list","icon":"workflow","color":"teal","weight":110,"fields":[{"name":"category","type":"select","options":["ingestion","transformation","audit","reporting","custom"],"scope":"concept","description":"Functional classification of the procedure workflow.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"summary","type":"string","scope":"concept","description":"Mandatory concise summary of the workflow intent and transformation steps.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"inputs_required","type":"string","scope":"concept","description":"References to required Source or Model concepts consumed as inputs.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"outputs_expected","type":"string","scope":"concept","description":"References to expected Artifact concepts produced by the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"executed_by","type":"string","scope":"concept","description":"Reference to responsible agent or functional role executing the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"procedure_model","type":"knowledge","scope":"concept","description":"Link to concrete procedure definition or executable stepper model _NN.md.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}}],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Work","type":"list","icon":"list-ordered","color":"blue","weight":100,"fields":[{"name":"step_type","type":"select","options":["task","decision","event"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"parent","type":"reference","target_concepts":["Work"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"next","type":"reference","target_concepts":["Work"],"scope":"concept","description":"Step or steps that may follow. A decision step lists several targets as an inline list (next:: [@approve, @decline], addresses like every reference field); the run records the one it took.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"condition","type":"string","scope":"concept","description":"Guard to enter the step. Evaluable forms are outcome == \u003ctoken> and [[artifact]] validated; anything else is prose the actor asserts.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"decision","type":"string","scope":"concept","description":"Question a decision step asks; its answer is the outcome the run records.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"command","type":"string","scope":"concept","description":"Shell command an engine step runs; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"produces","type":"string","scope":"concept","description":"Path or address the step produces; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"executor","type":"select","options":["human","agent","engine"],"scope":"concept","description":"Who performs the step. A step without executor is performed by an agent.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"input","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"output","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"output_status","type":"string","scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"tool","type":"reference","target_concepts":["Tools"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}}],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Artifact","type":"list","icon":"package","color":"orange","weight":80,"fields":[{"name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"What the artifact is: a file on disk (default), an element in a domain model, or an applied changeset.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"at","type":"string","scope":"concept","description":"Declared path or address for the artifact; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"verify","type":"string","scope":"concept","description":"How the artifact is checked: file:\u003cglob>, element:\u003caddress>, command:\u003ccmd> or human. Defaults from kind and at.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"required","type":"boolean","scope":"concept","description":"Whether a run must produce the artifact when its producer is on the walked path (default true).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}}],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Tools","type":"list","icon":"wrench","color":"orange","weight":70,"fields":[{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}}],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Roles","type":"list","icon":"users","color":"green","weight":60,"fields":[{"name":"scope","type":"select","options":["internal","external"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}}],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Concept 1","type":"list","icon":"box","color":"blue","weight":100,"description":"Baseline domain concept holding the 1A/1B/1C element triangle. Concept 1 carries every field type and anchors the Concept 1-Concept 2 matrix.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"manual","type":"markdown_file","scope":"concept","description":"External markdown file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"photo","type":"image","scope":"concept","description":"Image attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"demo_video","type":"video","scope":"concept","description":"Downloaded video asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"voice_note","type":"audio","scope":"concept","description":"Downloaded and transcribed audio asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"sibling","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"Reference to an element of Concept 2.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"status","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"Lifecycle status of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Concept 2","type":"list","icon":"boxes","color":"green","weight":90,"description":"Owner concept holding the 2A/2B elements that reference Concept 1. Concept 2 closes the matrix crossings and proves bidirectional reference resolution.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"owner","type":"reference","target_concepts":["Concept 1"],"scope":"concept","description":"Reference back to an element of Concept 1.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Edge Cases","type":"list","icon":"flask-conical","color":"amber","weight":80,"description":"Quarantined stress probes with literal names describing the case under test: traceability probes, the very-long-description probe, the file probe, the artifact-as-source probe, the broken reference probe, and the sourceless probe.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"photo","type":"image","scope":"concept","description":"Image attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Modification Cases","type":"list","icon":"git-pull-request","color":"violet","weight":70,"description":"One field per Level-1 field type, so the review pass can exercise every kind of modification (a field of each type) with a self-describing name.","fields":[{"name":"string_field","type":"string","scope":"concept","description":"A string field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"number_field","type":"number","scope":"concept","description":"A number field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"boolean_field","type":"boolean","scope":"concept","description":"A boolean field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"select_field","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"A select field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"reference_field","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"A reference field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"image_field","type":"image","scope":"concept","description":"An image field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"file_field","type":"file","scope":"concept","description":"A file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"video_field","type":"video","scope":"concept","description":"A video field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"audio_field","type":"audio","scope":"concept","description":"An audio field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"url_field","type":"url","scope":"concept","description":"A URL field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"markdown_inline_field","type":"markdown_inline","scope":"concept","description":"A markdown_inline field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"markdown_file_field","type":"markdown_file","scope":"concept","description":"A markdown_file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"knowledge_field","type":"knowledge","target_blueprint":"TestLab","scope":"concept","description":"A knowledge field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"address_field","type":"address","scope":"concept","description":"An address field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"citation_field","type":"citation","scope":"concept","description":"A citation field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"fields":[{"concept":"Procedure Execution","name":"procedure","type":"address","scope":"concept","description":"Address of the Procedure or root Work this run executes (model@element or document@container).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"def_rev","type":"string","scope":"concept","description":"knowledge_version of the procedure model when the run started; the run follows that revision to the end.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"params","type":"string","scope":"concept","description":"Opaque parameters the run was started with (a JSON object of slot values).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"seq","type":"number","scope":"concept","description":"The run's write counter. Every runner changeset increments it with a from guard, so any concurrent write to the same run conflicts the whole changeset.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"state","type":"select","options":["open","paused","completed","failed","cancelled"],"scope":"concept","description":"The stored lifecycle of the run. The status the tools return is the fold's derived RunStatus, which reports paused when this is paused.","transitions":{"":["open"],"open":["paused","completed","failed","cancelled"],"paused":["open","completed","failed","cancelled"],"completed":[],"failed":[],"cancelled":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"status","type":"select","options":["pending","active","waiting","done","failed"],"scope":"concept","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed). Each row only takes the edges of its own lifecycle. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"attempt","type":"number","scope":"concept","description":"The attempt number of the current claim, 1 for the first try.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"outcome","type":"string","scope":"concept","description":"The answer the step recorded; for a decision step, the token its next conditions test.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"next","type":"string","scope":"concept","description":"The slug of the step this one moved to.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"inputs","type":"string","scope":"concept","description":"The input artifact revisions frozen at claim time: a JSON object mapping artifact slug to its rev.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"waiting_on","type":"string","scope":"concept","description":"What a waiting step waits on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"failure","type":"string","scope":"concept","description":"Why the step failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"claimed_at","type":"string","scope":"concept","description":"When the current attempt was claimed (ISO 8601).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"timeout_ms","type":"number","scope":"concept","description":"The budget of the current attempt. At most 300000.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"holder","type":"string","scope":"concept","description":"Who holds the claim, as pid@host. For an engine step it is the process that runs the command, not the server that reports it. A step whose holder is gone is a crash, derived from it; a claim that names neither a holder nor a claim time is broken, never a permanent holder.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"evidence","type":"string","scope":"concept","description":"The applied change ids a human step observed, such as the verdicts it waited on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"status","type":"select","options":["expected","produced","validated","rejected"],"scope":"concept","description":"The stored lifecycle of an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle.","transitions":{"":["expected"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"How the artifact is carried: a file, a model element, or a changeset of several elements.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Input","name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Input","name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"action","type":"select","options":["start","wait","complete","fail"],"scope":"concept","description":"The action the person asked the runner to record on the step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"step","type":"string","scope":"concept","description":"The slug of the step the request names.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"base_seq","type":"number","scope":"concept","description":"The run's header seq when the request was made. A consumer refuses the request when the run has advanced past it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"reason","type":"string","scope":"concept","description":"Why the request was rejected or found stale, as the runner reported it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"request_status","type":"select","options":["pending","done","stale","rejected"],"scope":"concept","description":"The life of a request: pending while nobody consumed it, then done, stale or rejected. A resolved request never returns to pending.","transitions":{"":["pending"],"pending":["done","stale","rejected"],"done":[],"stale":[],"rejected":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"requested_outcome","type":"string","scope":"concept","description":"The outcome the person asked for when the request names a branching step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"requested_value","type":"string","scope":"concept","description":"The value the person attached to the request, such as who a step waits on or why it failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"requested_outputs","type":"string","scope":"concept","description":"The deliverables a person wrote for the step's file outputs, as one line of JSON: artifact slug -> { \"name\"?: string, \"text\": string }. Valid only with action complete; each text is UTF-8 and at most 256 KiB.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure","name":"category","type":"select","options":["ingestion","transformation","audit","reporting","custom"],"scope":"concept","description":"Functional classification of the procedure workflow.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"summary","type":"string","scope":"concept","description":"Mandatory concise summary of the workflow intent and transformation steps.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"inputs_required","type":"string","scope":"concept","description":"References to required Source or Model concepts consumed as inputs.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"outputs_expected","type":"string","scope":"concept","description":"References to expected Artifact concepts produced by the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"executed_by","type":"string","scope":"concept","description":"Reference to responsible agent or functional role executing the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"procedure_model","type":"knowledge","scope":"concept","description":"Link to concrete procedure definition or executable stepper model _NN.md.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"step_type","type":"select","options":["task","decision","event"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"parent","type":"reference","target_concepts":["Work"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"next","type":"reference","target_concepts":["Work"],"scope":"concept","description":"Step or steps that may follow. A decision step lists several targets as an inline list (next:: [@approve, @decline], addresses like every reference field); the run records the one it took.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"condition","type":"string","scope":"concept","description":"Guard to enter the step. Evaluable forms are outcome == \u003ctoken> and [[artifact]] validated; anything else is prose the actor asserts.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"decision","type":"string","scope":"concept","description":"Question a decision step asks; its answer is the outcome the run records.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"command","type":"string","scope":"concept","description":"Shell command an engine step runs; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"produces","type":"string","scope":"concept","description":"Path or address the step produces; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"executor","type":"select","options":["human","agent","engine"],"scope":"concept","description":"Who performs the step. A step without executor is performed by an agent.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"input","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"output","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"output_status","type":"string","scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"tool","type":"reference","target_concepts":["Tools"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"What the artifact is: a file on disk (default), an element in a domain model, or an applied changeset.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"at","type":"string","scope":"concept","description":"Declared path or address for the artifact; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"verify","type":"string","scope":"concept","description":"How the artifact is checked: file:\u003cglob>, element:\u003caddress>, command:\u003ccmd> or human. Defaults from kind and at.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"required","type":"boolean","scope":"concept","description":"Whether a run must produce the artifact when its producer is on the walked path (default true).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Tools","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Tools","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Roles","name":"scope","type":"select","options":["internal","external"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Roles","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Roles","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Concept 1","name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"manual","type":"markdown_file","scope":"concept","description":"External markdown file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"photo","type":"image","scope":"concept","description":"Image attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"demo_video","type":"video","scope":"concept","description":"Downloaded video asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"voice_note","type":"audio","scope":"concept","description":"Downloaded and transcribed audio asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"sibling","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"Reference to an element of Concept 2.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"status","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"Lifecycle status of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"owner","type":"reference","target_concepts":["Concept 1"],"scope":"concept","description":"Reference back to an element of Concept 1.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"summary","type":"string","scope":"concept","description":"One-line summary of the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"photo","type":"image","scope":"concept","description":"Image attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"string_field","type":"string","scope":"concept","description":"A string field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"number_field","type":"number","scope":"concept","description":"A number field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"boolean_field","type":"boolean","scope":"concept","description":"A boolean field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"select_field","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"A select field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"reference_field","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"A reference field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"image_field","type":"image","scope":"concept","description":"An image field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"file_field","type":"file","scope":"concept","description":"A file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"video_field","type":"video","scope":"concept","description":"A video field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"audio_field","type":"audio","scope":"concept","description":"An audio field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"url_field","type":"url","scope":"concept","description":"A URL field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"markdown_inline_field","type":"markdown_inline","scope":"concept","description":"A markdown_inline field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"markdown_file_field","type":"markdown_file","scope":"concept","description":"A markdown_file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"knowledge_field","type":"knowledge","target_blueprint":"TestLab","scope":"concept","description":"A knowledge field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"address_field","type":"address","scope":"concept","description":"An address field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"citation_field","type":"citation","scope":"concept","description":"A citation field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"markers":[],"matrices":[{"name":"work-roles matrix","source":"Work","target":"Roles","params":"","values":["Responsible","Accountable","Consulted","Informed"],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"work-tools matrix","source":"Work","target":"Tools","params":"","values":["Uses"],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"work-artifacts matrix","source":"Work","target":"Artifact","params":"","values":["Creates","Modifies","Validates","Reviews"],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Concept 1-Concept 2 Matrix","source":"Concept 1","target":"Concept 2","params":"","values":["relevant","archived"],"widgetType":"set","description":"Scores how relevant each Concept 1 element is to each Concept 2 element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"procedures":[{"id":"usage","name":"Getting started","path":"procedures/usage_procedures_NN.md","status":"selected"},{"id":"usage","name":"Getting started","path":"procedures/usage_procedures_NN.md","status":"shadowed","shadowed_by":"procedures_V_0-6-1"}]}
 </script>
     <script type="application/x-nn-deflate-base64" id="nn-model">
-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
+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
 </script>
     <script type="application/json" id="nn-procedure-core"></script>
     <script type="application/json" id="nn-drafts">
@@ -13902,7 +13902,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       '--nn-fs-min': '0.75rem',
       '--nn-font':
         "Plus Jakarta Sans, Geist Sans, Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-      '--nn-mono': "Geist Mono, 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace",
+      '--nn-mono':
+        "Geist Mono, 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace",
       '--nn-shadow': '0 1px 2px rgba(0, 0, 0, .06)',
     },
   }
@@ -14059,7 +14060,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     // Content badges: NO border; the concept colour rides on the label/value and on
     // the concept icon (the icon of the concept the unit belongs to).
     '.nn-ku[data-ku-nature=content]>.nn-ku-label{color:var(--nn-text)}',
-  '.nn-ku[data-ku-nature=content]>.nn-ku-value{color:var(--c)}',
+    '.nn-ku[data-ku-nature=content]>.nn-ku-value{color:var(--c)}',
     '.nn-ku[data-ku-nature=content]>.nn-ku-icon{color:var(--c)}',
     // A Source is cited evidence: paper fill and neutral ink. It is never tinted by
     // the concept colour, even though it is a content unit.
@@ -14284,17 +14285,49 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
   ]
   for (var slot = 1; slot <= 12; slot++) {
     COMPONENT_CSS.push(
-      '[data-concept-slot="' + slot + '"] .nn-concept-dot{background:var(--nn-concept-' + slot + ')}',
+      '[data-concept-slot="' +
+        slot +
+        '"] .nn-concept-dot{background:var(--nn-concept-' +
+        slot +
+        ')}',
     )
   }
   for (var kslot = 1; kslot <= 12; kslot++) {
     COMPONENT_CSS.push(
-      '[data-nn-component=element-card][data-concept-slot="' + kslot + '"]{--card-concept-color:var(--nn-concept-' + kslot + ');--card-concept-bg:var(--nn-concept-' + kslot + '-bg);border-left:4px solid var(--nn-concept-' + kslot + ')}',
+      '[data-nn-component=element-card][data-concept-slot="' +
+        kslot +
+        '"]{--card-concept-color:var(--nn-concept-' +
+        kslot +
+        ');--card-concept-bg:var(--nn-concept-' +
+        kslot +
+        '-bg);border-left:4px solid var(--nn-concept-' +
+        kslot +
+        ')}',
       // The concept slot drives --c/--cb on the badge: content text + icon, the
       // structure border, and the concept/document tint all read from it.
-      '[data-nn-component=ku-unit][data-concept-slot="' + kslot + '"]{--c:var(--nn-concept-' + kslot + ');--cb:var(--nn-concept-' + kslot + '-bg)}',
-      '[data-nn-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=concept],[data-nn-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=document]{background:var(--nn-concept-' + kslot + '-bg);border-color:var(--nn-concept-' + kslot + ')}',
-      '[data-nn-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=concept] .nn-ku-icon,[data-nn-component=ku-unit][data-concept-slot="' + kslot + '"][data-ku-kind=document] .nn-ku-icon{color:var(--nn-concept-' + kslot + ')}',
+      '[data-nn-component=ku-unit][data-concept-slot="' +
+        kslot +
+        '"]{--c:var(--nn-concept-' +
+        kslot +
+        ');--cb:var(--nn-concept-' +
+        kslot +
+        '-bg)}',
+      '[data-nn-component=ku-unit][data-concept-slot="' +
+        kslot +
+        '"][data-ku-kind=concept],[data-nn-component=ku-unit][data-concept-slot="' +
+        kslot +
+        '"][data-ku-kind=document]{background:var(--nn-concept-' +
+        kslot +
+        '-bg);border-color:var(--nn-concept-' +
+        kslot +
+        ')}',
+      '[data-nn-component=ku-unit][data-concept-slot="' +
+        kslot +
+        '"][data-ku-kind=concept] .nn-ku-icon,[data-nn-component=ku-unit][data-concept-slot="' +
+        kslot +
+        '"][data-ku-kind=document] .nn-ku-icon{color:var(--nn-concept-' +
+        kslot +
+        ')}',
     )
   }
   // Dialogs and their controls had no visible focus ring at all: tabbing through a modal
@@ -14356,7 +14389,16 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
   // ---- Shared helpers ----
 
   function slug(s) {
-    return String(s == null ? '' : s)
+    var str = String(s == null ? '' : s)
+    var mod =
+      (typeof nnSlug !== 'undefined' && nnSlug && nnSlug.slugify ? nnSlug : null) ||
+      (typeof globalThis !== 'undefined' && globalThis.nnSlug && globalThis.nnSlug.slugify
+        ? globalThis.nnSlug
+        : null)
+    if (mod && typeof mod.slugify === 'function') {
+      return mod.slugify(str)
+    }
+    return str
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
@@ -14394,7 +14436,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
   // Tag color derivation: FNV-1a 32-bit over valueKey(name), then slot = (h >>> 0) % 12 + 1
   function tagSlot(name) {
-    var key = String(name == null ? '' : name).trim().toLowerCase()
+    var key = String(name == null ? '' : name)
+      .trim()
+      .toLowerCase()
     var h = 0x811c9dc5
     for (var i = 0; i < key.length; i++) {
       h ^= key.charCodeAt(i)
@@ -14417,40 +14461,69 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
   // SVG bodies (everything after viewBox="0 0 24 24", before </svg>). Moved out
   // of nn-runtime.js's former svgIcon.
   var ICON_PATHS = {
-    pencil: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path>',
+    pencil:
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path>',
     pin: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>',
-    chart: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line>',
-    target: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle>',
-    folder: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>',
-    explorer: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>',
-    matrices: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line>',
-    timeline: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path>',
+    chart:
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line>',
+    target:
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle>',
+    folder:
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>',
+    explorer:
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>',
+    matrices:
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line>',
+    timeline:
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path>',
     star: ' fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>',
     calc: ' fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="9" x2="19" y2="9"></line><line x1="5" y1="15" x2="19" y2="15"></line>',
-    derived: ' fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a4 4 0 0 1 8 0 4 4 0 0 0 8 0"></path>',
-    close: ' fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>',
-    review: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="m9 15 2 2 4-4"></path>',
-    'cite-agent': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="11" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><line x1="12" y1="7" x2="12" y2="9"></line><line x1="8" y1="14" x2="8" y2="15"></line><line x1="16" y1="14" x2="16" y2="15"></line>',
-    'cite-human': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-7 8-7s8 3 8 7"></path>',
-    'cite-reviewer': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="m9 10 2 2 4-4"></path>',
-    'cite-document': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line>',
-    'cite-error': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>',
-    chevron: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline>',
-    image: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>',
-    sliders: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line>',
-    'message-square': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>',
-    'git-commit': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><line x1="1.05" y1="12" x2="7" y2="12"></line><line x1="17.01" y1="12" x2="22.96" y2="12"></line>',
-    check: ' fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline>',
-    'arrow-up-right': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline>',
+    derived:
+      ' fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a4 4 0 0 1 8 0 4 4 0 0 0 8 0"></path>',
+    close:
+      ' fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>',
+    review:
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="m9 15 2 2 4-4"></path>',
+    'cite-agent':
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="11" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><line x1="12" y1="7" x2="12" y2="9"></line><line x1="8" y1="14" x2="8" y2="15"></line><line x1="16" y1="14" x2="16" y2="15"></line>',
+    'cite-human':
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-7 8-7s8 3 8 7"></path>',
+    'cite-reviewer':
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="m9 10 2 2 4-4"></path>',
+    'cite-document':
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line>',
+    'cite-error':
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>',
+    chevron:
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline>',
+    image:
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>',
+    sliders:
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line>',
+    'message-square':
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>',
+    'git-commit':
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><line x1="1.05" y1="12" x2="7" y2="12"></line><line x1="17.01" y1="12" x2="22.96" y2="12"></line>',
+    check:
+      ' fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline>',
+    'arrow-up-right':
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline>',
     box: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path>',
-    boxes: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z"></path><path d="m7 16.5-4.74-2.85"></path><path d="m7 16.5 5-3"></path><path d="M7 16.5v5.17"></path><path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z"></path><path d="m17 16.5-5-3"></path><path d="m17 16.5 4.74-2.85"></path><path d="M17 16.5v5.17"></path><path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z"></path><path d="M12 8 7.26 5.15"></path><path d="m12 8 4.74-2.85"></path><path d="M12 13.5V8"></path>',
-    layers: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"></path><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"></path><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"></path>',
-    'flask-conical': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"></path><path d="M8.5 2h7"></path><path d="M7 16h10"></path>',
+    boxes:
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z"></path><path d="m7 16.5-4.74-2.85"></path><path d="m7 16.5 5-3"></path><path d="M7 16.5v5.17"></path><path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z"></path><path d="m17 16.5-5-3"></path><path d="m17 16.5 4.74-2.85"></path><path d="M17 16.5v5.17"></path><path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z"></path><path d="M12 8 7.26 5.15"></path><path d="m12 8 4.74-2.85"></path><path d="M12 13.5V8"></path>',
+    layers:
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"></path><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"></path><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"></path>',
+    'flask-conical':
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"></path><path d="M8.5 2h7"></path><path d="M7 16h10"></path>',
     cpu: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"></rect><rect width="6" height="6" x="9" y="9" rx="1"></rect><path d="M15 2v2"></path><path d="M15 20v2"></path><path d="M2 15h2"></path><path d="M2 9h2"></path><path d="M20 15h2"></path><path d="M20 9h2"></path><path d="M9 2v2"></path><path d="M9 20v2"></path>',
-    shield: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>',
-    wrench: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>',
-    'git-branch': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path>',
-    'more-vertical': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5" fill="currentColor"></circle><circle cx="12" cy="5" r="1.5" fill="currentColor"></circle><circle cx="12" cy="19" r="1.5" fill="currentColor"></circle>',
+    shield:
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>',
+    wrench:
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>',
+    'git-branch':
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path>',
+    'more-vertical':
+      ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5" fill="currentColor"></circle><circle cx="12" cy="5" r="1.5" fill="currentColor"></circle><circle cx="12" cy="19" r="1.5" fill="currentColor"></circle>',
   }
 
   function icon(name, size, cls) {
@@ -14542,7 +14615,11 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         tag.setAttribute('title', 'Filter by tag ' + String(t))
         tag.addEventListener('click', function (ev) {
           // The review +/x controls live inside the chip and keep their own action.
-          var inner = ev && ev.target && typeof ev.target.closest === 'function' && ev.target.closest('[data-nn-ctl]')
+          var inner =
+            ev &&
+            ev.target &&
+            typeof ev.target.closest === 'function' &&
+            ev.target.closest('[data-nn-ctl]')
           if (inner) return
           onTag(String(t))
         })
@@ -14682,10 +14759,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           : String(data.status)
     badge.textContent = text
     badge.setAttribute('aria-label', String(data.label != null ? data.label : text))
-    badge.setAttribute(
-      'title',
-      data.title != null ? String(data.title) : COPY.unsentHelp,
-    )
+    badge.setAttribute('title', data.title != null ? String(data.title) : COPY.unsentHelp)
     return badge
   }
 
@@ -14845,7 +14919,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     var doc = resolveDoc(opts)
     var root = makeEl(doc, 'div', 'nn-markdown')
     root.setAttribute('data-nn-component', 'markdown')
-    var lines = String(text == null ? '' : text).replace(/\r\n?/g, '\n').split('\n')
+    var lines = String(text == null ? '' : text)
+      .replace(/\r\n?/g, '\n')
+      .split('\n')
     var i = 0
     function blank(l) {
       return !/\S/.test(l)
@@ -14881,7 +14957,11 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       if (lm) {
         var ordered = /\d/.test(lm[1].charAt(0))
         var list = makeEl(doc, ordered ? 'ol' : 'ul')
-        while (i < lines.length && (lm = MD_LIST.exec(lines[i])) && /\d/.test(lm[1].charAt(0)) === ordered) {
+        while (
+          i < lines.length &&
+          (lm = MD_LIST.exec(lines[i])) &&
+          /\d/.test(lm[1].charAt(0)) === ordered
+        ) {
           var li = makeEl(doc, 'li')
           mdInline(doc, li, lm[2])
           list.appendChild(li)
@@ -15023,10 +15103,13 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           }
         }
         wrap.appendChild(
-          CitationIcon({ variant: v, field: d.name, value: d.value, entry: entry }, {
-            doc: doc,
-            onOpen: opts && opts.onCite ? opts.onCite : undefined,
-          }),
+          CitationIcon(
+            { variant: v, field: d.name, value: d.value, entry: entry },
+            {
+              doc: doc,
+              onOpen: opts && opts.onCite ? opts.onCite : undefined,
+            },
+          ),
         )
       })
     }
@@ -15073,7 +15156,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     img.setAttribute('loading', 'lazy')
     img.addEventListener('error', function () {
       var cur = img.getAttribute('src') || ''
-      var relMatch = !img.getAttribute('data-retried') && cur.match(/^.+?\b((?:sources|kNNowledge|assets|evidence)\/.+)$/)
+      var relMatch =
+        !img.getAttribute('data-retried') &&
+        cur.match(/^.+?\b((?:sources|kNNowledge|assets|evidence)\/.+)$/)
       if (relMatch) {
         img.setAttribute('data-retried', '1')
         img.setAttribute('src', relMatch[1])
@@ -15147,7 +15232,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
   function isAssetPath(value) {
     if (typeof value !== 'string') return false
-    return /^(?:.+?\/)?(?:sources|kNNowledge|assets|evidence)\/[^\s]+\.[a-z0-9]{2,5}$/i.test(value.replace(/\\/g, '/'))
+    return /^(?:.+?\/)?(?:sources|kNNowledge|assets|evidence)\/[^\s]+\.[a-z0-9]{2,5}$/i.test(
+      value.replace(/\\/g, '/'),
+    )
   }
 
   function FieldValue(data, opts) {
@@ -15160,7 +15247,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     if (type === 'boolean' || typeof value === 'boolean') return renderFieldBoolean(d, doc)
     if (Array.isArray(value)) return renderFieldList(d, doc)
     if (value !== null && typeof value === 'object') return renderFieldObject(d, doc)
-    if (typeof value === 'string' && /^https?:\/\//i.test(value) && type !== 'video' && type !== 'audio') {
+    if (
+      typeof value === 'string' &&
+      /^https?:\/\//i.test(value) &&
+      type !== 'video' &&
+      type !== 'audio'
+    ) {
       return renderFieldUrl(d, doc)
     }
 
@@ -15326,7 +15418,10 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     if (m) candidates.push(m[1])
     for (var i = 0; i < candidates.length; i++) {
       if (tried.indexOf(candidates[i]) === -1 && candidates[i] !== cur) {
-        img.setAttribute('data-retried', (img.getAttribute('data-retried') || '') + '|' + candidates[i])
+        img.setAttribute(
+          'data-retried',
+          (img.getAttribute('data-retried') || '') + '|' + candidates[i],
+        )
         img.setAttribute('src', candidates[i])
         return
       }
@@ -15346,7 +15441,20 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     return null
   }
 
-  var CONCEPT_SLOT_ICONS = ['box', 'boxes', 'flask-conical', 'git-branch', 'wrench', 'layers', 'cpu', 'shield', 'target', 'cite-document', 'cite-human', 'explorer']
+  var CONCEPT_SLOT_ICONS = [
+    'box',
+    'boxes',
+    'flask-conical',
+    'git-branch',
+    'wrench',
+    'layers',
+    'cpu',
+    'shield',
+    'target',
+    'cite-document',
+    'cite-human',
+    'explorer',
+  ]
 
   function resolveConceptIconName(conceptName, conceptOpts) {
     if (conceptOpts && conceptOpts.icon) return String(conceptOpts.icon)
@@ -15397,7 +15505,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
      representation (mini, pill, marker, timeline row) can reuse it. */
   var _previewHost = null
   function previewHostEl(doc) {
-    if (_previewHost && _previewHost.ownerDocument === doc && _previewHost.parentNode) return _previewHost
+    if (_previewHost && _previewHost.ownerDocument === doc && _previewHost.parentNode)
+      return _previewHost
     _previewHost = makeEl(doc, 'div', 'nn-preview')
     _previewHost.setAttribute('data-nn-component', 'element-preview')
     _previewHost.setAttribute('role', 'dialog')
@@ -15460,8 +15569,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       clearTimeout(timer)
       timer = setTimeout(open, openDelay)
     }
-    function onLeave() { if (!pinned) close() }
-    function onKey(e) { if (e && e.key === 'Escape') close() }
+    function onLeave() {
+      if (!pinned) close()
+    }
+    function onKey(e) {
+      if (e && e.key === 'Escape') close()
+    }
     function onDocClick(e) {
       var t = e && e.target
       if (t && (trigger.contains(t) || (_previewHost && _previewHost.contains(t)))) return
@@ -15476,7 +15589,13 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       open: open,
       close: close,
       togglePin: function () {
-        if (pinned) { close() } else { pinned = true; doc.addEventListener('click', onDocClick, true); open() }
+        if (pinned) {
+          close()
+        } else {
+          pinned = true
+          doc.addEventListener('click', onDocClick, true)
+          open()
+        }
       },
       destroy: function () {
         close()
@@ -15557,7 +15676,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       mini.appendChild(st)
     }
     if (opts && opts.preview) {
-      var previewOpts = typeof opts.preview === 'object' && opts.preview !== null ? opts.preview : {}
+      var previewOpts =
+        typeof opts.preview === 'object' && opts.preview !== null ? opts.preview : {}
       var ctl = ElementPreview(mini, data, {
         doc: doc,
         concept: conceptOpts,
@@ -15616,13 +15736,17 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     var conceptId = data.concept || data.conceptId
     if (conceptId) {
       badgesWrap.appendChild(
-        Ku('section', {
-          model: unitModel,
-          concept: conceptId,
-          label: conceptId,
-          index: conceptOpts.index,
-          color: conceptOpts.color,
-        }, { doc: doc }),
+        Ku(
+          'section',
+          {
+            model: unitModel,
+            concept: conceptId,
+            label: conceptId,
+            index: conceptOpts.index,
+            color: conceptOpts.color,
+          },
+          { doc: doc },
+        ),
       )
     }
     var elSlug = data.id
@@ -15630,13 +15754,17 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       elSlug = elSlug.slice(unitModel.length + 1)
     }
     badgesWrap.appendChild(
-      Ku('element', {
-        model: unitModel,
-        id: elSlug,
-        label: data.name || data.id,
-        index: conceptOpts.index,
-        color: conceptOpts.color,
-      }, { doc: doc }),
+      Ku(
+        'element',
+        {
+          model: unitModel,
+          id: elSlug,
+          label: data.name || data.id,
+          index: conceptOpts.index,
+          color: conceptOpts.color,
+        },
+        { doc: doc },
+      ),
     )
     head.appendChild(badgesWrap)
 
@@ -15677,7 +15805,11 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       if (!fItem) continue
       if (fItem.name === 'status' && typeof fItem.value === 'string' && fItem.value.trim()) {
         statusField = fItem.value.trim()
-      } else if (fItem.name === 'summary' && typeof fItem.value === 'string' && fItem.value.trim()) {
+      } else if (
+        fItem.name === 'summary' &&
+        typeof fItem.value === 'string' &&
+        fItem.value.trim()
+      ) {
         summaryField = fItem.value.trim()
       }
     }
@@ -15685,7 +15817,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       var stPill = makeEl(doc, 'span', 'nn-card-status-pill')
       var stNorm = statusField.toLowerCase()
       stPill.setAttribute('data-status', stNorm)
-      if (stNorm === 'reviewed' || stNorm === 'applied' || stNorm === 'completed' || stNorm === 'verified') {
+      if (
+        stNorm === 'reviewed' ||
+        stNorm === 'applied' ||
+        stNorm === 'completed' ||
+        stNorm === 'verified'
+      ) {
         var chk = makeEl(doc, 'span', 'nn-status-pill-icon')
         chk.innerHTML = icon('check', 11)
         stPill.appendChild(chk)
@@ -15744,7 +15881,11 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
       head.addEventListener('click', function (ev) {
         var t = ev && ev.target
-        if (t && typeof t.closest === 'function' && t.closest('button, a, input, select, textarea, [data-ku-more]')) {
+        if (
+          t &&
+          typeof t.closest === 'function' &&
+          t.closest('button, a, input, select, textarea, [data-ku-more]')
+        ) {
           return
         }
         setOpen(!open)
@@ -15790,18 +15931,30 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         })
       }
       if (!objFields.length && bodyFields.length > 1) {
-        var compactScalars = bodyFields.filter(function (fr) {
-          if (!fr || fr.ref || fr.value == null || relFieldSet[fr.name]) return false
-          if (fr.name === 'summary' || fr.name === 'long_description' || fr.name === 'description' || fr.name === 'status' || fr.name === 'sources') return false
-          if (typeof fr.value === 'object') return false
-          var sv = normalizeAssetPath(String(fr.value))
-          if (!sv || sv.length > 36 || looksLikeImageValue(sv) || /^\[\[.*\]\]$/.test(sv)) return false
-          return true
-        }).slice(0, 3)
+        var compactScalars = bodyFields
+          .filter(function (fr) {
+            if (!fr || fr.ref || fr.value == null || relFieldSet[fr.name]) return false
+            if (
+              fr.name === 'summary' ||
+              fr.name === 'long_description' ||
+              fr.name === 'description' ||
+              fr.name === 'status' ||
+              fr.name === 'sources'
+            )
+              return false
+            if (typeof fr.value === 'object') return false
+            var sv = normalizeAssetPath(String(fr.value))
+            if (!sv || sv.length > 36 || looksLikeImageValue(sv) || /^\[\[.*\]\]$/.test(sv))
+              return false
+            return true
+          })
+          .slice(0, 3)
         compactScalars.forEach(function (fr) {
           var chip = makeEl(doc, 'span', 'nn-obj-chip')
           chip.appendChild(makeEl(doc, 'span', 'nn-obj-chip-k', fr.name))
-          chip.appendChild(makeEl(doc, 'span', 'nn-obj-chip-v', normalizeAssetPath(String(fr.value))))
+          chip.appendChild(
+            makeEl(doc, 'span', 'nn-obj-chip-v', normalizeAssetPath(String(fr.value))),
+          )
           stripLeft.appendChild(chip)
         })
       }
@@ -15827,7 +15980,10 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           if (tConcept || tSlot) {
             var tIco = makeEl(doc, 'span', 'nn-strip-rel-icon')
             tIco.setAttribute('aria-hidden', 'true')
-            tIco.innerHTML = icon(resolveConceptIconName(tConcept, { index: (Number(tSlot) || 1) - 1 }), 11)
+            tIco.innerHTML = icon(
+              resolveConceptIconName(tConcept, { index: (Number(tSlot) || 1) - 1 }),
+              11,
+            )
             pill.appendChild(tIco)
           }
           pill.appendChild(doc.createTextNode((!r.field ? '' : '') + rLabel + ' ↗'))
@@ -15893,22 +16049,37 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       }
       // No tag row without tags (the review controller adds its own for "+ tag").
       var tags = Array.isArray(data.tags) ? data.tags : []
-      if (tags.length) body.appendChild(TagRow({ tags: tags }, { doc: doc, onTag: opts && opts.onTag }))
+      if (tags.length)
+        body.appendChild(TagRow({ tags: tags }, { doc: doc, onTag: opts && opts.onTag }))
       if (relations && relations.length) {
         var outWrap = makeEl(doc, 'div', 'nn-card-outgoing')
         outWrap.appendChild(
-          makeEl(doc, 'span', 'nn-card-outgoing-label', 'Outgoing relations (' + relations.length + ')'),
+          makeEl(
+            doc,
+            'span',
+            'nn-card-outgoing-label',
+            'Outgoing relations (' + relations.length + ')',
+          ),
         )
-        outWrap.appendChild(RelList({ relations: relations, byId: byId, model: unitModel }, { doc: doc }))
+        outWrap.appendChild(
+          RelList({ relations: relations, byId: byId, model: unitModel }, { doc: doc }),
+        )
         body.appendChild(outWrap)
       }
       var incoming = Array.isArray(data.incomingRelations) ? data.incomingRelations : null
       if (incoming && incoming.length) {
         var incWrap = makeEl(doc, 'div', 'nn-card-incoming')
         incWrap.appendChild(
-          makeEl(doc, 'span', 'nn-card-incoming-label', 'Incoming relations (' + incoming.length + ')'),
+          makeEl(
+            doc,
+            'span',
+            'nn-card-incoming-label',
+            'Incoming relations (' + incoming.length + ')',
+          ),
         )
-        incWrap.appendChild(RelList({ relations: incoming, byId: byId, model: unitModel }, { doc: doc }))
+        incWrap.appendChild(
+          RelList({ relations: incoming, byId: byId, model: unitModel }, { doc: doc }),
+        )
         body.appendChild(incWrap)
       }
       card.appendChild(body)
@@ -15918,7 +16089,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         card.appendChild(cardFooter)
       }
       var win = doc && (doc.defaultView || (doc.ownerDocument && doc.ownerDocument.defaultView))
-      var CustomEv = (win && win.CustomEvent) || (typeof CustomEvent !== 'undefined' ? CustomEvent : null)
+      var CustomEv =
+        (win && win.CustomEvent) || (typeof CustomEvent !== 'undefined' ? CustomEvent : null)
       if (CustomEv && typeof doc.dispatchEvent === 'function') {
         try {
           doc.dispatchEvent(new CustomEv('nn:rendered', { detail: { root: card } }))
@@ -16093,8 +16265,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
     // Evidence / sources are citations: the standard citation value widget keeps
     // the icon live, so the reviewer opens the source from the change sheet.
-    var rawEvidence =
-      variant === 'draft' ? e.sources || e.evidence : e.evidence || e.sources
+    var rawEvidence = variant === 'draft' ? e.sources || e.evidence : e.evidence || e.sources
     var evidenceList =
       rawEvidence == null ? [] : Array.isArray(rawEvidence) ? rawEvidence : [rawEvidence]
     evidenceList.forEach(function (src) {
@@ -16240,7 +16411,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       })
     }
     if (typeof opts.onDiscard === 'function' && entry.id != null) {
-      var discard = makeEl(doc, 'button', 'nn-change-sheet-action nn-change-sheet-discard', COPY.discard)
+      var discard = makeEl(
+        doc,
+        'button',
+        'nn-change-sheet-action nn-change-sheet-discard',
+        COPY.discard,
+      )
       discard.setAttribute('type', 'button')
       discard.setAttribute('data-nn', 'discard')
       discard.addEventListener('click', function () {
@@ -16279,7 +16455,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     card.setAttribute('data-nn-change-sheet', '')
     card.setAttribute('data-change-state', stateKind)
     if (entry.id != null) card.setAttribute('data-change-id', String(entry.id))
-    if (variant === 'draft' && entry.id != null) card.setAttribute('data-draft-id', String(entry.id))
+    if (variant === 'draft' && entry.id != null)
+      card.setAttribute('data-draft-id', String(entry.id))
     if (data.stale) card.setAttribute('data-target-changed', 'true')
     return card
   }
@@ -16405,13 +16582,14 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
             doc: doc,
             title: cardTitle(
               item.op,
-              item.el && item.el.name ? Object.assign({}, item.entry, { element: item.el.name }) : item.entry,
+              item.el && item.el.name
+                ? Object.assign({}, item.entry, { element: item.el.name })
+                : item.entry,
             ),
             stateKind: item.applied ? 'applied' : 'not-applied',
             stateLabel: item.applied ? COPY.applied : COPY.notApplied,
             elementId: item.elementName || (item.el && item.el.id),
-            revertable:
-              item.applied && (item.op === 'update_field' || item.op === 'set_fields'),
+            revertable: item.applied && (item.op === 'update_field' || item.op === 'set_fields'),
             onRevert: typeof opts.onRevert === 'function' ? opts.onRevert : null,
             onGoTo: typeof opts.onGoTo === 'function' ? opts.onGoTo : null,
             onCite:
@@ -16446,7 +16624,6 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     more()
     return host
   }
-
 
   // ---- Core Edit Widgets (D13 / S3) ----
 
@@ -16615,13 +16792,19 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
   // address substring, or an empty query listing every candidate.
   function refMatches(candidates, query) {
     var list = Array.isArray(candidates) ? candidates : []
-    var q = String(query == null ? '' : query).trim().toLowerCase()
+    var q = String(query == null ? '' : query)
+      .trim()
+      .toLowerCase()
     if (!q) return list
     return list.filter(function (c) {
       if (!c) return false
       return (
-        String(c.title == null ? '' : c.title).toLowerCase().indexOf(q) !== -1 ||
-        String(c.address == null ? '' : c.address).toLowerCase().indexOf(q) !== -1
+        String(c.title == null ? '' : c.title)
+          .toLowerCase()
+          .indexOf(q) !== -1 ||
+        String(c.address == null ? '' : c.address)
+          .toLowerCase()
+          .indexOf(q) !== -1
       )
     })
   }
@@ -16694,7 +16877,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       var address = raw.indexOf('@') !== -1 ? raw : model ? model + '@' + raw : raw
       elementTitles[address] = String(e.name == null ? raw : e.name)
     })
-    var collections = data.collections && typeof data.collections === 'object' ? data.collections : {}
+    var collections =
+      data.collections && typeof data.collections === 'object' ? data.collections : {}
     var byAddress = {}
     var out = []
     Object.keys(collections).forEach(function (concept) {
@@ -16884,7 +17068,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         Object.keys(el.fields).forEach(function (k) {
           if (k === 'sources' || k === 'source') return
           var val = el.fields[k]
-          var cleanKey = typeof val === 'string' ? val.replace(/^\[\[|\]\]$/g, '').trim() : String(val)
+          var cleanKey =
+            typeof val === 'string' ? val.replace(/^\[\[|\]\]$/g, '').trim() : String(val)
           var target = null
           if (Array.isArray(el.relations)) {
             var relMatch = el.relations.find(function (r) {
@@ -16954,14 +17139,22 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     } else if (data.fieldName) {
       var fieldBox = makeEl(doc, 'div', 'nn-field-view-box')
       var headBadges = makeEl(doc, 'div', 'nn-card-badges')
-      var unitModel = (opts && (opts.modelId || opts.model)) || data.modelId || (el && (el.modelId || el.model)) || ''
+      var unitModel =
+        (opts && (opts.modelId || opts.model)) ||
+        data.modelId ||
+        (el && (el.modelId || el.model)) ||
+        ''
       if (data.concept) {
         headBadges.appendChild(
-          Ku('section', {
-            model: unitModel,
-            concept: data.concept,
-            label: data.concept,
-          }, { doc: doc }),
+          Ku(
+            'section',
+            {
+              model: unitModel,
+              concept: data.concept,
+              label: data.concept,
+            },
+            { doc: doc },
+          ),
         )
       }
       if (el) {
@@ -16970,20 +17163,28 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           elSlug = elSlug.slice(unitModel.length + 1)
         }
         headBadges.appendChild(
-          Ku('element', {
-            model: unitModel,
-            id: elSlug,
-            label: el.name || el.id,
-          }, { doc: doc }),
+          Ku(
+            'element',
+            {
+              model: unitModel,
+              id: elSlug,
+              label: el.name || el.id,
+            },
+            { doc: doc },
+          ),
         )
       }
       headBadges.appendChild(
-        Ku('field', {
-          model: unitModel,
-          concept: data.concept || '',
-          name: data.fieldName,
-          label: data.fieldName,
-        }, { doc: doc }),
+        Ku(
+          'field',
+          {
+            model: unitModel,
+            concept: data.concept || '',
+            name: data.fieldName,
+            label: data.fieldName,
+          },
+          { doc: doc },
+        ),
       )
       fieldBox.appendChild(headBadges)
 
@@ -16991,7 +17192,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       var fieldRows = [
         ['Field', data.fieldName],
         ['Declared Type', data.type || 'string'],
-        ['Element', el ? (el.name || el.id) : (data.elementId || '')],
+        ['Element', el ? el.name || el.id : data.elementId || ''],
         ['Concept', data.concept || ''],
       ]
       fieldRows.forEach(function (pair) {
@@ -17005,14 +17206,22 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       valSection.appendChild(makeEl(doc, 'h4', 'nn-field-view-subtitle', 'Current Value'))
       var valNode = null
       if (typeof FieldValue === 'function') {
-        valNode = FieldValue({
-          name: data.fieldName,
-          value: data.value,
-          type: data.type,
-        }, { doc: doc })
+        valNode = FieldValue(
+          {
+            name: data.fieldName,
+            value: data.value,
+            type: data.type,
+          },
+          { doc: doc },
+        )
       }
       if (!valNode) {
-        valNode = makeEl(doc, 'div', 'nn-field-view-val-text', String(data.value == null ? '' : data.value))
+        valNode = makeEl(
+          doc,
+          'div',
+          'nn-field-view-val-text',
+          String(data.value == null ? '' : data.value),
+        )
       }
       valSection.appendChild(valNode)
       fieldBox.appendChild(valSection)
@@ -17044,14 +17253,30 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     // toggle is not offered. Only declared string lists have a typed list editor;
     // arbitrary arrays and objects remain comment-only rather than being coerced.
     var commentOnly = Boolean(data.commentOnly)
-    var editableList = Boolean(data.multiple) &&
-      (data.value == null || typeof data.value === 'string' ||
-        (Array.isArray(data.value) && data.value.every(function (v) { return typeof v === 'string' })))
-    var valueIsContainer = Boolean(data.valueCommentOnly) ||
+    var editableList =
+      Boolean(data.multiple) &&
+      (data.value == null ||
+        typeof data.value === 'string' ||
+        (Array.isArray(data.value) &&
+          data.value.every(function (v) {
+            return typeof v === 'string'
+          })))
+    var valueIsContainer =
+      Boolean(data.valueCommentOnly) ||
       (!editableList && data.value !== null && typeof data.value === 'object')
     var isComment = commentOnly || valueIsContainer || Boolean(data.isComment)
-    var btnPropose = makeEl(doc, 'button', 'nn-edit-mode-btn' + (!isComment ? ' active' : ''), 'Propose value')
-    var btnComment = makeEl(doc, 'button', 'nn-edit-mode-btn' + (isComment ? ' active' : ''), 'Comment')
+    var btnPropose = makeEl(
+      doc,
+      'button',
+      'nn-edit-mode-btn' + (!isComment ? ' active' : ''),
+      'Propose value',
+    )
+    var btnComment = makeEl(
+      doc,
+      'button',
+      'nn-edit-mode-btn' + (isComment ? ' active' : ''),
+      'Comment',
+    )
     btnPropose.setAttribute('type', 'button')
     btnComment.setAttribute('type', 'button')
     modeWrap.appendChild(btnPropose)
@@ -17099,9 +17324,18 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     var fieldsContainer = makeEl(doc, 'div', 'nn-edit-fields')
     var widgetRef = null
     var fieldType = data.type || 'string'
-    var listValues = editableList && Array.isArray(data.value) ? data.value.slice() :
-      editableList && typeof data.value === 'string' && data.value.trim() ? [data.value] : []
-    var fieldLabel = makeEl(doc, 'label', 'nn-edit-field-label', data.fieldName ? data.fieldName : 'Value')
+    var listValues =
+      editableList && Array.isArray(data.value)
+        ? data.value.slice()
+        : editableList && typeof data.value === 'string' && data.value.trim()
+          ? [data.value]
+          : []
+    var fieldLabel = makeEl(
+      doc,
+      'label',
+      'nn-edit-field-label',
+      data.fieldName ? data.fieldName : 'Value',
+    )
     fieldsContainer.appendChild(fieldLabel)
 
     if (valueIsContainer) {
@@ -17109,8 +17343,16 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       // String()-coerced into a text control (S3b P0-2).
       widgetRef = null
     } else if (editableList) {
-      widgetRef = ChipEditor({ values: listValues, options: data.options,
-        onChange: function (values) { listValues = values } }, opts)
+      widgetRef = ChipEditor(
+        {
+          values: listValues,
+          options: data.options,
+          onChange: function (values) {
+            listValues = values
+          },
+        },
+        opts,
+      )
     } else if (fieldType === 'number') {
       widgetRef = FieldNumberWidget(data.value, opts)
     } else if (fieldType === 'boolean') {
@@ -17178,19 +17420,34 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       })
     } else {
       histSection.appendChild(
-        makeEl(doc, 'div', 'nn-history-empty', data.fieldName ? 'No recorded changes for this field.' : 'No recorded changes for this element.'),
+        makeEl(
+          doc,
+          'div',
+          'nn-history-empty',
+          data.fieldName
+            ? 'No recorded changes for this field.'
+            : 'No recorded changes for this element.',
+        ),
       )
     }
     // The payload keeps the newest hops only. Say so, and say where the rest lives:
     // showing twelve of forty without a word is the console claiming the element has
     // twelve changes.
-    if (!data.fieldName && typeof data.historyTotal === 'number' && data.historyTotal > historyItems.length) {
+    if (
+      !data.fieldName &&
+      typeof data.historyTotal === 'number' &&
+      data.historyTotal > historyItems.length
+    ) {
       histSection.appendChild(
         makeEl(
           doc,
           'div',
           'nn-history-empty',
-          'Showing the last ' + String(historyItems.length) + ' of ' + String(data.historyTotal) + ' recorded changes. The full lineage is in the changes model.',
+          'Showing the last ' +
+            String(historyItems.length) +
+            ' of ' +
+            String(data.historyTotal) +
+            ' recorded changes. The full lineage is in the changes model.',
         ),
       )
     }
@@ -17212,8 +17469,18 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     saveError.style.display = 'none'
 
     // Tab switcher events
-    var tabButtons = { view: tabBtnView, edit: tabBtnEdit, history: tabBtnHistory, connections: tabBtnConnections }
-    var tabPanels = { view: panelView, edit: panelEdit, history: panelHistory, connections: panelConnections }
+    var tabButtons = {
+      view: tabBtnView,
+      edit: tabBtnEdit,
+      history: tabBtnHistory,
+      connections: tabBtnConnections,
+    }
+    var tabPanels = {
+      view: panelView,
+      edit: panelEdit,
+      history: panelHistory,
+      connections: panelConnections,
+    }
     function showTab(name) {
       Object.keys(tabButtons).forEach(function (k) {
         tabButtons[k].className = 'nn-modal-tab-btn' + (k === name ? ' active' : '')
@@ -17253,8 +17520,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       if (!isComment) {
         if (editableList) {
           var invalid = listValues.filter(function (value) {
-            return Array.isArray(data.options) && data.options.length && data.options.indexOf(value) === -1 &&
+            return (
+              Array.isArray(data.options) &&
+              data.options.length &&
+              data.options.indexOf(value) === -1 &&
               !(Array.isArray(data.value) && data.value.indexOf(value) !== -1)
+            )
           })
           if (invalid.length) {
             saveError.textContent = 'Choose a declared option: ' + data.options.join(', ')
@@ -17276,7 +17547,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           result.proposed = cb ? cb.checked : false
         } else if (fieldType === 'multiselect') {
           var checkedBoxes = widgetRef.querySelectorAll('input[type="checkbox"]:checked')
-          result.proposed = Array.prototype.map.call(checkedBoxes, function (b) { return b.value })
+          result.proposed = Array.prototype.map.call(checkedBoxes, function (b) {
+            return b.value
+          })
         } else if (fieldType === 'reference') {
           var refInp = widgetRef.querySelector('input')
           var refRaw = refInp ? refInp.value : ''
@@ -17325,7 +17598,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
   // EditModal. onSave receives { concept, name, fields } where fields holds only
   // the filled values (a blank input is not a value).
   function NewElementModal(data, opts) {
-    if (!data || typeof data !== 'object') throw new TypeError('nnUI.NewElementModal: data required')
+    if (!data || typeof data !== 'object')
+      throw new TypeError('nnUI.NewElementModal: data required')
     var doc = resolveDoc(opts)
     var concepts = Array.isArray(data.concepts) ? data.concepts : []
     var modal = makeEl(doc, 'dialog', 'nn-edit-modal')
@@ -17426,7 +17700,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       else if (type === 'select') node = FieldSelectWidget('', def.options, opts)
       else if (type === 'multiselect') node = FieldMultiSelectWidget([], def.options, opts)
       else if (type === 'reference') node = FieldReferenceWidget('', data.candidates, opts)
-      else if (type === 'markdown' || type === 'markdown_inline') node = FieldMarkdownWidget('', opts)
+      else if (type === 'markdown' || type === 'markdown_inline')
+        node = FieldMarkdownWidget('', opts)
       else node = FieldStringWidget('', opts)
       node.setAttribute('data-nn-field', def.name)
       return { name: def.name, type: type, node: node }
@@ -17511,7 +17786,11 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           concept: picker.value,
           name: name,
           fields: fields,
-          modelId: modelPicker ? modelPicker.value : models.length === 1 ? String(models[0].id) : undefined,
+          modelId: modelPicker
+            ? modelPicker.value
+            : models.length === 1
+              ? String(models[0].id)
+              : undefined,
         })
       }
       dismiss()
@@ -17591,7 +17870,6 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     return pop
   }
 
-
   // A compact 3-column Sankey-style flow for a knowledge unit: incoming
   // relations flow into the centre node, outgoing relations flow out. Pure SVG,
   // no layout library. Data: { center, incoming: [{label, field}], outgoing: [...] }.
@@ -17603,7 +17881,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     var wrap = makeEl(doc, 'div', 'nn-sankey')
     wrap.setAttribute('data-nn-component', 'sankey')
     if (!incoming.length && !outgoing.length) {
-      wrap.appendChild(makeEl(doc, 'p', 'nn-sankey-empty', 'No relations recorded for this knowledge unit.'))
+      wrap.appendChild(
+        makeEl(doc, 'p', 'nn-sankey-empty', 'No relations recorded for this knowledge unit.'),
+      )
       return wrap
     }
     var NS = 'http://www.w3.org/2000/svg'
@@ -17650,7 +17930,10 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     function flow(x1, y1, x2, y2) {
       var p = doc.createElementNS(NS, 'path')
       var mx = (x1 + x2) / 2
-      p.setAttribute('d', 'M' + x1 + ' ' + y1 + ' C' + mx + ' ' + y1 + ' ' + mx + ' ' + y2 + ' ' + x2 + ' ' + y2)
+      p.setAttribute(
+        'd',
+        'M' + x1 + ' ' + y1 + ' C' + mx + ' ' + y1 + ' ' + mx + ' ' + y2 + ' ' + x2 + ' ' + y2,
+      )
       p.setAttribute('class', 'nn-sankey-link')
       return p
     }
@@ -17677,9 +17960,13 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
         r.appendChild(title)
       }
       svg.appendChild(r)
-      svg.appendChild(label(x + 10, nodeY(i) + 21, truncate(link && link.label, 20), 'nn-sankey-label'))
+      svg.appendChild(
+        label(x + 10, nodeY(i) + 21, truncate(link && link.label, 20), 'nn-sankey-label'),
+      )
       if (link && link.field) {
-        svg.appendChild(label(x + colW - 8, nodeY(i) + 21, truncate(link.field, 12), 'nn-sankey-field', 'end'))
+        svg.appendChild(
+          label(x + colW - 8, nodeY(i) + 21, truncate(link.field, 12), 'nn-sankey-field', 'end'),
+        )
       }
     }
     incoming.forEach(function (link, i) {
@@ -17691,7 +17978,13 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
     svg.appendChild(rect(centerX, centerY, 'nn-sankey-node nn-sankey-center'))
     svg.appendChild(
-      label(centerX + colW / 2, centerY + 22, truncate(d.center || 'This unit', 26), 'nn-sankey-center-label', 'middle'),
+      label(
+        centerX + colW / 2,
+        centerY + 22,
+        truncate(d.center || 'This unit', 26),
+        'nn-sankey-center-label',
+        'middle',
+      ),
     )
 
     wrap.appendChild(svg)
@@ -17714,10 +18007,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     span.setAttribute('data-nn-component', 'rail-progress')
     span.setAttribute('data-total', String(total))
     span.setAttribute('data-pending', String(pending))
-    span.setAttribute(
-      'title',
-      pending + ' of ' + total + ' elements have unsent changes',
-    )
+    span.setAttribute('title', pending + ' of ' + total + ' elements have unsent changes')
     span.appendChild(doc.createTextNode(pending + '/' + total))
     return span
   }
@@ -17762,13 +18052,21 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     var onCopyPrompt = opts.onCopyPrompt
     var draftsCount = (data && data.draftsCount) || 0
 
-    var htmlTag = (typeof html !== 'undefined' && html) || (typeof window !== 'undefined' && window.html) || (typeof globalThis !== 'undefined' && globalThis.html)
-    var renderFn = (typeof render !== 'undefined' && render) || (typeof window !== 'undefined' && window.render) || (typeof globalThis !== 'undefined' && globalThis.render)
+    var htmlTag =
+      (typeof html !== 'undefined' && html) ||
+      (typeof window !== 'undefined' && window.html) ||
+      (typeof globalThis !== 'undefined' && globalThis.html)
+    var renderFn =
+      (typeof render !== 'undefined' && render) ||
+      (typeof window !== 'undefined' && window.render) ||
+      (typeof globalThis !== 'undefined' && globalThis.render)
 
-    var saveSvg = (typeof icon === 'function' ? icon('download', 14) : '') ||
+    var saveSvg =
+      (typeof icon === 'function' ? icon('download', 14) : '') ||
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>'
 
-    var promptSvg = (typeof icon === 'function' ? icon('sparkles', 14) : '') ||
+    var promptSvg =
+      (typeof icon === 'function' ? icon('sparkles', 14) : '') ||
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/></svg>'
 
     if (htmlTag && renderFn) {
@@ -17837,8 +18135,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     var btnCopy = makeEl(doc, 'button', 'nn-navbar-action-btn nn-btn-copy-prompt')
     btnCopy.setAttribute('type', 'button')
     btnCopy.setAttribute('data-nn', 'copy-agent-prompt')
-    btnCopy.setAttribute('title', 'Copy the agent prompt: instructions plus the embedded changeset document')
-    btnCopy.innerHTML = '<span class="nn-btn-icon">' + promptSvg + '</span><span>Copy AI Prompt</span>'
+    btnCopy.setAttribute(
+      'title',
+      'Copy the agent prompt: instructions plus the embedded changeset document',
+    )
+    btnCopy.innerHTML =
+      '<span class="nn-btn-icon">' + promptSvg + '</span><span>Copy AI Prompt</span>'
     btnCopy.addEventListener('click', function (e) {
       if (e && e.preventDefault) e.preventDefault()
       if (typeof onCopyPrompt === 'function') onCopyPrompt()
@@ -17854,7 +18156,15 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
    * same actions. The CSS hides `.nn-navbar-actions-inner` below 720px and shows
    * the trigger, so the header never wraps or clips the two labels.
    */
-  function appendCollapsedActions(doc, group, draftsCount, saveSvg, promptSvg, onSave, onCopyPrompt) {
+  function appendCollapsedActions(
+    doc,
+    group,
+    draftsCount,
+    saveSvg,
+    promptSvg,
+    onSave,
+    onCopyPrompt,
+  ) {
     var moreSvg =
       (typeof icon === 'function' ? icon('more-horizontal', 14) : '') ||
       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>'
@@ -17865,7 +18175,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     toggle.setAttribute('aria-haspopup', 'menu')
     toggle.setAttribute('aria-expanded', 'false')
     toggle.innerHTML =
-      '<span class="nn-btn-icon">' + moreSvg + '</span><span>Actions</span>' +
+      '<span class="nn-btn-icon">' +
+      moreSvg +
+      '</span><span>Actions</span>' +
       (draftsCount > 0 ? '<span class="nn-badge-count">' + draftsCount + '</span>' : '')
 
     var menu = makeEl(doc, 'div', 'nn-navbar-actions-menu')
@@ -17942,7 +18254,13 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
     function addChip(value) {
       var text = String(value == null ? '' : value).trim()
-      if (!text || values.some(function (v) { return String(v).toLowerCase() === text.toLowerCase() })) return
+      if (
+        !text ||
+        values.some(function (v) {
+          return String(v).toLowerCase() === text.toLowerCase()
+        })
+      )
+        return
       values.push(text)
       var chip = makeEl(doc, 'span', 'nn-chip', text)
       var remove = makeEl(doc, 'button', 'nn-chip-remove')
@@ -18109,7 +18427,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       th.setAttribute('scope', 'col')
       if (col.key != null) th.setAttribute('data-col', String(col.key))
       if (col.align) th.className = gridCellClass(col.align)
-      th.textContent = col.label != null ? String(col.label) : String(col.key == null ? '' : col.key)
+      th.textContent =
+        col.label != null ? String(col.label) : String(col.key == null ? '' : col.key)
       htr.appendChild(th)
     })
     thead.appendChild(htr)
@@ -18201,13 +18520,22 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
   }
 
   function DataTable(data, opts) {
-    if (!data || !Array.isArray(data.columns)) throw new TypeError('nnUI.DataTable: data.columns must be an array')
+    if (!data || !Array.isArray(data.columns))
+      throw new TypeError('nnUI.DataTable: data.columns must be an array')
     if (!Array.isArray(data.rows)) throw new TypeError('nnUI.DataTable: data.rows must be an array')
     var doc = resolveDoc(opts)
     if (!doc) throw new TypeError('nnUI.DataTable: doc is required')
     var modelId = (opts && (opts.modelId || opts.model)) || data.modelId || 'model'
     var columns = data.columns.map(function (c) {
-      return { key: c.key, label: c.label, align: c.align, kind: c.kind || 'text', type: c.type, value: c.value, render: c.render }
+      return {
+        key: c.key,
+        label: c.label,
+        align: c.align,
+        kind: c.kind || 'text',
+        type: c.type,
+        value: c.value,
+        render: c.render,
+      }
     })
     var rows = data.rows.map(function (el) {
       return {
@@ -18227,14 +18555,18 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
   }
 
   function MatrixGrid(data, opts) {
-    if (!data || !Array.isArray(data.columns)) throw new TypeError('nnUI.MatrixGrid: data.columns must be an array')
-    if (!Array.isArray(data.rows)) throw new TypeError('nnUI.MatrixGrid: data.rows must be an array')
+    if (!data || !Array.isArray(data.columns))
+      throw new TypeError('nnUI.MatrixGrid: data.columns must be an array')
+    if (!Array.isArray(data.rows))
+      throw new TypeError('nnUI.MatrixGrid: data.rows must be an array')
     var doc = resolveDoc(opts)
     if (!doc) throw new TypeError('nnUI.MatrixGrid: doc is required')
     return buildGrid({
       doc: doc,
       component: 'matrix-grid',
-      columns: data.columns.map(function (c) { return { key: c.key, label: c.label, align: c.align } }),
+      columns: data.columns.map(function (c) {
+        return { key: c.key, label: c.label, align: c.align }
+      }),
       rows: data.rows,
       rowHeader: data.rowHeader || { label: '' },
       pinFirstColumn: data.pinFirstColumn !== false,
@@ -18245,14 +18577,18 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
   // A timeline is a matrix whose columns ARE periods; identical to MatrixGrid
   // apart from the component name (styling) and a centre-aligned axis default.
   function Timeline(data, opts) {
-    if (!data || !Array.isArray(data.periods)) throw new TypeError('nnUI.Timeline: data.periods must be an array')
-    if (!Array.isArray(data.lanes)) throw new TypeError('nnUI.Timeline: data.lanes must be an array')
+    if (!data || !Array.isArray(data.periods))
+      throw new TypeError('nnUI.Timeline: data.periods must be an array')
+    if (!Array.isArray(data.lanes))
+      throw new TypeError('nnUI.Timeline: data.lanes must be an array')
     var doc = resolveDoc(opts)
     if (!doc) throw new TypeError('nnUI.Timeline: doc is required')
     return buildGrid({
       doc: doc,
       component: 'timeline',
-      columns: data.periods.map(function (p) { return { key: p.key, label: p.label, align: p.align || 'center' } }),
+      columns: data.periods.map(function (p) {
+        return { key: p.key, label: p.label, align: p.align || 'center' }
+      }),
       rows: data.lanes,
       rowHeader: data.rowHeader || { label: data.laneLabel || '' },
       pinFirstColumn: data.pinFirstColumn !== false,
@@ -18283,7 +18619,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
   function filterSummary(label, options, selected) {
     var total = options.length
-    var chosen = options.filter(function (o) { return selected[o.value] })
+    var chosen = options.filter(function (o) {
+      return selected[o.value]
+    })
     if (!total) return label
     if (chosen.length === total) return label + ': todos (' + total + ')'
     if (!chosen.length) return label + ': ninguno'
@@ -18300,11 +18638,17 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     var options = normalizeFilterOptions(data.options)
     var selected = {}
     if (data.selected && !Array.isArray(data.selected) && typeof data.selected === 'object') {
-      Object.keys(data.selected).forEach(function (k) { if (data.selected[k]) selected[k] = true })
+      Object.keys(data.selected).forEach(function (k) {
+        if (data.selected[k]) selected[k] = true
+      })
     } else if (Array.isArray(data.selected)) {
-      data.selected.forEach(function (v) { selected[v] = true })
+      data.selected.forEach(function (v) {
+        selected[v] = true
+      })
     }
-    options.forEach(function (o) { if (o.selected) selected[o.value] = true })
+    options.forEach(function (o) {
+      if (o.selected) selected[o.value] = true
+    })
     var label = data.label != null ? String(data.label) : ''
 
     var root = makeEl(doc, 'details', 'nn-filter')
@@ -18317,9 +18661,17 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
 
     var cbByValue = {}
     function selectedValues() {
-      return options.filter(function (o) { return selected[o.value] }).map(function (o) { return o.value })
+      return options
+        .filter(function (o) {
+          return selected[o.value]
+        })
+        .map(function (o) {
+          return o.value
+        })
     }
-    function syncSummary() { summary.textContent = filterSummary(label, options, selected) }
+    function syncSummary() {
+      summary.textContent = filterSummary(label, options, selected)
+    }
     function notify() {
       if (typeof opts.onChange === 'function') opts.onChange(selectedValues())
     }
@@ -18327,7 +18679,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       var allow = null
       if (values !== 'all') {
         allow = {}
-        ;(Array.isArray(values) ? values : [values]).forEach(function (v) { allow[v] = true })
+        ;(Array.isArray(values) ? values : [values]).forEach(function (v) {
+          allow[v] = true
+        })
       }
       options.forEach(function (o) {
         var on = values === 'all' ? true : !!(allow && allow[o.value])
@@ -18366,7 +18720,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       cbByValue[o.value] = cb
       row.appendChild(cb)
       row.appendChild(makeEl(doc, 'span', 'nn-filter-option-label', o.label))
-      if (o.count != null) row.appendChild(makeEl(doc, 'span', 'nn-filter-option-count', String(o.count)))
+      if (o.count != null)
+        row.appendChild(makeEl(doc, 'span', 'nn-filter-option-count', String(o.count)))
       menu.appendChild(row)
     })
 
@@ -18377,7 +18732,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
   }
 
   function defineCustomElements() {
-    if (typeof window === 'undefined' || !window.customElements || window.customElements.get('nn-ku')) return
+    if (
+      typeof window === 'undefined' ||
+      !window.customElements ||
+      window.customElements.get('nn-ku')
+    )
+      return
     try {
       function nnKu() {
         return Reflect.construct(HTMLElement, [], nnKu)
@@ -18520,12 +18880,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
             return api.unitAddress.element(ref.model, elId)
           case 'value':
             if (ref.row && ref.col) {
-              return api.unitAddress.cell(
-                ref.model,
-                ref.matrix || ref.element,
-                ref.row,
-                ref.col,
-              )
+              return api.unitAddress.cell(ref.model, ref.matrix || ref.element, ref.row, ref.col)
             }
             return api.unitAddress.value(valueBaseAddress(ref), ref.field)
           case 'concept':
@@ -18569,7 +18924,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       case 'concept':
         return 'specs/' + (ref.family || m) + '@concept:' + slug(ref.concept || ref.name)
       case 'field':
-        return 'specs/' + (ref.family || m) + '@concept:' + slug(ref.concept) + '&' + (ref.name || '')
+        return (
+          'specs/' + (ref.family || m) + '@concept:' + slug(ref.concept) + '&' + (ref.name || '')
+        )
       case 'matrix':
         return 'specs/' + (ref.family || m) + '@matrix:' + slug(ref.name)
     }
@@ -18661,7 +19018,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       '.nn-ku[data-ku-nature=structure]{border:1.5px solid var(--c);font-family:ui-monospace,monospace;color:var(--nn-muted);background:var(--nn-surface,#fff)}',
       '.nn-ku[data-ku-nature=content]{border:0;background:var(--nn-surface-2,#f1f5f9)}',
       '.nn-ku[data-ku-nature=content]>.nn-ku-label{color:var(--nn-text)}',
-  '.nn-ku[data-ku-nature=content]>.nn-ku-value{color:var(--c)}',
+      '.nn-ku[data-ku-nature=content]>.nn-ku-value{color:var(--c)}',
       '.nn-ku[data-ku-nature=content]>.nn-ku-icon{color:var(--c)}',
       '.nn-ku[data-ku-home=source]{background:var(--nn-source-paper,#fff7e6)}',
       '.nn-ku[data-ku-home=source]>.nn-ku-label,.nn-ku[data-ku-home=source] .nn-ku-icon{color:var(--nn-muted)}',
@@ -18737,7 +19094,8 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     if (ref && ref.field) badge.setAttribute('data-field', String(ref.field))
     if (ref && ref.row != null) badge.setAttribute('data-row', String(ref.row))
     if (ref && ref.col != null) badge.setAttribute('data-col', String(ref.col))
-    if (ref && ref.id != null && kind === 'element') badge.setAttribute('data-element-id', String(ref.id))
+    if (ref && ref.id != null && kind === 'element')
+      badge.setAttribute('data-element-id', String(ref.id))
     if (isBlock) {
       badge.setAttribute('data-ku-variant', 'block')
       if (opts.body) badge.appendChild(opts.body)
@@ -18789,7 +19147,9 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       return b
     }
     actions.appendChild(actionButton('info', 'info', 'Unit info', opts.onInfo))
-    actions.appendChild(actionButton('reveal', 'arrow-up-right', 'Reveal in context', opts.onReveal))
+    actions.appendChild(
+      actionButton('reveal', 'arrow-up-right', 'Reveal in context', opts.onReveal),
+    )
     if (desc.editability !== 'none') {
       var editBtn = actionButton('edit', 'pencil', 'Edit unit', opts.onEdit)
       if (desc.editability === 'structure') editBtn.setAttribute('data-ku-structure', 'true')
@@ -18916,7 +19276,10 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
           pip.setAttribute('data-ku-address', address)
           var labelEl = badge.querySelector('.nn-ku-label')
           var label = labelEl ? labelEl.textContent : badge.getAttribute('aria-label') || address
-          pip.setAttribute('aria-label', n + ' pending change' + (n === 1 ? '' : 's') + ' on ' + label)
+          pip.setAttribute(
+            'aria-label',
+            n + ' pending change' + (n === 1 ? '' : 's') + ' on ' + label,
+          )
           if (typeof opts.onChanges === 'function') {
             pip.addEventListener('click', function (ev) {
               if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
@@ -19022,12 +19385,17 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     panelEdit.style.display = 'none'
     if (descriptor.editability === 'structure') {
       var warn = makeEl(doc, 'div', 'nn-edit-warn')
-      warn.innerHTML = '<strong>Structural BluepriNNt Unit:</strong> Changes to this unit affect schema contracts across the domain.'
+      warn.innerHTML =
+        '<strong>Structural BluepriNNt Unit:</strong> Changes to this unit affect schema contracts across the domain.'
       panelEdit.appendChild(warn)
     } else if (descriptor.editability === 'none') {
-      panelEdit.appendChild(makeEl(doc, 'p', 'nn-edit-note', 'This unit is read-only (evidence source or container).'))
+      panelEdit.appendChild(
+        makeEl(doc, 'p', 'nn-edit-note', 'This unit is read-only (evidence source or container).'),
+      )
     } else {
-      panelEdit.appendChild(makeEl(doc, 'p', 'nn-edit-note', 'Use review mode or edit controls to propose changes.'))
+      panelEdit.appendChild(
+        makeEl(doc, 'p', 'nn-edit-note', 'Use review mode or edit controls to propose changes.'),
+      )
     }
     dlg.appendChild(panelEdit)
 
@@ -19035,19 +19403,38 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     var panelHistory = makeEl(doc, 'div', 'nn-modal-tab-panel nn-history-modal-body')
     panelHistory.setAttribute('data-tab', 'history')
     panelHistory.style.display = 'none'
-    panelHistory.appendChild(makeEl(doc, 'div', 'nn-history-empty', 'No recorded changes targeting this unit.'))
+    panelHistory.appendChild(
+      makeEl(doc, 'div', 'nn-history-empty', 'No recorded changes targeting this unit.'),
+    )
     dlg.appendChild(panelHistory)
 
     // Panel 3: Connections
     var panelConnections = makeEl(doc, 'div', 'nn-modal-tab-panel nn-connections-modal-body')
     panelConnections.setAttribute('data-tab', 'connections')
     panelConnections.style.display = 'none'
-    panelConnections.appendChild(makeEl(doc, 'p', 'nn-ku-info-sub', 'Connections and usages for ' + (descriptor.label || descriptor.address)))
+    panelConnections.appendChild(
+      makeEl(
+        doc,
+        'p',
+        'nn-ku-info-sub',
+        'Connections and usages for ' + (descriptor.label || descriptor.address),
+      ),
+    )
     dlg.appendChild(panelConnections)
 
     // Tab switcher events
-    var tabButtons = { view: tabBtnView, edit: tabBtnEdit, history: tabBtnHistory, connections: tabBtnConnections }
-    var tabPanels = { view: panelView, edit: panelEdit, history: panelHistory, connections: panelConnections }
+    var tabButtons = {
+      view: tabBtnView,
+      edit: tabBtnEdit,
+      history: tabBtnHistory,
+      connections: tabBtnConnections,
+    }
+    var tabPanels = {
+      view: panelView,
+      edit: panelEdit,
+      history: panelHistory,
+      connections: panelConnections,
+    }
     function showTab(name) {
       Object.keys(tabButtons).forEach(function (k) {
         tabButtons[k].className = 'nn-modal-tab-btn' + (k === name ? ' active' : '')
@@ -19056,10 +19443,18 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       })
     }
     showTab('view')
-    tabBtnView.addEventListener('click', function () { showTab('view') })
-    tabBtnEdit.addEventListener('click', function () { showTab('edit') })
-    tabBtnHistory.addEventListener('click', function () { showTab('history') })
-    tabBtnConnections.addEventListener('click', function () { showTab('connections') })
+    tabBtnView.addEventListener('click', function () {
+      showTab('view')
+    })
+    tabBtnEdit.addEventListener('click', function () {
+      showTab('edit')
+    })
+    tabBtnHistory.addEventListener('click', function () {
+      showTab('history')
+    })
+    tabBtnConnections.addEventListener('click', function () {
+      showTab('connections')
+    })
 
     // The same action bar as the other two dialogs. `nn-edit-modal-foot` had no rule at
     // all, so this footer rendered unstyled.
@@ -24326,20 +24721,6 @@ if (typeof window !== 'undefined') {
     )
   }
 
-  function stampFromDate(when) {
-    var d = when instanceof Date ? when : new Date(when)
-    if (isNaN(d.getTime())) throw new Error('nn-console: invalid date for filename stamp')
-    return (
-      d.getUTCFullYear() +
-      pad2(d.getUTCMonth() + 1) +
-      pad2(d.getUTCDate()) +
-      '-' +
-      pad2(d.getUTCHours()) +
-      pad2(d.getUTCMinutes()) +
-      pad2(d.getUTCSeconds())
-    )
-  }
-
   function parseConfig(raw) {
     var fallback = { needs: [], runtime: {} }
     if (!raw || typeof raw !== 'string') return fallback
@@ -24415,7 +24796,6 @@ if (typeof window !== 'undefined') {
   // JSON reader. The browser decodes it once, asynchronously, before the synchronous
   // `boot`; the decoded text is kept per document so a snapshot save starts from it.
   // Drafts and UI state live in the plain JSON nn-drafts slot instead.
-  var MODEL_SLOT_TYPE = 'application/x-nn-deflate-base64'
   var decodedModels = typeof WeakMap === 'function' ? new WeakMap() : null
 
   function base64ToBytes(text) {
@@ -25123,9 +25503,12 @@ if (typeof window !== 'undefined') {
   }
 
   // Only http(s) and relative source URLs become links; any other scheme
-  // (javascript:, data:, ...) is rejected. Returns '' when unsafe. Verbatim port
-  // of the retired model viewer's predicate.
+  // (javascript:, data:, ...) is rejected. Returns '' when unsafe. Delegates to
+  // UI.safeHref when available.
   function safeSourceHref(url) {
+    if (UI && typeof UI.safeHref === 'function') {
+      return UI.safeHref(url)
+    }
     var raw = String(url == null ? '' : url).trim()
     if (!raw) return ''
     var hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw)
@@ -29846,19 +30229,16 @@ if (typeof window !== 'undefined') {
       copy.addEventListener('click', function () {
         var text = String(entry.sha256 || '')
         var view = doc.defaultView
-        if (view && view.navigator && view.navigator.clipboard) {
-          try {
-            view.navigator.clipboard.writeText(text)
-          } catch {
-            /* clipboard unavailable offline */
+        copyTextToClipboard(doc, text).then(function (ok) {
+          if (ok) {
+            copy.textContent = 'copied'
+            if (view && view.setTimeout) {
+              view.setTimeout(function () {
+                copy.textContent = text.slice(0, 16)
+              }, 1200)
+            }
           }
-        }
-        copy.textContent = 'copied'
-        if (view && view.setTimeout) {
-          view.setTimeout(function () {
-            copy.textContent = text.slice(0, 16)
-          }, 1200)
-        }
+        })
       })
       attr('SHA-256', '', copy)
       card.appendChild(attrs)
@@ -30312,18 +30692,8 @@ if (typeof window !== 'undefined') {
       var copyBtn = doc.getElementById('nn-file-preview-copy')
       if (copyBtn) {
         copyBtn.onclick = function () {
-          var view = doc.defaultView
-          if (
-            view &&
-            view.navigator &&
-            view.navigator.clipboard &&
-            typeof entry.snippet === 'string'
-          ) {
-            try {
-              view.navigator.clipboard.writeText(entry.snippet)
-            } catch {
-              /* clipboard unavailable */
-            }
+          if (typeof entry.snippet === 'string') {
+            copyTextToClipboard(doc, entry.snippet)
           }
         }
       }
@@ -33533,32 +33903,6 @@ if (typeof window !== 'undefined') {
     errorContainer.style.display = 'block'
   }
 
-  // Direct write to a connected domaiNN folder (console-changes-direct-write, D-C2).
-  // The download path stays the fallback; these two calls are what the view wires to a
-  // "Connect folder" control.
-  function fsaWriter() {
-    var root = typeof window !== 'undefined' ? window : null
-    var api = root && root.nnFsa
-    if (!api) return null
-    return api.createWriter({ win: root, store: api.createIndexedDbStore() })
-  }
-
-  function connectFolder(workspaceId) {
-    var writer = fsaWriter()
-    if (!writer) return Promise.resolve({ ok: false, reason: 'fsa-unavailable' })
-    return writer.connect(String(workspaceId || ''))
-  }
-
-  function writeChangesetToFolder(workspaceId, reviewer, changesetText) {
-    var writer = fsaWriter()
-    if (!writer) return Promise.resolve({ ok: false, reason: 'fsa-unavailable' })
-    return writer.writeChangeset({
-      workspaceId: String(workspaceId || ''),
-      reviewer: reviewer,
-      text: changesetText,
-    })
-  }
-
   function downloadChangesetExport(doc, state) {
     var identifierInput = doc.querySelector('#nn-feedback-modal [data-nn="identifier"]')
     var identifier =
@@ -33624,11 +33968,22 @@ if (typeof window !== 'undefined') {
   function copyTextToClipboard(doc, text) {
     var win = (doc && doc.defaultView) || (typeof window !== 'undefined' ? window : null)
     var nav =
-      win && win.navigator ? win.navigator : typeof navigator !== 'undefined' ? navigator : null
+      typeof navigator !== 'undefined' && navigator.clipboard
+        ? navigator
+        : win && win.navigator
+          ? win.navigator
+          : typeof navigator !== 'undefined'
+            ? navigator
+            : null
     if (nav && nav.clipboard && typeof nav.clipboard.writeText === 'function') {
-      return nav.clipboard.writeText(text).catch(function () {
-        return execCopyFallback(doc, text)
-      })
+      return nav.clipboard.writeText(text).then(
+        function () {
+          return true
+        },
+        function () {
+          return execCopyFallback(doc, text)
+        },
+      )
     }
     return Promise.resolve(execCopyFallback(doc, text))
   }
@@ -33650,7 +34005,7 @@ if (typeof window !== 'undefined') {
       ok = false
     }
     ta.remove()
-    return ok
+    return !!ok
   }
 
   function composeAgentPrompt(state) {
@@ -33856,9 +34211,13 @@ if (typeof window !== 'undefined') {
     var promptText = composeAgentPrompt(state)
     var draftsCount = state && state.store ? state.store.drafts().length : 0
 
-    return copyTextToClipboard(active, promptText).then(function () {
-      showToast(active, 'Copied! Prompt for AI agent is ready in clipboard.', 'success')
-      return { ok: true, prompt: promptText, items: draftsCount }
+    return copyTextToClipboard(active, promptText).then(function (ok) {
+      if (ok) {
+        showToast(active, 'Copied! Prompt for AI agent is ready in clipboard.', 'success')
+      } else {
+        showToast(active, 'Copy failed. Select the text and copy manually.', 'error')
+      }
+      return { ok: !!ok, prompt: promptText, items: draftsCount }
     })
   }
 
@@ -35492,7 +35851,6 @@ if (typeof window !== 'undefined') {
     ITEM_KINDS: ITEM_KINDS,
     slugify: slugify,
     slugifyReviewer: slugifyReviewer,
-    stampFromDate: stampFromDate,
     changesetStampOf: changesetStampOf,
     consoleScopeMeta: consoleScopeMeta,
     draftStoreId: draftStoreId,
@@ -35501,7 +35859,6 @@ if (typeof window !== 'undefined') {
     parseConfig: parseConfig,
     hasNeed: hasNeed,
     parseSlots: parseSlots,
-    MODEL_SLOT_TYPE: MODEL_SLOT_TYPE,
     decodeModelText: decodeModelText,
     encodeModelText: encodeModelText,
     decodeModelSlot: decodeModelSlot,
@@ -35554,9 +35911,8 @@ if (typeof window !== 'undefined') {
     composeChangesetExport: composeChangesetExport,
     verdictDraft: verdictDraft,
     downloadChangesetExport: downloadChangesetExport,
-    connectFolder: connectFolder,
-    writeChangesetToFolder: writeChangesetToFolder,
     copyChangesetPrompt: copyChangesetPrompt,
+    copyTextToClipboard: copyTextToClipboard,
     saveSnapshot: saveSnapshot,
     copyAgentPrompt: copyAgentPrompt,
     composeAgentPrompt: composeAgentPrompt,

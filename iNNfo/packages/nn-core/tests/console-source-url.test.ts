@@ -44,9 +44,12 @@ describe('safeSourceHref', () => {
     for (const bad of [
       'javascript:alert(1)',
       'JaVaScRiPt:alert(1)',
+      'java\tscript:alert(1)',
       'data:text/html,<b>x</b>',
       'vbscript:x',
       '//',
+      '//host',
+      '//host/evil',
       '\\evil',
     ]) {
       expect(rt.safeSourceHref(bad)).toBe('')
