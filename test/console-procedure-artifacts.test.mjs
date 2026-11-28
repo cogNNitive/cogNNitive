@@ -137,7 +137,7 @@ describe('procedure artifacts are files with a way in', () => {
   it('jumps to the step that produced the artifact', () => {
     mount()
     // Open the review step, which consumes the artifact.
-    click(container.querySelector('.dag-node[data-step="review"]'))
+    click(container.querySelector('.nn-graph-node[data-step="review"]'))
     const chip = container.querySelector('[data-proc-artifact="draft-doc"]')
     click(chip.querySelector('.proc-artifact-producer'))
     assert.match(container.querySelector('.exec-step-card .exec-step-title').textContent, /Draft/)
@@ -211,7 +211,7 @@ describe('procedure artifacts are files with a way in', () => {
 
   it('prints no artifact row for a step with no artifacts', () => {
     mount()
-    click(container.querySelector('.dag-node[data-step="publish"]'))
+    click(container.querySelector('.nn-graph-node[data-step="publish"]'))
     assert.equal(container.querySelector('[data-proc-artifact-row]'), null)
   })
 })

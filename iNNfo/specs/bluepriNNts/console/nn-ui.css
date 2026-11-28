@@ -5991,106 +5991,13 @@ button.proc-tab:focus-visible {
   background: var(--surface-3);
 }
 
-/* SVG DAG Canvas */
+/* The flow card's scroll box */
 .exec-dag-view {
   padding: 12px;
   max-height: 580px;
   overflow-y: auto;
   background: radial-gradient(var(--border) 1px, transparent 1px);
   background-size: 14px 14px;
-}
-svg.dag-canvas {
-  width: 100%;
-  display: block;
-}
-/* The graph with no chart runtime: the same walk as a list of buttons. It carries the node
-   contract the svg had, so nothing downstream can tell them apart except by looking. */
-.dag-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 8px;
-}
-.dag-layer {
-  display: flex;
-  gap: 6px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-.dag-list .dag-node {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  width: 100%;
-  max-width: 260px;
-  text-align: left;
-  padding: 8px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-}
-.dag-list .dag-node.done {
-  border-color: var(--success);
-}
-.dag-list .dag-node.waiting {
-  border-color: var(--warning);
-}
-.dag-list .dag-node.failed {
-  border-color: var(--danger);
-}
-.dag-list .dag-node.pending {
-  border-style: dashed;
-}
-.dag-list .dag-node.current {
-  border-width: 2px;
-  border-color: var(--primary);
-}
-.dag-list .dag-node.decision {
-  border-left-width: 4px;
-}
-.dag-list .dag-node:focus-visible {
-  outline: 3px solid var(--primary);
-  outline-offset: -3px;
-}
-.dag-list .node-dot {
-  width: 8px;
-  height: 8px;
-  margin-top: 5px;
-  border-radius: 50%;
-  flex: 0 0 auto;
-  background: var(--faint);
-}
-.dag-list .dag-node.done .node-dot {
-  background: var(--success);
-}
-.dag-list .dag-node.waiting .node-dot {
-  background: var(--warning);
-}
-.dag-list .dag-node.failed .node-dot {
-  background: var(--danger);
-}
-.dag-list .dag-node.current .node-dot {
-  background: var(--primary);
-}
-.dag-list .node-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.dag-list .node-sub {
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.dag-list .node-title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--text);
 }
 .dag-node {
   cursor: pointer;
@@ -11022,6 +10929,15 @@ button.proc-run.proc-run-unsent {
 .dag-chart {
   width: 100%;
 }
+/* A chart the console could not draw says so where it would have been. */
+.nn-chart-error {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  color: var(--danger);
+  font-size: 12px;
+}
 .nn-map-tree-nav {
   display: flex;
   align-items: center;
@@ -11136,12 +11052,12 @@ button.proc-run.proc-run-unsent {
     stroke-opacity: 0.3;
   }
 }
-/* The stepper sets data-pulse with the rule ECharts uses: the current step, whatever its status. */
-.dag-canvas[data-pulse='on'] .dag-node.current rect {
+/* The stepper sets data-pulse on the flow: the current step's box pulses, whatever its status. */
+.dag-graph[data-pulse='on'] .nn-graph-node.current > rect:first-child {
   animation: dag-pulse 2s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .dag-canvas[data-pulse='on'] .dag-node.current rect {
+  .dag-graph[data-pulse='on'] .nn-graph-node.current > rect:first-child {
     animation: none;
   }
   .dag-node {
@@ -11149,10 +11065,6 @@ button.proc-run.proc-run-unsent {
   }
 }
 @media (max-width: 640px) {
-  .exec-dag-view-native {
-    display: none;
-  }
-
   .exec-step-card {
     padding: 16px;
   }

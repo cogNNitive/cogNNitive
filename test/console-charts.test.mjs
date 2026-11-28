@@ -1,77 +1,23 @@
-// @jsdom — the console's chart entry points run on the vendored Chart.js build.
-import { describe, it, before } from 'node:test'
+// @jsdom — the console's chart entry points: renderChart draws a native Chart.js config,
+// renderGraph draws a diagram as SVG from the console's own spec.
+import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
-import { join } from 'node:path'
-import { JSDOM } from 'jsdom'
-import { consoleDir, nnConsole } from './helpers/console-boot.mjs'
+import { nnConsole } from './helpers/console-boot.mjs'
+import {
+  installChartLibrary,
+  uninstallChartLibrary,
+  clickChartCell,
+} from './helpers/console-chart.mjs'
 
 const require = createRequire(import.meta.url)
 const { SOURCES } = require('../scripts/lib/console-bundle.js')
 
-function mock2dContext(canvas) {
-  return {
-    fillRect: () => {},
-    clearRect: () => {},
-    getImageData: () => ({ data: [] }),
-    putImageData: () => {},
-    createPattern: () => {},
-    createLinearGradient: () => ({ addColorStop: () => {} }),
-    createRadialGradient: () => ({ addColorStop: () => {} }),
-    setTransform: () => {},
-    resetTransform: () => {},
-    drawImage: () => {},
-    save: () => {},
-    fillText: () => {},
-    restore: () => {},
-    beginPath: () => {},
-    moveTo: () => {},
-    lineTo: () => {},
-    closePath: () => {},
-    stroke: () => {},
-    translate: () => {},
-    scale: () => {},
-    rotate: () => {},
-    arc: () => {},
-    fill: () => {},
-    measureText: () => ({ width: 0 }),
-    transform: () => {},
-    rect: () => {},
-    clip: () => {},
-    setLineDash: () => {},
-    getLineDash: () => [],
-    canvas: canvas,
-  }
-}
-
 function freshHost() {
-  const dom = new JSDOM('<!doctype html><html><body><div id="host"></div></body></html>')
-  const origCreateElement = dom.window.document.createElement.bind(dom.window.document)
-  dom.window.document.createElement = function (tagName) {
-    const el = origCreateElement(tagName)
-    if (tagName.toLowerCase() === 'canvas') {
-      el.getContext = () => mock2dContext(el)
-    }
-    return el
-  }
-  global.window = dom.window
-  global.document = dom.window.document
-  dom.window.requestAnimationFrame = (cb) => setTimeout(cb, 0)
-  dom.window.cancelAnimationFrame = (id) => clearTimeout(id)
-  global.requestAnimationFrame = dom.window.requestAnimationFrame
-  global.cancelAnimationFrame = dom.window.cancelAnimationFrame
-  global.ResizeObserver = class {
-    observe() {}
-    disconnect() {}
-    unobserve() {}
-  }
-  global.MutationObserver =
-    dom.window.MutationObserver ||
-    class {
-      observe() {}
-      disconnect() {}
-    }
-  return dom.window.document.getElementById('host')
+  const dom = installChartLibrary()
+  const host = dom.window.document.createElement('div')
+  dom.window.document.body.appendChild(host)
+  return host
 }
 
 function withWarnings(fn) {
@@ -85,35 +31,14 @@ function withWarnings(fn) {
   }
 }
 
+const BARS = {
+  type: 'bar',
+  data: { labels: ['a', 'b'], datasets: [{ label: 'n', data: [1, 2] }] },
+}
+
 describe('console chart library', () => {
-  before(() => {
-    freshHost()
-    global.MutationObserver = class {
-      observe() {}
-      disconnect() {}
-    }
-    const chartPath = join(consoleDir, 'vendor', 'chart.umd.min.js')
-    global.Chart = require(chartPath)
-    require.cache['chart.js'] = {
-      id: 'chart.js',
-      filename: 'chart.js',
-      loaded: true,
-      exports: global.Chart,
-    }
-    require.cache['chart.js/helpers'] = {
-      id: 'chart.js/helpers',
-      filename: 'chart.js/helpers',
-      loaded: true,
-      exports: global.Chart.helpers,
-    }
-    const Module = require('node:module')
-    const origResolve = Module._resolveFilename
-    Module._resolveFilename = function (request, parent, isMain, options) {
-      if (request === 'chart.js' || request === 'chart.js/helpers') return request
-      return origResolve.call(this, request, parent, isMain, options)
-    }
-    global.ChartTreemap = require(join(consoleDir, 'vendor', 'chartjs-chart-treemap.min.js'))
-  })
+  before(() => installChartLibrary())
+  after(() => uninstallChartLibrary())
 
   it('bundles Chart.js and chartjs-chart-treemap and no longer bundles ECharts or uPlot', () => {
     const files = SOURCES.map(([file]) => file)
@@ -122,27 +47,27 @@ describe('console chart library', () => {
     assert.ok(!files.some((f) => /echarts|uplot/i.test(f)))
   })
 
-  it('renderChart draws an option into the host on a canvas', () => {
+  it('renderChart draws a Chart.js config into the host on a canvas', () => {
     const host = freshHost()
-    const chart = nnConsole.renderChart(
-      host,
-      {
-        xAxis: { type: 'category', data: ['a', 'b'] },
-        yAxis: { type: 'value' },
-        series: [{ type: 'bar', data: [1, 2] }],
-      },
-      { width: 400, height: 200 },
-    )
-    assert.ok(chart, 'returns the chart instance')
-    assert.ok(host.querySelector('canvas'), 'renders canvas into the host')
+    const chart = nnConsole.renderChart(host, structuredClone(BARS), { width: 400, height: 200 })
+    const canvas = host.querySelector('canvas')
+    assert.ok(canvas, 'renders canvas into the host')
+    assert.equal(chart.canvas, canvas, 'returns the Chart drawn on it')
+    assert.equal(chart.config.type, 'bar')
+    assert.equal(canvas.width, 400)
+    assert.equal(canvas.height, 200)
+    assert.equal(chart.data.datasets[0].backgroundColor, '#2563eb', 'the console palette')
   })
 
   it('renderChart draws a host that has no size yet (a hidden tab) at a fallback size', () => {
-    const chart = nnConsole.renderChart(freshHost(), {
-      series: [{ type: 'treemap', data: [{ name: 'a', value: 1 }] }],
+    const host = freshHost()
+    nnConsole.renderChart(host, {
+      type: 'treemap',
+      data: { datasets: [{ tree: [{ name: 'a', value: 1 }], key: 'value' }] },
     })
-    assert.equal(chart.getWidth(), 960)
-    assert.equal(chart.getHeight(), 400)
+    const canvas = host.querySelector('canvas')
+    assert.equal(canvas.width, 960)
+    assert.equal(canvas.height, 400)
   })
 
   it('renderChart on the same host replaces the chart and its resize observer', () => {
@@ -160,26 +85,76 @@ describe('console chart library', () => {
         this.connected = false
       }
     }
-    try {
-      const first = nnConsole.renderChart(host, { series: [] })
-      const second = nnConsole.renderChart(host, { series: [] })
-      assert.ok(first.isDisposed(), 'the previous chart is disposed')
-      assert.ok(!second.isDisposed(), 'the second chart is active')
-      assert.deepEqual(
-        observers.map((o) => o.connected),
-        [false, true],
-      )
-    } finally {
-      delete global.ResizeObserver
-    }
+    const first = nnConsole.renderChart(host, structuredClone(BARS))
+    const second = nnConsole.renderChart(host, structuredClone(BARS))
+    assert.equal(first.canvas, null, 'the previous chart is destroyed')
+    assert.equal(host.querySelectorAll('canvas').length, 1)
+    assert.equal(second.canvas, host.querySelector('canvas'), 'the second chart is the one drawn')
+    assert.deepEqual(
+      observers.map((o) => o.connected),
+      [false, true],
+    )
+  })
+
+  it('renderChart refuses a chart type the console does not draw, visibly, instead of drawing a line', () => {
+    const host = freshHost()
+    assert.throws(
+      () =>
+        nnConsole.renderChart(host, {
+          type: 'sankey',
+          data: { datasets: [{ data: [] }] },
+        }),
+      /chart type "sankey" is not available; this console draws .*bar.*treemap/,
+    )
+    assert.equal(host.querySelector('canvas'), null, 'nothing is drawn in its place')
+    const shown = host.querySelector('.nn-chart-error')
+    assert.ok(shown, 'the host says what went wrong')
+    assert.equal(shown.getAttribute('role'), 'alert')
+    assert.match(shown.textContent, /"sankey" is not available/)
+  })
+
+  it('renderChart refuses an ECharts option: it takes a Chart.js config only', () => {
+    const host = freshHost()
+    assert.throws(
+      () => nnConsole.renderChart(host, { series: [{ type: 'bar', data: [1] }] }),
+      /renderChart takes a Chart.js config \{ type, data, options \}/,
+    )
+    assert.ok(host.querySelector('.nn-chart-error'))
+  })
+
+  it('renderChart hands onPick the data item of the element clicked', () => {
+    const host = freshHost()
+    const picked = []
+    const chart = nnConsole.renderChart(
+      host,
+      {
+        type: 'treemap',
+        data: {
+          datasets: [
+            {
+              tree: [
+                { name: 'big', value: 3 },
+                { name: 'small', value: 1 },
+              ],
+              key: 'value',
+              groups: ['name'],
+            },
+          ],
+        },
+      },
+      { onPick: (item) => picked.push(item.name) },
+    )
+    clickChartCell(chart, (raw) => raw._data.name === 'small')
+    assert.deepEqual(picked, ['small'])
   })
 
   it('renderChart warns and returns null when the library is missing', () => {
+    const host = freshHost()
     const saved = global.Chart
     delete global.Chart
     try {
       const { result, warnings } = withWarnings(() =>
-        nnConsole.renderChart(freshHost(), { series: [] }),
+        nnConsole.renderChart(host, structuredClone(BARS)),
       )
       assert.equal(result, null)
       assert.ok(warnings.some((w) => /Chart library unavailable/.test(w)))
@@ -198,16 +173,14 @@ describe('console chart library', () => {
     const sections = host.querySelectorAll('section.nn-chart')
     assert.equal(sections.length, 1)
     assert.equal(sections[0].querySelector('h3.nn-chart-title').textContent, 'Revenue')
-    const canvasWrap = sections[0].querySelector('.nn-chart-canvas')
-    assert.ok(canvasWrap.querySelector('canvas'))
-    const option = global.Chart.getChart(canvasWrap.querySelector('canvas')).getOption()
-    assert.deepEqual(option.xAxis[0].data, ['2026-11', '2026-12', '2027-01'])
+    const canvas = sections[0].querySelector('.nn-chart-canvas canvas')
+    assert.ok(canvas)
+    const chart = global.Chart.getChart(canvas)
+    assert.equal(chart.config.type, 'line')
+    assert.deepEqual(chart.data.labels, ['2026-11', '2026-12', '2027-01'])
     assert.deepEqual(
-      option.series.map((s) => [s.type, s.name]),
-      [
-        ['line', 'Base'],
-        ['line', 'Optimistic'],
-      ],
+      chart.data.datasets.map((d) => d.label),
+      ['Base', 'Optimistic'],
     )
   })
 
@@ -218,5 +191,73 @@ describe('console chart library', () => {
     )
     assert.equal(host.querySelectorAll('section.nn-chart').length, 0)
     assert.ok(warnings.some((w) => /missing series for chart "gone"/.test(w)))
+  })
+})
+
+describe('console diagram (renderGraph)', () => {
+  before(() => installChartLibrary())
+
+  const SPEC = {
+    width: 400,
+    height: 300,
+    nodes: [
+      { id: 'a', x: 100, y: 100, width: 120, height: 40, title: 'Alpha', sub: 'task' },
+      { id: 'b', x: 300, y: 200, width: 120, height: 40, header: 'Beta', lines: ['x  text'] },
+    ],
+    edges: [{ source: 'a', target: 'b', dash: 'dashed', label: 'next' }],
+    marks: [{ kind: 'badge', x: 100, y: 73, text: 'HEAD' }],
+  }
+
+  it('draws every node, edge, label and mark as SVG, at the spec positions', () => {
+    const host = freshHost()
+    const svg = nnConsole.renderGraph(host, SPEC)
+    assert.equal(host.querySelector('svg'), svg)
+    assert.equal(svg.getAttribute('viewBox'), '0 0 400 300')
+    const a = svg.querySelector('g.nn-graph-node[data-node-id="a"] rect')
+    assert.deepEqual(
+      ['x', 'y', 'width', 'height'].map((k) => a.getAttribute(k)),
+      ['40', '80', '120', '40'],
+    )
+    assert.equal(svg.querySelector('[data-node-id="a"] .nn-graph-title').textContent, 'Alpha')
+    assert.equal(svg.querySelector('[data-node-id="b"] .nn-graph-header').textContent, 'Beta')
+    const edge = svg.querySelector('path.nn-graph-edge[data-source="a"][data-target="b"]')
+    assert.equal(edge.getAttribute('stroke-dasharray'), '5,5')
+    assert.equal(svg.querySelector('.nn-graph-edge-label').textContent, 'next')
+    assert.equal(svg.querySelector('.nn-graph-badge').textContent, 'HEAD')
+  })
+
+  it('places a circular layout around its centre node', () => {
+    const host = freshHost()
+    const svg = nnConsole.renderGraph(host, {
+      layout: 'circular',
+      width: 400,
+      height: 400,
+      nodes: [
+        { id: 'c', shape: 'circle', center: true, label: 'C' },
+        { id: 'n', shape: 'circle', label: 'N' },
+      ],
+    })
+    const centre = svg.querySelector('[data-node-id="c"] circle')
+    assert.deepEqual([centre.getAttribute('cx'), centre.getAttribute('cy')], ['200', '200'])
+    assert.ok(
+      Number(centre.getAttribute('r')) >
+        Number(svg.querySelector('[data-node-id="n"] circle').getAttribute('r')),
+    )
+  })
+
+  it('calls onPick with the spec node clicked, again after a redraw', () => {
+    const host = freshHost()
+    const picked = []
+    const onPick = (node) => picked.push(node.id)
+    nnConsole.renderGraph(host, SPEC, { onPick })
+    const click = (id) =>
+      host
+        .querySelector(`[data-node-id="${id}"]`)
+        .dispatchEvent(new host.ownerDocument.defaultView.Event('click'))
+    click('b')
+    nnConsole.renderGraph(host, SPEC, { onPick })
+    click('a')
+    assert.deepEqual(picked, ['b', 'a'])
+    assert.equal(host.querySelectorAll('svg').length, 1, 'a redraw replaces the drawing')
   })
 })

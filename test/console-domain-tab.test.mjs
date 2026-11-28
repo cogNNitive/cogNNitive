@@ -1,5 +1,5 @@
 // @jsdom — the Domain tab: the domaiNN at a glance for someone who does not know it.
-import { describe, it, afterEach } from 'node:test'
+import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { readFileSync } from 'node:fs'
@@ -86,10 +86,6 @@ function kpis(document) {
 }
 
 describe('Domain tab', () => {
-  afterEach(() => {
-    delete global.echarts
-  })
-
   it('is the first tab of the core band', () => {
     const { document } = boot()
     const tabs = [...document.querySelectorAll('.nn-view-tab')].map((b) => b.dataset.tab)

@@ -82,21 +82,23 @@ function composeConsoleBundle(parts, version) {
  *    https://github.com/developit/htm
  *    Licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
  *
- * 3. Apache ECharts 6.1.0 (Apache-2.0)
- *    Copyright 2017-2026 The Apache Software Foundation
- *    https://github.com/apache/echarts
- *    Licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
+ * 3. Chart.js 4.4.7 (MIT)
+ *    Copyright (c) 2014-2024 Chart.js Contributors
+ *    https://github.com/chartjs/Chart.js
  *
- *    Apache ECharts NOTICE:
- *    Apache ECharts
- *    Copyright 2017-2026 The Apache Software Foundation
- *    This product includes software developed at
- *    The Apache Software Foundation (https://www.apache.org/).
+ * 4. chartjs-chart-treemap 2.3.0 (MIT)
+ *    Copyright (c) 2020-2023 Jukka Kurkela
+ *    https://github.com/kurkle/chartjs-chart-treemap
  *
- *    Includes third-party code:
- *    - d3 (BSD-3-Clause, Copyright 2010-2016 Mike Bostock)
- *    - ZRender 6.1.0 (BSD-3-Clause, Copyright (c) 2017, Baidu Inc.)
- *    - tslib (0BSD, Copyright (c) Microsoft Corporation)
+ *    MIT permission notice for 3 and 4:
+ *    Permission is hereby granted, free of charge, to any person obtaining a copy
+ *    of this software and associated documentation files (the "Software"), to deal
+ *    in the Software without restriction, including without limitation the rights
+ *    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *    copies of the Software, and to permit persons to whom the Software is
+ *    furnished to do so, subject to the following conditions:
+ *    The above copyright notice and this permission notice shall be included in all
+ *    copies or substantial portions of the Software.
  *
  * Full third-party notices and license texts: THIRD_PARTY.md
  */

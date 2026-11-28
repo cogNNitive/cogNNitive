@@ -249,18 +249,23 @@ describe('procedure view (bluepriNNt)', () => {
     const handle = mount(payload(), context)
     assert.equal(handle.ok, true)
     assert.equal(handle.steps, 4, 'the container-less graph has four steps')
-    assert.deepEqual(texts('.dag-node .node-title'), ['Draft', 'Review', 'Publish', 'Rework'])
-    // A list has no edges: the fork shows as the two targets sharing a layer, and as the one
-    // decision node's own class. The step card below spells both branches out in words.
-    assert.equal(container.querySelectorAll('.dag-node.decision').length, 1)
+    assert.deepEqual(texts('.nn-graph-node .nn-graph-title'), [
+      'Draft',
+      'Review',
+      'Publish',
+      'Rework',
+    ])
+    // The fork shows as the two targets sharing a layer, and as the one decision node's own
+    // class. The step card below spells both branches out in words.
+    assert.equal(container.querySelectorAll('.nn-graph-node.decision').length, 1)
     const [publish, rework] = ['publish', 'rework'].map((s) =>
-      container.querySelector(`.dag-node[data-step="${s}"]`),
+      container.querySelector(`.nn-graph-node[data-step="${s}"]`),
     )
     assert.equal(publish.getAttribute('data-layer'), rework.getAttribute('data-layer'))
     assert.match(container.querySelector('.proc-run-state').textContent, /No run/)
     // The decision step lists each branch with its guard.
     container
-      .querySelector('.dag-node[data-step="review"]')
+      .querySelector('.nn-graph-node[data-step="review"]')
       .dispatchEvent(new doc.defaultView.Event('click'))
     const branches = texts('.exec-step-card .branch-outcome')
     assert.deepEqual(branches, ['Approve → Publish', 'Decline → Rework'])
@@ -326,7 +331,7 @@ describe('procedure view (bluepriNNt)', () => {
     const state = container.querySelector('.proc-run-state').textContent
     assert.match(state, /Path: Draft → Review → Publish/)
     const statusOf = (s) =>
-      container.querySelector(`.dag-node[data-step="${s}"]`).getAttribute('data-status')
+      container.querySelector(`.nn-graph-node[data-step="${s}"]`).getAttribute('data-status')
     assert.deepEqual(['draft', 'review', 'publish', 'rework'].map(statusOf), [
       'done',
       'done',
@@ -334,10 +339,10 @@ describe('procedure view (bluepriNNt)', () => {
       'off_path',
     ])
     assert.ok(
-      container.querySelector('.dag-node[data-step="publish"]').classList.contains('current'),
+      container.querySelector('.nn-graph-node[data-step="publish"]').classList.contains('current'),
     )
     container
-      .querySelector('.dag-node[data-step="review"]')
+      .querySelector('.nn-graph-node[data-step="review"]')
       .dispatchEvent(new doc.defaultView.Event('click'))
     assert.match(
       container.querySelector('.exec-step-card').textContent,
@@ -373,7 +378,7 @@ describe('procedure view (bluepriNNt)', () => {
   it('carries no hardcoded decision gate, fake CLI snippet or write controls', (context) => {
     mount(payload({ runs: [(g) => runOf('r1', g, APPROVED)] }), context)
     container
-      .querySelector('.dag-node[data-step="review"]')
+      .querySelector('.nn-graph-node[data-step="review"]')
       .dispatchEvent(new doc.defaultView.Event('click'))
     for (const selector of [
       '.exec-decision-box',
@@ -533,8 +538,7 @@ describe('procedure view (bluepriNNt)', () => {
       '.proc-run-next',
       '.proc-run-drift',
       '.proc-structure-summary',
-      '.dag-node.current',
-      '.dag-node.selected',
+      '.nn-graph-node.current',
     ].filter((sel) => !css.includes(sel))
     assert.deepEqual(missing, [], 'every class the panel builds has a rule')
   })

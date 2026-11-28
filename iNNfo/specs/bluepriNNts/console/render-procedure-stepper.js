@@ -1437,7 +1437,7 @@
       render()
     }
 
-    /** What the edge `slug -> t` looks like, shared by the chart and the native fallback. */
+    /** What the edge `slug -> t` looks like. */
     function edgeFacts(state, current, slug, t) {
       var graph = active.graph
       var tStatus = stepStatus(t)
@@ -1505,7 +1505,7 @@
       )
     }
 
-    // ---- Flow graph: the shared ECharts API, with the native svg as the fallback ----
+    // ---- Flow graph: drawn as SVG by the console's shared diagram API (renderGraph) ----
     var graphView = null
     var graphFocusSlug = null
     var refocusGraph = false
@@ -1516,15 +1516,6 @@
       if (!g) return
       g.disposed = true
       if (g.observer) g.observer.disconnect()
-      if (g.host && g.host.__nnChartObserver) {
-        g.host.__nnChartObserver.disconnect()
-        g.host.__nnChartObserver = null
-      }
-      try {
-        if (g.chart && typeof g.chart.dispose === 'function') g.chart.dispose()
-      } catch (e) {
-        /* already gone with its DOM */
-      }
     }
 
     function parseColor(text) {
@@ -1541,7 +1532,7 @@
       return rgb ? [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])] : null
     }
 
-    /** `a` over `b` at `t`: ECharts cannot read `color-mix()`, so tints are blended here. */
+    /** `a` over `b` at `t`: an SVG attribute cannot hold `color-mix()`, so tints are blended here. */
     function blend(a, b, t) {
       var ca = parseColor(a)
       var cb = parseColor(b)
@@ -1552,7 +1543,7 @@
       return 'rgb(' + mix.join(',') + ')'
     }
 
-    /** The console's own theme colours, resolved to something ECharts can draw. */
+    /** The console's own theme colours, resolved to values an SVG attribute takes. */
     function chartPalette(parent) {
       function resolve(token, fallback) {
         try {
@@ -1576,12 +1567,6 @@
         warning: resolve('--warning', '#d97706'),
         danger: resolve('--danger', '#dc2626'),
       }
-    }
-
-    function escapeHtml(text) {
-      return String(text).replace(/[&<>"']/g, function (c) {
-        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-      })
     }
 
     /** Nodes get as wide as the host allows, up to the native 200, down to a readable 84. */
@@ -1619,6 +1604,7 @@
         })
       })
       return {
+        width: widthPx,
         nodeW: nodeW,
         nodeH: nodeH,
         lines: lines,
@@ -1630,7 +1616,8 @@
       }
     }
 
-    function flowOption(lay, current, geo, pal, focusSlug, pulse) {
+    /** The flow as a renderGraph spec: boxes on rows and lanes, in px for the host's width. */
+    function flowSpec(lay, current, geo, pal, focusSlug) {
       var graph = active.graph
       var state = viewState()
       var w = geo.nodeW
@@ -1647,7 +1634,10 @@
       var tint = function (c) {
         return blend(c, pal.surface, 0.07)
       }
-      var data = Object.keys(graph.steps).map(function (slug) {
+      var px = function (slug) {
+        return { x: geo.pos[slug].x * geo.width, y: (geo.pos[slug].y + 0.5) * geo.rowH }
+      }
+      var nodes = Object.keys(graph.steps).map(function (slug) {
         var step = graph.steps[slug]
         var status = stepStatus(slug)
         var isCurrent = slug === current
@@ -1696,12 +1686,7 @@
         ]
           .filter(Boolean)
           .join(' · ')
-        // Rich text reads braces as markup: a step name must not carry any.
-        var clean = function (s) {
-          return String(s).replace(/[{}]/g, ' ')
-        }
         var inner = w - 16
-        // Rich-text truncation does not hold in every renderer: measure what fits instead.
         var subSize = geo.compact ? 9 : 10
         var titleSize = geo.compact ? 11 : 13
         // Upper-case bold text is wider per character than the title's mixed case.
@@ -1732,72 +1717,43 @@
           }
           return out.length ? out : ['']
         }
+        var p = px(slug)
         return {
           id: slug,
-          name: step.name || slug,
-          value: [geo.pos[slug].x, geo.pos[slug].y],
-          // 'roundRect' rounds by a fixed fraction of the box, which on these wide boxes
-          // made pills; a plain rectangle matches the metamodel boxes.
-          symbol: 'rect',
-          symbolSize: [w, h],
-          status: status,
-          current: isCurrent,
-          selected: isSelected,
-          focused: slug === focusSlug,
-          tooltipText:
-            escapeHtml(step.name || slug) +
-            '<br/>' +
-            escapeHtml(sub) +
-            (step.decision ? '<br/>' + escapeHtml(fillSlots(step.decision, values())) : ''),
-          label: {
-            show: true,
-            position: 'inside',
-            formatter:
-              wrap(clean(step.name || slug))
-                .map(function (line) {
-                  return '{title|' + line + '}'
-                })
-                .join('\n') +
-              '\n{sub|' +
-              cut(clean(sub), subSize, 0.6) +
-              '}',
-            rich: {
-              sub: {
-                width: inner,
-                align: 'left',
-                overflow: 'truncate',
-                ellipsis: '…',
-                fontSize: subSize,
-                lineHeight: 15,
-                color: isCurrent ? pal.primary : pal.muted,
-                fontWeight: 400,
-              },
-              title: {
-                width: inner,
-                align: 'left',
-                overflow: 'truncate',
-                ellipsis: '…',
-                fontSize: titleSize,
-                lineHeight: 18,
-                color: isCurrent ? pal.primary : pal.text,
-                fontWeight: isCurrent ? 600 : 500,
-              },
-            },
+          x: p.x,
+          y: p.y,
+          width: w,
+          height: h,
+          className:
+            status +
+            (step.stepType === 'decision' ? ' decision' : '') +
+            (isCurrent ? ' current' : '') +
+            (projected ? ' projected' : '') +
+            (isSelected ? ' selected' : '') +
+            (slug === focusSlug ? ' focused' : ''),
+          attrs: {
+            'data-step': slug,
+            'data-status': status,
+            'data-layer': String(geo.pos[slug].y),
           },
-          itemStyle: {
-            color: fill,
-            borderColor: border,
-            borderWidth: width,
-            borderType: type,
-            opacity: opacity,
-            shadowBlur: isSelected ? 8 : 0,
-            shadowColor: pal.primary,
-          },
+          title: wrap(step.name || slug),
+          sub: cut(sub, subSize, 0.6),
+          color: isCurrent ? pal.primary : pal.text,
+          subColor: isCurrent ? pal.primary : pal.muted,
+          tooltip:
+            (step.name || slug) +
+            '\n' +
+            sub +
+            (step.decision ? '\n' + fillSlots(step.decision, values()) : ''),
+          fill: fill,
+          stroke: border,
+          strokeWidth: width,
+          dash: type,
+          opacity: opacity,
+          ring: isSelected,
         }
       })
-      var links = []
-      var strokes = []
-      var half = h / 2 / geo.rowH
+      var edges = []
       Object.keys(graph.steps).forEach(function (slug) {
         graph.steps[slug].next.forEach(function (t) {
           if (!geo.pos[t]) return
@@ -1809,149 +1765,67 @@
           else if (f.status === 'active') color = pal.primary
           if (f.taken) color = f.projected ? pal.warning : pal.success
           var dashed = f.off || f.projected || f.status === 'waiting' || f.status === 'pending'
-          var stroke = {
-            color: color,
-            width: f.taken ? 2 : 1,
-            type: dashed ? 'dashed' : 'solid',
-            opacity: f.off ? 0.5 : 1,
-          }
+          var a = px(slug)
+          var b = px(t)
           // The visible line runs from the foot of one box to the head of the next.
-          // ECharts trims a graph edge by the node's average half-size, which swallows it
-          // when the boxes are wider than the rows are apart; so the graph's own links
-          // carry the data and the labels, and an overlay series draws the strokes.
-          strokes.push({
-            coords: [
-              [geo.pos[slug].x, geo.pos[slug].y + half],
-              [geo.pos[t].x, geo.pos[t].y - half],
-            ],
-            lineStyle: stroke,
-          })
-          links.push({
+          edges.push({
             source: slug,
             target: t,
-            lineStyle: { opacity: 0, curveness: 0 },
-            label: f.token
-              ? {
-                  show: true,
-                  formatter: f.token.length > 24 ? f.token.substring(0, 22) + '…' : f.token,
-                  color: f.taken ? pal.success : pal.muted,
-                  fontSize: 11,
-                  fontWeight: 500,
-                  backgroundColor: pal.surface,
-                  padding: [1, 4],
-                  position: 'middle',
-                }
-              : { show: false },
+            from: [a.x, a.y + h / 2],
+            to: [b.x, b.y - h / 2],
+            color: color,
+            width: f.taken ? 2 : 1,
+            dash: dashed ? 'dashed' : 'solid',
+            opacity: f.off ? 0.5 : 1,
+            label: f.token ? (f.token.length > 24 ? f.token.substring(0, 22) + '…' : f.token) : '',
+            labelColor: f.taken ? pal.success : pal.muted,
+            labelBackground: pal.surface,
           })
         })
       })
-      var at = function (slug) {
-        return [geo.pos[slug].x, geo.pos[slug].y]
-      }
-      var series = [
-        {
-          type: 'lines',
-          coordinateSystem: 'cartesian2d',
-          silent: true,
-          z: 2,
-          symbol: ['none', 'arrow'],
-          symbolSize: 8,
-          data: strokes,
-        },
-        {
-          type: 'graph',
-          coordinateSystem: 'cartesian2d',
-          layout: 'none',
-          roam: false,
-          z: 3,
-          cursor: 'pointer',
-          data: data,
-          links: links,
-          emphasis: { focus: 'none', scale: false },
-        },
-      ]
-      if (pulse && current && geo.pos[current]) {
-        series.push({
-          type: 'effectScatter',
-          coordinateSystem: 'cartesian2d',
-          silent: true,
-          z: 1,
-          symbol: 'rect',
-          symbolSize: [w, h],
-          showEffectOn: 'render',
-          rippleEffect: { period: 3, scale: 1.2, brushType: 'stroke', color: pal.primary },
-          itemStyle: { color: 'rgba(0,0,0,0)', borderColor: pal.primary, borderWidth: 0 },
-          data: [{ id: current, value: at(current) }],
-        })
-      }
+      var marks = []
       if (focusSlug && geo.pos[focusSlug]) {
-        series.push({
-          type: 'scatter',
-          coordinateSystem: 'cartesian2d',
-          silent: true,
-          z: 4,
-          symbol: 'rect',
-          symbolSize: [w + 12, h + 12],
-          itemStyle: { color: 'rgba(0,0,0,0)', borderColor: pal.text, borderWidth: 2 },
-          data: [{ id: focusSlug, value: at(focusSlug) }],
+        var fp = px(focusSlug)
+        marks.push({
+          kind: 'ring',
+          x: fp.x,
+          y: fp.y,
+          width: w + 12,
+          height: h + 12,
+          color: pal.text,
+          strokeWidth: 2,
         })
       }
       // The run's cursor, the way Git draws HEAD: a ref on the step it points at, not a colour
-      // the reader has to decode. The pulse stays; this is the label that says which one it is.
+      // the reader has to decode. The pulse (CSS, on the current box) stays; this is the label
+      // that says which one it is.
       if (current && geo.pos[current]) {
-        series.push({
-          type: 'scatter',
-          coordinateSystem: 'cartesian2d',
-          silent: true,
-          z: 5,
-          symbol: 'roundRect',
-          symbolSize: [38, 13],
-          symbolOffset: [0, -(h / 2 + 7)],
-          itemStyle: { color: pal.primary, borderColor: pal.primary, borderWidth: 0 },
-          label: {
-            show: true,
-            formatter: 'HEAD',
-            position: 'inside',
-            color: pal.surface,
-            fontSize: 8,
-            fontWeight: 700,
-          },
-          data: [{ id: 'head', value: at(current) }],
+        var cp = px(current)
+        marks.push({
+          kind: 'badge',
+          x: cp.x,
+          y: cp.y - (h / 2 + 7),
+          width: 38,
+          height: 13,
+          color: pal.primary,
+          textColor: pal.surface,
+          text: 'HEAD',
         })
       }
-      return {
-        animation: false,
-        backgroundColor: pal.surface,
-        grid: { left: 0, right: 0, top: 0, bottom: 0 },
-        xAxis: { type: 'value', min: 0, max: 1, show: false },
-        yAxis: { type: 'value', min: -0.5, max: geo.rows - 0.5, inverse: true, show: false },
-        tooltip: {
-          trigger: 'item',
-          confine: true,
-          formatter: function (p) {
-            return p && p.data && p.data.tooltipText ? p.data.tooltipText : ''
-          },
-        },
-        series: series,
-      }
+      return { width: geo.width, height: geo.height, nodes: nodes, edges: edges, marks: marks }
     }
 
     function reducedMotion() {
       return !!(host.matchMedia && host.matchMedia('(prefers-reduced-motion: reduce)').matches)
     }
 
-    /** One rule for both renderers: the current step pulses, whatever its status, unless motion is reduced. */
+    /** The current step pulses, whatever its status, unless motion is reduced. */
     function pulseOf(current) {
       return reducedMotion() || !current ? 'off' : 'on'
     }
 
-    /**
-     * Draws the flow through the console's shared chart API (`renderChart`). Returns false
-     * when there is none (no ECharts in this page), so the caller draws the native svg.
-     */
-    function drawChartGraph(view, lay, current) {
-      var rt = runtime
-      if (!rt || typeof rt.renderChart !== 'function') return false
+    /** Draws the flow through the console's shared diagram API (`renderGraph`), as SVG. */
+    function drawFlow(view, lay, current) {
       var graph = active.graph
       var wrap = make('div', 'dag-graph')
       wrap.setAttribute('data-proc-graph', '')
@@ -1967,7 +1841,6 @@
       wrap.appendChild(live)
       view.appendChild(wrap)
 
-      var reduced = reducedMotion()
       wrap.setAttribute('data-pulse', pulseOf(current))
       var pal = chartPalette(view)
       var widthOf = function () {
@@ -1981,29 +1854,24 @@
       var focusSlug = function () {
         return graph.steps[graphFocusSlug] ? graphFocusSlug : firstStep()
       }
-      var option = function () {
-        return flowOption(lay, current, geo, pal, hasFocus ? focusSlug() : null, !reduced)
+      var pick = {
+        onPick: function (node) {
+          graphFocusSlug = node.id
+          selectStep(node.id)
+        },
       }
-      chartHost.style.height = geo.height + 'px'
-      var chart = rt.renderChart(chartHost, option())
-      if (!chart) {
-        view.removeChild(wrap)
-        return false
-      }
-      var g = { chart: chart, host: chartHost, observer: null, disposed: false }
+      var g = { host: chartHost, observer: null, disposed: false }
       graphView = g
       var redraw = function () {
-        if (g.disposed || (chart.isDisposed && chart.isDisposed())) return
-        chart.setOption(option(), true)
+        if (g.disposed) return
+        runtime.renderGraph(
+          chartHost,
+          flowSpec(lay, current, geo, pal, hasFocus ? focusSlug() : null),
+          pick,
+        )
       }
-      if (typeof chart.on === 'function') {
-        chart.on('click', function (params) {
-          if (params && params.dataType === 'node' && params.data && params.data.id) {
-            graphFocusSlug = params.data.id
-            selectStep(params.data.id)
-          }
-        })
-      }
+      chartHost.style.height = geo.height + 'px'
+      redraw()
 
       // The focus ring is painted inside the chart, so the browser cannot scroll it into view:
       // keep the focused step's row inside the flow box (`.exec-dag-view` scrolls at 580 px).
@@ -2082,7 +1950,6 @@
           geo = flowGeometry(lay, now, active.graph.steps)
           chartHost.style.height = geo.height + 'px'
           redraw()
-          if (chart.resize) chart.resize({ width: 'auto', height: 'auto' })
         })
         g.observer.observe(chartHost)
       }
@@ -2090,80 +1957,6 @@
         refocusGraph = false
         if (wrap.focus) wrap.focus()
       }
-      return true
-    }
-
-    /** The hand-drawn svg: what draws the flow when the page has no ECharts. */
-    /**
-     * The graph without a chart runtime: the same walk as a list of buttons. It used to be a
-     * hand-drawn svg, which meant a second layout engine, a second truncation rule and a second
-     * place for the node contract to drift. The list carries the same contract the svg did --
-     * `.dag-node`, data-step, data-status, data-layer, current/selected, role=button,
-     * Enter/Space -- so the view behaves the same either way, and the step name is never cut.
-     */
-    function buildNativeGraph(lay, current) {
-      var graph = active.graph
-      var state = viewState()
-      var box = document.createElement('div')
-      box.setAttribute('class', 'dag-canvas dag-list')
-      box.setAttribute('data-proc-graph', '')
-      box.setAttribute('data-pulse', pulseOf(current))
-      box.setAttribute('role', 'group')
-      box.setAttribute('aria-label', graphSummary(state, current))
-      lay.rows.forEach(function (row, layer) {
-        var rowEl = document.createElement('div')
-        rowEl.setAttribute('class', 'dag-layer')
-        row.forEach(function (slug) {
-          var step = graph.steps[slug]
-          var status = stepStatus(slug)
-          var node = document.createElement('button')
-          node.setAttribute('type', 'button')
-          node.setAttribute(
-            'class',
-            'dag-node ' +
-              status +
-              (step.stepType === 'decision' ? ' decision' : '') +
-              (slug === current ? ' current' : '') +
-              (isProjected(slug) ? ' projected' : '') +
-              (slug === selectedStep ? ' selected' : ''),
-          )
-          node.setAttribute('data-step', slug)
-          node.setAttribute('data-status', status)
-          node.setAttribute('data-layer', String(layer))
-          node.setAttribute('aria-label', announceStep(slug))
-          node.addEventListener('click', function () {
-            selectStep(slug)
-          })
-          // jsdom does not turn Enter on a button into a click, so the key is handled here
-          // exactly as it was for the svg.
-          node.addEventListener('keydown', function (ev) {
-            if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
-              if (ev.preventDefault) ev.preventDefault()
-              selectStep(slug)
-            }
-          })
-          var dot = document.createElement('span')
-          dot.setAttribute('class', 'node-dot')
-          node.appendChild(dot)
-          var text = document.createElement('span')
-          text.setAttribute('class', 'node-text')
-          var sub = document.createElement('span')
-          sub.setAttribute('class', 'node-sub')
-          sub.textContent =
-            (step.stepType || 'task').toUpperCase() +
-            (step.executor ? ' · ' + step.executor : '') +
-            (status !== 'definition' ? ' · ' + status : '')
-          var title = document.createElement('span')
-          title.setAttribute('class', 'node-title')
-          title.textContent = step.name || slug
-          text.appendChild(sub)
-          text.appendChild(title)
-          node.appendChild(text)
-          rowEl.appendChild(node)
-        })
-        box.appendChild(rowEl)
-      })
-      return box
     }
 
     /**
@@ -2224,12 +2017,8 @@
       col.appendChild(hint)
       // Attached before the chart is drawn, so the chart measures the width it really has.
       hostEl.appendChild(col)
-      if (!drawChartGraph(view, lay, current)) {
-        view.className += ' exec-dag-view-native'
-        view.appendChild(buildNativeGraph(lay, current))
-      } else {
-        col.insertBefore(flowLegend(), hint)
-      }
+      drawFlow(view, lay, current)
+      col.insertBefore(flowLegend(), hint)
     }
 
     // ---- Step card ----

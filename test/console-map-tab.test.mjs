@@ -6,7 +6,12 @@ import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { JSDOM } from 'jsdom'
 import { bootConsole, consoleDir } from './helpers/console-boot.mjs'
-import { installChartLibrary, uninstallChartLibrary } from './helpers/console-chart.mjs'
+import {
+  installChartLibrary,
+  uninstallChartLibrary,
+  mockCanvas,
+  clickChartCell,
+} from './helpers/console-chart.mjs'
 
 const require = createRequire(import.meta.url)
 
@@ -56,12 +61,22 @@ const MODEL = {
   matrices: [],
 }
 
-function boot() {
-  return bootConsole({ model: MODEL, schema: SCHEMA })
+function boot(model = MODEL) {
+  return bootConsole({ model, schema: SCHEMA, before: mockCanvas })
 }
 
-function withECharts() {
+function withCharts() {
   installChartLibrary()
+}
+
+/** The treemap the Map tab drew (the real Chart.js instance on its canvas). */
+function treemapOf(document) {
+  const canvas = document.querySelector('#nn-tab-map .nn-map-tree canvas')
+  return global.Chart.getChart(canvas)
+}
+
+function crumbs(document) {
+  return [...document.querySelectorAll('#nn-tab-map .nn-map-crumb')].map((c) => c.textContent)
 }
 
 function words(document) {
@@ -86,22 +101,46 @@ describe('Map tab', () => {
   })
 
   it('draws the domaiNN as nested boxes: models, then concepts, then elements', () => {
-    withECharts()
+    withCharts()
     const { document } = boot()
-    const host = document.querySelector('#nn-tab-map .nn-map-tree')
-    const data = global.echarts.getInstanceByDom(host).getOption().series[0].data
+    const chart = treemapOf(document)
+    assert.equal(chart.config.type, 'treemap')
+    const dataset = chart.data.datasets[0]
+    assert.deepEqual(dataset.groups, ['l0', 'l1'])
     assert.deepEqual(
-      data.map((m) => [m.name, m.children.map((c) => [c.name, c.value, c.children.length])]),
+      dataset.tree.map((r) => [r.l0, r.l1, r.name, r.elementId]),
       [
-        [
-          'CRM · business',
-          [
-            ['Client', 2, 2],
-            ['Deal', 2, 2],
-          ],
-        ],
-        ['KPIs · metrics', [['Metric', 1, 1]]],
+        ['CRM · business', 'Client', 'Acme', 'crm@acme'],
+        ['CRM · business', 'Client', 'Globex', 'crm@globex'],
+        ['CRM · business', 'Deal', 'Big deal', 'crm@d1'],
+        ['CRM · business', 'Deal', 'Small deal', 'crm@d2'],
+        ['KPIs · metrics', 'Metric', 'Win rate', 'kpi@win'],
       ],
+    )
+  })
+
+  it('dives into the model whose box is clicked, matching its name exactly', () => {
+    withCharts()
+    // "CRM" is the start of "CRM Archive": a prefix match opened the wrong model.
+    const model = structuredClone(MODEL)
+    model.meta.models.splice(1, 0, { id: 'arch', title: 'CRM Archive', blueprint: 'business' })
+    model.elements.push({
+      id: 'arch@old',
+      modelId: 'arch',
+      concept: 'Client',
+      name: 'Old',
+      fields: {},
+    })
+    const { document } = boot(model)
+    clickChartCell(
+      treemapOf(document),
+      (raw) => raw.l === 0 && raw._data.l0 === 'CRM Archive · business',
+    )
+    assert.deepEqual(crumbs(document), ['🏠 Sales Domain', 'CRM Archive'])
+    assert.deepEqual(
+      treemapOf(document).data.datasets[0].tree.map((r) => r.elementId),
+      ['arch@old'],
+      'the map now holds that model only',
     )
   })
 
@@ -145,26 +184,37 @@ describe('Map tab', () => {
   })
 
   it('draws the neighbourhood with the element in the middle and labelled links', () => {
-    withECharts()
     const { document } = boot()
-    const host = document.querySelector('#nn-tab-map .nn-map-ego')
-    const series = global.echarts.getInstanceByDom(host).getOption().series[0]
-    assert.deepEqual(
-      series.data.map((n) => n.id),
-      ['crm@d1', 'crm@acme', 'crm@globex', 'kpi@win'],
+    const svg = document.querySelector('#nn-tab-map .nn-map-ego svg')
+    const ids = [...svg.querySelectorAll('.nn-graph-node')].map((g) =>
+      g.getAttribute('data-node-id'),
     )
-    assert.ok(
-      series.data[0].symbolSize > series.data[1].symbolSize,
-      'the centre is the biggest node',
-    )
+    assert.deepEqual(ids, ['crm@d1', 'crm@acme', 'crm@globex', 'kpi@win'])
+    const r = (id) => Number(svg.querySelector(`[data-node-id="${id}"] circle`).getAttribute('r'))
+    assert.ok(r('crm@d1') > r('crm@acme'), 'the centre is the biggest node')
     assert.deepEqual(
-      series.links.map((l) => [l.source, l.target, l.label.formatter]),
+      [...svg.querySelectorAll('path.nn-graph-edge')].map((p) => [
+        p.getAttribute('data-source'),
+        p.getAttribute('data-target'),
+      ]),
       [
-        ['crm@d1', 'crm@acme', 'client'],
-        ['crm@d1', 'crm@globex', 'partner'],
-        ['kpi@win', 'crm@d1', 'deal'],
+        ['crm@d1', 'crm@acme'],
+        ['crm@d1', 'crm@globex'],
+        ['kpi@win', 'crm@d1'],
       ],
     )
+    assert.deepEqual(
+      [...svg.querySelectorAll('.nn-graph-edge-label')].map((l) => l.textContent),
+      ['client', 'partner', 'deal'],
+    )
+  })
+
+  it('recentres on a neighbour clicked in the drawing', () => {
+    const { document } = boot()
+    document
+      .querySelector('#nn-tab-map .nn-map-ego [data-node-id="crm@acme"]')
+      .dispatchEvent(new document.defaultView.Event('click'))
+    assert.equal(document.querySelector('#nn-tab-map select.nn-map-pick').value, 'crm@acme')
   })
 
   it('is absent when the console has no elements', () => {

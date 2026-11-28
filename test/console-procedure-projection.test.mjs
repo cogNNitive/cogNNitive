@@ -172,7 +172,7 @@ describe('procedure view projects a run from its pending drafts', () => {
 
   it('renders the recorded state and claims no pending request', () => {
     mount()
-    const review = container.querySelector('.dag-node[data-step="review"]')
+    const review = container.querySelector('.nn-graph-node[data-step="review"]')
     assert.equal(review.getAttribute('data-status'), 'active')
     assert.equal(container.querySelector('.proc-request'), null, 'no request box on a clean step')
     assert.equal(container.querySelector('.proc-run-requests'), null, 'and an empty queue')
@@ -226,7 +226,7 @@ describe('procedure view projects a run from its pending drafts', () => {
       },
     })
     container
-      .querySelector('.dag-node[data-step="review"]')
+      .querySelector('.nn-graph-node[data-step="review"]')
       .dispatchEvent(new doc.defaultView.Event('click'))
     const box = container.querySelector('[data-proc-request="review"]')
     assert.ok(box, 'the card carries the request')
