@@ -350,7 +350,42 @@ function regenOutputs({ hasPending, branch }) {
   }
 }
 
+/**
+ * The GitHub App identity that authors a pull request opened with the workflow token.
+ */
+const AUTOMATION_AUTHOR = 'app/github-actions'
+
+/**
+ * Why a write-back pull request with this author can never land, or `null` when it can.
+ *
+ * A pull request opened with `GITHUB_TOKEN` is authored by `app/github-actions`. GitHub holds
+ * that author's `pull_request` run for approval, so the five checks the `main` ruleset requires
+ * never report, the merge is refused by the ruleset, and `auto-tag` waits behind a pull request
+ * nobody can land — while the `regen` job itself finishes green. The lane therefore reads the
+ * author it actually got instead of trusting the credential that opened it.
+ *
+ * @param {string|null} login the pull request author's login, or null when it could not be read
+ * @returns {string|null} a refusal naming the fix, or null when the pull request can land
+ */
+function writeBackAuthorRefusal(login) {
+  if (typeof login !== 'string' || login === '') {
+    return (
+      'the write-back pull request has no resolvable author, so the checks it needs cannot be ' +
+      'proven to run; refusing to report a pending write-back that may be unmergeable'
+    )
+  }
+  if (login === AUTOMATION_AUTHOR || login.endsWith('[bot]')) {
+    return (
+      `the write-back pull request is authored by ${login}, whose pull_request run GitHub holds ` +
+      'for approval: the required checks never report and the ruleset refuses the merge. Open it ' +
+      'with a maintainer token (REGEN_PR_TOKEN) that has contents:write and pull-requests:write.'
+    )
+  }
+  return null
+}
+
 module.exports = {
+  AUTOMATION_AUTHOR,
   WRITE_BACK_SUBJECT,
   WRITE_BACK_BRANCH,
   WRITE_BACK_BASE,
@@ -364,4 +399,5 @@ module.exports = {
   remoteBranchSha,
   syncToRemoteBranch,
   writeBack,
+  writeBackAuthorRefusal,
 }

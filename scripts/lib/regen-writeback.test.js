@@ -36,6 +36,7 @@ const {
   regenOutputs,
   remoteBranchSha,
   writeBack,
+  writeBackAuthorRefusal,
 } = require('./regen-writeback.js')
 
 const repoRoot = path.resolve(__dirname, '..', '..')
@@ -343,6 +344,21 @@ test('hasPendingChange sees a new untracked artifact', () => {
   assert.equal(hasPendingChange(rig.writer), true)
 })
 
+test('a write-back pull request authored by the automation is refused, naming the credential', () => {
+  // A pull request opened with GITHUB_TOKEN is authored by app/github-actions; GitHub holds its
+  // pull_request run for approval, so the five required checks never report and the ruleset
+  // refuses the merge. The lane has to say so instead of reporting pending as progress.
+  assert.match(String(writeBackAuthorRefusal('app/github-actions')), /REGEN_PR_TOKEN/)
+  assert.match(String(writeBackAuthorRefusal('dependabot[bot]')), /REGEN_PR_TOKEN/)
+  assert.equal(writeBackAuthorRefusal('lucas'), null)
+})
+
+test('an unreadable author is refused instead of assumed mergeable', () => {
+  assert.match(String(writeBackAuthorRefusal(null)), /no resolvable author/)
+  assert.match(String(writeBackAuthorRefusal('')), /no resolvable author/)
+  assert.match(String(writeBackAuthorRefusal(undefined)), /no resolvable author/)
+})
+
 test('the workflow wires the lane: pending gates auto-tag, and nothing pushes to main', () => {
   const workflow = fs.readFileSync(path.join(repoRoot, '.github', 'workflows', 'ci.yml'), 'utf8')
 
@@ -359,6 +375,24 @@ test('the workflow wires the lane: pending gates auto-tag, and nothing pushes to
   )
   // Opening and listing the write-back pull request needs the pull-requests permission.
   assert.match(workflow, /pull-requests: write/, 'regen must be allowed to open its pull request')
+  // The pull request must be opened by a maintainer identity. Opened with GITHUB_TOKEN it is
+  // authored by app/github-actions, GitHub holds its run for approval, the required checks never
+  // report and the ruleset refuses the merge — the release then stalls behind it, silently.
+  assert.match(
+    workflow,
+    /GH_TOKEN: \$\{\{ secrets\.REGEN_PR_TOKEN \}\}/,
+    'the write-back must be opened with the maintainer token',
+  )
+  assert.doesNotMatch(
+    workflow,
+    /GH_TOKEN: \$\{\{ secrets\.GITHUB_TOKEN \}\}/,
+    'GITHUB_TOKEN authors the write-back as app/github-actions, which is never checked',
+  )
+  assert.match(
+    workflow,
+    /REGEN_PR_TOKEN is not set/,
+    'the lane must fail loudly when the maintainer token is missing',
+  )
   // The tag must wait for the write-back: `auto-tag` reads exactly the value `regenOutputs` sets.
   assert.match(
     workflow,

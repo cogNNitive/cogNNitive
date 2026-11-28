@@ -1,0 +1,60 @@
+# Procedures scope — single owner
+
+Objective: every piece of work on procedures (blueprint `procedures`, `Work`/`Procedure` model, runner, stepper, slots) is owned and coordinated by thread `mcp:037c152d` ("Consolidación: ámbito procedimientos").
+Branch: `t3/procedure-workflow-investigation`. Delivery: `ask-on-risk`. Merge is the maintainer's.
+
+## Specs
+
+- S1 — Step Body Prose lands on `main` (PR #982, edits only `iNNfo/specs/bluepriNNts/procedures/spec_NN.md`).
+- S2 — Research: can `next` alone express tree membership, removing `parent`? Real workflow projects (Temporal, Airflow, Argo, Prefect, BPMN, LittleHorse, GitHub Actions, others): who does it, how, what they lose, robust or only cheap. Primary sources with URLs.
+- S3 — DECIDED (L6, L7, L9, L10, L11). Change `procedure-document-structure`: one `Procedure` header per document with `Work` nested under it (Level 1 parentage); `parent::`, `procedure_model`, `executed_by` and the `tool` executor aliases removed; `executor` = how a step runs, work-roles RACI by slug = who answers; a Procedure without Work is declared (`PROCEDURE_NOT_IMPLEMENTED`); skill-backed procedure = one agent step whose `tool` is the skill; multi-Procedure and multi-root documents split; catalog derived. Delta: `openspec/changes/procedure-document-structure/`.
+- S4 — DECIDED (L8). Change `procedure-call`: one `call::` field on `Work`, target a document (fixed) or `{slot}` (scope-filled); rewrites PR #966 so the slot feeds `call::`; keep the whole-domaiNN-export tradeoff and the `resolveProcedures` seam.
+- S5 — `short_name` + canonical phrase delta. `performed by` = `executor`, plus the RACI Responsible role when present (assumption, to confirm in review). Blocked by S1 and S3 landing.
+- S6 — Procedure artifact path containment (issue #980, fixed by PR #972). Coordinated here; PR stays with its author thread.
+- S7 — Procedure graph pointer-click defect in the console, to verify with Playwright after PR #975 lands.
+- S8 — Inherited (fedd0b37): bring every shipped procedure body in line with the Step Body Prose defaults of #982 (e.g. `create_series` opens in third person and repeats its own `produces::`). Done inside the S3 migration, which rewrites all 33 documents anyway.
+- S9 — Inherited (fedd0b37, L-maintainer 2026-11-28): `short_name` is REQUIRED with no fallback chain ("Esto sería un fallback, una retrocompatibilidad que ya te he dicho mil veces que no me importa. Prefiero hacerlo bien y si hay que migrar procedimientos, se migran"); every procedure is migrated. Part of S5.
+- S10 — Inherited (fedd0b37): after #982 merges, follow its release: the `regen` write-back PR arrives without checks and needs an empty `ci:` commit to trigger them; then tag/publish.
+- S11 — Inherited (b005800b): the stepper keys the work-roles matrix by Work **name** (`render-procedure-stepper.js:2770`) and prints `No catalog entry linked.` for 31/33 documents; both fixed by S3 (RACI by slug, derived catalog). The executor default lives in four places; S3 leaves one.
+- S12 — Inherited (571c484d, unwritten decision): the console's `#nn-procedure-core` slot is emitted as an executable `<script type="text/javascript">` with its SHA-256 in the CSP and assigns `window.__nnFoldModule` explicitly, so the browser projection never needs `unsafe-eval`. Not documented anywhere in the repo (grep on main: 0 docs). Write it into the console docs.
+- S13 — Inherited (cde8502b): close issue #980 when #972 merges; the maintainer's global blueprint store is stale (`hydrate_blueprint` installed procedures 0.6.1 / executions 0.7.2 while main has V_0-7-0) and needs a refresh; the test domains `artifacts-test` and `artifacts-test-2` it left behind are scratch.
+- S14 — Inherited (f134de36): after #975 lands, verify with the Playwright harness the pointer click on the procedure graph (the treemap `ownerDocument` error is console, not procedures, and stays with #975).
+- S15 — Inherited (f9422ca6): D11 (merge `procedures` + `executions`) stays deferred; its hard blocker is unchanged (procedures pins iNNfo_V_0-6-0, executions needs V_0-9-0 for `transitions::`). Revisit only after S3 lands.
+- S16 — Worktree hygiene: `session-artifacts-probe` removed (clean, 0 own commits); `t3-b5958a5e` clean but locked (Permission denied), retry later; `cogNNitive-procedure-graph-lanes` holds redundant commit `83ba0c3ca` (verified by f134de36: content already on main via #967), kept until explicitly discarded; `cogNNitive-procedure-prose-defaults` (#982) and `cogNNitive-subprocedure-nav` (#966) stay until their PRs close.
+
+## Tasks
+
+| ID | Spec | Route | Status | Evidence |
+|---|---|---|---|---|
+| T1 | S1 | merged (authorized L12) | done | #982 -> 390796d5f |
+| T2 | S2 | delegated research (read-only) | done | L5 |
+| T3 | S3 | inline, heavy lane | delta written, migration pending | `check:openspec` OK |
+| T4 | S4 | inline, heavy lane | pending (after T3 delta) | #966 to rewrite |
+| T5 | S5 | inline | blocked by T1, T3 | — |
+| T6 | S6 | coordinated (61a13990) | in review | #972 MERGEABLE |
+| T7 | S7 | inline | blocked by #975 | — |
+| T8 | S8 | inside T3 migration | pending | — |
+| T9 | S9 | inside T5 | pending | — |
+| T10 | S10 | inline | blocked by T1 | — |
+| T11 | S11 | inside T3 | pending | — |
+| T12 | S12 | inline docs | done | nn-console-kit Rule E |
+| T13 | S13 | inline | partly blocked by #972 | — |
+| T14 | S14 | inline | blocked by #975 | — |
+| T15 | S15 | parked | deferred | — |
+| T16 | S16 | inline | partial | probe removed |
+
+## Log
+
+- L1 (2026-11-28, maintainer): "Quiero que todo lo que tenga que ver con procedimientos esté únicamente en esta conversación, registrado y actuando de forma coordinada."
+- L2: PR #828 is MERGED (2026-11-23), not open; #830 merged too. Runner thread 571c484d has nothing pending.
+- L3: Absorbed and settled: fedd0b37, bc4351b5, mcp:b005800b, 571c484d, mcp:cde8502b, f134de36. Partial: 61a13990 (#972), b86befc4 (#984/#985 procedure files), f9422ca6 (D11 procedures+executions merge, deferred).
+- L5 (S2 result): no mainstream system infers membership from transition edges. BPMN 2.0.2 separates `FlowElementsContainer.flowElements` from Sequence Flow; "no incoming flow = start" applies only inside the containing (Sub-)Process (§13.3), Sub-Processes exist for scope (§10.3.5), "Sequence Flows cannot cross the boundary of a Sub-Process" (§7.3.2). Step Functions forbids `Next` across a Parallel branch. Airflow keeps TaskGroup explicit; SubDAG removed in Airflow 3. Argo/Dagster/CWL/GitHub `needs` use edges for order only, inside a declared container. LittleHorse: `ThreadSpec.nodes` is membership, `outgoing_edges` is order. Failure modes of next-inferred containment: start node, fan-out siblings nested too deep, joins giving two parents, back-edges making containment cyclic, scope (retries, errors, artifacts) moving when steps are reordered. Mainstream reuse = document is the container + call another document (BPMN Call Activity, GitHub `workflow_call`, CWL `run:`, Argo templates, Kestra Subflow, n8n, Temporal/Prefect child flows). Verdict: transitions-only is cheap, not robust.
+- L6 (2026-11-28, maintainer, grill Q1 actor): on `executed_by`: "Esto suena más a que debería registrarse en las ejecuciones de un work o de un procedimiento que en la definición del procedimiento, ¿no crees? Es decir, una instancia de un procedimiento o una ejecución debe registrar en los pasos quién lo ha llevado a cabo". On the proposal: "Teniendo en cuenta lo que he comentado antes sobre \"executed by\", me parece correcto". Decision: `executor` = how a step runs (human/agent/engine, one default); work-roles RACI keyed by slug = who is answerable; `executed_by` removed from the definition; `tool` -> executor aliases removed. Verified on main: the run already records who performed each attempt as the changeset `author` + `authorKind` (`procedure-record.ts:66-80`), folded into `AttemptRecord.actor` (`types.ts:168-173`); it is caller-supplied free text defaulting to `agent`, and nothing checks it against `executor` or RACI (gap, not new scope).
+- L7 (2026-11-28, maintainer, grill Q2 parent): "Entonces enfoquémoslo así, que además tendrá la ventaja de que la gente estará más acostumbrada y conocerá esta forma y esta estructura conceptual, y le costará entender una basada solo en Next"; on "¿`parent` se borra porque el contenedor es el documento?": "Parece que esto sería la decisión más adecuada". Decision: the document is the container (one document = one procedure), `next` orders only, `parent::` is removed; a sub-procedure is another document that is called. Consequence: multi-parent "participation" dissolves (reuse = calling the same document from several procedures); the 2 multi-root documents are split.
+- L8 (2026-11-28, maintainer, grill Q3 call): "ok" to: one call field on `Work` with two target forms — `call:: procedures/review_NN.md` (fixed, written by the author) and `call:: {review}` (a procedure slot the scope fills, the #966 case). One mechanism; the slot becomes the dynamic case of the call. Cost: a new `Work` field in the published spec, and #966 is rewritten so the slot feeds that field.
+- L9 (2026-11-28, maintainer, grill Q4 catalog): on one `Procedure` element per document replacing the root Work: "Parece correcto pero asegúrate de que es compliant con el nivel 1 Info, con la especificación de nivel 1 INNfo". Verification (iNNfo_V_0-6-0 and V_0-9-0 on main): L1 already has native containment — child Concepts nest under a parent via `# NN index` taxonomy and hierarchical headings (`### NN Work:` under `## NN Procedure:` gives `parentSlug`; disallowed nesting = `INVALID_NESTED_CONCEPT`); present since V_0-6-0. `storage:: distributed` (since V_0-7-0) makes each instance its own instance model whose child Concepts stay elements of it — `executions` already uses it (`Procedure Execution` > `Step Run`, `placement:: "executions/{slug}/"`, parent iNNfo_V_0-9-0). So the custom `parent::` field re-implements an L1 primitive. Compliant variants: (a) compact + nesting (no L1 bump, layout unchanged, "one Procedure per document" is a blueprint validation rule); (b) distributed like executions (most L1-native, but changes file layout of every procedure document, resolution code and the `usage_procedures_NN.md` convention; placement may not contain `specs`). Pending maintainer choice.
+- L10 (2026-11-28, maintainer, grill Q4): "ok" to (a) compact + nesting: each procedure document holds one `## NN Procedure:` with its `### NN Work:` steps nested under it; `# NN index` declares Procedure > Work; parent_spec stays iNNfo_V_0-6-0; file layout and `usage_procedures_NN.md` unchanged; "one Procedure per document" is a blueprint validation rule. Unification verdict: Procedure and Work do NOT collapse into one concept; the root Work disappears into Procedure (header), Work is only a step, `parent::` and `procedure_model` are removed.
+- L11 (2026-11-28, maintainer, grill Q5): "ok" to: a Procedure without Work is declared and refused at start with `PROCEDURE_NOT_IMPLEMENTED`; a procedure implemented in another file moves its Procedure header into that file; a skill-backed procedure is one `executor:: agent` Work whose `tool` references the skill; documents with several Procedure elements are split and the catalog is derived. Grill closed.
+- L12 (2026-11-28, maintainer): "Si te has hecho cargo de casi todo, me parecen pocas cosas. ¿Estás teniendo en cuenta lo que has heredado de otras conversaciones a las que has dado el relevo?" and "Adelante con todo sin preguntarme". Inherited items inventoried as S8-S16.
+- L13 (61a13990, notice): #972 removed its own `ARTIFACT_PATH_IS_MODEL` check (commit 317b4091b) because `at` may legally name a model the run produces (Document SOP pilot); containment stays. Notice arrived after the push, not before; no conflict with S3.
+- L4: Corrections to the original brief: b005800b did propose removing `parent` (document as container; `parent::` redundant in ~94%); whether `parent` goes is part of S3, not closed.

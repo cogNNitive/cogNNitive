@@ -36,6 +36,12 @@ The console runtime does NOT compile JSX at runtime or during development.
 * Procedural diagrams (procedure runner flow), summary card tracks, and structural ego graphs use pure DOM/SVG without external library overhead.
 * Never render a whole element graph: a force layout with ~2000 nodes blocks the page for ~18 s. Show concepts, or a one-hop neighbourhood of one element.
 
+### Rule E: The Procedure Fold Runs As A Hashed Script, Never Through Eval
+* The shell's `#nn-procedure-core` slot is inert (`type="application/json"`) in `artifact_shell.html`. `scripts/export-console.mjs` replaces it with an executable `<script type="text/javascript" id="nn-procedure-core">` holding the fold source, and the CSP generator allows it by its SHA-256 hash.
+* The fold source assigns its module to a global (`nnProcedureFold` / `__nnFoldModule`), and `nn-procedure-core.js` picks it up from `window` first. That is what lets a real browser project a run's next state with no `unsafe-eval` in the CSP.
+* **FORBIDDEN**: adding `unsafe-eval` to the CSP, or making the browser path depend on evaluating the slot's text. The `new Function` fallback still in `nn-procedure-core.js` throws under the CSP and is caught, so in a browser it always returns `false`; do not build on it.
+* Why it matters: when the slot shipped as `application/json`, browsers never ran it, `available()` returned `false`, and the stepper silently fell back to passive mode, so choosing a decision did not move the diagram (found 2026-11-23, fixed by #830).
+
 ---
 
 ## 2. Canonical Bundle Sources (`scripts/lib/console-bundle.js`)
