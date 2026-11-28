@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-A8tTYKtYTqVQxSCdWvMejA4dUCQWbrYWv7KL+VRLF9c=' 'sha256-qsjLjnpwNES4Y0CM36eMiDfJELR1nScCKX3nlAuFDJI='; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; media-src 'self' file: blob:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net/gh/cogNNitive/ 'sha256-OEQbqsZ7/HlAVHdSR5MiDTz5khiA3Vrf+04IlFUs3m8=' 'sha256-qsjLjnpwNES4Y0CM36eMiDfJELR1nScCKX3nlAuFDJI='; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: blob: https://raw.githubusercontent.com/cogNNitive/ https://cdn.jsdelivr.net/gh/cogNNitive/ https:; media-src 'self' file: blob:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -148,7 +148,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
   transition-duration: 200ms;
   transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
   height: 1.25rem;
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1.25rem;
   width: fit-content;
   padding-left: 0.563rem;
@@ -220,7 +220,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
   padding-left: 1rem;
   padding-right: 1rem;
   text-align: center;
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1em;
 }
 /* disabled */
@@ -235,14 +235,14 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
   min-height: 1.5rem;
   padding-left: 0.45rem;
   padding-right: 0.45rem;
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
 }
 .btn-sm {
   height: 2rem;
   min-height: 2rem;
   padding-left: 0.75rem;
   padding-right: 0.75rem;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
 }
 .btn-ghost {
   background-color: transparent;
@@ -390,12 +390,12 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
 }
 .chat-header {
   grid-row-start: 1;
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1.25rem;
 }
 .chat-footer {
   grid-row-start: 3;
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1.25rem;
 }
 .chat-bubble {
@@ -755,7 +755,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
   height: 3rem;
   flex-shrink: 1;
   padding-inline-end: 1rem;
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1.25rem;
   line-height: 2;
 }
@@ -772,7 +772,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
   padding-left: 1rem;
   padding-right: 1rem;
   text-align: center;
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1.25rem;
   transition-property:
     color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow,
@@ -859,7 +859,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
   height: 3rem;
   padding-left: 1rem;
   padding-right: 1rem;
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1.25rem;
   line-height: 2;
 }
@@ -978,7 +978,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
   display: flex;
   flex-direction: column;
   flex-wrap: wrap;
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1.25rem;
 }
 .menu :where(li ul) {
@@ -1194,7 +1194,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
   min-height: 3rem;
   padding-inline-start: 1rem;
   padding-inline-end: 2.5rem;
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1.25rem;
   line-height: 2;
 }
@@ -1336,7 +1336,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1.25rem;
   line-height: 2;
   --tab-padding: 1rem;
@@ -1407,7 +1407,7 @@ input.tab:checked + .tab-content,
   padding-right: 1rem;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1.25rem;
   line-height: 2;
 }
@@ -1682,7 +1682,7 @@ input.tab:checked + .tab-content,
   }
 }
 .btm-nav > * .label {
-  font-size: 1rem;
+  font-size: var(--nn-text-body);
   line-height: 1.5rem;
 }
 .breadcrumbs {
@@ -2302,7 +2302,7 @@ input.tab:checked + .tab-content,
 }
 .card.compact .card-body {
   padding: 1rem;
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1.25rem;
 }
 .card-body {
@@ -2315,7 +2315,7 @@ input.tab:checked + .tab-content,
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1.25rem;
+  font-size: var(--nn-text-title);
   line-height: 1.75rem;
   font-weight: 600;
 }
@@ -2966,7 +2966,7 @@ details.collapse summary {
   --tw-border-opacity: 0;
   --tw-bg-opacity: 1;
   background-color: var(--fallback-b1, oklch(var(--b1) / var(--tw-bg-opacity)));
-  font-size: 1rem;
+  font-size: var(--nn-text-body);
   line-height: 1.5rem;
 }
 .file-input::file-selector-button {
@@ -3137,7 +3137,7 @@ details.collapse summary {
 .footer {
   column-gap: 1rem;
   row-gap: 2.5rem;
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1.25rem;
 }
 .footer > * {
@@ -3156,13 +3156,13 @@ details.collapse summary {
   padding-bottom: 0.5rem;
 }
 .label-text {
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1.25rem;
   --tw-text-opacity: 1;
   color: var(--fallback-bc, oklch(var(--bc) / var(--tw-text-opacity)));
 }
 .label-text-alt {
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
   line-height: 1rem;
   --tw-text-opacity: 1;
   color: var(--fallback-bc, oklch(var(--bc) / var(--tw-text-opacity)));
@@ -3188,7 +3188,7 @@ details.collapse summary {
   border-color: transparent;
   --tw-bg-opacity: 1;
   background-color: var(--fallback-b1, oklch(var(--b1) / var(--tw-bg-opacity)));
-  font-size: 1rem;
+  font-size: var(--nn-text-body);
   line-height: 1.5rem;
 }
 .input input {
@@ -3697,7 +3697,7 @@ details.collapse summary {
   padding-right: 1rem;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1.25rem;
   font-weight: 700;
   color: var(--fallback-bc, oklch(var(--bc) / 0.4));
@@ -4681,12 +4681,12 @@ details.collapse summary {
   color: var(--fallback-bc, oklch(var(--bc) / 0.6));
 }
 .stat-value {
-  font-size: 2.25rem;
+  font-size: var(--nn-text-display);
   line-height: 2.5rem;
   font-weight: 800;
 }
 .stat-desc {
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
   line-height: 1rem;
   color: var(--fallback-bc, oklch(var(--bc) / 0.6));
 }
@@ -5072,7 +5072,7 @@ details.collapse summary {
 .table {
   border-radius: var(--rounded-box, 1rem);
   text-align: left;
-  font-size: 0.875rem;
+  font-size: var(--nn-text-small);
   line-height: 1.25rem;
 }
 .table:where([dir='rtl'], [dir='rtl'] *) {
@@ -5118,7 +5118,7 @@ details.collapse summary {
 }
 .table :where(thead, tfoot) {
   white-space: nowrap;
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
   line-height: 1rem;
   font-weight: 700;
   color: var(--fallback-bc, oklch(var(--bc) / 0.6));
@@ -5504,6 +5504,16 @@ details.collapse summary {
        this shell's layout variables working without hard-coded colors. */
 .nn-procedure-view,
 .nn-proc-host {
+  /* One 6-step type scale (#914). Candidate A from the specimen: 12 / 14 / 16 /
+     18 / 21, with the display step as a clamp so a hero number cannot collapse
+     into the view title. Names say the job, not the size, so the ramp can move
+     again without renaming 300 call sites. */
+  --nn-text-micro: 12px;
+  --nn-text-small: 14px;
+  --nn-text-body: 16px;
+  --nn-text-title-sm: 18px;
+  --nn-text-title: 21px;
+  --nn-text-display: clamp(24px, 2.4vw, 32px);
   --bg: var(--nn-bg);
   --surface: var(--nn-surface);
   --surface-2: var(--nn-surface-2);
@@ -5556,7 +5566,7 @@ details.collapse summary {
 .nn-procedure-view header .badge,
 .nn-proc-host header .badge {
   display: inline-block;
-  font-size: 0.65rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
@@ -5571,7 +5581,7 @@ details.collapse summary {
 .nn-proc-host header h1,
 .nn-proc-host .proc-view-header .proc-title {
   margin: 0 0 4px;
-  font-size: 1.35rem;
+  font-size: var(--nn-text-title);
   font-weight: 700;
   letter-spacing: -0.4px;
 }
@@ -5579,7 +5589,7 @@ details.collapse summary {
 .nn-procedure-view .proc-view-header .meta-line,
 .nn-proc-host header .meta-line,
 .nn-proc-host .proc-view-header .meta-line {
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
   display: flex;
   flex-wrap: wrap;
@@ -5598,10 +5608,10 @@ details.collapse summary {
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
-  font-size: 0.76rem;
+  font-size: var(--nn-text-micro);
 }
 .proc-blueprint-label {
-  font-size: 0.68rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -5613,7 +5623,7 @@ details.collapse summary {
   align-items: center;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -5671,7 +5681,7 @@ nav.rail {
   }
 }
 nav.rail .rail-label {
-  font-size: 0.62rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -5687,7 +5697,7 @@ nav.rail button.rail-item {
   background: transparent;
   color: var(--text);
   font: inherit;
-  font-size: 0.84rem;
+  font-size: var(--nn-text-small);
   text-align: left;
   padding: 7px 10px;
   border-radius: var(--radius-sm);
@@ -5705,7 +5715,7 @@ nav.rail button.rail-item.active {
 }
 nav.rail button.rail-item .count {
   color: var(--muted);
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
 }
 nav.rail button.rail-item .rail-dot {
@@ -5745,7 +5755,7 @@ button.tab {
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
   font-weight: 600;
   padding: 8px 16px;
   cursor: pointer;
@@ -5787,7 +5797,7 @@ button.subtab {
   background: var(--surface);
   color: var(--muted);
   font: inherit;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 5px 14px;
   border-radius: var(--radius);
@@ -5822,7 +5832,7 @@ button.subtab:focus-visible {
 }
 .doc-root h2 {
   margin: 0 0 8px;
-  font-size: 1.15rem;
+  font-size: var(--nn-text-title-sm);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -5830,7 +5840,7 @@ button.subtab:focus-visible {
 }
 .doc-root p.desc {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--nn-text-small);
   color: var(--muted);
 }
 .doc-step {
@@ -5842,7 +5852,7 @@ button.subtab:focus-visible {
 }
 .doc-step h3 {
   margin: 0 0 6px;
-  font-size: 0.98rem;
+  font-size: var(--nn-text-body);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -5853,7 +5863,7 @@ button.subtab:focus-visible {
 }
 .doc-step p.desc {
   margin: 0 0 10px;
-  font-size: 0.88rem;
+  font-size: var(--nn-text-small);
   color: var(--muted);
 }
 
@@ -5871,7 +5881,7 @@ button.proc-tab {
   background: var(--surface);
   color: var(--muted);
   font: inherit;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 6px 14px;
   cursor: pointer;
@@ -5912,7 +5922,7 @@ button.proc-tab:focus-visible {
   flex: 1;
 }
 .proc-status-title {
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   color: var(--text);
 }
 .proc-progress-track {
@@ -5933,7 +5943,7 @@ button.proc-tab:focus-visible {
   align-items: center;
   gap: 8px;
   font-family: var(--mono);
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   color: var(--muted);
 }
 .proc-timer {
@@ -5983,7 +5993,7 @@ button.proc-tab:focus-visible {
   padding: 10px 14px;
   background: var(--surface-2);
   border-bottom: 1px solid var(--border);
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -5998,7 +6008,7 @@ button.proc-tab:focus-visible {
   gap: 6px;
 }
 .count-badge {
-  font-size: 0.7rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   color: var(--text-faint);
 }
@@ -6009,7 +6019,7 @@ button.proc-tab:focus-visible {
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
@@ -6113,13 +6123,13 @@ svg.dag-canvas {
   min-width: 0;
 }
 .dag-list .node-sub {
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
 }
 .dag-list .node-title {
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   line-height: 1.3;
   color: var(--text);
@@ -6196,13 +6206,13 @@ svg.dag-canvas {
   stroke-width: 1.5;
 }
 .dag-node text.node-sub {
-  font-size: 9px;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   fill: var(--muted);
   font-family: var(--font);
 }
 .dag-node text.node-title {
-  font-size: 11px;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   fill: var(--text);
   font-family: var(--font);
@@ -6252,7 +6262,7 @@ svg.dag-canvas {
   align-items: center;
 }
 .step-type-pill {
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -6276,7 +6286,7 @@ svg.dag-canvas {
 }
 
 .step-state-badge {
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
@@ -6309,13 +6319,13 @@ svg.dag-canvas {
 }
 
 .exec-step-title {
-  font-size: 1.25rem;
+  font-size: var(--nn-text-title);
   font-weight: 700;
   letter-spacing: -0.3px;
   margin: 0;
 }
 .exec-step-desc {
-  font-size: 0.92rem;
+  font-size: var(--nn-text-small);
   color: var(--muted);
   line-height: 1.6;
   margin: 0;
@@ -6332,7 +6342,7 @@ svg.dag-canvas {
   gap: 8px;
 }
 .exec-box-title {
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -6347,7 +6357,7 @@ svg.dag-canvas {
   background: rgba(255, 255, 255, 0.12);
   color: #f8fafc;
   font: inherit;
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 3px 8px;
   border-radius: 4px;
@@ -6364,7 +6374,7 @@ svg.dag-canvas {
 .nn-proc-host button.btn {
   appearance: none;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   font-weight: 600;
   padding: 7px 14px;
   border-radius: var(--radius-sm);
@@ -6409,7 +6419,7 @@ svg.dag-canvas {
 }
 .proc-actions-title {
   width: 100%;
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -6419,7 +6429,7 @@ svg.dag-canvas {
 .proc-action {
   appearance: none;
   font: inherit;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 6px 12px;
   border-radius: var(--radius-sm);
@@ -6437,7 +6447,7 @@ svg.dag-canvas {
 }
 .proc-action-outcome {
   font: inherit;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   padding: 6px 8px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-strong);
@@ -6448,7 +6458,7 @@ svg.dag-canvas {
 .proc-action-error {
   width: 100%;
   color: var(--danger);
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
 }
 .proc-action-error:empty {
   display: none;
@@ -6464,7 +6474,7 @@ svg.dag-canvas {
   align-items: center;
 }
 .proc-output-file {
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 .proc-output-file-row .proc-output-name {
@@ -6487,7 +6497,7 @@ svg.dag-canvas {
   border-left-width: 3px;
   background: var(--warning-light);
   color: var(--text);
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   line-height: 1.45;
 }
 
@@ -6500,7 +6510,7 @@ svg.dag-canvas {
   margin-bottom: 12px;
 }
 .proc-structure-summary {
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   color: var(--muted);
   font-family: var(--mono);
@@ -6511,7 +6521,7 @@ svg.dag-canvas {
   gap: 4px;
 }
 .proc-defect-item {
-  font-size: 0.76rem;
+  font-size: var(--nn-text-micro);
   color: var(--danger);
 }
 .proc-defect-item[data-severity='info'] {
@@ -6527,7 +6537,7 @@ svg.dag-canvas {
   margin: 10px 0 14px;
 }
 .proc-runs-label {
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -6541,7 +6551,7 @@ button.proc-run {
   background: var(--surface);
   color: var(--muted);
   font: inherit;
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 5px 12px;
   cursor: pointer;
@@ -6566,7 +6576,7 @@ button.proc-run[data-status='completed'] {
   border-color: var(--success);
 }
 .proc-runs-empty {
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
   font-style: italic;
 }
@@ -6584,16 +6594,16 @@ button.proc-run[data-status='completed'] {
   box-shadow: var(--shadow-card);
 }
 .proc-ficha-summary {
-  font-size: 0.86rem;
+  font-size: var(--nn-text-small);
   color: var(--text);
   margin-bottom: 4px;
 }
 .proc-ficha > div:not(.proc-ficha-summary) {
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 .proc-no-catalog-note {
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
   font-style: italic;
 }
@@ -6604,7 +6614,7 @@ button.proc-run[data-status='completed'] {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   color: var(--text);
 }
 .proc-run-state > p {
@@ -6612,7 +6622,7 @@ button.proc-run[data-status='completed'] {
   color: var(--muted);
 }
 .proc-run-title {
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
   font-weight: 700;
   margin-bottom: 4px;
   font-family: var(--mono);
@@ -6624,7 +6634,7 @@ button.proc-run[data-status='completed'] {
 }
 .proc-run-path {
   font-family: var(--mono);
-  font-size: 0.76rem;
+  font-size: var(--nn-text-micro);
 }
 .proc-run-blocked,
 .proc-run-crashed {
@@ -6643,7 +6653,7 @@ button.proc-run[data-status='completed'] {
 .proc-run-allowed,
 .proc-run-artifacts {
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: var(--nn-text-micro);
 }
 .proc-run-next {
   margin-top: 8px;
@@ -6652,7 +6662,7 @@ button.proc-run[data-status='completed'] {
   background: var(--surface-2);
   border: 1px solid var(--border);
   font-family: var(--mono);
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   line-height: 1.5;
   color: var(--muted);
 }
@@ -6744,7 +6754,7 @@ button.proc-run[data-status='completed'] {
 .dag-edge-label.taken {
   fill: var(--primary);
   font-weight: 800;
-  font-size: 11px;
+  font-size: var(--nn-text-micro);
 }
 .dag-edge-label.taken.done {
   fill: var(--success);
@@ -6765,7 +6775,7 @@ button.proc-run[data-status='completed'] {
   gap: 6px;
 }
 .proc-projection-title {
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -6775,7 +6785,7 @@ button.proc-run[data-status='completed'] {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.84rem;
+  font-size: var(--nn-text-small);
   font-weight: 600;
 }
 .proc-projection-from {
@@ -6792,11 +6802,11 @@ button.proc-run[data-status='completed'] {
   flex-direction: column;
   gap: 2px;
   font-family: var(--mono);
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   color: var(--text);
 }
 .proc-projection-note {
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
   line-height: 1.4;
 }
@@ -6813,7 +6823,7 @@ button.proc-run[data-status='completed'] {
   margin-top: 6px;
 }
 .proc-artifact-row-label {
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -6832,7 +6842,7 @@ button.proc-run[data-status='completed'] {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface-2);
-  font-size: 0.76rem;
+  font-size: var(--nn-text-micro);
 }
 .proc-artifact[data-status='validated'] {
   border-color: var(--success);
@@ -6849,11 +6859,11 @@ button.proc-run[data-status='completed'] {
 .proc-artifact-state {
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
 }
 .proc-artifact-pending {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-style: italic;
 }
 button.proc-artifact-producer,
@@ -6863,7 +6873,7 @@ button.proc-artifact-open {
   background: transparent;
   color: var(--primary);
   font: inherit;
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   padding: 0;
   cursor: pointer;
   text-decoration: underline;
@@ -6883,7 +6893,7 @@ button.proc-artifact-open:disabled {
   gap: 4px;
 }
 .proc-run-artifacts-label {
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -6916,7 +6926,7 @@ button.proc-artifact-open:disabled {
 }
 .proc-artifact-view-title {
   font-weight: 700;
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
 }
 button.proc-artifact-view-close {
   appearance: none;
@@ -6925,21 +6935,21 @@ button.proc-artifact-view-close {
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   padding: 3px 10px;
   cursor: pointer;
 }
 .proc-artifact-view-path {
   padding: 6px 14px 0;
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 .proc-artifact-view-body {
   margin: 0;
   padding: 10px 14px 14px;
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   line-height: 1.5;
   white-space: pre-wrap;
   max-height: 420px;
@@ -6956,7 +6966,7 @@ button.proc-artifact-view-close {
   gap: 10px;
 }
 .audit-item {
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   border-left: 2px solid var(--border-strong);
   padding-left: 8px;
   display: flex;
@@ -6977,7 +6987,7 @@ button.proc-artifact-view-close {
 }
 .audit-time {
   font-family: var(--mono);
-  font-size: 0.7rem;
+  font-size: var(--nn-text-micro);
   color: var(--faint);
 }
 .audit-author {
@@ -7005,7 +7015,7 @@ dialog.export-dialog::backdrop {
   backdrop-filter: blur(2px);
 }
 .export-modal-inner h3 {
-  font-size: 1.1rem;
+  font-size: var(--nn-text-title-sm);
   font-weight: 700;
   margin: 0 0 6px;
   display: flex;
@@ -7013,7 +7023,7 @@ dialog.export-dialog::backdrop {
   gap: 8px;
 }
 .export-modal-desc {
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   color: var(--muted);
   margin: 0 0 12px;
 }
@@ -7021,7 +7031,7 @@ dialog.export-dialog::backdrop {
   width: 100%;
   height: 220px;
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   background: var(--surface-2);
   color: var(--text);
   border: 1px solid var(--border);
@@ -7051,12 +7061,12 @@ dialog.export-dialog::backdrop {
 }
 .concept-card h3 {
   margin: 0 0 6px;
-  font-size: 1rem;
+  font-size: var(--nn-text-body);
   font-weight: 700;
 }
 .concept-card .concept-tag {
   display: inline-block;
-  font-size: 0.66rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   color: var(--muted);
   background: var(--surface-2);
@@ -7067,7 +7077,7 @@ dialog.export-dialog::backdrop {
 }
 .concept-card p {
   margin: 0 0 8px;
-  font-size: 0.88rem;
+  font-size: var(--nn-text-small);
   color: var(--muted);
 }
 .field-list {
@@ -7075,7 +7085,7 @@ dialog.export-dialog::backdrop {
   grid-template-columns: 170px 1fr;
   gap: 3px 14px;
   margin: 10px 0 0;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
 }
 .field-list dt {
   color: var(--muted);
@@ -7094,7 +7104,7 @@ dialog.export-dialog::backdrop {
   overflow: hidden;
 }
 .matrix-block h3 {
-  font-size: 0.9rem;
+  font-size: var(--nn-text-small);
   font-weight: 700;
   margin: 0 0 12px;
   color: var(--text);
@@ -7104,7 +7114,7 @@ dialog.export-dialog::backdrop {
 }
 table.matrix {
   border-collapse: collapse;
-  font-size: 0.76rem;
+  font-size: var(--nn-text-micro);
   width: 100%;
 }
 table.matrix th,
@@ -7132,7 +7142,7 @@ table.matrix td:empty::after {
 
 .empty-state {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: var(--nn-text-small);
   padding: 40px 0;
 }
 
@@ -7173,7 +7183,7 @@ table.matrix td:empty::after {
 }
 .nn-ref-head h2 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: var(--nn-text-body);
   font-weight: 700;
 }
 .nn-ref-close {
@@ -7185,7 +7195,7 @@ table.matrix td:empty::after {
   width: 28px;
   height: 28px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: var(--nn-text-small);
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -7201,7 +7211,7 @@ table.matrix td:empty::after {
 }
 .nn-ref-tag {
   display: inline-block;
-  font-size: 0.64rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   color: var(--nn-muted, var(--muted));
   background: var(--nn-surface-2, var(--surface-2));
@@ -7212,14 +7222,14 @@ table.matrix td:empty::after {
 }
 .nn-ref-desc {
   margin: 0 0 12px;
-  font-size: 0.88rem;
+  font-size: var(--nn-text-small);
 }
 .nn-ref-fields {
   display: grid;
   grid-template-columns: 170px 1fr;
   gap: 3px 14px;
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
 }
 .nn-ref-fields dt {
   color: var(--nn-muted, var(--muted));
@@ -7345,7 +7355,7 @@ button.btn-primary:hover:not(:disabled) {
   border-width: 0 !important;
   background: color-mix(in srgb, var(--card-concept-color, var(--nn-accent, #171717)) 10%, #ffffff);
   color: var(--card-concept-color, var(--nn-accent, #171717));
-  font-size: 0.73rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   line-height: 1.3;
   white-space: nowrap;
@@ -7476,7 +7486,7 @@ button.btn-primary:hover:not(:disabled) {
   border-left: 3px solid var(--card-concept-color, var(--nn-accent, #171717));
   border-radius: 0 6px 6px 0;
   color: var(--nn-text, #0a0a0a);
-  font-size: 0.88rem;
+  font-size: var(--nn-text-small);
   line-height: 1.55;
 }
 [data-nn-component='element-card'] .nn-card-fields {
@@ -7497,7 +7507,7 @@ button.btn-primary:hover:not(:disabled) {
   border-radius: 0;
   padding: 9px 14px;
   background: var(--nn-surface, #ffffff);
-  font-size: 0.86rem;
+  font-size: var(--nn-text-small);
 }
 [data-nn-component='element-card'] .nn-card-fields > .nn-ku-badge[data-ku-kind='field']:last-child {
   border-bottom: none;
@@ -7519,7 +7529,7 @@ button.btn-primary:hover:not(:disabled) {
   flex: 0 0 140px;
   width: 140px;
   font-family: var(--nn-mono);
-  font-size: 0.76rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   color: var(--nn-muted, #666666);
 }
@@ -7585,7 +7595,7 @@ button.btn-primary:hover:not(:disabled) {
   align-items: center;
   padding: 0.15em 0.55em;
   border-radius: 999px;
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   font-weight: 600;
   background: var(--nn-surface-2, #f1f5f9);
   color: var(--nn-text, #0f172a);
@@ -7618,7 +7628,7 @@ button.btn-primary:hover:not(:disabled) {
   flex-wrap: wrap;
 }
 [data-nn-component='element-card'] .nn-card-incoming-label {
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -7641,7 +7651,7 @@ button.btn-primary:hover:not(:disabled) {
 
 .nn-schema-legend {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 
@@ -7661,7 +7671,7 @@ button.btn-primary:hover:not(:disabled) {
 
 .nn-schema-words-title {
   margin: 0 0 8px;
-  font-size: 1rem;
+  font-size: var(--nn-text-body);
   font-weight: 700;
   color: var(--text);
 }
@@ -7669,7 +7679,7 @@ button.btn-primary:hover:not(:disabled) {
 .nn-schema-group h3 {
   margin: 12px 0 4px;
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 
@@ -7679,7 +7689,7 @@ button.btn-primary:hover:not(:disabled) {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
   color: var(--text);
 }
 
@@ -7728,13 +7738,13 @@ button.btn-primary:hover:not(:disabled) {
 }
 .nn-procedure-view .proc-view-header .proc-title,
 .nn-proc-host .proc-view-header .proc-title {
-  font-size: 1rem;
+  font-size: var(--nn-text-body);
   display: inline-block;
   margin: 0 10px 0 6px;
 }
 .step-cond-pill {
   font-family: var(--nn-mono);
-  font-size: 0.73rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 2px 9px;
   border-radius: 999px;
@@ -7743,7 +7753,7 @@ button.btn-primary:hover:not(:disabled) {
   border: 1px solid rgba(180, 83, 9, 0.25);
 }
 .step-scope-pill {
-  font-size: 0.73rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 2px 9px;
   border-radius: 999px;
@@ -7771,7 +7781,7 @@ button.btn-primary:hover:not(:disabled) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 2px 9px;
   border-radius: 999px;
@@ -7803,7 +7813,7 @@ button.btn-primary:hover:not(:disabled) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.76rem;
+  font-size: var(--nn-text-micro);
   padding: 3px 10px;
   border-radius: 6px;
   background: var(--nn-surface-2, #f4f4f5);
@@ -7818,7 +7828,7 @@ button.btn-primary:hover:not(:disabled) {
   gap: 5px;
   padding: 2px 9px;
   border-radius: 999px;
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   line-height: 1.35;
   border: 1px solid color-mix(in srgb, var(--concept-slot-fg, #3b82f6) 45%, #e5e5e5);
@@ -7885,7 +7895,7 @@ button.btn-primary:hover:not(:disabled) {
   gap: 5px;
   padding: 2px 9px;
   border-radius: 6px;
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   line-height: 1.35;
   background: #ffffff;
@@ -7932,7 +7942,7 @@ button.btn-primary:hover:not(:disabled) {
   border-color: transparent;
   border-bottom-color: #e5e5e5;
   border-radius: 0;
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -7970,7 +7980,7 @@ button.btn-primary:hover:not(:disabled) {
 .nn-ku[data-ku-kind='section'][data-ku-nature='container'] {
   color: var(--rail-concept-color, var(--concept-slot-fg, #0a0a0a));
   font-weight: 700;
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   background: color-mix(
     in srgb,
     var(--rail-concept-color, var(--concept-slot-fg, #3b82f6)) 10%,
@@ -8004,7 +8014,7 @@ button.btn-primary:hover:not(:disabled) {
   gap: 5px;
   border-radius: 999px;
   padding: 3px 10px;
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   border: 1px solid #d4d4d8;
   background: #ffffff;
   color: #0a0a0a;
@@ -8023,7 +8033,7 @@ button.btn-primary:hover:not(:disabled) {
   opacity: 0.65;
   cursor: pointer;
   padding: 0 2px;
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
   line-height: 1;
 }
 .nn-filter-pill-remove:hover {
@@ -8037,7 +8047,7 @@ button.btn-primary:hover:not(:disabled) {
   align-items: center;
   gap: 4px;
   font-family: var(--nn-mono);
-  font-size: 0.73rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 2px 7px;
   border-radius: 5px;
@@ -8050,7 +8060,7 @@ button.btn-primary:hover:not(:disabled) {
   display: inline-flex;
   align-items: center;
   font-family: var(--nn-mono);
-  font-size: 0.68rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 1px 6px;
   border-radius: 4px;
@@ -8069,7 +8079,7 @@ button.btn-primary:hover:not(:disabled) {
   gap: 4px;
   padding: 2px 8px;
   border-radius: 6px;
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   background: color-mix(
     in srgb,
@@ -8095,7 +8105,7 @@ button.btn-primary:hover:not(:disabled) {
 }
 .nn-guide-meta {
   font-family: var(--nn-mono);
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 999px;
@@ -8140,7 +8150,7 @@ button.btn-primary:hover:not(:disabled) {
   border-radius: 7px;
 }
 .nn-guide-matrix-name {
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   color: #0a0a0a;
 }
@@ -8153,7 +8163,7 @@ button.btn-primary:hover:not(:disabled) {
 .nn-guide-matrix-arrow {
   font-weight: 700;
   color: #71717a;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
 }
 .nn-guide-collapse {
   margin-left: auto;
@@ -8178,7 +8188,7 @@ button.btn-primary:hover:not(:disabled) {
 .nn-guide-field-desc {
   flex-basis: 100%;
   margin: 2px 0 0;
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   line-height: 1.4;
   color: #71717a;
 }
@@ -8214,7 +8224,7 @@ aside.nn-guide.is-collapsed > :not(.nn-guide-head) {
 .nn-matrix-corner-sep {
   font-weight: 700;
   color: #71717a;
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
 }
 .nn-matrix td .nn-ku-badge[data-ku-kind='cell'][data-cell-value='relevant'] {
   background: #dcfce7;
@@ -8298,7 +8308,7 @@ aside.nn-guide.is-collapsed > :not(.nn-guide-head) {
   height: 16px !important;
   border-radius: 50% !important;
   background: rgba(0, 0, 0, 0.08) !important;
-  font-size: 13px !important;
+  font-size: var(--nn-text-micro) !important;
   font-weight: 700 !important;
   line-height: 1 !important;
   cursor: pointer !important;
@@ -8346,7 +8356,7 @@ button.cite-icon,
 .nn-qud-id {
   color: var(--nn-muted) !important;
   font-family: var(--nn-mono), ui-monospace, monospace !important;
-  font-size: 0.82rem !important;
+  font-size: var(--nn-text-small) !important;
 }
 .nn-qud-btn {
   background: transparent !important;
@@ -8370,7 +8380,7 @@ button.cite-icon,
   border-radius: 0 !important;
   padding: 2px 0 !important;
   font-family: var(--nn-mono), ui-monospace, monospace !important;
-  font-size: 11px !important;
+  font-size: var(--nn-text-micro) !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 4px !important;
@@ -8403,7 +8413,7 @@ button.cite-icon,
   background-color: #f8fafc !important;
   color: var(--muted) !important;
   font-family: var(--nn-mono), ui-monospace, monospace !important;
-  font-size: 11px !important;
+  font-size: var(--nn-text-micro) !important;
   font-weight: 400 !important;
   padding: 3px 8px !important;
   border: none !important;
@@ -8419,7 +8429,7 @@ button.cite-icon,
   border: none !important;
   border-radius: 0 !important;
   padding: 3px 8px !important;
-  font-size: 11.5px !important;
+  font-size: var(--nn-text-micro) !important;
   font-weight: 400 !important;
   color: var(--pill-concept-color, var(--concept-slot-fg, #0284c7)) !important;
   text-decoration: none !important;
@@ -8596,7 +8606,7 @@ button.cite-icon,
   flex: 0 0 130px !important;
   width: 130px !important;
   font-family: var(--nn-mono), ui-monospace, monospace !important;
-  font-size: 11px !important;
+  font-size: var(--nn-text-micro) !important;
   font-weight: 400 !important;
   color: var(--muted) !important;
   border: none !important;
@@ -8631,7 +8641,7 @@ button.cite-icon,
   flex: 1 1 auto !important;
   background: transparent !important;
   padding: 0 !important;
-  font-size: 12px !important;
+  font-size: var(--nn-text-micro) !important;
   font-weight: 400 !important;
   color: #1e293b !important;
   border: none !important;
@@ -8683,7 +8693,7 @@ select {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  font-size: 13px !important;
+  font-size: var(--nn-text-micro) !important;
   font-weight: 600 !important;
 }
 .nn-dock-dot {
@@ -8734,7 +8744,7 @@ select {
   background: transparent !important;
   border: none !important;
   color: #f1f5f9 !important;
-  font-size: 13px !important;
+  font-size: var(--nn-text-micro) !important;
   font-weight: 500 !important;
   cursor: pointer !important;
   padding: 4px 8px !important;
@@ -8773,7 +8783,7 @@ select {
   padding: 12px 16px !important;
   z-index: 1000 !important;
   min-width: 260px !important;
-  font-size: 12px !important;
+  font-size: var(--nn-text-micro) !important;
   line-height: 1.6 !important;
   color: #334155 !important;
 }
@@ -8829,7 +8839,7 @@ select {
 }
 
 #nn-navbar-extra {
-  font-size: 0.82rem !important;
+  font-size: var(--nn-text-small) !important;
   color: var(--muted) !important;
   display: flex !important;
   align-items: center !important;
@@ -8852,7 +8862,7 @@ select {
   border: 1px solid var(--border, #e2e8f0) !important;
   border-radius: 6px !important;
   padding: 6px 14px !important;
-  font-size: 0.8rem !important;
+  font-size: var(--nn-text-micro) !important;
   font-weight: 500 !important;
   cursor: pointer !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
@@ -8921,7 +8931,7 @@ select {
   background: var(--surface, #ffffff);
 }
 #nn-domain-subtabs .nn-view-subtab {
-  font-size: 0.85rem !important;
+  font-size: var(--nn-text-small) !important;
   padding: 8px 12px !important;
   min-height: auto !important;
   height: auto !important;
@@ -8944,7 +8954,7 @@ select {
 
 /* 17. Field badge styling in element table header */
 .nn-element-table-th .nn-ku-badge[data-ku-kind='field'] {
-  font-size: 0.76rem !important;
+  font-size: var(--nn-text-micro) !important;
   padding: 2px 8px !important;
   background: var(--surface-2, #f1f5f9) !important;
   border: 1px solid var(--border, #e2e8f0) !important;
@@ -8972,7 +8982,7 @@ select {
 }
 .nn-card-outgoing-label,
 .nn-card-incoming-label {
-  font-size: 11px !important;
+  font-size: var(--nn-text-micro) !important;
   font-weight: 600 !important;
   color: var(--nn-muted) !important;
   text-transform: uppercase !important;
@@ -8996,7 +9006,7 @@ select {
   border: 1px solid var(--border, #e2e8f0);
   border-radius: 6px;
   padding: 8px 12px;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   background: var(--surface-2, #f8fafc);
 }
 .nn-modal-details > summary {
@@ -9007,12 +9017,12 @@ select {
 }
 .nn-modal-details h4 {
   margin: 8px 0 4px;
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
   text-transform: uppercase;
   color: var(--muted);
 }
 .nn-review-dock .nn-dock-drafts {
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
   white-space: nowrap;
 }
@@ -9050,7 +9060,7 @@ select {
   display: inline-flex !important;
   align-items: center !important;
   gap: 6px !important;
-  font-size: 0.78rem !important;
+  font-size: var(--nn-text-micro) !important;
   font-weight: 600 !important;
   color: #2563eb !important;
   padding: 2px 8px !important;
@@ -9073,7 +9083,7 @@ select {
   display: inline-flex !important;
   align-items: center !important;
   gap: 6px !important;
-  font-size: 0.78rem !important;
+  font-size: var(--nn-text-micro) !important;
   color: var(--muted) !important;
 }
 .nn-review-dock .nn-reviewer-name {
@@ -9084,7 +9094,7 @@ select {
   background: #ffffff !important;
   color: #0f172a !important;
   font: inherit !important;
-  font-size: 0.78rem !important;
+  font-size: var(--nn-text-micro) !important;
 }
 .nn-review-dock .nn-new-element {
   appearance: none !important;
@@ -9092,7 +9102,7 @@ select {
   background: #f8fafc !important;
   color: #0f172a !important;
   font: inherit !important;
-  font-size: 0.78rem !important;
+  font-size: var(--nn-text-micro) !important;
   font-weight: 600 !important;
   padding: 4px 12px !important;
   border-radius: 9999px !important;
@@ -9109,7 +9119,7 @@ select {
   background: #2563eb !important;
   color: #ffffff !important;
   font: inherit !important;
-  font-size: 0.78rem !important;
+  font-size: var(--nn-text-micro) !important;
   font-weight: 600 !important;
   padding: 4px 14px !important;
   border-radius: 9999px !important;
@@ -9149,7 +9159,7 @@ select {
   background: #ffffff !important;
   color: var(--muted) !important;
   font: inherit !important;
-  font-size: 0.75rem !important;
+  font-size: var(--nn-text-micro) !important;
   padding: 3px 8px !important;
   border-radius: 9999px !important;
   cursor: pointer !important;
@@ -9191,7 +9201,7 @@ select {
 }
 .nn-export-count {
   margin-left: auto;
-  font-size: 0.76rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--nn-status-unsent, #1e3a8a);
@@ -9208,7 +9218,7 @@ select {
 }
 .nn-export-flow {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   line-height: 1.45;
   color: var(--nn-muted);
 }
@@ -9227,12 +9237,12 @@ select {
 }
 .nn-export-list-head h3 {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--nn-text-small);
   font-weight: 700;
   color: var(--nn-text, #0a0a0a);
 }
 .nn-export-list-head span {
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   color: var(--nn-muted);
 }
 /* One list container for every change list: the export modal's pending list and
@@ -9248,12 +9258,12 @@ select {
 .nn-export-empty {
   margin: 0;
   padding: 12px 0;
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   color: var(--nn-muted);
 }
 /* A stale draft says so in the sheet head, not as a body line. */
 .nn-change-sheet-stale {
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   color: #92400e;
   background: #fef3c7;
@@ -9269,7 +9279,7 @@ select {
   background: transparent;
   color: var(--nn-muted);
   font: inherit;
-  font-size: 0.76rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 0.2em 0.55em;
   border-radius: var(--nn-radius-sm, 6px);
@@ -9282,7 +9292,7 @@ select {
   background: var(--nn-surface, #fff);
 }
 .nn-change-sheet-state {
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   color: var(--nn-muted);
   white-space: nowrap;
@@ -9305,7 +9315,7 @@ select {
   }
   #nn-navbar-actions .nn-new-element::before {
     content: '+';
-    font-size: 1rem;
+    font-size: var(--nn-text-body);
   }
   .nn-export-actions .nn-export-spacer {
     display: none;
@@ -9327,19 +9337,19 @@ select {
 }
 .nn-export-modal .nn-navbar-action-btn {
   padding: 7px 12px;
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
   font-weight: 600;
 }
 [data-nn='errors'] {
   color: var(--nn-status-rejected, #dc2626);
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
   padding: 8px 12px;
   background: #fef2f2;
   border: 1px solid #fecaca;
   border-radius: var(--nn-radius-sm, 6px);
 }
 [data-nn='copy-status'] {
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   color: var(--nn-muted);
 }
 /* Dock Changes button */
@@ -9349,7 +9359,7 @@ select {
   background: #f8fafc;
   color: #334155;
   font-family: inherit;
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 4px 10px;
   border-radius: 6px;
@@ -9371,14 +9381,14 @@ select {
   padding: 0.4em 0 0;
   border-top: none !important;
   font-family: var(--nn-mono, monospace);
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
   color: #94a3b8;
   overflow: hidden;
   min-width: 0;
 }
 .nn-card-path {
   font-family: var(--nn-mono, monospace);
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
   color: #94a3b8;
   border-top: none !important;
   padding: 0;
@@ -9423,11 +9433,11 @@ select {
   flex: 0 0 auto;
 }
 .nn-card-title-group .nn-card-concept-pill {
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   font-weight: 600;
 }
 .nn-card-title-group [data-ku-kind='element'] {
-  font-size: 1.15rem;
+  font-size: var(--nn-text-title-sm);
   font-weight: 700;
   line-height: 1.2;
 }
@@ -9440,7 +9450,7 @@ select {
 }
 .nn-card-outgoing-label,
 .nn-card-incoming-label {
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   color: var(--nn-muted);
   text-transform: none;
@@ -9460,7 +9470,7 @@ select {
   gap: 6px !important;
   padding: 5px 14px !important;
   border-radius: 9999px !important;
-  font-size: 0.8rem !important;
+  font-size: var(--nn-text-micro) !important;
   font-weight: 500 !important;
   color: #475569 !important;
   background: #f1f5f9 !important;
@@ -9514,7 +9524,7 @@ select {
   border: none;
   padding: 4px 12px;
   font: inherit;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   font-weight: 500;
   color: var(--muted);
   border-radius: calc(var(--radius-sm) - 2px);
@@ -9534,7 +9544,7 @@ select {
 }
 
 .nn-files-stat-pill {
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   font-family: var(--mono);
   color: var(--muted);
 }
@@ -9584,7 +9594,7 @@ select {
   gap: 8px;
   padding: 6px 8px;
   font-weight: 700;
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--muted);
@@ -9608,7 +9618,7 @@ select {
 .nn-category-header .chevron {
   display: inline-flex;
   transition: transform 0.15s ease;
-  font-size: 0.7rem;
+  font-size: var(--nn-text-micro);
 }
 
 .nn-category-header.collapsed .chevron {
@@ -9616,7 +9626,7 @@ select {
 }
 
 .nn-category-badge {
-  font-size: 0.7rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   background: var(--surface-2);
   padding: 1px 6px;
@@ -9642,7 +9652,7 @@ select {
   align-items: center;
   gap: 6px;
   padding: 5px 8px;
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   cursor: pointer;
   border-radius: var(--radius-sm);
   color: var(--text);
@@ -9678,14 +9688,14 @@ select {
 }
 
 .nn-file-size {
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-family: var(--mono);
   color: var(--muted);
   flex-shrink: 0;
 }
 
 .nn-badge-warning {
-  font-size: 0.68rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   padding: 1px 5px;
   border-radius: 999px;
@@ -9732,7 +9742,7 @@ select {
 }
 
 .nn-kpi-card .kpi-label {
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -9741,14 +9751,14 @@ select {
 }
 
 .nn-kpi-card .kpi-value {
-  font-size: 1.5rem;
+  font-size: var(--nn-text-display);
   font-weight: 800;
   color: var(--text);
   line-height: 1.2;
 }
 
 .nn-kpi-card .kpi-sub {
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
   margin-top: 4px;
 }
@@ -9758,7 +9768,7 @@ select {
   margin: 8px 0 0;
   padding-top: 8px;
   border-top: 1px solid var(--border);
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 
@@ -9782,7 +9792,7 @@ select {
 
 .nn-summary-title {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--nn-text-title);
   font-weight: 800;
   color: var(--text);
 }
@@ -9790,7 +9800,7 @@ select {
 .nn-summary-section,
 .nn-summary-attention h3 {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -9844,14 +9854,14 @@ select {
 
 .nn-summary-model-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--nn-text-body);
   font-weight: 700;
   color: var(--text);
 }
 
 .nn-summary-model-blueprint {
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -9861,7 +9871,7 @@ select {
 
 .nn-summary-model-stats {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 
@@ -9876,7 +9886,7 @@ select {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 12px;
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
 }
 
 .nn-summary-model-legend li {
@@ -9905,7 +9915,7 @@ select {
 
 .nn-summary-model-open {
   align-self: flex-start;
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   color: var(--primary);
   text-decoration: underline;
@@ -9924,7 +9934,7 @@ select {
 }
 
 .nn-summary-section-meta {
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
   font-weight: 500;
 }
@@ -9951,7 +9961,7 @@ select {
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  font-size: 0.88rem;
+  font-size: var(--nn-text-small);
   font-weight: 700;
   user-select: none;
   list-style: none;
@@ -9963,7 +9973,7 @@ select {
 
 .nn-summary-instance-group-head::before {
   content: '▶';
-  font-size: 0.7rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
   transition: transform 0.15s ease;
   display: inline-block;
@@ -9978,14 +9988,14 @@ select {
 }
 
 .nn-summary-group-container {
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
   font-family: var(--mono);
   font-weight: 400;
 }
 
 .nn-summary-group-count {
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   font-weight: 500;
   color: var(--muted);
 }
@@ -9993,7 +10003,7 @@ select {
 .nn-summary-group-blueprint {
   margin-left: auto;
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -10028,7 +10038,7 @@ select {
   gap: 12px;
   padding: 6px 8px;
   border-radius: 4px;
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
 }
 
 .nn-summary-instance-row:hover {
@@ -10044,14 +10054,14 @@ select {
 
 .nn-summary-instance-id {
   font-family: var(--mono);
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   font-weight: 600;
   color: var(--text);
 }
 
 .nn-summary-instance-title {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
 }
 
 .nn-summary-instance-meta-col {
@@ -10063,11 +10073,11 @@ select {
 
 .nn-summary-instance-elements {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
 }
 
 .nn-summary-instance-status {
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 1px 7px;
   border-radius: 999px;
@@ -10093,7 +10103,7 @@ select {
 }
 
 .nn-summary-instance-warning-badge {
-  font-size: 0.7rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   color: #92400e;
   background: #fef3c7;
@@ -10110,7 +10120,7 @@ select {
 
 .nn-summary-instance-open,
 .nn-summary-instance-link {
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   color: var(--primary);
   text-decoration: underline;
@@ -10121,7 +10131,7 @@ select {
 }
 
 .nn-summary-model-warning {
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   color: #b45309;
   background: #fffbeb;
@@ -10156,7 +10166,7 @@ select {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  font-size: 0.76rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 
@@ -10175,7 +10185,7 @@ select {
 .nn-origins-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
 }
 
 .nn-origins-table th,
@@ -10186,7 +10196,7 @@ select {
 }
 
 .nn-origins-table th {
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -10226,7 +10236,7 @@ select {
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--warning) 10%, var(--surface));
   border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--surface));
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   color: var(--text);
 }
 
@@ -10238,7 +10248,7 @@ select {
 }
 
 .nn-file-detail-breadcrumb {
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
   display: flex;
   align-items: center;
@@ -10265,14 +10275,14 @@ select {
 }
 
 .nn-file-detail-title {
-  font-size: 1.25rem;
+  font-size: var(--nn-text-title);
   font-weight: 700;
   margin: 0 0 6px 0;
   line-height: 1.3;
 }
 
 .nn-file-detail-path {
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   font-family: var(--mono);
   color: var(--muted);
   word-break: break-all;
@@ -10294,7 +10304,7 @@ select {
 }
 
 .nn-file-attr-label {
-  font-size: 0.7rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -10302,7 +10312,7 @@ select {
 }
 
 .nn-file-attr-value {
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   font-family: var(--mono);
   color: var(--text);
 }
@@ -10326,7 +10336,7 @@ select {
 }
 
 .nn-lineage-tier-title {
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -10366,7 +10376,7 @@ select {
   align-items: center;
   justify-content: space-between;
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text);
@@ -10476,12 +10486,12 @@ select {
 
 #nn-file-preview-dialog .nn-modal-header h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: var(--nn-text-title-sm);
   font-weight: 700;
 }
 
 #nn-file-preview-dialog .nn-file-preview-size {
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
   font-family: var(--mono);
   color: var(--muted);
 }
@@ -10494,7 +10504,7 @@ select {
   color: var(--muted);
   width: 28px;
   height: 28px;
-  font-size: 1.2rem;
+  font-size: var(--nn-text-title-sm);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -10526,7 +10536,7 @@ pre.nn-file-preview-code {
   padding: 16px;
   background: var(--surface-2);
   font-family: var(--mono);
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   overflow: auto;
   max-height: 60vh;
   border-radius: var(--radius-sm);
@@ -10556,7 +10566,7 @@ pre.nn-file-preview-code {
   padding: 20px;
   background: var(--surface-2);
   border-radius: var(--radius-sm);
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
   color: var(--muted);
 }
 
@@ -10668,7 +10678,7 @@ pre.nn-file-preview-code {
   border-radius: 6px;
   border-left: 3px solid currentColor;
   background: rgba(255, 255, 255, 0.03);
-  font-size: 12px;
+  font-size: var(--nn-text-micro);
   line-height: 1.45;
 }
 .request-item .request-text {
@@ -10683,7 +10693,7 @@ pre.nn-file-preview-code {
 }
 .request-status,
 .proc-request-status {
-  font-size: 10px;
+  font-size: var(--nn-text-micro);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 1px 6px;
@@ -10694,10 +10704,10 @@ pre.nn-file-preview-code {
 .proc-request-detail {
   display: block;
   color: rgba(230, 232, 238, 0.72);
-  font-size: 11px;
+  font-size: var(--nn-text-micro);
 }
 .request-reason {
-  font-size: 11px;
+  font-size: var(--nn-text-micro);
   font-style: italic;
   color: rgba(230, 232, 238, 0.6);
 }
@@ -10730,14 +10740,14 @@ pre.nn-file-preview-code {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 12px;
+  font-size: var(--nn-text-micro);
 }
 .proc-action-waiting {
   padding: 8px 10px;
   border-radius: 6px;
   background: rgba(224, 179, 65, 0.12);
   color: #e0b341;
-  font-size: 12px;
+  font-size: var(--nn-text-micro);
   line-height: 1.45;
 }
 
@@ -10749,7 +10759,7 @@ pre.nn-file-preview-code {
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.04);
   color: inherit;
-  font-size: 12px;
+  font-size: var(--nn-text-micro);
 }
 
 /* ---- Procedure runner UX (standalone console): response bar, inbox, answers ---- */
@@ -10778,7 +10788,7 @@ pre.nn-file-preview-code {
   min-width: 0;
 }
 .proc-response-hint {
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 .proc-response-name {
@@ -10788,7 +10798,7 @@ pre.nn-file-preview-code {
   flex-wrap: wrap;
 }
 .proc-response-name-label {
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 .proc-response-name-input {
@@ -10798,7 +10808,7 @@ pre.nn-file-preview-code {
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
   width: 160px;
   max-width: 100%;
 }
@@ -10815,7 +10825,7 @@ button.proc-start-submit {
   background: var(--primary);
   color: #ffffff;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: var(--nn-text-small);
   font-weight: 700;
   padding: 8px 16px;
   border-radius: var(--radius-sm);
@@ -10843,7 +10853,7 @@ button.proc-run-filter {
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 6px 12px;
   border-radius: var(--radius-sm);
@@ -10851,7 +10861,7 @@ button.proc-run-filter {
 }
 button.proc-run-filter {
   padding: 3px 10px;
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
 }
 button.proc-run-filter.active,
 button.proc-start-run.active {
@@ -10860,20 +10870,20 @@ button.proc-start-run.active {
 }
 button.proc-undo {
   padding: 2px 10px;
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
 }
 .proc-response-error:empty {
   display: none;
 }
 .proc-response-error {
   color: var(--danger);
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   flex-basis: 100%;
 }
 .proc-response-saved {
   color: var(--success);
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
   flex-basis: 100%;
 }
 
@@ -10897,7 +10907,7 @@ button.proc-undo {
   font-weight: 700;
 }
 .proc-inbox-count {
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   background: var(--primary);
   color: #ffffff;
@@ -10936,11 +10946,11 @@ button.proc-inbox-open:hover {
   font-weight: 700;
 }
 .proc-inbox-run {
-  font-size: 0.76rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 .proc-inbox-question {
-  font-size: 0.86rem;
+  font-size: var(--nn-text-small);
 }
 
 .proc-runs {
@@ -10968,7 +10978,7 @@ button.proc-run.proc-run-unsent {
   border: 1px dashed var(--warning);
   border-radius: var(--radius-sm);
   padding: 3px 8px;
-  font-size: 0.76rem;
+  font-size: var(--nn-text-micro);
   background: var(--warning-light);
 }
 .proc-start-form {
@@ -10991,7 +11001,7 @@ button.proc-run.proc-run-unsent {
   gap: 4px;
 }
 .proc-start-label {
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   color: var(--muted);
 }
@@ -11004,7 +11014,7 @@ button.proc-run.proc-run-unsent {
   font: inherit;
 }
 .proc-start-note {
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 .proc-start-field select,
@@ -11039,7 +11049,7 @@ button.proc-run.proc-run-unsent {
   }
 }
 .dag-edge-label {
-  font-size: 11px;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   fill: var(--muted);
 }
@@ -11061,7 +11071,7 @@ button.proc-run.proc-run-unsent {
   gap: 6px;
   margin-bottom: 8px;
   padding: 4px 0;
-  font-size: 13px;
+  font-size: var(--nn-text-micro);
 }
 .nn-map-crumb {
   background: none;
@@ -11088,7 +11098,7 @@ button.proc-run.proc-run-unsent {
 }
 .nn-map-dive-hint {
   margin-left: auto;
-  font-size: 11px;
+  font-size: var(--nn-text-micro);
   color: var(--muted, #64748b);
 }
 .dag-live {
@@ -11108,7 +11118,7 @@ button.proc-run.proc-run-unsent {
   background: var(--surface);
   color: var(--muted);
   font-family: var(--mono, monospace);
-  font-size: 10px;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
@@ -11124,7 +11134,7 @@ button.proc-run.proc-run-unsent {
   flex-wrap: wrap;
   gap: 4px 12px;
   padding: 2px 13px 8px;
-  font-size: 10.5px;
+  font-size: var(--nn-text-micro);
   color: var(--faint);
 }
 .dag-legend-item {
@@ -11191,13 +11201,13 @@ button.proc-run.proc-run-unsent {
 }
 
 .exec-step-question {
-  font-size: 1.02rem;
+  font-size: var(--nn-text-body);
   font-weight: 600;
   margin: 0;
 }
 .step-system-pill,
 .step-executor-pill {
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   padding: 3px 9px;
   border-radius: 999px;
@@ -11221,7 +11231,7 @@ button.proc-run.proc-run-unsent {
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   border-left: 3px solid var(--accent);
-  font-size: 0.88rem;
+  font-size: var(--nn-text-small);
 }
 .nn-procedure-view .proc-actions {
   display: flex;
@@ -11252,7 +11262,7 @@ button.proc-run.proc-run-unsent {
   width: 100%;
   box-sizing: border-box;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   line-height: 1.45;
   padding: 8px 10px;
   border: 1px solid var(--border-strong, var(--border, #cbd5e1));
@@ -11266,7 +11276,7 @@ button.proc-run.proc-run-unsent {
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
   resize: vertical;
 }
 .proc-decided {
@@ -11283,13 +11293,13 @@ button.proc-run.proc-run-unsent {
   font-weight: 700;
 }
 .proc-decided-state {
-  font-size: 0.76rem;
+  font-size: var(--nn-text-micro);
   color: var(--warning);
   font-weight: 700;
 }
 .proc-decided-reason {
   flex-basis: 100%;
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
   color: var(--muted);
 }
 .nn-procedure-view .proc-run-projected {
@@ -11297,19 +11307,19 @@ button.proc-run.proc-run-unsent {
   border-radius: var(--radius-sm);
   background: var(--warning-light);
   color: var(--text);
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
 }
 .proc-details > summary,
 .proc-agent-hint > summary,
 .proc-embed > summary {
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   color: var(--muted);
 }
 .proc-details {
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 .proc-details[open] {
@@ -11320,7 +11330,7 @@ button.proc-run.proc-run-unsent {
 .proc-agent-hint-text {
   white-space: pre-wrap;
   font-family: var(--mono);
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   background: var(--surface-2);
@@ -11347,7 +11357,7 @@ button.proc-run.proc-run-unsent {
   margin-top: 8px;
 }
 .proc-artifact-remote {
-  font-size: 0.74rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
   font-style: italic;
 }
@@ -11367,7 +11377,7 @@ button.proc-run.proc-run-unsent {
   align-items: baseline;
 }
 .proc-run-summary .exec-step-title {
-  font-size: 1.15rem;
+  font-size: var(--nn-text-title-sm);
 }
 
 /* ---- Procedure Runner B+D+E integrated layout ---- */
@@ -11432,7 +11442,7 @@ button.proc-run.proc-run-unsent {
 }
 .proc-runbar .id {
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
 }
 .proc-runbar .sep {
@@ -11459,7 +11469,7 @@ button.proc-run.proc-run-unsent {
   background: none;
   color: var(--muted);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   padding: 10px 12px;
   cursor: pointer;
@@ -11515,7 +11525,7 @@ button.proc-run.proc-run-unsent {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
 }
 .rail-col .dot.done {
@@ -11551,7 +11561,7 @@ button.proc-run.proc-run-unsent {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 13px;
+  font-size: var(--nn-text-micro);
   padding: 6px 8px;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -11568,7 +11578,7 @@ button.proc-run.proc-run-unsent {
 }
 .step-row .compact .d {
   color: var(--faint);
-  font-size: 11.5px;
+  font-size: var(--nn-text-micro);
 }
 
 /* Document definition */
@@ -11583,7 +11593,7 @@ button.proc-run.proc-run-unsent {
   background: var(--surface-2);
 }
 .doc-step h3 {
-  font-size: 13px;
+  font-size: var(--nn-text-micro);
   margin: 0 0 6px;
   display: flex;
   align-items: center;
@@ -11591,18 +11601,18 @@ button.proc-run.proc-run-unsent {
 }
 .doc-step h3 .idx {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--nn-text-micro);
   color: var(--faint);
 }
 .doc-step .instructions p {
-  font-size: 12.5px;
+  font-size: var(--nn-text-micro);
   margin: 0 0 6px;
   color: var(--text);
 }
 .doc-step .instructions ul {
   margin: 0 0 6px;
   padding-left: 18px;
-  font-size: 12.5px;
+  font-size: var(--nn-text-micro);
   color: var(--text);
 }
 .doc-step .instructions li {
@@ -11610,7 +11620,7 @@ button.proc-run.proc-run-unsent {
 }
 .doc-step .instructions code {
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: var(--nn-text-micro);
   background: var(--surface-3);
   padding: 1px 4px;
   border-radius: 3px;
@@ -11623,7 +11633,7 @@ table.proc-artifacts-table {
 }
 table.proc-artifacts-table thead th {
   text-align: left;
-  font-size: 10.5px;
+  font-size: var(--nn-text-micro);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--faint);
@@ -11635,7 +11645,7 @@ table.proc-artifacts-table thead th {
 table.proc-artifacts-table tbody td {
   padding: 9px 10px;
   border-bottom: 1px solid var(--border);
-  font-size: 12.5px;
+  font-size: var(--nn-text-micro);
 }
 table.proc-artifacts-table tbody tr:hover {
   background: var(--surface-2);
@@ -11659,7 +11669,7 @@ table.proc-artifacts-table tbody tr:hover {
 }
 .rail-hint {
   padding: 8px 13px 12px;
-  font-size: 11px;
+  font-size: var(--nn-text-micro);
   color: var(--faint);
 }
 .proc-detail-card .detail-inner {
@@ -11679,7 +11689,7 @@ table.proc-artifacts-table tbody tr:hover {
 
 .nn-versions-checked {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
   color: var(--muted);
 }
 
@@ -11695,26 +11705,26 @@ table.proc-artifacts-table tbody tr:hover {
 
 .nn-versions-section h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--nn-text-body);
   font-weight: 700;
   color: var(--text);
 }
 
 .nn-versions-hint {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 
 .nn-versions-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
 }
 
 .nn-versions-table th {
   text-align: left;
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -11738,7 +11748,7 @@ table.proc-artifacts-table tbody tr:hover {
   display: inline-block;
   border-radius: 999px;
   padding: 1px 9px;
-  font-size: 0.75rem;
+  font-size: var(--nn-text-micro);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -11772,14 +11782,14 @@ table.proc-artifacts-table tbody tr:hover {
 
 .nn-map-title {
   margin: 8px 0 0;
-  font-size: 1rem;
+  font-size: var(--nn-text-body);
   font-weight: 700;
   color: var(--text);
 }
 
 .nn-map-hint {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 
@@ -11791,7 +11801,7 @@ table.proc-artifacts-table tbody tr:hover {
 }
 
 .nn-map-picker {
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
   color: var(--text);
   display: flex;
   align-items: center;
@@ -11809,7 +11819,7 @@ table.proc-artifacts-table tbody tr:hover {
 
 .nn-map-words {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
   color: var(--text);
 }
 
@@ -11889,7 +11899,7 @@ table.proc-artifacts-table tbody tr:hover {
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 1.1rem;
+  font-size: var(--nn-text-title-sm);
   font-weight: 700;
   text-align: start;
   cursor: pointer;
@@ -11965,7 +11975,7 @@ button.proc-run.active {
 /* The stepper: a light list. Name in regular weight, status as a small tag, the
    number quiet; the weight of the page is carried by the open step's card. */
 .proc-step-toggle {
-  font-size: 0.9rem;
+  font-size: var(--nn-text-small);
   font-weight: 500;
 }
 .proc-step-toggle .badge {
@@ -11975,7 +11985,7 @@ button.proc-run.active {
   border-radius: 999px;
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: var(--nn-text-micro);
   font-weight: 500;
   line-height: 1.5;
 }
@@ -11996,12 +12006,12 @@ button.proc-run.active {
 }
 .proc-timeline-number {
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: var(--nn-text-micro);
   font-weight: 400;
   color: var(--muted);
 }
 .proc-flow-note {
-  font-size: 0.8rem;
+  font-size: var(--nn-text-micro);
   color: var(--muted);
 }
 
@@ -12011,14 +12021,14 @@ button.proc-run.active {
 .nn-ku-info-sub {
   margin: 0 0 12px;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
 }
 .nn-ku-info-list {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   gap: 8px 20px;
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--nn-text-small);
 }
 .nn-ku-info-term {
   color: var(--muted);
@@ -12039,7 +12049,7 @@ button.proc-run.active {
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 0.78rem;
+  font-size: var(--nn-text-micro);
 }
 .nn-tag-input:focus-visible {
   outline: 2px solid var(--primary);
@@ -12055,7 +12065,7 @@ button.proc-run.active {
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--nn-text-small);
 }
 .nn-files-sidebar .nn-input:focus-visible {
   outline: 2px solid var(--primary);
@@ -12109,7 +12119,7 @@ button.proc-run.active {
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--nn-text-micro);
   cursor: pointer;
 }
 .nn-map-leaf:hover {
@@ -12499,13 +12509,13 @@ button.proc-run.active {
     </dialog>
 
     <script type="application/json" id="nn-config">
-{"needs":["concept-rail","fulltext-search","matrix-grids","hash-routing","reference-popup","document-view","feedback-export"],"runtime":{"cdn":"https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@nn-console-v0.64.0/iNNfo/specs/bluepriNNts/console/nn-console.bundle.js","fallback":"https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/console/nn-console.bundle.js"},"defaultView":"domain"}
+{"needs":["concept-rail","fulltext-search","matrix-grids","hash-routing","reference-popup","document-view","feedback-export"],"runtime":{"cdn":"https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@nn-console-v0.65.2/iNNfo/specs/bluepriNNts/console/nn-console.bundle.js","fallback":"https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/console/nn-console.bundle.js"},"defaultView":"domain"}
 </script>
     <script type="application/json" id="nn-schema">
 {"concepts":[{"name":"Procedure Execution","type":"list","icon":"play-circle","color":"purple","weight":100,"storage":{"mode":"distributed","placement":"executions/{slug}/"},"fields":[{"name":"procedure","type":"address","scope":"concept","description":"Address of the Procedure or root Work this run executes (model@element or document@container).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"def_rev","type":"string","scope":"concept","description":"knowledge_version of the procedure model when the run started; the run follows that revision to the end.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"params","type":"string","scope":"concept","description":"Opaque parameters the run was started with (a JSON object of slot values).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"seq","type":"number","scope":"concept","description":"The run's write counter. Every runner changeset increments it with a from guard, so any concurrent write to the same run conflicts the whole changeset.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"state","type":"select","options":["open","paused","completed","failed","cancelled"],"scope":"concept","description":"The stored lifecycle of the run. The status the tools return is the fold's derived RunStatus, which reports paused when this is paused.","transitions":{"":["open"],"open":["paused","completed","failed","cancelled"],"paused":["open","completed","failed","cancelled"],"completed":[],"failed":[],"cancelled":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Step Run","type":"list","icon":"list-checks","color":"blue","weight":90,"description":"One row per step of the procedure. Its slug is the step slug. Mutable: the runner writes it as the step advances.","fields":[{"name":"status","type":"select","options":["pending","active","waiting","done","failed"],"scope":"concept","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed). Each row only takes the edges of its own lifecycle. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"attempt","type":"number","scope":"concept","description":"The attempt number of the current claim, 1 for the first try.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"outcome","type":"string","scope":"concept","description":"The answer the step recorded; for a decision step, the token its next conditions test.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"next","type":"string","scope":"concept","description":"The slug of the step this one moved to.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"inputs","type":"string","scope":"concept","description":"The input artifact revisions frozen at claim time: a JSON object mapping artifact slug to its rev.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"waiting_on","type":"string","scope":"concept","description":"What a waiting step waits on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"failure","type":"string","scope":"concept","description":"Why the step failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"claimed_at","type":"string","scope":"concept","description":"When the current attempt was claimed (ISO 8601).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"timeout_ms","type":"number","scope":"concept","description":"The budget of the current attempt. At most 300000.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"holder","type":"string","scope":"concept","description":"Who holds the claim, as pid@host. For an engine step it is the process that runs the command, not the server that reports it. A step whose holder is gone is a crash, derived from it; a claim that names neither a holder nor a claim time is broken, never a permanent holder.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"evidence","type":"string","scope":"concept","description":"The applied change ids a human step observed, such as the verdicts it waited on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Run Artifact","type":"list","icon":"package","color":"orange","weight":80,"description":"One row per artifact of the procedure. Its slug is the artifact slug. Mutable: verification and staleness move it.","fields":[{"name":"status","type":"select","options":["expected","produced","validated","rejected"],"scope":"concept","description":"The stored lifecycle of an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle.","transitions":{"":["expected"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"How the artifact is carried: a file, a model element, or a changeset of several elements.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Input","type":"list","icon":"log-in","color":"grey","weight":70,"description":"A computed or entered input the run recorded, with its revision. One row per input name.","fields":[{"name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Step Request","type":"list","icon":"inbox","color":"yellow","weight":60,"description":"One row per human request that an action be recorded on a step. Intent, never state: only the runner consumes it, and it never moves a Step Run row by itself.","fields":[{"name":"action","type":"select","options":["start","wait","complete","fail"],"scope":"concept","description":"The action the person asked the runner to record on the step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"step","type":"string","scope":"concept","description":"The slug of the step the request names.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"base_seq","type":"number","scope":"concept","description":"The run's header seq when the request was made. A consumer refuses the request when the run has advanced past it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"reason","type":"string","scope":"concept","description":"Why the request was rejected or found stale, as the runner reported it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"request_status","type":"select","options":["pending","done","stale","rejected"],"scope":"concept","description":"The life of a request: pending while nobody consumed it, then done, stale or rejected. A resolved request never returns to pending.","transitions":{"":["pending"],"pending":["done","stale","rejected"],"done":[],"stale":[],"rejected":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"requested_outcome","type":"string","scope":"concept","description":"The outcome the person asked for when the request names a branching step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"requested_value","type":"string","scope":"concept","description":"The value the person attached to the request, such as who a step waits on or why it failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"requested_outputs","type":"string","scope":"concept","description":"The deliverables a person wrote for the step's file outputs, as one line of JSON: artifact slug -> { \"name\"?: string, \"text\": string }. Valid only with action complete; each text is UTF-8 and at most 256 KiB.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}}],"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"name":"Procedure","type":"list","icon":"workflow","color":"teal","weight":110,"fields":[{"name":"category","type":"select","options":["ingestion","transformation","audit","reporting","custom"],"scope":"concept","description":"Functional classification of the procedure workflow.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"summary","type":"string","scope":"concept","description":"Mandatory concise summary of the workflow intent and transformation steps.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"inputs_required","type":"string","scope":"concept","description":"References to required Source or Model concepts consumed as inputs.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"outputs_expected","type":"string","scope":"concept","description":"References to expected Artifact concepts produced by the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"executed_by","type":"string","scope":"concept","description":"Reference to responsible agent or functional role executing the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"procedure_model","type":"knowledge","scope":"concept","description":"Link to concrete procedure definition or executable stepper model _NN.md.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}}],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Work","type":"list","icon":"list-ordered","color":"blue","weight":100,"fields":[{"name":"step_type","type":"select","options":["task","decision","event"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"parent","type":"reference","target_concepts":["Work"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"next","type":"reference","target_concepts":["Work"],"scope":"concept","description":"Step or steps that may follow. A decision step lists several targets as an inline list (next:: [@approve, @decline], addresses like every reference field); the run records the one it took.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"condition","type":"string","scope":"concept","description":"Guard to enter the step. Evaluable forms are outcome == \u003ctoken> and [[artifact]] validated; anything else is prose the actor asserts.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"decision","type":"string","scope":"concept","description":"Question a decision step asks; its answer is the outcome the run records.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"command","type":"string","scope":"concept","description":"Shell command an engine step runs; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"produces","type":"string","scope":"concept","description":"Path or address the step produces; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"executor","type":"select","options":["human","agent","engine"],"scope":"concept","description":"Who performs the step. A step without executor is performed by an agent.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"input","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"output","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"output_status","type":"string","scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"tool","type":"reference","target_concepts":["Tools"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}}],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Artifact","type":"list","icon":"package","color":"orange","weight":80,"fields":[{"name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"What the artifact is: a file on disk (default), an element in a domain model, or an applied changeset.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"at","type":"string","scope":"concept","description":"Declared path or address for the artifact; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"verify","type":"string","scope":"concept","description":"How the artifact is checked: file:\u003cglob>, element:\u003caddress>, command:\u003ccmd> or human. Defaults from kind and at.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"required","type":"boolean","scope":"concept","description":"Whether a run must produce the artifact when its producer is on the walked path (default true).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}}],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Tools","type":"list","icon":"wrench","color":"orange","weight":70,"fields":[{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}}],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Roles","type":"list","icon":"users","color":"green","weight":60,"fields":[{"name":"scope","type":"select","options":["internal","external"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}}],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Concept 1","type":"list","icon":"box","color":"blue","weight":100,"description":"Baseline domain concept holding the 1A/1B/1C element triangle. Concept 1 carries every field type and anchors the Concept 1-Concept 2 matrix.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"manual","type":"markdown_file","scope":"concept","description":"External markdown file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"photo","type":"image","scope":"concept","description":"Image attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"demo_video","type":"video","scope":"concept","description":"Downloaded video asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"voice_note","type":"audio","scope":"concept","description":"Downloaded and transcribed audio asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"sibling","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"Reference to an element of Concept 2.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"status","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"Lifecycle status of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Concept 2","type":"list","icon":"boxes","color":"green","weight":90,"description":"Owner concept holding the 2A/2B elements that reference Concept 1. Concept 2 closes the matrix crossings and proves bidirectional reference resolution.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"owner","type":"reference","target_concepts":["Concept 1"],"scope":"concept","description":"Reference back to an element of Concept 1.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Edge Cases","type":"list","icon":"flask-conical","color":"amber","weight":80,"description":"Quarantined stress probes with literal names describing the case under test: traceability probes, the very-long-description probe, the file probe, the artifact-as-source probe, the broken reference probe, and the sourceless probe.","fields":[{"name":"summary","type":"string","scope":"concept","description":"One-line summary of the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"photo","type":"image","scope":"concept","description":"Image attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"Modification Cases","type":"list","icon":"git-pull-request","color":"violet","weight":70,"description":"One field per Level-1 field type, so the review pass can exercise every kind of modification (a field of each type) with a self-describing name.","fields":[{"name":"string_field","type":"string","scope":"concept","description":"A string field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"number_field","type":"number","scope":"concept","description":"A number field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"boolean_field","type":"boolean","scope":"concept","description":"A boolean field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"select_field","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"A select field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"reference_field","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"A reference field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"image_field","type":"image","scope":"concept","description":"An image field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"file_field","type":"file","scope":"concept","description":"A file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"video_field","type":"video","scope":"concept","description":"A video field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"audio_field","type":"audio","scope":"concept","description":"An audio field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"url_field","type":"url","scope":"concept","description":"A URL field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"markdown_inline_field","type":"markdown_inline","scope":"concept","description":"A markdown_inline field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"markdown_file_field","type":"markdown_file","scope":"concept","description":"A markdown_file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"knowledge_field","type":"knowledge","target_blueprint":"TestLab","scope":"concept","description":"A knowledge field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"address_field","type":"address","scope":"concept","description":"An address field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"citation_field","type":"citation","scope":"concept","description":"A citation field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"fields":[{"concept":"Procedure Execution","name":"procedure","type":"address","scope":"concept","description":"Address of the Procedure or root Work this run executes (model@element or document@container).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"def_rev","type":"string","scope":"concept","description":"knowledge_version of the procedure model when the run started; the run follows that revision to the end.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"params","type":"string","scope":"concept","description":"Opaque parameters the run was started with (a JSON object of slot values).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"seq","type":"number","scope":"concept","description":"The run's write counter. Every runner changeset increments it with a from guard, so any concurrent write to the same run conflicts the whole changeset.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure Execution","name":"state","type":"select","options":["open","paused","completed","failed","cancelled"],"scope":"concept","description":"The stored lifecycle of the run. The status the tools return is the fold's derived RunStatus, which reports paused when this is paused.","transitions":{"":["open"],"open":["paused","completed","failed","cancelled"],"paused":["open","completed","failed","cancelled"],"completed":[],"failed":[],"cancelled":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"status","type":"select","options":["pending","active","waiting","done","failed"],"scope":"concept","description":"The stored lifecycle of a step row (pending, active, waiting, done, failed). Each row only takes the edges of its own lifecycle. A step row goes back to pending only when a loop's back-edge reopens it.","transitions":{"":["pending"],"pending":["active","failed","done"],"active":["waiting","done","failed","pending"],"waiting":["active","done","failed","pending"],"failed":["active"],"done":["active","pending"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"attempt","type":"number","scope":"concept","description":"The attempt number of the current claim, 1 for the first try.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"outcome","type":"string","scope":"concept","description":"The answer the step recorded; for a decision step, the token its next conditions test.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"next","type":"string","scope":"concept","description":"The slug of the step this one moved to.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"inputs","type":"string","scope":"concept","description":"The input artifact revisions frozen at claim time: a JSON object mapping artifact slug to its rev.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"waiting_on","type":"string","scope":"concept","description":"What a waiting step waits on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"failure","type":"string","scope":"concept","description":"Why the step failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"claimed_at","type":"string","scope":"concept","description":"When the current attempt was claimed (ISO 8601).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"timeout_ms","type":"number","scope":"concept","description":"The budget of the current attempt. At most 300000.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"holder","type":"string","scope":"concept","description":"Who holds the claim, as pid@host. For an engine step it is the process that runs the command, not the server that reports it. A step whose holder is gone is a crash, derived from it; a claim that names neither a holder nor a claim time is broken, never a permanent holder.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Run","name":"evidence","type":"string","scope":"concept","description":"The applied change ids a human step observed, such as the verdicts it waited on.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"status","type":"select","options":["expected","produced","validated","rejected"],"scope":"concept","description":"The stored lifecycle of an artifact row (expected, produced, validated, rejected). Each row only takes the edges of its own lifecycle.","transitions":{"":["expected"],"expected":["produced","validated","rejected"],"produced":["validated","rejected"],"validated":["produced"],"rejected":["produced"]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"How the artifact is carried: a file, a model element, or a changeset of several elements.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Run Artifact","name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Input","name":"value","type":"string","scope":"list","description":"Where the artifact is (a path, a model@element address, or a changeset path) or the recorded value of an input.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Input","name":"rev","type":"string","scope":"list","description":"The revision that pins the artifact or input (sha256 for a file, the element's origin change id for an element, or the applied change for a changeset).","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"action","type":"select","options":["start","wait","complete","fail"],"scope":"concept","description":"The action the person asked the runner to record on the step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"step","type":"string","scope":"concept","description":"The slug of the step the request names.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"base_seq","type":"number","scope":"concept","description":"The run's header seq when the request was made. A consumer refuses the request when the run has advanced past it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"reason","type":"string","scope":"concept","description":"Why the request was rejected or found stale, as the runner reported it.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"request_status","type":"select","options":["pending","done","stale","rejected"],"scope":"concept","description":"The life of a request: pending while nobody consumed it, then done, stale or rejected. A resolved request never returns to pending.","transitions":{"":["pending"],"pending":["done","stale","rejected"],"done":[],"stale":[],"rejected":[]},"declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"requested_outcome","type":"string","scope":"concept","description":"The outcome the person asked for when the request names a branching step.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"requested_value","type":"string","scope":"concept","description":"The value the person attached to the request, such as who a step waits on or why it failed.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Step Request","name":"requested_outputs","type":"string","scope":"concept","description":"The deliverables a person wrote for the step's file outputs, as one line of JSON: artifact slug -> { \"name\"?: string, \"text\": string }. Valid only with action complete; each text is UTF-8 and at most 256 KiB.","declaredBy":{"family":"executions-app","version":"V_0-7-2"}},{"concept":"Procedure","name":"category","type":"select","options":["ingestion","transformation","audit","reporting","custom"],"scope":"concept","description":"Functional classification of the procedure workflow.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"summary","type":"string","scope":"concept","description":"Mandatory concise summary of the workflow intent and transformation steps.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"inputs_required","type":"string","scope":"concept","description":"References to required Source or Model concepts consumed as inputs.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"outputs_expected","type":"string","scope":"concept","description":"References to expected Artifact concepts produced by the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"executed_by","type":"string","scope":"concept","description":"Reference to responsible agent or functional role executing the procedure.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"procedure_model","type":"knowledge","scope":"concept","description":"Link to concrete procedure definition or executable stepper model _NN.md.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Procedure","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"step_type","type":"select","options":["task","decision","event"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"parent","type":"reference","target_concepts":["Work"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"next","type":"reference","target_concepts":["Work"],"scope":"concept","description":"Step or steps that may follow. A decision step lists several targets as an inline list (next:: [@approve, @decline], addresses like every reference field); the run records the one it took.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"condition","type":"string","scope":"concept","description":"Guard to enter the step. Evaluable forms are outcome == \u003ctoken> and [[artifact]] validated; anything else is prose the actor asserts.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"decision","type":"string","scope":"concept","description":"Question a decision step asks; its answer is the outcome the run records.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"command","type":"string","scope":"concept","description":"Shell command an engine step runs; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"produces","type":"string","scope":"concept","description":"Path or address the step produces; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"executor","type":"select","options":["human","agent","engine"],"scope":"concept","description":"Who performs the step. A step without executor is performed by an agent.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"input","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"output","type":"reference","target_concepts":["Artifact"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"output_status","type":"string","scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"tool","type":"reference","target_concepts":["Tools"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Work","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"kind","type":"select","options":["file","element","changeset"],"scope":"concept","description":"What the artifact is: a file on disk (default), an element in a domain model, or an applied changeset.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"at","type":"string","scope":"concept","description":"Declared path or address for the artifact; {slot} placeholders take the run's parameters.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"verify","type":"string","scope":"concept","description":"How the artifact is checked: file:\u003cglob>, element:\u003caddress>, command:\u003ccmd> or human. Defaults from kind and at.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"required","type":"boolean","scope":"concept","description":"Whether a run must produce the artifact when its producer is on the walked path (default true).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Artifact","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Tools","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Tools","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Roles","name":"scope","type":"select","options":["internal","external"],"scope":"concept","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Roles","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Roles","name":"complexity","type":"number","scope":"*","widget":"scale","widgetConfig":{"min":0,"max":100,"step":5},"description":"Relative complexity score (0-100 scale, step 5).","declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"concept":"Concept 1","name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"manual","type":"markdown_file","scope":"concept","description":"External markdown file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"photo","type":"image","scope":"concept","description":"Image attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"demo_video","type":"video","scope":"concept","description":"Downloaded video asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"voice_note","type":"audio","scope":"concept","description":"Downloaded and transcribed audio asset attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"sibling","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"Reference to an element of Concept 2.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"status","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"Lifecycle status of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 1","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"summary","type":"string","scope":"concept","description":"One-line summary of the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"owner","type":"reference","target_concepts":["Concept 1"],"scope":"concept","description":"Reference back to an element of Concept 1.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Concept 2","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"summary","type":"string","scope":"concept","description":"One-line summary of the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"long_description","type":"markdown_inline","scope":"concept","description":"Very long inline description used to stress-test rendering of large text fields.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"photo","type":"image","scope":"concept","description":"Image attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"attachment","type":"file","scope":"concept","description":"Generic file attached to the edge-case element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Edge Cases","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"string_field","type":"string","scope":"concept","description":"A string field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"number_field","type":"number","scope":"concept","description":"A number field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"boolean_field","type":"boolean","scope":"concept","description":"A boolean field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"select_field","type":"select","options":["draft","reviewed","published"],"scope":"concept","description":"A select field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"reference_field","type":"reference","target_concepts":["Concept 2"],"scope":"concept","description":"A reference field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"image_field","type":"image","scope":"concept","description":"An image field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"file_field","type":"file","scope":"concept","description":"A file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"video_field","type":"video","scope":"concept","description":"A video field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"audio_field","type":"audio","scope":"concept","description":"An audio field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"url_field","type":"url","scope":"concept","description":"A URL field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"markdown_inline_field","type":"markdown_inline","scope":"concept","description":"A markdown_inline field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"markdown_file_field","type":"markdown_file","scope":"concept","description":"A markdown_file field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"knowledge_field","type":"knowledge","target_blueprint":"TestLab","scope":"concept","description":"A knowledge field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"address_field","type":"address","scope":"concept","description":"An address field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"citation_field","type":"citation","scope":"concept","description":"A citation field, one of the modification cases.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}},{"concept":"Modification Cases","name":"tags","type":"select","scope":"*","multiple":true,"description":"Open vocabulary ad-hoc tags and classification labels.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"markers":[],"matrices":[{"name":"work-roles matrix","source":"Work","target":"Roles","params":"","values":["Responsible","Accountable","Consulted","Informed"],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"work-tools matrix","source":"Work","target":"Tools","params":"","values":["Uses"],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"work-artifacts matrix","source":"Work","target":"Artifact","params":"","values":["Creates","Modifies","Validates","Reviews"],"declaredBy":{"family":"procedures-app","version":"V_0-7-0"}},{"name":"Concept 1-Concept 2 Matrix","source":"Concept 1","target":"Concept 2","params":"","values":["relevant","archived"],"widgetType":"set","description":"Scores how relevant each Concept 1 element is to each Concept 2 element.","declaredBy":{"family":"testlab-coverage-app","version":"V_0-1-1"}}],"procedures":[{"id":"usage","name":"Getting started","path":"procedures/usage_procedures_NN.md","status":"selected"},{"id":"usage","name":"Getting started","path":"procedures/usage_procedures_NN.md","status":"shadowed","shadowed_by":"procedures_V_0-6-1"}]}
 </script>
     <script type="application/x-nn-deflate-base64" id="nn-model">
-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
+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
 </script>
     <script type="application/json" id="nn-procedure-core"></script>
     <script type="application/json" id="nn-drafts">
@@ -12519,7 +12529,7 @@ button.proc-run.active {
 /*!
  * nn-console.bundle.js — single-file console runtime + renderers.
  * Generated by scripts/build-console-bundle.mjs — DO NOT EDIT BY HAND.
- * Version 0.64.0. Regenerate on every console release.
+ * Version 0.65.2. Regenerate on every console release.
  * Composed (in dependency order): nn-slug.generated.js, nn-address.generated.js, vendor/preact.umd.js, vendor/htm.umd.js, nn-preact-init.js, vendor/chart.umd.min.js, vendor/chartjs-chart-treemap.min.js, visuals.js, nn-icons.js, ui-kit.js, review.js, studio.js, nn-fsa.js, nn-procedure-fold.generated.js, nn-procedure-core.js, nn-runtime.js, render-procedure-stepper.js.
  *
  * Third-Party Notices & Attribution:
@@ -19251,7 +19261,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     return 'fb-' + String(max + 1).padStart(3, '0')
   }
 
-  function normalizeDraft(raw, id) {
+  function normalizeDraft(raw, id, modelId) {
     var d = isObject(raw) ? raw : {}
     var draft = {
       id: id || (typeof d.id === 'string' ? d.id : ''),
@@ -19291,6 +19301,23 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
     if (d.run != null && d.run !== '') draft.run = String(d.run)
     if (d.path != null && d.path !== '') draft.path = String(d.path)
     if (d.choice != null && d.choice !== '') draft.choice = String(d.choice)
+    // Canonical unit address of the target: `<model>@<slug>`, plus `&<field>` when the draft
+    // edits one field. A record that predates the field is derived from its own keys, so the
+    // decoration can match exactly instead of guessing by suffix.
+    var fieldPart = d.field && d.field !== '__name' ? '&' + String(d.field) : ''
+    if (d.address != null && d.address !== '') {
+      draft.address = String(d.address)
+    } else if (
+      d.knowledge_id != null &&
+      d.element_slug != null &&
+      d.knowledge_id !== '' &&
+      d.element_slug !== ''
+    ) {
+      draft.address = String(d.knowledge_id) + '@' + String(d.element_slug) + fieldPart
+    } else if (d.element_id != null && d.element_id !== '') {
+      var model = modelId != null ? String(modelId) : ''
+      draft.address = (model ? model + '@' : '') + String(d.element_id) + fieldPart
+    }
     return draft
   }
 
@@ -19361,7 +19388,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       }
       var drafts = Array.isArray(parsed.drafts)
         ? parsed.drafts.map(function (d) {
-            return normalizeDraft(d)
+            return normalizeDraft(d, null, modelId)
           })
         : []
       return {
@@ -19394,7 +19421,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       })
       var modified = false
       opts.initialDrafts.forEach(function (d) {
-        var norm = normalizeDraft(d)
+        var norm = normalizeDraft(d, null, modelId)
         if (!norm) return
         if (norm.id && indexById[norm.id] !== undefined) {
           state.drafts[indexById[norm.id]] = norm
@@ -19534,7 +19561,7 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
                   prev.element_slug === String(raw.element_slug) &&
                   prev.gate === String(raw.gate)
                 ) {
-                  var replaced = normalizeDraft(raw, prev.id)
+                  var replaced = normalizeDraft(raw, prev.id, modelId)
                   s.drafts[i] = replaced
                   return replaced
                 }
@@ -19545,13 +19572,13 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
               for (var h = 0; h < s.drafts.length; h++) {
                 var held = s.drafts[h]
                 if (held && held.kind === 'run_handoff' && held.run === String(raw.run)) {
-                  var rechosen = normalizeDraft(raw, held.id)
+                  var rechosen = normalizeDraft(raw, held.id, modelId)
                   s.drafts[h] = rechosen
                   return rechosen
                 }
               }
             }
-            var draft = normalizeDraft(raw, raw.id || nextDraftId(s.drafts))
+            var draft = normalizeDraft(raw, raw.id || nextDraftId(s.drafts), modelId)
             s.drafts.push(draft)
             return draft
           }),
@@ -19944,8 +19971,12 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       if (payload.comment !== undefined && payload.comment !== null) {
         draft.comment = String(payload.comment)
       }
-      // Canonical unit address of the draft target (element, or element&field).
-      draft.address = draft.field ? `${draft.element_id}&${draft.field}` : draft.element_id
+      // Canonical unit address of the draft target: the element badge, or that badge plus
+      // `&<field>` when the draft edits one field. `__name` targets the element itself.
+      draft.address = elementAddress(el)
+      if (draft.field && draft.field !== '__name' && draft.address) {
+        draft.address += '&' + draft.field
+      }
       var saved = store.addDraft(draft)
       showChangeToast()
       refreshCount()
@@ -20759,32 +20790,15 @@ if (typeof globalThis !== "undefined") globalThis.nnAddress = nnAddress;
       var host = root || doc
       if (!host.querySelectorAll) return
       var drafts = store.drafts() || []
-      var raw = {}
-      drafts.forEach(function (d) {
-        if (!d) return
-        var fieldPart = d.field && d.field !== '__name' ? '&' + String(d.field) : ''
-        var key = d.address || (d.element_id ? '@' + String(d.element_id) + fieldPart : '')
-        if (!key) return
-        raw[key] = (raw[key] || 0) + 1
-      })
-      // Resolve legacy keys (drafts without `address`) onto each badge's
-      // canonical address through a suffix match, then let the kit paint.
+      // Every draft carries its canonical address (normalizeDraft derives one for records
+      // that predate the field), so decoration is an exact match. A suffix scan attributed a
+      // draft to another element — or another model's row — whenever two addresses shared a
+      // tail, which is worse than painting nothing.
       var counts = {}
-      Array.prototype.forEach.call(
-        host.querySelectorAll('[data-nn-component="ku-unit"][data-ku-address]'),
-        function (badge) {
-          var address = badge.getAttribute('data-ku-address') || ''
-          if (raw[address] != null) {
-            counts[address] = raw[address]
-            return
-          }
-          var found = 0
-          Object.keys(raw).forEach(function (key) {
-            if (address && address.slice(-key.length) === key) found += raw[key]
-          })
-          if (found) counts[address] = found
-        },
-      )
+      drafts.forEach(function (d) {
+        if (!d || !d.address) return
+        counts[d.address] = (counts[d.address] || 0) + 1
+      })
       UI.setUnitChanges(host, counts, {
         onChanges: function (address) {
           if (typeof openInfo === 'function') openInfo(anchorFromDescriptor({ address: address }))
@@ -24153,8 +24167,8 @@ if (typeof window !== 'undefined') {
   // runtime and the release URL parsed from that banner cannot disagree. A
   // source-module load (tests, direct use) reads that same package file instead. The
   // marker below only exists in the source; it never reaches a composed bundle.
-  var CONSOLE_VERSION = '0.64.0'
-  if (CONSOLE_VERSION === '0.64.0' && typeof require === 'function') {
+  var CONSOLE_VERSION = '0.65.2'
+  if (CONSOLE_VERSION === '0.65.2' && typeof require === 'function') {
     try {
       CONSOLE_VERSION = String(require('./package.json').version)
     } catch {
