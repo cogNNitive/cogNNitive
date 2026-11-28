@@ -69,6 +69,16 @@ describe('validate_model workspace mode — sources:: Citations', () => {
   it('reports a dangling sources:: file as an error; a resolvable legacy ref warns deprecation only', async () => {
     const result = await validateKnowledge(rootDir, 'Plan_V_1-0-0_NN', undefined, undefined, true)
 
+    // The intermittent failure this suite is known for is an EMPTY diagnostic list, not a
+    // wrong message: the validator never checked the citations because the schema did not
+    // resolve. Name that cause here instead of failing later on `expect(undefined)`, which
+    // reads as a citation bug and sent the first investigation after the wrong thing (#816).
+    if (result.errors.length + result.warnings.length === 0) {
+      throw new Error(
+        'the validator returned no diagnostics at all: the model schema did not resolve, so no citation was checked (#816)',
+      )
+    }
+
     const dangling = [...result.errors, ...result.warnings].find(
       (d) => d.message.includes('missing.md') && /dangling/i.test(d.message),
     )
@@ -212,6 +222,11 @@ sources:: [missing_folder/report.md#summary, sources/import/annual_repots.md#int
     )
 
     const result = await validateKnowledge(rootDir, 'Error_V_1-0-0_NN', undefined, undefined, true)
+    if (result.errors.length + result.warnings.length === 0) {
+      throw new Error(
+        'the validator returned no diagnostics at all: the model schema did not resolve, so no citation was checked (#816)',
+      )
+    }
     const danglingErrors = result.errors.filter((e) => /dangling/i.test(e.message))
     expect(danglingErrors.length).toBeGreaterThanOrEqual(2)
 
