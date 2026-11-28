@@ -151,22 +151,20 @@ describe('procedure artifact paths stay inside the domain', () => {
     expect(res).toMatchObject({ ok: false, code: 'ARTIFACT_PATH_OUTSIDE_DOMAIN' })
   })
 
-  it('refuses an at that targets a *_NN.md model and leaves the model untouched', async () => {
-    const model = join(root, 'domaiNN_NN.md')
-    const before = readFileSync(model, 'utf-8')
-    await start('domaiNN_NN')
+  it('writes a stage model deliverable through its own run without a changeset', async () => {
+    // A procedure's deliverable can legitimately be a `*_NN.md` file the run produces (the
+    // Document SOP pilot does exactly this). Containment, not the name, is the boundary:
+    // the run writes the file it declared, and nothing here rewrites an existing model.
+    const deliverable = join(root, 'procedures', 'review_procedures_NN.md')
+    mkdirSync(join(root, 'procedures'), { recursive: true })
+    await start('procedures/review_procedures_NN')
     const res = await procedureRecord(root, {
       run: 'c1',
       action: 'complete',
-      outputs: { deliverable: { text: 'overwritten' } },
+      outputs: { deliverable: { text: '# NN Work\n' } },
     })
-    expect(res).toMatchObject({
-      ok: false,
-      code: 'ARTIFACT_PATH_IS_MODEL',
-      artifact: 'deliverable',
-      path: 'domaiNN_NN.md',
-    })
-    expect(readFileSync(model, 'utf-8')).toBe(before)
+    expect(res).toMatchObject({ ok: true })
+    expect(readFileSync(deliverable, 'utf-8')).toBe('# NN Work\n')
   })
 
   it('refuses an absolute value without hashing it, even one inside the root', async () => {
@@ -186,7 +184,7 @@ describe('procedure artifact paths stay inside the domain', () => {
     }
   })
 
-  it('refuses a model value on record', async () => {
+  it('records a model path as an artifact value, inside the domain', async () => {
     await start('report')
     const res = await procedureRecord(root, {
       run: 'c1',
@@ -195,7 +193,7 @@ describe('procedure artifact paths stay inside the domain', () => {
       field: 'deliverable',
       value: 'procedures/contained_procedures_NN.md',
     })
-    expect(res).toMatchObject({ ok: false, code: 'ARTIFACT_PATH_IS_MODEL' })
+    expect(res).toMatchObject({ ok: true })
   })
 
   it('the console export resolves value, then at, then verify, and never embeds a model', () => {
