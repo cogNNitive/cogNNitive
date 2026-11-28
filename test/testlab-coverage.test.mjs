@@ -161,8 +161,12 @@ describe('TestLab coverage domain fixtures', () => {
 
   it('keeps the procedure fixture runnable: human steps and a run folded at the decision', () => {
     const model = modelOf(read('domaiNN_console.html'))
-    const [entry] = model.procedureGraphs ?? []
-    assert.ok(entry, 'the console carries the procedure graph')
+    // The guided procedure, not just whichever graph the export emits first: the fixture now
+    // ships other procedures on purpose, and their agent steps are part of what they cover.
+    const entry = (model.procedureGraphs ?? []).find((e) =>
+      (e.runs ?? []).some((r) => r.id === 'verify-lineage-1'),
+    )
+    assert.ok(entry, 'the console carries the guided procedure and its run')
     // A step without `executor` is an agent step, so the console offers no answer on it:
     // only the instruction to copy for the agent. Every TestLab step is a person's step.
     for (const [slug, step] of Object.entries(entry.graph.steps)) {
