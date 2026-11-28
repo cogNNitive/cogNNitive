@@ -48,8 +48,8 @@ function buildFixtureRepo() {
     'utf-8',
   );
 
-  // The hand-typed-fact scan reads docs/innfo + docs/skills; keep the scanned
-  // tree present with safe content so the fixture mirrors the real repo layout.
+  // The hand-typed-fact scan reads docs/innfo; keep the scanned tree present
+  // with safe content so the fixture mirrors the real repo layout.
   const innfoDir = path.join(root, 'docs', 'innfo');
   fs.mkdirSync(innfoDir, { recursive: true });
   fs.writeFileSync(path.join(innfoDir, 'llms-full.txt'), 'No hand-typed tool counts here.\n', 'utf-8');
