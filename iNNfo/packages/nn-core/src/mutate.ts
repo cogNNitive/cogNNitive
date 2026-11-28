@@ -900,7 +900,7 @@ function addElement(
   return { success: true }
 }
 
-function matchesElement(e: ElementNode, target: string): boolean {
+export function matchesElement(e: ElementNode, target: string): boolean {
   const tLower = target.toLowerCase()
   if (e.name.toLowerCase() === tLower) return true
   if (e.slug && e.slug.toLowerCase() === tLower) return true

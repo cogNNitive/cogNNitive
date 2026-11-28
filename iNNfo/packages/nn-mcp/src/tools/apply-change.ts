@@ -10,7 +10,7 @@ import {
   open,
 } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
-import { basename, dirname, join, relative, isAbsolute } from 'node:path'
+import { basename, dirname, join, relative, isAbsolute, resolve } from 'node:path'
 import {
   parseKnowledge,
   serializeKnowledge,
@@ -47,6 +47,7 @@ import {
   axisSlug,
   splitEvidence,
   slugifyHeading,
+  matchesElement,
   isChangesetPath,
   isSidecarName,
   reviewGateProblems,
@@ -511,15 +512,11 @@ function elementByLabel(
   model: ParsedKnowledge,
   label: string,
 ): { slug?: string; name?: string } | undefined {
-  const wanted = String(label ?? '')
-    .trim()
-    .toLowerCase()
+  const wanted = String(label ?? '').trim()
   if (!wanted) return undefined
   for (const [, elements] of model.elements) {
     for (const el of elements) {
-      if ((el.slug ?? '').toLowerCase() === wanted) return el
-      if ((el.name ?? '').toLowerCase() === wanted) return el
-      if (slugifyHeading(el.name ?? '').toLowerCase() === wanted) return el
+      if (matchesElement(el, wanted)) return el
     }
   }
   return undefined
@@ -1855,12 +1852,11 @@ export async function executeChangesetApply(
       // A container's folder holds its contents. Deleting it would orphan them, so
       // the children go first — a separate, reviewable change. The index paths are
       // workspace-relative, so the comparison stays on that side.
-      const folder = dirname(target.path)
+      const folder = resolve(rootDir, dirname(target.path))
       const children = domainIndex.models
         .filter((m) => {
           if (m.id === id) return false
-          const inside = relative(folder, m.path)
-          return inside !== '' && !inside.startsWith('..') && !isAbsolute(inside)
+          return isInsideRoot(folder, resolve(rootDir, m.path))
         })
         .map((m) => m.id)
       if (children.length > 0) {

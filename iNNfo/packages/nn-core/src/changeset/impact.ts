@@ -1,4 +1,5 @@
 import { slugify } from '../parser/slug.js'
+import { matchesElement } from '../mutate.js'
 import type { ChangeItem } from './types.js'
 import type { ParsedKnowledge } from '../types/index.js'
 import { extractModelSlug } from './utils.js'
@@ -9,7 +10,9 @@ import { extractModelSlug } from './utils.js'
  * model, so an entry whose key contains `/` wins, else the root slug, else the
  * key. Deduped by model identity: the same document is scanned once.
  */
-function workspaceEntries(workspaceModels: Map<string, ParsedKnowledge>): Array<[string, ParsedKnowledge]> {
+function workspaceEntries(
+  workspaceModels: Map<string, ParsedKnowledge>,
+): Array<[string, ParsedKnowledge]> {
   const best = new Map<ParsedKnowledge, string>()
   for (const [key, model] of workspaceModels) {
     const current = best.get(model)
@@ -135,15 +138,15 @@ export function scanIncomingReferences(
         const elKey = `${currentModelSlug}@${elIdent}`
 
         // If the referencing element is being removed in the same batch, skip it
-        if (companionRemovals.has(elKey) || companionRemovals.has(`${currentModelSlug}@${el.name.toLowerCase()}`)) {
+        if (
+          companionRemovals.has(elKey) ||
+          companionRemovals.has(`${currentModelSlug}@${el.name.toLowerCase()}`)
+        ) {
           continue
         }
 
         // Helper to check string content
-        const checkContent = (
-          fieldName: string,
-          valStr: string,
-        ): IncomingReferenceHit | null => {
+        const checkContent = (fieldName: string, valStr: string): IncomingReferenceHit | null => {
           // Check if this field is updated in companion updates
           const fieldKey = `${currentModelSlug}@${elIdent}&${fieldName}`
           if (companionFieldUpdates.has(fieldKey)) {
@@ -326,12 +329,7 @@ export function evaluateBatchDeleteImpact(
 
     if (model?.elements) {
       for (const [, elements] of model.elements.entries()) {
-        const found = elements.find(
-          (e) =>
-            e.name.toLowerCase() === elementIdent.toLowerCase() ||
-            (e.slug && e.slug.toLowerCase() === elementIdent.toLowerCase()) ||
-            slugify(e.name).toLowerCase() === elementIdent.toLowerCase(),
-        )
+        const found = elements.find((e) => matchesElement(e, elementIdent))
         if (found) {
           targetSlug = found.slug || slugify(found.name) || found.name
           targetName = found.name
