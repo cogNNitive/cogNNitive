@@ -12,6 +12,15 @@ Branch: `t3/procedure-workflow-investigation`. Delivery: `ask-on-risk`. Merge is
 - S5 — `short_name` + canonical phrase delta. `performed by` = `executor`, plus the RACI Responsible role when present (assumption, to confirm in review). Blocked by S1 and S3 landing.
 - S6 — Procedure artifact path containment (issue #980, fixed by PR #972). Coordinated here; PR stays with its author thread.
 - S7 — Procedure graph pointer-click defect in the console, to verify with Playwright after PR #975 lands.
+- S8 — Inherited (fedd0b37): bring every shipped procedure body in line with the Step Body Prose defaults of #982 (e.g. `create_series` opens in third person and repeats its own `produces::`). Done inside the S3 migration, which rewrites all 33 documents anyway.
+- S9 — Inherited (fedd0b37, L-maintainer 2026-11-28): `short_name` is REQUIRED with no fallback chain ("Esto sería un fallback, una retrocompatibilidad que ya te he dicho mil veces que no me importa. Prefiero hacerlo bien y si hay que migrar procedimientos, se migran"); every procedure is migrated. Part of S5.
+- S10 — Inherited (fedd0b37): after #982 merges, follow its release: the `regen` write-back PR arrives without checks and needs an empty `ci:` commit to trigger them; then tag/publish.
+- S11 — Inherited (b005800b): the stepper keys the work-roles matrix by Work **name** (`render-procedure-stepper.js:2770`) and prints `No catalog entry linked.` for 31/33 documents; both fixed by S3 (RACI by slug, derived catalog). The executor default lives in four places; S3 leaves one.
+- S12 — Inherited (571c484d, unwritten decision): the console's `#nn-procedure-core` slot is emitted as an executable `<script type="text/javascript">` with its SHA-256 in the CSP and assigns `window.__nnFoldModule` explicitly, so the browser projection never needs `unsafe-eval`. Not documented anywhere in the repo (grep on main: 0 docs). Write it into the console docs.
+- S13 — Inherited (cde8502b): close issue #980 when #972 merges; the maintainer's global blueprint store is stale (`hydrate_blueprint` installed procedures 0.6.1 / executions 0.7.2 while main has V_0-7-0) and needs a refresh; the test domains `artifacts-test` and `artifacts-test-2` it left behind are scratch.
+- S14 — Inherited (f134de36): after #975 lands, verify with the Playwright harness the pointer click on the procedure graph (the treemap `ownerDocument` error is console, not procedures, and stays with #975).
+- S15 — Inherited (f9422ca6): D11 (merge `procedures` + `executions`) stays deferred; its hard blocker is unchanged (procedures pins iNNfo_V_0-6-0, executions needs V_0-9-0 for `transitions::`). Revisit only after S3 lands.
+- S16 — Worktree hygiene: `session-artifacts-probe` removed (clean, 0 own commits); `t3-b5958a5e` clean but locked (Permission denied), retry later; `cogNNitive-procedure-graph-lanes` holds redundant commit `83ba0c3ca` (verified by f134de36: content already on main via #967), kept until explicitly discarded; `cogNNitive-procedure-prose-defaults` (#982) and `cogNNitive-subprocedure-nav` (#966) stay until their PRs close.
 
 ## Tasks
 
@@ -24,6 +33,15 @@ Branch: `t3/procedure-workflow-investigation`. Delivery: `ask-on-risk`. Merge is
 | T5 | S5 | inline | blocked by T1, T3 | — |
 | T6 | S6 | coordinated (61a13990) | in review | #972 MERGEABLE |
 | T7 | S7 | inline | blocked by #975 | — |
+| T8 | S8 | inside T3 migration | pending | — |
+| T9 | S9 | inside T5 | pending | — |
+| T10 | S10 | inline | blocked by T1 | — |
+| T11 | S11 | inside T3 | pending | — |
+| T12 | S12 | inline docs | pending | — |
+| T13 | S13 | inline | partly blocked by #972 | — |
+| T14 | S14 | inline | blocked by #975 | — |
+| T15 | S15 | parked | deferred | — |
+| T16 | S16 | inline | partial | probe removed |
 
 ## Log
 
@@ -37,4 +55,6 @@ Branch: `t3/procedure-workflow-investigation`. Delivery: `ask-on-risk`. Merge is
 - L9 (2026-11-28, maintainer, grill Q4 catalog): on one `Procedure` element per document replacing the root Work: "Parece correcto pero asegúrate de que es compliant con el nivel 1 Info, con la especificación de nivel 1 INNfo". Verification (iNNfo_V_0-6-0 and V_0-9-0 on main): L1 already has native containment — child Concepts nest under a parent via `# NN index` taxonomy and hierarchical headings (`### NN Work:` under `## NN Procedure:` gives `parentSlug`; disallowed nesting = `INVALID_NESTED_CONCEPT`); present since V_0-6-0. `storage:: distributed` (since V_0-7-0) makes each instance its own instance model whose child Concepts stay elements of it — `executions` already uses it (`Procedure Execution` > `Step Run`, `placement:: "executions/{slug}/"`, parent iNNfo_V_0-9-0). So the custom `parent::` field re-implements an L1 primitive. Compliant variants: (a) compact + nesting (no L1 bump, layout unchanged, "one Procedure per document" is a blueprint validation rule); (b) distributed like executions (most L1-native, but changes file layout of every procedure document, resolution code and the `usage_procedures_NN.md` convention; placement may not contain `specs`). Pending maintainer choice.
 - L10 (2026-11-28, maintainer, grill Q4): "ok" to (a) compact + nesting: each procedure document holds one `## NN Procedure:` with its `### NN Work:` steps nested under it; `# NN index` declares Procedure > Work; parent_spec stays iNNfo_V_0-6-0; file layout and `usage_procedures_NN.md` unchanged; "one Procedure per document" is a blueprint validation rule. Unification verdict: Procedure and Work do NOT collapse into one concept; the root Work disappears into Procedure (header), Work is only a step, `parent::` and `procedure_model` are removed.
 - L11 (2026-11-28, maintainer, grill Q5): "ok" to: a Procedure without Work is declared and refused at start with `PROCEDURE_NOT_IMPLEMENTED`; a procedure implemented in another file moves its Procedure header into that file; a skill-backed procedure is one `executor:: agent` Work whose `tool` references the skill; documents with several Procedure elements are split and the catalog is derived. Grill closed.
+- L12 (2026-11-28, maintainer): "Si te has hecho cargo de casi todo, me parecen pocas cosas. ¿Estás teniendo en cuenta lo que has heredado de otras conversaciones a las que has dado el relevo?" and "Adelante con todo sin preguntarme". Inherited items inventoried as S8-S16.
+- L13 (61a13990, notice): #972 removed its own `ARTIFACT_PATH_IS_MODEL` check (commit 317b4091b) because `at` may legally name a model the run produces (Document SOP pilot); containment stays. Notice arrived after the push, not before; no conflict with S3.
 - L4: Corrections to the original brief: b005800b did propose removing `parent` (document as container; `parent::` redundant in ~94%); whether `parent` goes is part of S3, not closed.
