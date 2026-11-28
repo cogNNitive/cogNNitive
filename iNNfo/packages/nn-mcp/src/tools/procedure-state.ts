@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { dirname, join, posix, relative, resolve } from 'node:path'
+import { isInsideRoot } from './path-guard.js'
 import {
   crashProbe,
   fillSlots,
@@ -97,7 +98,7 @@ export async function loadProcedure(
     abs = join(packageDir, docAddress.slice(docAddress.indexOf('/') + 1))
   } else {
     abs = resolve(root, docAddress)
-    if (relative(root, abs).startsWith('..'))
+    if (!isInsideRoot(root, abs))
       return fail('PROCEDURE_NOT_FOUND', `${docAddress} is outside the domain root.`)
   }
   let text: string

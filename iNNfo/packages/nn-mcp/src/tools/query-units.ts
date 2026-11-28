@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { isAbsolute, relative, resolve } from 'node:path'
+import { isInsideRoot } from './path-guard.js'
 import {
   parseKnowledgeQuery,
   runQuery,
@@ -64,8 +65,7 @@ export async function queryUnits(
     }
   }
   const abs = resolve(rootDir, parsed.path)
-  const rel = relative(rootDir, abs)
-  if (rel === '' || rel.startsWith('..') || isAbsolute(rel) || !existsSync(abs)) {
+  if (!isInsideRoot(rootDir, abs) || !existsSync(abs)) {
     return {
       uris: [],
       truncated: false,
@@ -102,7 +102,7 @@ export async function queryUnits(
  * Enforce the `max_values_chars` projection cap (pure): cut values so the
  * `\n`-joined payload fits the cap, keeping whole leading values and
  * truncating mid-value only when a single value exceeds it.
- */export function capValuesChars(
+ */ export function capValuesChars(
   values: string[],
   maxChars?: number,
 ): { values: string[]; truncated: boolean } {

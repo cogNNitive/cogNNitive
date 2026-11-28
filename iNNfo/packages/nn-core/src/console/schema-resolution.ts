@@ -19,6 +19,7 @@
  */
 
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import { isInsideRoot } from '../path-guard.js'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { parseFrontmatter, parseKnowledge } from '../parser/index.js'
@@ -85,11 +86,13 @@ interface ResolvedBlueprint {
  * tier cannot find it, because a flat spec such as `resources_iNNfo_NN.md`
  * derives the family `resources_innfo`, which matches no blueprint name.
  */
-async function resolveLocalSpecPath(rootDir: string, url: string | undefined): Promise<string | null> {
+async function resolveLocalSpecPath(
+  rootDir: string,
+  url: string | undefined,
+): Promise<string | null> {
   if (!url || /^(?:https?|data|file):/i.test(url)) return null
   const absolute = isAbsolute(url) ? url : resolve(rootDir, url)
-  const rel = relative(rootDir, absolute)
-  if (rel.startsWith('..') || isAbsolute(rel)) return null
+  if (!isInsideRoot(rootDir, absolute)) return null
   return existsSync(absolute) ? absolute : null
 }
 
@@ -154,7 +157,11 @@ function proceduresOf(res: ResolvedBlueprint): ConsoleProcedure[] {
 
   if (res.dir && existsSync(join(res.dir, 'procedures', 'usage_procedures_NN.md'))) {
     if (!list.some((p) => p.id === 'usage')) {
-      list.unshift({ id: 'usage', name: 'Getting started', path: 'procedures/usage_procedures_NN.md' })
+      list.unshift({
+        id: 'usage',
+        name: 'Getting started',
+        path: 'procedures/usage_procedures_NN.md',
+      })
     }
   }
   return list
@@ -187,7 +194,14 @@ async function collectIncludes(
     if (seen.has(key)) continue
     seen.add(key)
 
-    const resolved = await resolveBlueprintContent(rootDir, ref.name, ref.url, globalDir, skillsDir, warnings)
+    const resolved = await resolveBlueprintContent(
+      rootDir,
+      ref.name,
+      ref.url,
+      globalDir,
+      skillsDir,
+      warnings,
+    )
     if (resolved === null) {
       warnings.push(`Included template '${ref.name}' could not be resolved.`)
       continue

@@ -146,6 +146,22 @@ describe('Domain Console Files Payload Precomputation', () => {
     assert.equal(absent.valid, false)
   })
 
+  it('parses BOM-saved and single-quoted sidecars identically', () => {
+    const singleQuoted = `---\nsource_file: 'sources/import/a.pdf'\nsha256: '${SHA_A}'\n---\n`
+    const withBom = '\uFEFF' + singleQuoted
+    const res1 = parseAndValidateSidecar(singleQuoted, 'a.pdf_sidecar_NN.md', SHA_A)
+    assert.equal(res1.valid, true)
+    assert.equal(res1.sourceFile, 'sources/import/a.pdf')
+    assert.equal(res1.sha256, SHA_A)
+    assert.equal(res1.sha256Matches, true)
+
+    const res2 = parseAndValidateSidecar(withBom, 'a.pdf_sidecar_NN.md', SHA_A)
+    assert.equal(res2.valid, true)
+    assert.equal(res2.sourceFile, 'sources/import/a.pdf')
+    assert.equal(res2.sha256, SHA_A)
+    assert.equal(res2.sha256Matches, true)
+  })
+
   it('resolves multi-tier artifact reverse lineage', () => {
     const artifacts = [
       {

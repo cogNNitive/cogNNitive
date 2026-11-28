@@ -2,6 +2,7 @@ import { readFile, readdir, stat } from 'node:fs/promises'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { basename, dirname, join, relative } from 'node:path'
+import { isInsideRoot } from './path-guard.js'
 import {
   parseKnowledge,
   validateDocument,
@@ -52,9 +53,20 @@ import type {
   LayoutDiagnostic,
   ModelId,
 } from '@cognnitive/nn-core'
-import { buildNodeDomainIndex, domainLayoutDiagnostics, loadDeclarations, type NodeDomainIndex } from './domain-index.js'
+import {
+  buildNodeDomainIndex,
+  domainLayoutDiagnostics,
+  loadDeclarations,
+  type NodeDomainIndex,
+} from './domain-index.js'
 import { readDomainLineage, type DomainLineage } from './domain-lineage.js'
-import { resolveBlueprintWithCache, findKnowledgeFile, deriveNameFromUrl, getSpec, ModelIdError } from './spec.js'
+import {
+  resolveBlueprintWithCache,
+  findKnowledgeFile,
+  deriveNameFromUrl,
+  getSpec,
+  ModelIdError,
+} from './spec.js'
 import { buildIncludeContentMap } from './resolver-node.js'
 import type { FreshnessResult } from './resolver-node.js'
 import { loadKnowledge } from './knowledge-io.js'
@@ -389,7 +401,8 @@ async function buildMirrorLookup(rootDir: string): Promise<MirrorLookup> {
   const indexes = new Map<string, Awaited<ReturnType<typeof buildNodeDomainIndex>>['index']>()
   if (existsSync(syncDir)) {
     for (const entry of readdirSync(syncDir, { withFileTypes: true })) {
-      if (entry.isDirectory()) indexes.set(entry.name, (await buildNodeDomainIndex(join(syncDir, entry.name))).index)
+      if (entry.isDirectory())
+        indexes.set(entry.name, (await buildNodeDomainIndex(join(syncDir, entry.name))).index)
     }
   }
   return (alias) => indexes.get(alias)
@@ -413,8 +426,7 @@ function collectSynchronizationDiagnostics(rootDir: string): ReferenceDiagnostic
 function evidenceShaResolver(rootDir: string): (path: string) => string | undefined {
   return (refPath) => {
     const abs = join(rootDir, refPath)
-    const rel = relative(rootDir, abs)
-    if (rel === '' || rel.startsWith('..') || isAbsoluteLike(rel)) return undefined
+    if (!isInsideRoot(rootDir, abs)) return undefined
     try {
       return createHash('sha256').update(readFileSync(abs)).digest('hex')
     } catch {
@@ -460,7 +472,8 @@ export async function collectDriftDiagnostics(
   )
 
   const diagnostics: ReferenceDiagnostic[] = []
-  for (const diagnostic of checkProvenance(log, models, { sha256: evidenceShaResolver(rootDir) }).diagnostics) {
+  for (const diagnostic of checkProvenance(log, models, { sha256: evidenceShaResolver(rootDir) })
+    .diagnostics) {
     const unit = diagnostic.unit ?? ''
     const at = unit.indexOf('@')
     const modelId = at === -1 ? unit : unit.slice(0, at)
@@ -487,7 +500,11 @@ async function runWorkspaceValidation(
   )
   // Drift needs the workspace root: a document validated in isolation emits
   // none, and a workspace pass reports only the diagnostics filed against it.
-  const drift = filterDiagnosticsForModel(await collectDriftDiagnostics(rootDir, call), rootDir, resolvedModelPath)
+  const drift = filterDiagnosticsForModel(
+    await collectDriftDiagnostics(rootDir, call),
+    rootDir,
+    resolvedModelPath,
+  )
   return [...diagnostics, ...drift]
 }
 
@@ -558,13 +575,15 @@ const RESERVED_STRUCTURAL_HEADINGS = new Set([
 ])
 
 function isReservedStructuralHeading(concept: string): boolean {
-  const norm = concept.trim().toLowerCase().replace(/^#+\s*(nn\s*)?/i, '')
+  const norm = concept
+    .trim()
+    .toLowerCase()
+    .replace(/^#+\s*(nn\s*)?/i, '')
   if (RESERVED_STRUCTURAL_HEADINGS.has(norm)) return true
   if (norm.startsWith('matrices:') || norm.startsWith('matrices')) return true
   if (norm.startsWith('agent modification')) return true
   return false
 }
-
 
 export function analyzeConceptDrift(
   model: ParsedKnowledge,
@@ -637,12 +656,11 @@ export function analyzeConceptDrift(
     let crossBlueprintMatch: { templateName: string; conceptName: string } | null = null
     for (const tmpl of Object.values(CANONICAL_BLUEPRINTS)) {
       const schema = resolveBlueprintSchema(tmpl.specContent, (ref) => {
-        const inc = findCanonicalBlueprint(ref.name) || (ref.url ? findCanonicalBlueprint(ref.url) : null)
+        const inc =
+          findCanonicalBlueprint(ref.name) || (ref.url ? findCanonicalBlueprint(ref.url) : null)
         return inc?.specContent ?? null
       })
-      const foundInOther = schema.schema.concepts.find(
-        (c) => c.name.toLowerCase() === conceptLower,
-      )
+      const foundInOther = schema.schema.concepts.find((c) => c.name.toLowerCase() === conceptLower)
       if (foundInOther) {
         crossBlueprintMatch = { templateName: tmpl.name, conceptName: foundInOther.name }
         break
@@ -796,7 +814,7 @@ export async function validateKnowledge(
         throw err
       })
     : null
-  const modelPath = resolvedModelPath ?? (id ?? 'inline')
+  const modelPath = resolvedModelPath ?? id ?? 'inline'
   const referringDir = resolvedModelPath ? dirname(resolvedModelPath) : rootDir
   const fileNameForCheck = id ? basename(resolvedModelPath ?? id) : 'inline_NN.md'
 
@@ -849,7 +867,8 @@ export async function validateKnowledge(
       path: 'parent_spec',
       code: 'PARENT_RESOLUTION_FAILED',
       message: `[PARENT_RESOLUTION_FAILED] Parent template could not be resolved from parent_spec.url "${parentUrl}"${searchedSuffix}${detailSuffix}`,
-      promptHint: 'Correct the parent_spec.url to a valid stable URL or workspace-relative path in specs/.',
+      promptHint:
+        'Correct the parent_spec.url to a valid stable URL or workspace-relative path in specs/.',
       severity: 'error',
       filePath: modelPath,
     }
@@ -1011,8 +1030,8 @@ export async function validateKnowledge(
     : null
   const layoutDiagnostics =
     workspace && id && modelPath !== 'inline'
-      ? (await domainLayoutDiagnostics(rootDir, { index: await domainIndex() })).diagnostics.filter((d) =>
-          relModelPath ? d.paths.includes(relModelPath) : false,
+      ? (await domainLayoutDiagnostics(rootDir, { index: await domainIndex() })).diagnostics.filter(
+          (d) => (relModelPath ? d.paths.includes(relModelPath) : false),
         )
       : relModelPath
         ? await fileLocalLayout(rootDir, relModelPath, model)
@@ -1078,7 +1097,9 @@ export async function validateKnowledge(
       }
       summary =
         `Suppressed ${suppressedCount} known error(s) (backlog: ${backlog}).` +
-        (staleEntries.length > 0 ? ` ${staleEntries.length} stale baseline entr(ies) reported.` : '')
+        (staleEntries.length > 0
+          ? ` ${staleEntries.length} stale baseline entr(ies) reported.`
+          : '')
       valid = surfacedErrors.length === 0
     }
   }
@@ -1292,4 +1313,3 @@ export async function validateBlueprint(
     warnings: decoratedWarnings,
   }
 }
-

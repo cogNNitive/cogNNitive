@@ -1,5 +1,6 @@
 export * from './types/index.js'
 export * from './layout.js'
+export { isInsideRoot, isSafeRelativeId, isDriveQualified, isDriveContained } from './path-guard.js'
 
 export {
   parseYaml,

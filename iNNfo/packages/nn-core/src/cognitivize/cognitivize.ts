@@ -13,6 +13,7 @@ import {
   sidecarPathOf,
 } from '../naming/contract.js'
 import { readOrNull, sha256Hex, writeOnce, type WriteOnceResult } from '../writeOnce/fs.js'
+import { isInsideRoot } from '../path-guard.js'
 import {
   TEXT_NATIVE_FORMATS,
   buildSidecar,
@@ -37,12 +38,7 @@ export interface CognitivizeOptions {
 }
 
 export type RejectReason =
-  | 'sidecar'
-  | 'nn-document'
-  | 'excluded'
-  | 'path-too-long'
-  | 'not-found'
-  | 'no-extension'
+  'sidecar' | 'nn-document' | 'excluded' | 'path-too-long' | 'not-found' | 'no-extension'
 
 export type CognitivizeResult =
   | { status: 'written' | 'refreshed' | 'unchanged'; sidecar: string; sha256: string }
@@ -61,12 +57,15 @@ export async function cognitivize(
 ): Promise<CognitivizeResult> {
   const rootAbs = path.resolve(root)
   const abs = path.resolve(rootAbs, rel)
-  const within = path.relative(rootAbs, abs)
-  if (within === '' || within.startsWith('..') || path.isAbsolute(within)) {
+  if (!isInsideRoot(rootAbs, abs)) {
     throw new RangeError(`${rel}: path escapes the workspace root`)
   }
-  const relPath = toPosix(within)
-  const reject = (reason: RejectReason): CognitivizeResult => ({ status: 'rejected', path: relPath, reason })
+  const relPath = toPosix(path.relative(rootAbs, abs))
+  const reject = (reason: RejectReason): CognitivizeResult => ({
+    status: 'rejected',
+    path: relPath,
+    reason,
+  })
 
   if (isSidecarName(relPath)) return reject('sidecar')
   if (isNNName(relPath)) return reject('nn-document')
@@ -94,7 +93,9 @@ export async function cognitivize(
   // an injected normalizer is still consulted for the metadata it adds.
   const textNative = TEXT_NATIVE_FORMATS.has(format)
   if (!textNative && !o.normalizer) return { status: 'requires-normalizer', path: relPath }
-  const normalized = o.normalizer ? await o.normalizer({ path: relPath, ext: format, bytes }) : undefined
+  const normalized = o.normalizer
+    ? await o.normalizer({ path: relPath, ext: format, bytes })
+    : undefined
   const nowIso = isoSeconds((o.now ?? (() => new Date()))())
   const text = buildSidecar({
     sourceFile: relPath,
@@ -104,7 +105,10 @@ export async function cognitivize(
     normalizedAt: nowIso,
     normalizedBy: normalized?.normalizedBy,
     previous,
-    metadata: { ...normalized?.metadata, ...(o.origin ? { ...o.origin, retrieved_at: nowIso } : {}) },
+    metadata: {
+      ...normalized?.metadata,
+      ...(o.origin ? { ...o.origin, retrieved_at: nowIso } : {}),
+    },
     body: textNative ? undefined : normalized?.body,
   })
   await fsp.writeFile(sidecarAbs, text, 'utf8')

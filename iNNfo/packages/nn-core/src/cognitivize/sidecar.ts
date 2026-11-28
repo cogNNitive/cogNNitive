@@ -37,11 +37,14 @@ const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/
 
 /** Raw frontmatter of a sidecar (no key normalization, so unknown keys survive); `null` when absent or invalid. */
 export function parseSidecarFrontmatter(text: string): Record<string, unknown> | null {
-  const match = FRONTMATTER_RE.exec(text)
+  const normalized = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text
+  const match = FRONTMATTER_RE.exec(normalized)
   if (!match) return null
   try {
     const value: unknown = yamlParse(match[1])
-    return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null
   } catch {
     return null
   }
@@ -61,7 +64,7 @@ export interface SidecarInput {
   metadata?: Record<string, string | number>
   /** Normalized markdown body; only binary subjects have one. */
   body?: string
-  }
+}
 
 export function buildSidecar(i: SidecarInput): string {
   const fm: Record<string, unknown> = {
