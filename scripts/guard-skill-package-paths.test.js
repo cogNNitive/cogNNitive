@@ -424,6 +424,30 @@ test('a commented-out chain is not a chain', (t) => {
   assert.equal(result.inside, 0)
 })
 
+test('a declaration whose file is missing on disk fails and names the file', (t) => {
+  const fixture = makeFixture()
+  t.after(() => fs.rmSync(fixture.root, { recursive: true, force: true }))
+
+  writeFile(fixture, 'iNNfo/specs/bluepriNNts/blueprint/catalog/c.md', '# catalog\n')
+  const declarations = writeDeclarations(fixture, [
+    {
+      file: 'iNNfo/specs/bluepriNNts/blueprint/skills/demo/scripts/lib/gone.mjs',
+      climbs: 4,
+      target: 'iNNfo/specs/bluepriNNts/blueprint/catalog/c.md',
+      anchor: 'blueprint-root',
+      reason: 'the declared file was removed',
+    },
+  ])
+
+  const result = scan(fixture, declarations)
+
+  assert.equal(result.ok, false)
+  const error = result.errors.find(
+    (e) => e.includes('scripts/lib/gone.mjs') && /does not exist/.test(e),
+  )
+  assert.ok(error, `expected a missing-file error, got:\n${result.errors.join('\n')}`)
+})
+
 test('the shipped declaration covers every escape in this repository', () => {
   const result = scanSkillPackagePaths({ root: REPO_ROOT })
 

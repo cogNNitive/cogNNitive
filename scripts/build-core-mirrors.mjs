@@ -172,21 +172,22 @@ async function main() {
     process.exit(2)
   }
 
+  // A target whose entry or output package is missing fails loudly: skipping it would
+  // let --check pass and the write mode recreate a stray package directory.
+  const missing = targets.flatMap((t) =>
+    [t.entry, ...(outOverride ? [] : [path.dirname(t.out)])].filter((p) => !fs.existsSync(p)),
+  )
+  if (missing.length > 0) {
+    console.error(`build-core-mirrors: missing path(s):\n  ${missing.join('\n  ')}`)
+    process.exit(1)
+  }
+
   const esbuild = loadEsbuild()
   let hasDrift = false
 
   for (const target of targets) {
     const outFile = outOverride || target.out
     const rel = path.relative(REPO_ROOT, outFile) || outFile
-
-    if (
-      target.name === 'coNNtent' &&
-      !outOverride &&
-      !fs.existsSync(path.join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts', 'coNNtent'))
-    ) {
-      console.log(`build-core-mirrors: SKIPPED — ${target.name} directory absent.`)
-      continue
-    }
 
     const rendered = await renderTarget(target, esbuild)
 

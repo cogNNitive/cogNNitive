@@ -106,6 +106,20 @@ test('read-only guards are pool-eligible; mutating and in-process steps stay ser
   }
 });
 
+test('the field-registry check is a step even when its coNNtent script is missing', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-steps-'));
+  try {
+    const step = buildSteps(root).find((s) => s.id === 'field-registry');
+    assert.ok(step, 'field-registry must not be dropped when coNNtent is absent');
+    assert.deepEqual(step.args, [
+      'iNNfo/specs/bluepriNNts/coNNtent/skills/nn-conntent/scripts/build-field-registry.mjs',
+      '--check',
+    ]);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('SLOW_SUITES covers the suites that exceed 7s', () => {
   for (const suite of [
     'scripts/check-licenses.test.mjs',

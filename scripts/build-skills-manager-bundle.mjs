@@ -61,6 +61,9 @@ function loadEsbuild() {
 }
 
 async function render() {
+  // The bundle ships without a repo checkout: inline the engine version and the
+  // published iNNfo format versions it was built against (scripts/lib/engine-facts.js).
+  const { readEngineFacts } = require('./lib/engine-facts.js')
   const result = await loadEsbuild().build({
     entryPoints: [ENTRY],
     absWorkingDir: REPO_ROOT,
@@ -77,6 +80,7 @@ async function render() {
     write: false,
     legalComments: 'none',
     banner: { js: BANNER },
+    define: { __NN_ENGINE_FACTS__: JSON.stringify(readEngineFacts(REPO_ROOT)) },
   })
   return result.outputFiles[0].text.replace(/\r\n/g, '\n')
 }
