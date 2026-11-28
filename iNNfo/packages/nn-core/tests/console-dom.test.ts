@@ -5,8 +5,6 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
 
-
-
 /**
  * DOM-level contract of the generated console, previously asserted by the
  * Playwright suite `16-nn-console.spec.ts` (deleted).
@@ -72,10 +70,7 @@ function renderShell(): void {
       /(<script type="application\/json" id="nn-schema">)[\s\S]*?(<\/script>)/,
       `$1${JSON.stringify(schemaFixture)}$2`,
     )
-    .replace(
-      MODEL_SLOT_RE,
-      `$1${encodeModelSlot(modelFixture)}$2`,
-    )
+    .replace(MODEL_SLOT_RE, `$1${encodeModelSlot(modelFixture)}$2`)
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
   document.documentElement.innerHTML = filled
 }
@@ -180,10 +175,7 @@ describe('nn-console — reference rendering', () => {
         /(<script type="application\/json" id="nn-schema">)[\s\S]*?(<\/script>)/,
         `$1${JSON.stringify(schemaFixture)}$2`,
       )
-      .replace(
-        MODEL_SLOT_RE,
-        `$1${encodeModelSlot(referenceModel)}$2`,
-      )
+      .replace(MODEL_SLOT_RE, `$1${encodeModelSlot(referenceModel)}$2`)
       .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
     document.documentElement.innerHTML = filled
   }

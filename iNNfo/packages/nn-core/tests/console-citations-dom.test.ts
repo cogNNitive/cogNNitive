@@ -7,9 +7,13 @@
 // against `artifact_shell.html` (same helper the other console suites use).
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { createConsoleEnv, shellPath, encodeModelSlot, decodedModelText, MODEL_SLOT_RE } from './helpers/console-review-env'
-
-
+import {
+  createConsoleEnv,
+  shellPath,
+  encodeModelSlot,
+  decodedModelText,
+  MODEL_SLOT_RE,
+} from './helpers/console-review-env'
 
 const env = createConsoleEnv()
 
@@ -27,10 +31,7 @@ function renderShell(): void {
       /(<script type="application\/json" id="nn-schema">)[\s\S]*?(<\/script>)/,
       `$1${JSON.stringify(schemaFixture)}$2`,
     )
-    .replace(
-      MODEL_SLOT_RE,
-      `$1${encodeModelSlot(modelFixture)}$2`,
-    )
+    .replace(MODEL_SLOT_RE, `$1${encodeModelSlot(modelFixture)}$2`)
     .replace(
       /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
       '$1{"needs":["concept-rail","fulltext-search"]}$2',

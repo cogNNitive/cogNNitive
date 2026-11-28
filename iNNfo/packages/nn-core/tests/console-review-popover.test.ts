@@ -2,9 +2,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { createConsoleEnv, consoleDir, shellPath, encodeModelSlot, decodedModelText, MODEL_SLOT_RE } from './helpers/console-review-env'
-
-
+import {
+  createConsoleEnv,
+  consoleDir,
+  shellPath,
+  encodeModelSlot,
+  decodedModelText,
+  MODEL_SLOT_RE,
+} from './helpers/console-review-env'
 
 const env = createConsoleEnv()
 
@@ -36,10 +41,7 @@ function renderModelConsole(): void {
       /(<script type="application\/json" id="nn-schema">)[\s\S]*?(<\/script>)/,
       `$1${JSON.stringify(sampleSchema)}$2`,
     )
-    .replace(
-      MODEL_SLOT_RE,
-      `$1${encodeModelSlot(sampleModel)}$2`,
-    )
+    .replace(MODEL_SLOT_RE, `$1${encodeModelSlot(sampleModel)}$2`)
     .replace(
       /(<script type="application\/json" id="nn-config">)[\s\S]*?(<\/script>)/,
       '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
