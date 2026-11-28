@@ -516,6 +516,9 @@ function scanSkillPackagePaths(options = {}) {
 
   for (const entry of declarations) {
     if (!fs.existsSync(path.join(rootAbs, entry.file))) {
+      errors.push(
+        `ERROR: declaration names ${entry.file}, which does not exist under ${toPosix(rootAbs)}; delete or update it.`,
+      )
       continue
     }
     if (!entry.probe && !fs.existsSync(path.join(rootAbs, entry.target))) {

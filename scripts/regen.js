@@ -105,9 +105,14 @@ function syncCopies() {
   }
 }
 
-const guards = FRESHNESS_GUARDS.filter(
-  (g) => !WRITE_SKIPS.has(g.id) && fs.existsSync(path.join(repoRoot, g.script))
-);
+// A missing generator would silently drop the artifact it rebuilds: refuse before any build.
+const missingScripts = FRESHNESS_GUARDS.map((g) => path.join(repoRoot, g.script)).filter((p) => !fs.existsSync(p));
+if (missingScripts.length > 0) {
+  console.error(`regen: missing freshness-guard script(s):\n  ${missingScripts.join('\n  ')}`);
+  process.exit(1);
+}
+
+const guards = FRESHNESS_GUARDS.filter((g) => !WRITE_SKIPS.has(g.id));
 const generate = [
   ...guards.map((g) => [g.script]),
   ['scripts/generate-docs-facts.mjs'],

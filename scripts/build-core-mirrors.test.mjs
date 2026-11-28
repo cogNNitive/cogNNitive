@@ -106,6 +106,31 @@ async function runTests() {
     }
   }
 
+  // Test 4: a target whose output package is missing fails and names the path.
+  // A copy of the builder outside the repo has no iNNfo/ tree; cwd stays in the repo so
+  // esbuild still resolves.
+  {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'core-mirrors-missing-'))
+    try {
+      fs.mkdirSync(path.join(tmp, 'scripts'))
+      const copy = path.join(tmp, 'scripts', 'build-core-mirrors.mjs')
+      fs.copyFileSync(BUILDER, copy)
+      for (const args of [['--check', '--target', 'coNNtent'], ['--target', 'coNNtent']]) {
+        const res = spawnSync(process.execPath, [copy, ...args], {
+          encoding: 'utf-8',
+          cwd: path.join(SCRIPT_DIR, '..'),
+        })
+        assert.strictEqual(res.status, 1, `${args.join(' ')}: ${res.stdout}${res.stderr}`)
+        const missingOut = path.join(tmp, 'iNNfo', 'specs', 'bluepriNNts', 'coNNtent', 'skills', 'nn-conntent', 'scripts', 'lib')
+        assert.ok(res.stderr.includes(missingOut), res.stderr)
+        assert.strictEqual(fs.existsSync(path.join(tmp, 'iNNfo')), false, 'nothing written')
+      }
+      console.log('✔ Test 4: a missing target package fails loudly and names the path')
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true })
+    }
+  }
+
   console.log('All build-core-mirrors unit tests passed successfully!')
 }
 
