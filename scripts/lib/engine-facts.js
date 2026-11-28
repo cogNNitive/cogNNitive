@@ -50,7 +50,8 @@ function readEngineFacts(repoRoot) {
 
 /** @returns {{ engineVersion: string, formatVersions: string[] }} */
 function engineFacts() {
-  // @ts-ignore -- defined by scripts/build-skills-manager-bundle.mjs in the bundle only
+  /* global __NN_ENGINE_FACTS__ */
+  // @ts-expect-error -- defined by scripts/build-skills-manager-bundle.mjs in the bundle only
   if (typeof __NN_ENGINE_FACTS__ !== 'undefined') return __NN_ENGINE_FACTS__
   return readEngineFacts(path.resolve(__dirname, '..', '..'))
 }
