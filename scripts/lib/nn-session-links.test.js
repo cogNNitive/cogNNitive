@@ -23,6 +23,7 @@
  */
 
 const assert = require('node:assert/strict')
+const { initGitTestRepo } = require('./git-test-repo.js')
 const { execFileSync } = require('node:child_process')
 const fs = require('node:fs')
 const os = require('node:os')
@@ -129,10 +130,7 @@ function makeRepo({ extraWorktrees = 0, legacy = false } = {}) {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-session-links-'))
   const root = path.join(base, 'cogNNitive')
   fs.mkdirSync(root, { recursive: true })
-  git(root, 'init', '-b', 'main')
-  git(root, 'config', 'user.email', 't@test')
-  git(root, 'config', 'user.name', 't')
-  git(root, 'config', 'commit.gpgsign', 'false')
+  initGitTestRepo(root)
   writeFiles(root, {
     'package.json': JSON.stringify({ name: 'root', workspaces: ['iNNfo/packages/*'] }),
     'package-lock.json': '{}\n',

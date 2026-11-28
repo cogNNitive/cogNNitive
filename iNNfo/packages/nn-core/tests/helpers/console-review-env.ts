@@ -18,6 +18,20 @@ import { JSDOM } from 'jsdom'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
+import { deflateRawSync, inflateRawSync } from 'node:zlib'
+
+export const MODEL_SLOT_RE =
+  /(<script type="application\/x-nn-deflate-base64" id="nn-model">)[\s\S]*?(<\/script>)/
+
+/** The nn-model slot holds the payload deflate-raw compressed and base64 encoded. */
+export const encodeModelSlot = (model: unknown): string =>
+  deflateRawSync(Buffer.from(JSON.stringify(model), 'utf8'), { level: 9 }).toString('base64')
+
+/** The decoded JSON text of a document's nn-model slot; the page decodes it before boot. */
+export const decodedModelText = (doc: Document): string => {
+  const text = (doc.getElementById('nn-model')?.textContent ?? '').trim()
+  return text ? inflateRawSync(Buffer.from(text, 'base64')).toString('utf8') : ''
+}
 
 const req = createRequire(import.meta.url)
 // tests/helpers -> tests -> nn-core -> packages -> iNNfo
@@ -52,10 +66,7 @@ export function createConsoleEnv() {
   let env: Env | null = null
 
   function setup(shellHtml?: string): Env {
-    const html =
-      shellHtml !== undefined
-        ? shellHtml
-        : readFileSync(shellPath, 'utf8')
+    const html = shellHtml !== undefined ? shellHtml : readFileSync(shellPath, 'utf8')
     const dom = new JSDOM(html, { url: 'http://localhost/', runScripts: 'outside-only' })
     const g = globalThis as any
     g.window = dom.window

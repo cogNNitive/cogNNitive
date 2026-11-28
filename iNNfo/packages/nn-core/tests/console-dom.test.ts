@@ -1,19 +1,9 @@
+import { encodeModelSlot, decodedModelText, MODEL_SLOT_RE } from './helpers/console-review-env'
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
-import { deflateRawSync, inflateRawSync } from 'node:zlib'
-
-/** The nn-model slot holds the payload deflate-raw compressed and base64 encoded. */
-const encodeModelSlot = (model: unknown): string =>
-  deflateRawSync(Buffer.from(JSON.stringify(model), 'utf8'), { level: 9 }).toString('base64')
-
-/** The decoded JSON text of a document's nn-model slot; the page decodes it before boot. */
-const decodedModelText = (doc: Document): string => {
-  const text = (doc.getElementById('nn-model')?.textContent ?? '').trim()
-  return text ? inflateRawSync(Buffer.from(text, 'base64')).toString('utf8') : ''
-}
 
 /**
  * DOM-level contract of the generated console, previously asserted by the
@@ -80,10 +70,7 @@ function renderShell(): void {
       /(<script type="application\/json" id="nn-schema">)[\s\S]*?(<\/script>)/,
       `$1${JSON.stringify(schemaFixture)}$2`,
     )
-    .replace(
-      /(<script type="application\/x-nn-deflate-base64" id="nn-model">)[\s\S]*?(<\/script>)/,
-      `$1${encodeModelSlot(modelFixture)}$2`,
-    )
+    .replace(MODEL_SLOT_RE, `$1${encodeModelSlot(modelFixture)}$2`)
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
   document.documentElement.innerHTML = filled
 }
@@ -188,10 +175,7 @@ describe('nn-console — reference rendering', () => {
         /(<script type="application\/json" id="nn-schema">)[\s\S]*?(<\/script>)/,
         `$1${JSON.stringify(schemaFixture)}$2`,
       )
-      .replace(
-        /(<script type="application\/x-nn-deflate-base64" id="nn-model">)[\s\S]*?(<\/script>)/,
-        `$1${encodeModelSlot(referenceModel)}$2`,
-      )
+      .replace(MODEL_SLOT_RE, `$1${encodeModelSlot(referenceModel)}$2`)
       .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
     document.documentElement.innerHTML = filled
   }
