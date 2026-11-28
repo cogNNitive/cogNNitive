@@ -1,5 +1,4 @@
-// @jsdom — the console's chart entry points run on the vendored ECharts build.
-// ECharts reads its environment when it loads, so a DOM must exist before the require.
+// @jsdom — the console's chart entry points run on the vendored Chart.js build.
 import { describe, it, before } from 'node:test'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
@@ -10,10 +9,68 @@ import { consoleDir, nnConsole } from './helpers/console-boot.mjs'
 const require = createRequire(import.meta.url)
 const { SOURCES } = require('../scripts/lib/console-bundle.js')
 
+function mock2dContext(canvas) {
+  return {
+    fillRect: () => {},
+    clearRect: () => {},
+    getImageData: () => ({ data: [] }),
+    putImageData: () => {},
+    createPattern: () => {},
+    createLinearGradient: () => ({ addColorStop: () => {} }),
+    createRadialGradient: () => ({ addColorStop: () => {} }),
+    setTransform: () => {},
+    resetTransform: () => {},
+    drawImage: () => {},
+    save: () => {},
+    fillText: () => {},
+    restore: () => {},
+    beginPath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    closePath: () => {},
+    stroke: () => {},
+    translate: () => {},
+    scale: () => {},
+    rotate: () => {},
+    arc: () => {},
+    fill: () => {},
+    measureText: () => ({ width: 0 }),
+    transform: () => {},
+    rect: () => {},
+    clip: () => {},
+    setLineDash: () => {},
+    getLineDash: () => [],
+    canvas: canvas,
+  }
+}
+
 function freshHost() {
   const dom = new JSDOM('<!doctype html><html><body><div id="host"></div></body></html>')
+  const origCreateElement = dom.window.document.createElement.bind(dom.window.document)
+  dom.window.document.createElement = function (tagName) {
+    const el = origCreateElement(tagName)
+    if (tagName.toLowerCase() === 'canvas') {
+      el.getContext = () => mock2dContext(el)
+    }
+    return el
+  }
   global.window = dom.window
   global.document = dom.window.document
+  dom.window.requestAnimationFrame = (cb) => setTimeout(cb, 0)
+  dom.window.cancelAnimationFrame = (id) => clearTimeout(id)
+  global.requestAnimationFrame = dom.window.requestAnimationFrame
+  global.cancelAnimationFrame = dom.window.cancelAnimationFrame
+  global.ResizeObserver = class {
+    observe() {}
+    disconnect() {}
+    unobserve() {}
+  }
+  global.MutationObserver =
+    dom.window.MutationObserver ||
+    class {
+      observe() {}
+      disconnect() {}
+    }
   return dom.window.document.getElementById('host')
 }
 
@@ -31,16 +88,41 @@ function withWarnings(fn) {
 describe('console chart library', () => {
   before(() => {
     freshHost()
-    global.echarts = require(join(consoleDir, 'vendor', 'echarts.min.js'))
+    global.MutationObserver = class {
+      observe() {}
+      disconnect() {}
+    }
+    const chartPath = join(consoleDir, 'vendor', 'chart.umd.min.js')
+    global.Chart = require(chartPath)
+    require.cache['chart.js'] = {
+      id: 'chart.js',
+      filename: 'chart.js',
+      loaded: true,
+      exports: global.Chart,
+    }
+    require.cache['chart.js/helpers'] = {
+      id: 'chart.js/helpers',
+      filename: 'chart.js/helpers',
+      loaded: true,
+      exports: global.Chart.helpers,
+    }
+    const Module = require('node:module')
+    const origResolve = Module._resolveFilename
+    Module._resolveFilename = function (request, parent, isMain, options) {
+      if (request === 'chart.js' || request === 'chart.js/helpers') return request
+      return origResolve.call(this, request, parent, isMain, options)
+    }
+    global.ChartTreemap = require(join(consoleDir, 'vendor', 'chartjs-chart-treemap.min.js'))
   })
 
-  it('bundles ECharts and no longer bundles uPlot', () => {
+  it('bundles Chart.js and chartjs-chart-treemap and no longer bundles ECharts or uPlot', () => {
     const files = SOURCES.map(([file]) => file)
-    assert.ok(files.includes('vendor/echarts.min.js'))
-    assert.ok(!files.some((f) => /uplot/i.test(f)))
+    assert.ok(files.includes('vendor/chart.umd.min.js'))
+    assert.ok(files.includes('vendor/chartjs-chart-treemap.min.js'))
+    assert.ok(!files.some((f) => /echarts|uplot/i.test(f)))
   })
 
-  it('renderChart draws an option into the host on a white background', () => {
+  it('renderChart draws an option into the host on a canvas', () => {
     const host = freshHost()
     const chart = nnConsole.renderChart(
       host,
@@ -52,8 +134,7 @@ describe('console chart library', () => {
       { width: 400, height: 200 },
     )
     assert.ok(chart, 'returns the chart instance')
-    assert.equal(chart.getOption().backgroundColor, '#ffffff')
-    assert.ok(host.querySelector('svg'), 'renders into the host')
+    assert.ok(host.querySelector('canvas'), 'renders canvas into the host')
   })
 
   it('renderChart draws a host that has no size yet (a hidden tab) at a fallback size', () => {
@@ -62,15 +143,6 @@ describe('console chart library', () => {
     })
     assert.equal(chart.getWidth(), 960)
     assert.equal(chart.getHeight(), 400)
-  })
-
-  it('renderChart keeps a background the option sets', () => {
-    const chart = nnConsole.renderChart(
-      freshHost(),
-      { backgroundColor: '#f0f0f0', series: [] },
-      { width: 200, height: 100 },
-    )
-    assert.equal(chart.getOption().backgroundColor, '#f0f0f0')
   })
 
   it('renderChart on the same host replaces the chart and its resize observer', () => {
@@ -92,7 +164,7 @@ describe('console chart library', () => {
       const first = nnConsole.renderChart(host, { series: [] })
       const second = nnConsole.renderChart(host, { series: [] })
       assert.ok(first.isDisposed(), 'the previous chart is disposed')
-      assert.equal(global.echarts.getInstanceByDom(host), second)
+      assert.ok(!second.isDisposed(), 'the second chart is active')
       assert.deepEqual(
         observers.map((o) => o.connected),
         [false, true],
@@ -103,16 +175,16 @@ describe('console chart library', () => {
   })
 
   it('renderChart warns and returns null when the library is missing', () => {
-    const saved = global.echarts
-    delete global.echarts
+    const saved = global.Chart
+    delete global.Chart
     try {
       const { result, warnings } = withWarnings(() =>
         nnConsole.renderChart(freshHost(), { series: [] }),
       )
       assert.equal(result, null)
-      assert.ok(warnings.some((w) => /ECharts unavailable/.test(w)))
+      assert.ok(warnings.some((w) => /Chart library unavailable/.test(w)))
     } finally {
-      global.echarts = saved
+      global.Chart = saved
     }
   })
 
@@ -126,8 +198,9 @@ describe('console chart library', () => {
     const sections = host.querySelectorAll('section.nn-chart')
     assert.equal(sections.length, 1)
     assert.equal(sections[0].querySelector('h3.nn-chart-title').textContent, 'Revenue')
-    const canvas = sections[0].querySelector('.nn-chart-canvas')
-    const option = global.echarts.getInstanceByDom(canvas).getOption()
+    const canvasWrap = sections[0].querySelector('.nn-chart-canvas')
+    assert.ok(canvasWrap.querySelector('canvas'))
+    const option = global.Chart.getChart(canvasWrap.querySelector('canvas')).getOption()
     assert.deepEqual(option.xAxis[0].data, ['2026-11', '2026-12', '2027-01'])
     assert.deepEqual(
       option.series.map((s) => [s.type, s.name]),

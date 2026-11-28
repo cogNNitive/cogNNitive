@@ -240,24 +240,25 @@ describe('Domain tab', () => {
     assert.notEqual(toolbar.style.display, 'none')
   })
 
-  it('draws each model card as a stacked bar by concept when ECharts is loaded', () => {
-    const dom = new JSDOM('<!doctype html><html><body></body></html>')
-    global.window = dom.window
-    global.document = dom.window.document
-    global.echarts = require(join(consoleDir, 'vendor', 'echarts.min.js'))
+  it('draws each model card as a stacked bar by concept with native DOM track', () => {
     const { document } = boot()
     const bar = document.querySelector(
       '#nn-tab-domain .nn-summary-model[data-model="crm"] .nn-summary-model-chart',
     )
-    const option = global.echarts.getInstanceByDom(bar).getOption()
+    const track = bar.querySelector('.nn-summary-bar-track')
+    assert.ok(track, 'renders a native progress track')
+    const segs = Array.from(track.querySelectorAll('.nn-summary-bar-seg'))
     assert.deepEqual(
-      option.series.map((s) => [s.name, s.data[0], s.stack]),
+      segs.map((s) => [s.getAttribute('data-concept'), s.getAttribute('title')]),
       [
-        ['Client', 2, 'elements'],
-        ['Deal', 1, 'elements'],
+        ['Client', 'Client: 2'],
+        ['Deal', 'Deal: 1'],
       ],
     )
-    assert.equal(option.series[0].itemStyle.color, '#2563eb')
+    assert.ok(
+      segs[0].style.background.includes('2563eb') ||
+        segs[0].style.background.includes('37, 99, 235'),
+    )
   })
 
   it('still renders its numbers when ECharts is missing', () => {

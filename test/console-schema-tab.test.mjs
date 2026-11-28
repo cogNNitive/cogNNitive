@@ -6,6 +6,7 @@ import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { JSDOM } from 'jsdom'
 import { bootConsole, consoleDir } from './helpers/console-boot.mjs'
+import { installChartLibrary, uninstallChartLibrary } from './helpers/console-chart.mjs'
 
 const require = createRequire(import.meta.url)
 
@@ -41,15 +42,12 @@ function boot() {
 }
 
 function withECharts() {
-  const dom = new JSDOM('<!doctype html><html><body></body></html>')
-  global.window = dom.window
-  global.document = dom.window.document
-  global.echarts = require(join(consoleDir, 'vendor', 'echarts.min.js'))
+  installChartLibrary()
 }
 
 describe('Schema tab', () => {
   afterEach(() => {
-    delete global.echarts
+    uninstallChartLibrary()
   })
 
   it('replaces the concept circles under the same tab id, titled Schema', () => {

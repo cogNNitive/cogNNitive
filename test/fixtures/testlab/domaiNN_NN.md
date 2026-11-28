@@ -38,3 +38,17 @@ template:: procedures
 status:: active
 author:: TestLab crew
 Guided verification procedures: walk through the generated domain console to confirm that Element 1B of the coverage model shows its changeset lineage and its resolved source citations.
+
+## NN Models: TestLab Review Proposals
+path:: kNNowledge/TestLab_review_procedures_NN.md
+template:: procedures
+status:: active
+author:: TestLab crew
+Review procedures: intake change proposals, classify scope (minor patch vs major schema restructuring), simulate migration impacts, and generate changesets.
+
+## NN Models: TestLab Chaos Recovery
+path:: kNNowledge/TestLab_chaos_recovery_procedures_NN.md
+template:: procedures
+status:: active
+author:: TestLab crew
+High-concurrency chaos recovery procedure featuring multi-lane parallel divergence, deep telemetry probing, loopback hotfix cycles, 4-way mesh synchronization convergence, and dual emergency terminal exits.
