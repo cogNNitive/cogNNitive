@@ -292,9 +292,9 @@ in its own worktree and pushing, one PR at a time: each landing moves the base u
 `ci.yml` still carries the `merge_group` trigger, so re-enabling a queue stays a ruleset change
 and not a PR.
 
-**The write-back PR cannot be merged by checks, and it must be pushed, not dispatched.** `regen`
-opens it with `GITHUB_TOKEN`, so no `pull_request` run exists and all five required checks are
-simply absent: `gh pr merge` answers `5 of 5 required status checks are expected`. Dispatching
+**Recovery for a write-back PR that arrived with no checks.** A pull request authored by
+`app/github-actions` gets no `pull_request` run, so all five required checks are simply absent:
+`gh pr merge` answers `5 of 5 required status checks are expected`. Dispatching
 does not help — `gh workflow run "CI & Verify" --ref chore/regen` goes green and satisfies
 nothing, because a `workflow_dispatch` run's check runs are not counted as the PR's checks
 (measured on #878, where the dispatch completed `success` and the PR stayed `BLOCKED`). Push a
@@ -337,13 +337,17 @@ tag, `blueprints` first:
 | `nn-mcp` | `iNNfo/packages/nn-mcp/src` and `test` | same |
 | `nn-console` | `iNNfo/specs/bluepriNNts/console`, `scripts/export-console.mjs`, `scripts/console-views.mjs` | same |
 
-**The write-back pull request arrives with no checks.** It is pushed and opened with
-`GITHUB_TOKEN`, and GitHub suppresses workflow runs caused by that token, so `pull_request` CI
-never fires on it. While the ruleset requires nothing it merges like any other. Once required
-checks exist it has to be merged with an admin bypass — that is the accepted cost of having no
-bypass actor for Actions. It carries nothing hand-written: it is the output of the generators the
-gate already ran on its parent, and the `regen` job's own `node scripts/regen.js --check` step
-proves the next pass reproduces it byte for byte.
+**The write-back pull request is opened with `REGEN_PR_TOKEN`, a maintainer identity.** It used to
+be opened with `GITHUB_TOKEN`, which authored it as `app/github-actions`: GitHub holds that
+author's `pull_request` run for approval, so the five required checks never reported, the ruleset
+refused the merge (`bypass_actors` is `[]`, so `--admin` is refused too), and the release stalled
+one commit behind every merge while the run stayed green. The lane now reads the author it actually
+got and fails when it is the App or any bot, and fails by name when the secret is missing, so a
+write-back that cannot land is a red run instead of a silent queue. A pull request left over from
+the old contract has to be closed once, so the next run opens one under the maintainer identity. It
+carries nothing hand-written: it is the output of the generators the gate already ran on its
+parent, and the `regen` job's own `node scripts/regen.js --check` step proves the next pass
+reproduces it byte for byte.
 
 `repoPaths` and `changePaths` are different on purpose: `repoPaths` is what gets copied into the
 distribution repo, `changePaths` is what counts as a change. For `nn-mcp` the only repo path is

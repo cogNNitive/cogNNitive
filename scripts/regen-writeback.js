@@ -24,6 +24,7 @@ const {
   planPullRequest,
   regenOutputs,
   writeBack,
+  writeBackAuthorRefusal,
 } = require('./lib/regen-writeback.js')
 
 /**
@@ -118,6 +119,25 @@ function openPullRequestNumber(branch) {
 }
 
 /**
+ * The login the pull request is authored by, or null when it could not be read.
+ *
+ * The identity is what decides whether the pull request can ever land: one opened with
+ * `GITHUB_TOKEN` is authored by `app/github-actions`, and GitHub holds that author's
+ * `pull_request` run for approval, so the required checks never report.
+ *
+ * @param {number} number
+ * @returns {string|null}
+ */
+function pullRequestAuthor(number) {
+  const raw = gh(['pr', 'view', String(number), '--json', 'author'])
+  if (raw === '') return null
+  const parsed = JSON.parse(raw)
+  return parsed !== null && parsed.author && typeof parsed.author.login === 'string'
+    ? parsed.author.login
+    : null
+}
+
+/**
  * Opens the write-back pull request and returns its number.
  *
  * A concurrent run can create it between the listing above and this call; GitHub answers that
@@ -193,18 +213,22 @@ function main() {
   // answers "no pending change" and "a stale pull request is still open" without one.
   const openNumber = result.replaced === null ? null : openPullRequestNumber(WRITE_BACK_BRANCH)
   const action = planPullRequest({ hasPending, openNumber })
+  const number = action === 'reuse' ? openNumber : createPullRequest(result.branch)
 
-  if (action === 'reuse') {
-    console.log(
-      `regen: pushed ${result.sha} to ${result.branch}; pull request #${openNumber} updated`,
-    )
-  } else {
-    const number = createPullRequest(result.branch)
-    console.log(
-      `regen: pushed ${result.sha} to ${result.branch}; opened pull request ` +
-        `${number === null ? '(number unknown)' : `#${number}`}`,
-    )
+  // The job must not finish green behind a pull request that can never land. A write-back
+  // authored by the automation arrives with no checks at all: the ruleset refuses the merge and
+  // `auto-tag` waits for it forever. Fail here, naming the credential, instead of reporting a
+  // pending write-back as if it were progress.
+  const refusal = writeBackAuthorRefusal(number === null ? null : pullRequestAuthor(number))
+  if (refusal !== null) {
+    console.error(`regen: ${refusal}`)
+    process.exit(1)
   }
+
+  console.log(
+    `regen: pushed ${result.sha} to ${result.branch}; ` +
+      `pull request #${number} ${action === 'reuse' ? 'updated' : 'opened'}`,
+  )
 
   console.log('regen: pending=true; auto-tag is skipped until this pull request lands')
 }

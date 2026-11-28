@@ -231,7 +231,7 @@ function testFindHandTypedFacts() {
   // 4. A registered skill name paired with a version literal on the same line is flagged.
   {
     const violations = findHandTypedFacts(
-      [{ path: 'docs/skills/example.md', content: 'nn is pinned at V_1-2-0 in this doc.' }],
+      [{ path: 'docs/innfo/example.md', content: 'nn is pinned at V_1-2-0 in this doc.' }],
       { skillNames: ['nn'] },
     );
     assert.strictEqual(violations.length, 1, 'skill name + version literal is flagged when skillNames is provided');
@@ -241,7 +241,7 @@ function testFindHandTypedFacts() {
   // 5. A version literal with NO registered skill name on the line is not flagged (avoids false positives on unrelated V_x-y-z text).
   {
     const violations = findHandTypedFacts(
-      [{ path: 'docs/skills/example.md', content: 'The spec pins V_1-2-0 for an unrelated reason.' }],
+      [{ path: 'docs/innfo/example.md', content: 'The spec pins V_1-2-0 for an unrelated reason.' }],
       { skillNames: ['nn'] },
     );
     assert.strictEqual(violations.length, 0, 'version literal alone (no skill name on the line) is not a violation');
