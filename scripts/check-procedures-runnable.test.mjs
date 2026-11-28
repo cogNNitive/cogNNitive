@@ -33,18 +33,17 @@ function writeDoc(root, rel, body) {
   )
 }
 
-const RUNNABLE = `## NN Work: Do It
+const RUNNABLE = `## NN Procedure: Do It
 slug:: do-it
+summary:: Does it.
 
-## NN Work: First
+### NN Work: First
 slug:: first
-parent:: @do-it
 next:: @second
 executor:: agent
 
-## NN Work: Second
+### NN Work: Second
 slug:: second
-parent:: @do-it
 executor:: human
 `
 
@@ -62,14 +61,12 @@ test('an old-form procedure fails with MISSING_SLUG naming the file and the step
   writeDoc(
     root,
     'demo/procedures/old_procedures_NN.md',
-    `## NN Work: Old
-## NN Work: Step One
-parent:: [[Old]]
+    `## NN Procedure: Old
+### NN Work: Step One
 next:: [[Step Two]]
 tool:: [[AI Agent]]
 
-## NN Work: Step Two
-parent:: [[Old]]
+### NN Work: Step Two
 `,
   )
   const res = await checkProceduresRunnable({ blueprintsRoot: root, core })
@@ -101,41 +98,45 @@ test('a loop back to an earlier step fails with CYCLE', async () => {
   writeDoc(
     root,
     'demo/procedures/loop_procedures_NN.md',
-    RUNNABLE.replace(
-      'slug:: second\nparent:: @do-it',
-      'slug:: second\nparent:: @do-it\nnext:: @first',
-    ),
+    RUNNABLE.replace('slug:: second\n', 'slug:: second\nnext:: @first\n'),
   )
   const res = await checkProceduresRunnable({ blueprintsRoot: root, core })
   assert.equal(res.ok, false)
   assert.ok(res.failures.some((f) => f.code === 'CYCLE'))
 })
 
-test('a document of several sub-procedures is checked once per container', async () => {
+test('a document without a Procedure header fails with PROCEDURE_HEADER_COUNT', async () => {
   const root = fixtureRoot()
-  const other = RUNNABLE.replaceAll('do-it', 'other')
-    .replace('Do It', 'Other')
-    .replaceAll('first', 'third')
-    .replaceAll('second', 'fourth')
-    .replace('Work: First', 'Work: Third')
-    .replace('Work: Second', 'Work: Fourth')
-  writeDoc(root, 'demo/procedures/usage_procedures_NN.md', `${RUNNABLE}\n${other}`)
-  const ok = await checkProceduresRunnable({ blueprintsRoot: root, core })
-  assert.deepEqual(ok.failures, [], 'two clean containers are not MULTIPLE_STARTS')
+  writeDoc(root, 'demo/procedures/bare_procedures_NN.md', '## NN Work: A\nslug:: a\n')
+  const res = await checkProceduresRunnable({ blueprintsRoot: root, core })
+  assert.ok(res.failures.some((f) => f.code === 'PROCEDURE_HEADER_COUNT'))
+})
 
+test('a step left outside the header fails with WORK_NOT_UNDER_PROCEDURE', async () => {
+  const root = fixtureRoot()
   writeDoc(
     root,
-    'demo/procedures/usage_procedures_NN.md',
-    `${RUNNABLE}\n${other.replace('next:: @fourth', 'next:: @gone')}`,
+    'demo/procedures/loose_procedures_NN.md',
+    `${RUNNABLE}
+# NN Work
+
+## NN Work: Loose
+slug:: loose
+`,
   )
-  const bad = await checkProceduresRunnable({ blueprintsRoot: root, core })
-  assert.deepEqual(
-    bad.failures.map((f) => [f.container, f.step, f.code]),
-    [
-      ['other', 'third', 'UNKNOWN_NEXT'],
-      ['other', null, 'MULTIPLE_STARTS'],
-    ],
+  const res = await checkProceduresRunnable({ blueprintsRoot: root, core })
+  assert.ok(res.failures.some((f) => f.code === 'WORK_NOT_UNDER_PROCEDURE' && f.step === 'loose'))
+})
+
+test('a declared procedure with no steps passes', async () => {
+  const root = fixtureRoot()
+  writeDoc(
+    root,
+    'demo/procedures/rfp_procedures_NN.md',
+    '## NN Procedure: RFP\nslug:: rfp\nsummary:: Answers an RFP.\n',
   )
+  const res = await checkProceduresRunnable({ blueprintsRoot: root, core })
+  assert.deepEqual(res.failures, [])
 })
 
 test('only *_procedures_NN.md documents directly under procedures/ are checked', async () => {
@@ -150,9 +151,7 @@ test('only *_procedures_NN.md documents directly under procedures/ are checked',
 
 test('every shipped procedure is runnable', async () => {
   const res = await checkProceduresRunnable({ core })
-  const lines = res.failures.map(
-    (f) => `${f.target}${f.container ? `@${f.container}` : ''} ${f.step ?? ''} ${f.code}`,
-  )
+  const lines = res.failures.map((f) => `${f.target} ${f.step ?? ''} ${f.code}`)
   assert.deepEqual(lines, [])
   assert.ok(res.checked >= 30, `only ${res.checked} procedure documents were found`)
 })

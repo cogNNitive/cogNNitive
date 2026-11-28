@@ -56,7 +56,7 @@ A procedure that an agent skill carries out MUST be modeled as a `Procedure` wit
 
 `executor` MUST be the only field that says how a step runs, with the values `human`, `agent` and `engine`, and a step that declares no `executor` MUST be performed by an agent; that default MUST be defined in one place.
 `tool` MUST NOT be read as an executor: `tool` references the `Tools` element a step uses and nothing else.
-Who answers for a step MUST be expressed by the `work-roles matrix` (Responsible, Accountable, Consulted, Informed), keyed by the step's `slug`.
+Who answers for a step MUST be expressed by the `work-roles matrix` (Responsible, Accountable, Consulted, Informed), and a consumer MUST resolve a matrix row to its step the way the procedure graph resolves a reference: by slug first, then by element name.
 
 #### Scenario: a step with a console tool and no executor
 

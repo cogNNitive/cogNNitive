@@ -72,7 +72,7 @@ blueprints:
   - name: procedures
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/procedures/spec_NN.md
-    version: "V_0-7-0"
+    version: "V_0-8-0"
     ref_key: blueprints
   - name: executions
     repo: cogNNitive/cogNNitive-web
