@@ -37,7 +37,7 @@ Branch: `t3/procedure-workflow-investigation`. Delivery: `ask-on-risk`. Merge is
 | T9 | S9 | inside T5 | pending | — |
 | T10 | S10 | inline | blocked by T1 | — |
 | T11 | S11 | inside T3 | pending | — |
-| T12 | S12 | inline docs | pending | — |
+| T12 | S12 | inline docs | done | nn-console-kit Rule E |
 | T13 | S13 | inline | partly blocked by #972 | — |
 | T14 | S14 | inline | blocked by #975 | — |
 | T15 | S15 | parked | deferred | — |
