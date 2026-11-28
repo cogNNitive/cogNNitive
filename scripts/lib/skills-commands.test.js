@@ -464,19 +464,57 @@ test('assertBlueprintCompatibility refuses unsupported format_version', () => {
   }
 })
 
-test('assertBlueprintCompatibility reads frontmatter requirements from spec_NN.md when blueprint.json is absent', () => {
+test('assertBlueprintCompatibility reads requires only from blueprint.json, not spec_NN.md frontmatter', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bp-compat-'))
   try {
     fs.writeFileSync(
       path.join(tmp, 'spec_NN.md'),
-      '---\nlevel: 2\nblueprint_name: "md-bp"\nrequires:\n  engine: ">=99.0.0"\nformat_version: "V_0-5-0"\n---\n# md-bp\n',
+      '---\nlevel: 2\nblueprint_name: "md-bp"\nrequires:\n  engine: ">=99.0.0"\nengine: ">=99.0.0"\nformat_version: "V_0-5-0"\n---\n# md-bp\n',
     )
-    assert.throws(
-      () => assertBlueprintCompatibility('md-bp', tmp),
-      /refusing to install blueprint 'md-bp': incompatible engine/,
-    )
+    assert.doesNotThrow(() => assertBlueprintCompatibility('md-bp', tmp))
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true })
+  }
+})
+
+test('assertBlueprintCompatibility refuses a requires that is not { engine: <range> }', () => {
+  for (const requires of ['>=0.1.0', 'engine >=0.1.0', { engine: 5 }, {}]) {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bp-compat-'))
+    try {
+      fs.writeFileSync(
+        path.join(tmp, 'blueprint.json'),
+        JSON.stringify({ name: 'odd-bp', requires, format_version: 'V_0-5-0' }),
+      )
+      assert.throws(
+        () => assertBlueprintCompatibility('odd-bp', tmp),
+        /malformed requires in blueprint\.json of blueprint 'odd-bp': expected \{ "engine": "<range>" \}/,
+        JSON.stringify(requires),
+      )
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true })
+    }
+  }
+})
+
+test('assertBlueprintCompatibility accepts every published iNNfo format version', () => {
+  const specsDir = path.join(__dirname, '..', '..', 'iNNfo', 'specs')
+  const published = fs
+    .readdirSync(specsDir)
+    .map((f) => /^iNNfo_(V_\d+-\d+-\d+)_NN\.md$/.exec(f))
+    .filter(Boolean)
+    .map((m) => m[1])
+  assert.ok(published.includes('V_0-1-0') && published.includes('V_0-6-0'), published.join(','))
+  for (const formatVersion of published) {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bp-compat-'))
+    try {
+      fs.writeFileSync(
+        path.join(tmp, 'blueprint.json'),
+        JSON.stringify({ name: 'fmt-bp', format_version: formatVersion }),
+      )
+      assert.doesNotThrow(() => assertBlueprintCompatibility('fmt-bp', tmp), formatVersion)
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true })
+    }
   }
 })
 

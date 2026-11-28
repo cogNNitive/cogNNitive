@@ -12,6 +12,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
@@ -45,6 +46,32 @@ function runTests() {
       const res = spawnSync(process.execPath, [tmpBundle], { encoding: 'utf-8' })
       assert.ok((res.stdout + res.stderr).includes('Usage:'), res.stdout + res.stderr)
       console.log('✔ bundle runs standalone')
+    }
+
+    // Test 2b: outside the repo, the bundle reports the engine it was built from and
+    // every published iNNfo format version (nothing resolved relative to __dirname).
+    {
+      const repoRoot = path.join(SCRIPT_DIR, '..')
+      const coreVersion = JSON.parse(
+        fs.readFileSync(path.join(repoRoot, 'iNNfo', 'packages', 'nn-core', 'package.json'), 'utf-8'),
+      ).version
+      const formats = fs
+        .readdirSync(path.join(repoRoot, 'iNNfo', 'specs'))
+        .map((f) => /^iNNfo_(V_\d+-\d+-\d+)_NN\.md$/.exec(f))
+        .filter(Boolean)
+        .map((m) => m[1])
+      const bundle = createRequire(import.meta.url)(tmpBundle)
+      assert.strictEqual(bundle.getEngineVersion(), coreVersion, 'bundle carries the nn-core version')
+      const bp = path.join(tmp, 'bp')
+      fs.mkdirSync(bp)
+      for (const format_version of formats) {
+        fs.writeFileSync(
+          path.join(bp, 'blueprint.json'),
+          JSON.stringify({ name: 'bp', requires: { engine: `>=${coreVersion}` }, format_version }),
+        )
+        assert.doesNotThrow(() => bundle.assertBlueprintCompatibility('bp', bp), format_version)
+      }
+      console.log('✔ bundle carries the engine version and the published format versions')
     }
 
   // Test 3: --check passes when in sync

@@ -42,6 +42,8 @@ const PATTERNS = [
 const ALLOWLIST = [
   { pattern: 'scripts/check-spec-version.mjs', reason: 'published-spec URL tooling: identifies the published L0-L2 spec files, not workspace files' },
   { pattern: 'scripts/migrate-spec-urls.mjs', reason: 'historical one-time codemod over published-spec URLs' },
+  { pattern: 'scripts/lib/engine-facts.js', reason: 'lists the published iNNfo format specs (iNNfo/specs/iNNfo_V_*), spec identity, not workspace files' },
+  { pattern: 'skills/nn-skills-lifecycle/scripts/skills-manager.js', reason: 'generated bundle of scripts/skills-manager.js + scripts/lib/*; its sources are scanned here, so a second definition fails at the source' },
   { pattern: 'scripts/lib/tag-pin-freshness.js', reason: 'matches the canonical blueprint spec filename (a fixed package asset identity), not the workspace model name pattern' },
   { pattern: 'scripts/lib/nn-name-regex-guard.js', reason: 'this guard carries the pattern table itself' },
   { pattern: 'iNNfo/packages/nn-core/src/schema/canonical-registry.ts', reason: 'published-spec URL matching in the offline registry (spec identity, not workspace files)' },

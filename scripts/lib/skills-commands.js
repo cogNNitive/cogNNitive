@@ -56,30 +56,14 @@ const {
 } = require('./blueprint-channels.js')
 const { satisfiesRange } = require('./node-engine-check.js')
 
-const SUPPORTED_FORMAT_VERSIONS = [
-  'V_0-2-0',
-  'V_0-2-1',
-  'V_0-2-2',
-  'V_0-3-0',
-  'V_0-4-0',
-  'V_0-5-0',
-  'V_0-7-0',
-  'V_0-8-0',
-  'V_0-9-0',
-]
+const { engineFacts } = require('./engine-facts.js')
 
 /**
- * Reads engine version from core package.json, falling back to 0.60.0.
+ * The nn-core version this skills-manager was built with (see ./engine-facts.js).
  * @returns {string}
  */
 function getEngineVersion() {
-  try {
-    const corePkgPath = path.resolve(__dirname, '../../iNNfo/packages/nn-core/package.json')
-    if (fs.existsSync(corePkgPath)) {
-      return JSON.parse(fs.readFileSync(corePkgPath, 'utf-8')).version
-    }
-  } catch {}
-  return '0.60.0'
+  return engineFacts().engineVersion
 }
 
 /**
@@ -122,28 +106,20 @@ function assertBlueprintCompatibility(blueprintName, srcPath) {
     } catch {}
   }
 
-  // 1. Engine requirement (requires.engine)
-  let engineRange = null
-  if (manifest && manifest.requires) {
-    if (typeof manifest.requires === 'object' && manifest.requires.engine) {
-      engineRange = String(manifest.requires.engine).trim()
-    } else if (typeof manifest.requires === 'string') {
-      engineRange = manifest.requires.trim()
+  // 1. Engine requirement: `requires: { "engine": "<range>" }` in blueprint.json, the one form.
+  if (manifest && manifest.requires !== undefined) {
+    const requires = manifest.requires
+    if (
+      !requires ||
+      typeof requires !== 'object' ||
+      typeof requires.engine !== 'string' ||
+      !requires.engine.trim()
+    ) {
+      throw new Error(
+        `malformed requires in blueprint.json of blueprint '${blueprintName}': expected { "engine": "<range>" }, got ${JSON.stringify(requires)}.`,
+      )
     }
-  } else if (fm && fm.requires) {
-    if (typeof fm.requires === 'object' && fm.requires.engine) {
-      engineRange = String(fm.requires.engine).trim()
-    } else if (typeof fm.requires === 'string') {
-      engineRange = fm.requires.trim()
-    }
-  } else if (fm && fm.engine) {
-    engineRange = String(fm.engine).trim()
-  }
-
-  if (engineRange) {
-    if (engineRange.toLowerCase().startsWith('engine ')) {
-      engineRange = engineRange.slice(7).trim()
-    }
+    const engineRange = requires.engine.trim()
     const currentEngine = getEngineVersion()
     if (!satisfiesRange(currentEngine, engineRange)) {
       throw new Error(
@@ -156,9 +132,10 @@ function assertBlueprintCompatibility(blueprintName, srcPath) {
   const formatVersion = manifest?.format_version ?? fm?.format_version ?? fm?.spec_version
   if (formatVersion) {
     const norm = String(formatVersion).trim()
-    if (!SUPPORTED_FORMAT_VERSIONS.includes(norm)) {
+    const supported = engineFacts().formatVersions
+    if (!supported.includes(norm)) {
       throw new Error(
-        `refusing to install blueprint '${blueprintName}': unsupported format_version '${norm}'. Supported versions are: ${SUPPORTED_FORMAT_VERSIONS.join(', ')}.`,
+        `refusing to install blueprint '${blueprintName}': unsupported format_version '${norm}'. Supported versions are: ${supported.join(', ')}.`,
       )
     }
   }
