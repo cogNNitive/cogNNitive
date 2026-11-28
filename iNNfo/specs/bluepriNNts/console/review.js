@@ -808,10 +808,12 @@
       if (payload.comment !== undefined && payload.comment !== null) {
         draft.comment = String(payload.comment)
       }
-      // Canonical unit address of the draft target (element, or element&field).
-      draft.address = draft.field
-        ? elementAddress(el) + '&' + draft.field
-        : elementAddress(el)
+      // Canonical unit address of the draft target: the element badge, or that badge plus
+      // `&<field>` when the draft edits one field. `__name` targets the element itself.
+      draft.address = elementAddress(el)
+      if (draft.field && draft.field !== '__name' && draft.address) {
+        draft.address += '&' + draft.field
+      }
       var saved = store.addDraft(draft)
       showChangeToast()
       refreshCount()
