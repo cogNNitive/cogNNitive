@@ -190,7 +190,7 @@ test('checkHandTypedFactsAtRef detects a hand-typed skill version from the manif
   try {
     fs.mkdirSync(path.join(root, 'manifest'), { recursive: true });
     fs.writeFileSync(path.join(root, 'manifest', 'source.yaml'), 'skills:\n  - name: nn-demo\n    description: demo\n');
-    const docs = path.join(root, 'docs', 'skills', 'documentation');
+    const docs = path.join(root, 'docs', 'innfo', 'documentation');
     fs.mkdirSync(docs, { recursive: true });
     fs.writeFileSync(path.join(docs, 'demo.md'), 'nn-demo (V_0-1-2) is documented here\n');
     commitAll(root, 'docs');
@@ -205,7 +205,7 @@ test('checkHandTypedFactsAtRef detects a hand-typed skill version from the manif
 test('checkHandTypedFactsAtRef passes on clean docs', () => {
   const root = makeGitRepo();
   try {
-    const docs = path.join(root, 'docs', 'skills');
+    const docs = path.join(root, 'docs', 'innfo');
     fs.mkdirSync(docs, { recursive: true });
     fs.writeFileSync(path.join(docs, 'x.md'), '# clean\n\nNo counts or versions here.\n');
     commitAll(root, 'docs');

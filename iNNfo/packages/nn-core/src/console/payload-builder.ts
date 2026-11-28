@@ -200,6 +200,30 @@ function extractWikilinksFromValue(val: unknown): { target: string; label?: stri
   return []
 }
 
+/** Every reference token a field may hold: a scalar string or an array of strings. */
+function referenceTokens(val: unknown): string[] {
+  if (typeof val === 'string') return [val]
+  if (Array.isArray(val)) return val.filter((v): v is string => typeof v === 'string')
+  return []
+}
+
+/**
+ * The target name inside a canonical reference value: `Target`, `[Model] Target` or
+ * `Model :: Target` (`references.ts` documents the grammar). A wikilink is unwrapped
+ * first so both passes agree on what the target is called.
+ */
+function referenceTargetName(value: string): string {
+  let text = String(value || '').trim()
+  if (!text) return ''
+  const link = text.match(/^\[\[([^\]]+)\]\]$/)
+  if (link) text = link[1].split('|')[0].trim()
+  const bracket = text.match(/^\[[^\]]+\]\s*(.+)$/)
+  if (bracket) return bracket[1].trim()
+  const colon = text.lastIndexOf('::')
+  if (colon !== -1) return text.slice(colon + 2).trim()
+  return text
+}
+
 /**
  * The id of a model the caller could not give an index id for: the compact stem
  * of the file name (`pepper-mapache_coNNtent_NN.md` -> `pepper-mapache`), or
@@ -300,6 +324,25 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
       ? resolveBlueprintSchema(inputSchema).schema
       : (inputSchema as any)
 
+  // Fields the blueprint declares as `type:: reference` hold the canonical reference
+  // grammar (`Target`, `[Model] Target`, `Model :: Target`), which carries no `[[...]]`:
+  // the wikilink pass below cannot see them, so a model that declares its edges the
+  // canonical way shipped no relations at all (#803).
+  const referenceFieldsByConcept = new Map<string, Set<string>>()
+  if (resolvedBlueprintSchema?.concepts) {
+    const conceptDefs = Array.isArray(resolvedBlueprintSchema.concepts)
+      ? resolvedBlueprintSchema.concepts
+      : Object.values(resolvedBlueprintSchema.concepts)
+    for (const def of conceptDefs as any[]) {
+      const names = (Array.isArray(def?.fields) ? def.fields : [])
+        .filter((f: any) => f?.type === 'reference')
+        .map((f: any) => String(f.name).toLowerCase())
+      if (def?.name && names.length > 0) {
+        referenceFieldsByConcept.set(String(def.name).toLowerCase(), new Set(names))
+      }
+    }
+  }
+
   for (const [conceptName, nodes] of parsed.elements.entries()) {
     for (const node of nodes) {
       const concept = conceptName
@@ -392,6 +435,26 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
             target: targetEl.id,
             targetLabel: link.label || targetEl.name,
           })
+        }
+      }
+    }
+    // A `type:: reference` field resolves through the same indexes and lands in the same
+    // `relations` shape, so the Connections tab reads one kind of edge regardless of how
+    // the model declared it. `type:: knowledge` (cross-document) stays out of scope: the
+    // console model carries one document.
+    const referenceFields = referenceFieldsByConcept.get(elem.concept.toLowerCase())
+    if (referenceFields) {
+      for (const [fieldName, val] of Object.entries(rawFields)) {
+        if (!referenceFields.has(fieldName.toLowerCase())) continue
+        for (const token of referenceTokens(val)) {
+          const targetName = referenceTargetName(token)
+          if (!targetName) continue
+          const targetEl =
+            elementsByName.get(targetName.toLowerCase()) ||
+            elementsById.get(slugify(targetName).toLowerCase())
+          if (!targetEl || targetEl.id === elem.id) continue
+          if (relations.some((r) => r.field === fieldName && r.target === targetEl.id)) continue
+          relations.push({ field: fieldName, target: targetEl.id, targetLabel: targetEl.name })
         }
       }
     }
